@@ -1,5 +1,5 @@
 -- =========================================================================
--- Phlo Workshop — auth schema
+-- Phlo AI Ops — auth schema
 -- Run this in Supabase Studio → SQL Editor (one block at a time is fine).
 -- =========================================================================
 
@@ -42,15 +42,15 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
 
--- 3. Restrict sign-up to @phlo.com emails ---------------------------------
--- Runs before insert into auth.users. Rejects any non-phlo.com email.
+-- 3. Restrict sign-up to @wearephlo.com emails ---------------------------
+-- Runs before insert into auth.users. Rejects any non-wearephlo.com email.
 create or replace function public.enforce_phlo_email()
 returns trigger
 language plpgsql
 as $$
 begin
-  if new.email is null or new.email !~* '@phlo\.com$' then
-    raise exception 'Sign-up restricted to @phlo.com email addresses'
+  if new.email is null or new.email !~* '@wearephlo\.com$' then
+    raise exception 'Sign-up restricted to @wearephlo.com email addresses'
       using errcode = '22023';
   end if;
   return new;

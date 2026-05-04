@@ -1,5 +1,5 @@
 -- =========================================================================
--- Phlo Workshop — workflows migration (additive)
+-- Phlo AI Ops — workflows migration (additive)
 -- Run this in Supabase Studio → SQL Editor AFTER schema.sql + workflows.sql.
 -- Safe to re-run.
 -- =========================================================================

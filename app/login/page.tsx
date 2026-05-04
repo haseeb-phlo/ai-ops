@@ -14,6 +14,16 @@ export default function LoginPage() {
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+
+    if (!email.trim().toLowerCase().endsWith("@wearephlo.com")) {
+      setStatus({
+        kind: "error",
+        message:
+          "This is not an approved email. Please use an official Phlo email.",
+      });
+      return;
+    }
+
     setStatus({ kind: "sending" });
 
     const supabase = createClient();
@@ -36,10 +46,10 @@ export default function LoginPage() {
       <div className="w-full max-w-sm space-y-6">
         <div className="space-y-2">
           <h1 className="text-2xl font-semibold tracking-tight">
-            Sign in to Phlo Workshop
+            Sign in to Phlo AI Ops
           </h1>
           <p className="text-sm text-zinc-500">
-            Enter your @phlo.com email and we&apos;ll send you a magic link.
+            Enter your @wearephlo.com email and we&apos;ll send you a magic link.
           </p>
         </div>
 
@@ -47,7 +57,7 @@ export default function LoginPage() {
           <input
             type="email"
             required
-            placeholder="you@phlo.com"
+            placeholder="you@wearephlo.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             disabled={status.kind === "sending" || status.kind === "sent"}

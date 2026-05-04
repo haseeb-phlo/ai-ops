@@ -1,5 +1,5 @@
 -- =========================================================================
--- Phlo Workshop — workflows schema
+-- Phlo AI Ops — workflows schema
 -- Run this in Supabase Studio → SQL Editor after schema.sql.
 -- Safe to re-run (uses "if not exists" / "drop policy if exists").
 -- =========================================================================
