@@ -10,6 +10,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { PageContainer, PageHeader } from "@/components/page-header";
+import { loadTeamOptions } from "@/lib/teams";
 import { TeamFilter } from "./_components/team-filter";
 import { NewWorkflowDialog } from "./_components/new-workflow-dialog";
 
@@ -43,7 +45,7 @@ export default async function WorkflowsPage(props: {
     .select(
       "id, name, team, frequency_per_week, regulatory, workflow_steps(count)",
     )
-    .eq("active", true)
+    .is("deleted_at", null)
     .order("name");
 
   if (activeTeam !== ALL_TEAMS) {
@@ -71,43 +73,30 @@ export default async function WorkflowsPage(props: {
     }
   }
 
-  // 3. Distinct teams for the filter dropdown.
-  const { data: teamRows } = await supabase
-    .from("workflows")
-    .select("team")
-    .eq("active", true)
-    .not("team", "is", null);
-
-  const teamOptions = Array.from(
-    new Set((teamRows ?? []).map((r) => r.team).filter(Boolean) as string[]),
-  ).sort();
-
-  if (user.team && !teamOptions.includes(user.team)) {
-    teamOptions.unshift(user.team);
-  }
+  // 3. Team options for the filter dropdown and the new-workflow picker.
+  //    Unions people.team + workflows.team so every team a person belongs to
+  //    is selectable, even if nobody has logged a workflow on it yet.
+  const teamOptions = await loadTeamOptions(supabase, user.team);
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-6 py-10 space-y-6">
-      <div className="flex items-end justify-between gap-4 flex-wrap">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Workflows</h1>
-          <p className="text-sm text-muted-foreground">
-            Active recurring processes across the company.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <TeamFilter
-            teams={teamOptions}
-            value={activeTeam}
-            userTeam={user.team}
-          />
-          <NewWorkflowDialog
-            teams={teamOptions}
-            defaultTeam={user.team ?? teamOptions[0] ?? ""}
-          />
-        </div>
-      </div>
+    <PageContainer>
+      <PageHeader
+        title="Workflows"
+        description="Active recurring processes across the company."
+        actions={
+          <>
+            <TeamFilter
+              teams={teamOptions}
+              value={activeTeam}
+              userTeam={user.team}
+            />
+            <NewWorkflowDialog
+              teams={teamOptions}
+              defaultTeam={user.team ?? teamOptions[0] ?? ""}
+            />
+          </>
+        }
+      />
 
       {error && (
         <p className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
@@ -115,72 +104,65 @@ export default async function WorkflowsPage(props: {
         </p>
       )}
 
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Team</TableHead>
-              <TableHead className="text-right">Frequency / wk</TableHead>
-              <TableHead className="text-right">Steps</TableHead>
-              <TableHead>Regulatory</TableHead>
-              <TableHead className="text-right">Active interventions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {(workflows ?? []).length === 0 && !error && (
+      <div className="rounded-lg border border-zinc-200 bg-white">
+        {(workflows ?? []).length === 0 && !error ? (
+          <div className="px-4 py-10 text-center text-sm text-muted-foreground">
+            No workflows
+            {activeTeam !== ALL_TEAMS && ` for team "${activeTeam}"`} yet.
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell
-                  colSpan={6}
-                  className="text-center text-sm text-muted-foreground py-10"
-                >
-                  No workflows
-                  {activeTeam !== ALL_TEAMS && ` for team "${activeTeam}"`}.
-                  Click <span className="font-medium">Add new workflow</span> to
-                  create one.
-                </TableCell>
+                <TableHead>Name</TableHead>
+                <TableHead>Team</TableHead>
+                <TableHead className="text-right">Frequency / wk</TableHead>
+                <TableHead className="text-right">Steps</TableHead>
+                <TableHead>Regulatory</TableHead>
+                <TableHead className="text-right">Active interventions</TableHead>
               </TableRow>
-            )}
+            </TableHeader>
+            <TableBody>
+              {(workflows ?? []).map((wf) => {
+                const stepsCount = wf.workflow_steps?.[0]?.count ?? 0;
+                const activeInterventions = interventionCounts.get(wf.id) ?? 0;
 
-            {(workflows ?? []).map((wf) => {
-              const stepsCount = wf.workflow_steps?.[0]?.count ?? 0;
-              const activeInterventions = interventionCounts.get(wf.id) ?? 0;
-
-              return (
-                <TableRow key={wf.id}>
-                  <TableCell>
-                    <Link
-                      href={`/workflows/${wf.id}`}
-                      className="font-medium hover:underline"
-                    >
-                      {wf.name}
-                    </Link>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {wf.team ?? "—"}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {wf.frequency_per_week ?? 0}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {stepsCount}
-                  </TableCell>
-                  <TableCell>
-                    {wf.regulatory ? (
-                      <Badge variant="destructive">Regulatory</Badge>
-                    ) : (
-                      <Badge variant="secondary">No</Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {activeInterventions}
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+                return (
+                  <TableRow key={wf.id}>
+                    <TableCell className="font-medium text-zinc-900">
+                      <Link
+                        href={`/workflows/${wf.id}`}
+                        className="hover:underline"
+                      >
+                        {wf.name}
+                      </Link>
+                    </TableCell>
+                    <TableCell className="text-zinc-700">
+                      {wf.team ?? <span className="text-zinc-400">-</span>}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {wf.frequency_per_week ?? 0}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {stepsCount}
+                    </TableCell>
+                    <TableCell>
+                      {wf.regulatory ? (
+                        <Badge variant="destructive">Regulatory</Badge>
+                      ) : (
+                        <span className="text-zinc-400">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {activeInterventions}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        )}
       </div>
-    </div>
+    </PageContainer>
   );
 }

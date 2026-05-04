@@ -1,26 +1,36 @@
 import { getSessionUser } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
+import { loadPeopleTeams } from "@/lib/teams";
+import { PageContainer, PageHeader } from "@/components/page-header";
 import { ProfileForm } from "./_components/profile-form";
 
 export default async function ProfilePage() {
   const user = await getSessionUser();
+  const supabase = await createClient();
+
+  // The People page is the canonical source of teams — anything not in
+  // people.team is intentionally excluded so members can't pick a team that
+  // org-structurally doesn't exist.
+  const teams = await loadPeopleTeams(supabase, user.team);
 
   return (
-    <div className="mx-auto w-full max-w-xl px-6 py-10 space-y-6">
-      <div className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Your profile</h1>
-        <p className="text-sm text-muted-foreground">
-          Your name and avatar are shown across the app and on the company map.
-        </p>
-      </div>
-
-      <ProfileForm
-        defaultDisplayName={user.displayName}
-        defaultAvatarUrl={user.avatarUrl}
-        defaultTitle={user.title ?? ""}
-        email={user.email}
-        team={user.team}
-        userId={user.id}
+    <PageContainer>
+      <PageHeader
+        title="Your profile"
+        description="Your name, photo, and team are shown across the app and on the company map."
       />
-    </div>
+
+      <div className="max-w-xl">
+        <ProfileForm
+          defaultDisplayName={user.displayName}
+          defaultAvatarUrl={user.avatarUrl}
+          defaultTitle={user.title ?? ""}
+          defaultTeam={user.team}
+          email={user.email}
+          userId={user.id}
+          teams={teams}
+        />
+      </div>
+    </PageContainer>
   );
 }

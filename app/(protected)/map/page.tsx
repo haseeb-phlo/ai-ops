@@ -18,6 +18,12 @@ type ProfileRow = {
   title: string | null;
 };
 
+type PeopleRow = {
+  display_name: string | null;
+  title: string | null;
+  team: string | null;
+};
+
 type RoleGrantRow = {
   user_id: string;
   team: string | null;
@@ -52,6 +58,7 @@ export default async function MapPage() {
   const [
     profilesRes,
     grantsRes,
+    peopleRes,
     workflowsRes,
     interventionsRes,
     historyRes,
@@ -65,11 +72,15 @@ export default async function MapPage() {
       .select("user_id, team")
       .returns<RoleGrantRow[]>(),
     supabase
+      .from("people")
+      .select("display_name, title, team")
+      .returns<PeopleRow[]>(),
+    supabase
       .from("workflows")
       .select(
         "id, name, team, regulatory, frequency_per_week, criticality_score, owner_names",
       )
-      .eq("active", true)
+      .is("deleted_at", null)
       .returns<WorkflowRow[]>(),
     supabase
       .from("intervention_workflows")
@@ -86,6 +97,7 @@ export default async function MapPage() {
   const errors = [
     profilesRes.error,
     grantsRes.error,
+    peopleRes.error,
     workflowsRes.error,
     interventionsRes.error,
     historyRes.error,
@@ -112,6 +124,22 @@ export default async function MapPage() {
     teamByUser.set(g.user_id, g.team ?? null);
   }
 
+  // people-table info keyed by lowercased display_name. The People page is
+  // the source of truth for org structure, so when a profile and a people
+  // row collide on name we prefer the people row's team and title.
+  const peopleByName = new Map<
+    string,
+    { team: string | null; title: string | null }
+  >();
+  for (const p of peopleRes.data ?? []) {
+    const name = p.display_name?.trim();
+    if (!name) continue;
+    peopleByName.set(name.toLowerCase(), {
+      team: p.team ?? null,
+      title: p.title ?? null,
+    });
+  }
+
   const profileNames = new Set<string>();
   const data: GalaxyData = {
     viewerId: user.id,
@@ -121,25 +149,47 @@ export default async function MapPage() {
     history: [],
   };
 
-  // 1. People from profiles (real users)
+  // 1. People from profiles (real users), enriched with people-table data
+  //    when the names match.
   for (const p of profilesRes.data ?? []) {
     const displayName =
       p.display_name?.trim() && p.display_name.trim().length > 0
         ? p.display_name.trim()
         : null;
     if (!displayName) continue;
+    const peopleMatch = peopleByName.get(displayName.toLowerCase());
     data.people.push({
       id: `user:${p.user_id}`,
       name: displayName,
-      title: p.title ?? null,
+      title: peopleMatch?.title ?? p.title ?? null,
       avatarUrl: resolveAvatar(p.avatar_url, p.user_id),
-      team: teamByUser.get(p.user_id) ?? null,
+      team: peopleMatch?.team ?? teamByUser.get(p.user_id) ?? null,
       kind: "user",
     });
     profileNames.add(displayName.toLowerCase());
   }
 
-  // 2. Workflow owners not yet in profiles → ghost people seeded by name
+  // 2. People-table rows that don't match a profile → ghost nodes with their
+  //    proper team and title. Use `name:${key}` ids so workflow-owner edges
+  //    naturally connect to them.
+  for (const p of peopleRes.data ?? []) {
+    const name = p.display_name?.trim();
+    if (!name) continue;
+    const key = name.toLowerCase();
+    if (profileNames.has(key)) continue;
+    data.people.push({
+      id: `name:${key}`,
+      name,
+      title: p.title ?? null,
+      avatarUrl: resolveAvatar(null, name),
+      team: p.team ?? null,
+      kind: "ghost",
+    });
+    profileNames.add(key);
+  }
+
+  // 3. Workflow owners not yet covered by profiles or people → ghost nodes
+  //    seeded purely from the owner_names string.
   const ghostByName = new Map<string, string>(); // lower-name -> id
   for (const w of workflowsRes.data ?? []) {
     for (const rawName of w.owner_names ?? []) {
@@ -160,10 +210,11 @@ export default async function MapPage() {
     }
   }
 
-  // 3. Teams = union of all known teams
+  // 4. Teams = union of all known teams.
   const teams = new Set<string>();
   for (const w of workflowsRes.data ?? []) if (w.team) teams.add(w.team);
   for (const g of grantsRes.data ?? []) if (g.team) teams.add(g.team);
+  for (const p of peopleRes.data ?? []) if (p.team) teams.add(p.team);
   data.teams = Array.from(teams).sort().map((name) => ({ id: `team:${name}`, name }));
 
   // 4. Active intervention counts per workflow
@@ -201,7 +252,7 @@ export default async function MapPage() {
     });
   }
 
-  // 6. History rows — pass straight through, the client groups them
+  // 6. History rows - pass straight through, the client groups them
   for (const h of historyRes.data ?? []) {
     data.history.push({
       workflowId: `wf:${h.workflow_id}`,
@@ -213,12 +264,12 @@ export default async function MapPage() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <div className="border-b bg-white px-6 py-3">
-        <h1 className="text-lg font-semibold tracking-tight">Company map</h1>
-        <p className="text-xs text-muted-foreground">
-          Teams orbit Phlo. People orbit their team. Workflows orbit their
-          owners. Bright workflows are critical; comet trails mean an active AI
-          intervention.
+      <div className="border-b bg-white px-6 py-5">
+        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
+          Company map
+        </h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Teams orbit Phlo, people orbit their team, workflows orbit their owners. Pick a heat metric; see the legend for what each colour means.
         </p>
       </div>
       <Galaxy data={data} />
