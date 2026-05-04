@@ -5,6 +5,18 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionUser } from "@/lib/auth";
 
+const INTERVENTION_TYPES = [
+  "tool",
+  "training",
+  "prompt",
+  "agent",
+  "automation",
+  "process_change",
+] as const;
+
+const CONFIDENCES = ["high", "medium", "low"] as const;
+const STATUSES = ["active", "paused", "retired"] as const;
+
 const SnapshotSchema = z.object({
   intervention_id: z.string().uuid(),
   snapshot_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Pick a valid date"),
@@ -47,7 +59,7 @@ export async function logMetricSnapshot(
   if (!parsed.success) {
     return {
       kind: "error",
-      message: parsed.error.issues.map((i) => i.message).join(" — "),
+      message: parsed.error.issues.map((i) => i.message).join(" - "),
     };
   }
 
@@ -74,5 +86,129 @@ export async function logMetricSnapshot(
   }
 
   revalidatePath(`/interventions/${data.intervention_id}`);
+  revalidatePath("/dashboard");
+  return { kind: "success" };
+}
+
+// =========================================================================
+// Edit + retire
+// =========================================================================
+
+const UpdateSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().min(1, "Name is required").max(200),
+  type: z.enum(INTERVENTION_TYPES, { error: "Pick an intervention type" }),
+  description: z.string().max(500).nullable(),
+  minutes_saved_per_week: z
+    .number({ error: "Minutes saved must be a number" })
+    .min(0, "Minutes saved can't be negative")
+    .max(100000)
+    .nullable(),
+  attribution_confidence: z.enum(CONFIDENCES),
+});
+
+export type UpdateInterventionState =
+  | { kind: "idle" }
+  | { kind: "error"; message: string }
+  | { kind: "success" };
+
+export async function updateIntervention(
+  _prev: UpdateInterventionState,
+  formData: FormData,
+): Promise<UpdateInterventionState> {
+  await getSessionUser();
+
+  const minutesRaw = formData.get("minutes_saved_per_week");
+  const minutesParsed =
+    typeof minutesRaw === "string" && minutesRaw.trim() !== ""
+      ? Number(minutesRaw)
+      : null;
+  const descriptionRaw = formData.get("description");
+  const description =
+    typeof descriptionRaw === "string" && descriptionRaw.trim() !== ""
+      ? descriptionRaw
+      : null;
+
+  const parsed = UpdateSchema.safeParse({
+    id: formData.get("id"),
+    name: formData.get("name"),
+    type: formData.get("type"),
+    description,
+    minutes_saved_per_week: minutesParsed,
+    attribution_confidence: formData.get("attribution_confidence"),
+  });
+
+  if (!parsed.success) {
+    return {
+      kind: "error",
+      message: parsed.error.issues.map((i) => i.message).join(" - "),
+    };
+  }
+
+  const data = parsed.data;
+  const supabase = await createClient();
+
+  const { error } = await supabase.rpc("update_intervention", {
+    p_id: data.id,
+    p_name: data.name,
+    p_type: data.type,
+    p_description: data.description,
+    p_minutes_saved_per_week: data.minutes_saved_per_week,
+    p_attribution_confidence: data.attribution_confidence,
+  });
+
+  if (error) {
+    return { kind: "error", message: `Could not save: ${error.message}` };
+  }
+
+  revalidatePath(`/interventions/${data.id}`);
+  revalidatePath("/interventions");
+  revalidatePath("/dashboard");
+  return { kind: "success" };
+}
+
+const StatusSchema = z.object({
+  id: z.string().uuid(),
+  status: z.enum(STATUSES),
+});
+
+export type SetStatusState =
+  | { kind: "idle" }
+  | { kind: "error"; message: string }
+  | { kind: "success" };
+
+export async function setInterventionStatus(
+  _prev: SetStatusState,
+  formData: FormData,
+): Promise<SetStatusState> {
+  await getSessionUser();
+
+  const parsed = StatusSchema.safeParse({
+    id: formData.get("id"),
+    status: formData.get("status"),
+  });
+
+  if (!parsed.success) {
+    return {
+      kind: "error",
+      message: parsed.error.issues.map((i) => i.message).join(" - "),
+    };
+  }
+
+  const data = parsed.data;
+  const supabase = await createClient();
+
+  const { error } = await supabase.rpc("set_intervention_status", {
+    p_id: data.id,
+    p_status: data.status,
+  });
+
+  if (error) {
+    return { kind: "error", message: `Could not change status: ${error.message}` };
+  }
+
+  revalidatePath(`/interventions/${data.id}`);
+  revalidatePath("/interventions");
+  revalidatePath("/dashboard");
   return { kind: "success" };
 }

@@ -1,7 +1,13 @@
 "use client";
 
 import { useOptimistic, useState, useTransition } from "react";
-import { updateStepField, type StepField } from "../actions";
+import {
+  addStep,
+  deleteStep,
+  moveStep,
+  updateStepField,
+  type StepField,
+} from "../actions";
 
 export type Step = {
   id: string;
@@ -14,25 +20,54 @@ export type Step = {
 
 type EditingCell = { stepId: string; field: StepField } | null;
 
+type Patch =
+  | { kind: "edit"; stepId: string; field: StepField; value: string | number | null }
+  | { kind: "delete"; stepId: string }
+  | { kind: "move"; stepId: string; direction: "up" | "down" }
+  | { kind: "add"; step: Step };
+
+function reduce(state: Step[], patch: Patch): Step[] {
+  switch (patch.kind) {
+    case "edit":
+      return state.map((s) =>
+        s.id === patch.stepId ? { ...s, [patch.field]: patch.value } : s,
+      );
+    case "delete":
+      return state
+        .filter((s) => s.id !== patch.stepId)
+        .map((s, i) => ({ ...s, position: i + 1 }));
+    case "move": {
+      const idx = state.findIndex((s) => s.id === patch.stepId);
+      if (idx === -1) return state;
+      const target = patch.direction === "up" ? idx - 1 : idx + 1;
+      if (target < 0 || target >= state.length) return state;
+      const next = state.slice();
+      [next[idx], next[target]] = [next[target], next[idx]];
+      return next.map((s, i) => ({ ...s, position: i + 1 }));
+    }
+    case "add":
+      return [...state, patch.step];
+  }
+}
+
 export function StepsTable({
   steps,
+  workflowId,
   canEdit,
 }: {
   steps: Step[];
+  workflowId: string;
   canEdit: boolean;
 }) {
-  const [optimisticSteps, applyOptimistic] = useOptimistic<
-    Step[],
-    { stepId: string; field: StepField; value: string | number | null }
-  >(steps, (state, patch) =>
-    state.map((s) =>
-      s.id === patch.stepId ? { ...s, [patch.field]: patch.value } : s,
-    ),
+  const [optimisticSteps, applyOptimistic] = useOptimistic<Step[], Patch>(
+    steps,
+    reduce,
   );
 
   const [editing, setEditing] = useState<EditingCell>(null);
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [, startTransition] = useTransition();
+  const [isPending, startTransition] = useTransition();
 
   const save = (
     stepId: string,
@@ -56,11 +91,50 @@ export function StepsTable({
           : trimmed;
 
     startTransition(async () => {
-      applyOptimistic({ stepId, field, value: optimisticValue });
+      applyOptimistic({ kind: "edit", stepId, field, value: optimisticValue });
       const result = await updateStepField(stepId, field, rawValue);
-      if (!result.ok) {
-        setError(result.error);
-      }
+      if (!result.ok) setError(result.error);
+    });
+  };
+
+  const handleAdd = () => {
+    setError(null);
+    startTransition(async () => {
+      // Optimistic placeholder so the row appears immediately.
+      const tempId = `tmp-${Date.now()}`;
+      applyOptimistic({
+        kind: "add",
+        step: {
+          id: tempId,
+          position: optimisticSteps.length + 1,
+          title: "New step",
+          description: null,
+          owner: null,
+          duration_minutes: null,
+        },
+      });
+      const result = await addStep(workflowId);
+      if (!result.ok) setError(result.error);
+      // Server revalidatePath will replace the optimistic row with the real one.
+    });
+  };
+
+  const handleDelete = (stepId: string) => {
+    setPendingDelete(null);
+    setError(null);
+    startTransition(async () => {
+      applyOptimistic({ kind: "delete", stepId });
+      const result = await deleteStep(stepId);
+      if (!result.ok) setError(result.error);
+    });
+  };
+
+  const handleMove = (stepId: string, direction: "up" | "down") => {
+    setError(null);
+    startTransition(async () => {
+      applyOptimistic({ kind: "move", stepId, direction });
+      const result = await moveStep(stepId, direction);
+      if (!result.ok) setError(result.error);
     });
   };
 
@@ -89,20 +163,23 @@ export function StepsTable({
               <th className="px-3 py-2 text-left font-medium">Description</th>
               <th className="w-40 px-3 py-2 text-left font-medium">Owner</th>
               <th className="w-28 px-3 py-2 text-right font-medium">Duration</th>
+              {canEdit && (
+                <th className="w-28 px-3 py-2 text-right font-medium">Actions</th>
+              )}
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100">
             {optimisticSteps.length === 0 && (
               <tr>
                 <td
-                  colSpan={5}
+                  colSpan={canEdit ? 6 : 5}
                   className="px-3 py-6 text-center text-zinc-400"
                 >
                   No steps yet.
                 </td>
               </tr>
             )}
-            {optimisticSteps.map((step) => (
+            {optimisticSteps.map((step, idx) => (
               <tr key={step.id} className="hover:bg-zinc-50/50">
                 <td className="px-3 py-2 text-zinc-500 tabular-nums">
                   {step.position}
@@ -150,12 +227,102 @@ export function StepsTable({
                   inputType="number"
                   suffix="min"
                 />
+                {canEdit && (
+                  <td className="px-3 py-1.5 text-right">
+                    {pendingDelete === step.id ? (
+                      <div className="inline-flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(step.id)}
+                          disabled={isPending}
+                          className="rounded border border-red-300 bg-red-50 px-2 py-0.5 text-[11px] font-medium text-red-700 hover:bg-red-100 disabled:opacity-50"
+                        >
+                          Delete
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPendingDelete(null)}
+                          className="rounded border border-zinc-200 px-2 py-0.5 text-[11px] text-zinc-600 hover:bg-zinc-50"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="inline-flex items-center gap-0.5">
+                        <ActionButton
+                          onClick={() => handleMove(step.id, "up")}
+                          disabled={idx === 0 || isPending}
+                          aria-label="Move up"
+                        >
+                          ↑
+                        </ActionButton>
+                        <ActionButton
+                          onClick={() => handleMove(step.id, "down")}
+                          disabled={
+                            idx === optimisticSteps.length - 1 || isPending
+                          }
+                          aria-label="Move down"
+                        >
+                          ↓
+                        </ActionButton>
+                        <ActionButton
+                          onClick={() => setPendingDelete(step.id)}
+                          disabled={isPending}
+                          aria-label="Delete step"
+                          className="hover:text-red-700"
+                        >
+                          ✕
+                        </ActionButton>
+                      </div>
+                    )}
+                  </td>
+                )}
               </tr>
             ))}
+            {canEdit && (
+              <tr>
+                <td colSpan={6} className="px-3 py-1.5">
+                  <button
+                    type="button"
+                    onClick={handleAdd}
+                    disabled={isPending}
+                    className="text-xs font-medium text-zinc-600 hover:text-zinc-900 disabled:opacity-50"
+                  >
+                    + Add step
+                  </button>
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
     </section>
+  );
+}
+
+function ActionButton({
+  children,
+  onClick,
+  disabled,
+  className = "",
+  ...rest
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+  disabled?: boolean;
+  className?: string;
+  "aria-label": string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={`inline-flex h-6 w-6 items-center justify-center rounded text-zinc-500 hover:bg-zinc-100 disabled:opacity-30 disabled:hover:bg-transparent ${className}`}
+      {...rest}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -227,7 +394,7 @@ function Cell({
       }
       title={canEdit ? "Click to edit" : undefined}
     >
-      {empty ? "—" : display}
+      {empty ? "-" : display}
       {!empty && suffix ? <span className="ml-1 text-zinc-400">{suffix}</span> : null}
     </td>
   );

@@ -31,7 +31,7 @@ const SYSTEM_PROMPT = `You convert a colleague's free-form description of a recu
 
 Rules:
 - Each step is one discrete action a person performs.
-- Use the user's own terminology where possible — don't invent jargon.
+- Use the user's own terminology where possible - don't invent jargon.
 - Title is imperative ("Open Excel sheet", "Email the supplier"), max ~8 words.
 - Description is 1-2 sentences expanding the title.
 - Order matters: list steps in the sequence they happen.
@@ -77,7 +77,7 @@ export async function createWorkflow(
   if (!parsed.success) {
     return {
       kind: "error",
-      message: parsed.error.issues.map((i) => i.message).join(" — "),
+      message: parsed.error.issues.map((i) => i.message).join(" - "),
     };
   }
 
@@ -135,7 +135,7 @@ export async function createWorkflow(
     extractedSteps = validated.steps;
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
-    // Workflow row exists but step extraction failed — surface it.
+    // Workflow row exists but step extraction failed - surface it.
     return {
       kind: "error",
       message: `Workflow saved, but step extraction failed: ${message}. You can still open the workflow.`,
@@ -163,4 +163,72 @@ export async function createWorkflow(
 
   revalidatePath("/workflows");
   redirect(`/workflows/${workflow.id}`);
+}
+
+export type SoftDeleteState =
+  | { kind: "idle" }
+  | { kind: "ok" }
+  | { kind: "error"; message: string };
+
+export async function softDeleteWorkflow(
+  workflowId: string,
+): Promise<SoftDeleteState> {
+  const user = await getSessionUser();
+  const supabase = await createClient();
+
+  const { error, data } = await supabase
+    .from("workflows")
+    .update({
+      deleted_at: new Date().toISOString(),
+      deleted_by: user.id,
+    })
+    .eq("id", workflowId)
+    .is("deleted_at", null)
+    .select("id");
+
+  if (error) {
+    return { kind: "error", message: error.message };
+  }
+  if (!data || data.length === 0) {
+    return {
+      kind: "error",
+      message: "You don't have permission to delete this workflow.",
+    };
+  }
+
+  revalidatePath("/workflows");
+  revalidatePath(`/workflows/${workflowId}`);
+  revalidatePath("/admin");
+  redirect("/workflows");
+}
+
+export async function restoreWorkflow(
+  workflowId: string,
+): Promise<SoftDeleteState> {
+  const supabase = await createClient();
+
+  const { error, data } = await supabase
+    .from("workflows")
+    .update({
+      deleted_at: null,
+      deleted_by: null,
+    })
+    .eq("id", workflowId)
+    .not("deleted_at", "is", null)
+    .select("id");
+
+  if (error) {
+    return { kind: "error", message: error.message };
+  }
+  if (!data || data.length === 0) {
+    return {
+      kind: "error",
+      message: "You don't have permission to restore this workflow.",
+    };
+  }
+
+  revalidatePath("/workflows");
+  revalidatePath(`/workflows/${workflowId}`);
+  revalidatePath("/admin");
+  return { kind: "ok" };
 }

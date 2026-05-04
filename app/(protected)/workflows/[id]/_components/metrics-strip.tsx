@@ -131,7 +131,7 @@ function Tile({ tile }: { tile: TileSpec }) {
 }
 
 function format(value: number | null, unit: string): string {
-  if (value == null) return "—";
+  if (value == null) return "-";
   const formatted =
     Math.abs(value) >= 1000
       ? value.toLocaleString(undefined, { maximumFractionDigits: 0 })

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionUser } from "@/lib/auth";
 
@@ -47,7 +48,8 @@ export async function updateStepField(
     return { ok: false, error: "Workflow not found." };
   }
 
-  const canEdit = user.role === "admin" || user.team === workflow.team;
+  const canEdit =
+    user.role === "super_admin" || user.team === workflow.team;
   if (!canEdit) {
     return { ok: false, error: "You don't have permission to edit this step." };
   }
@@ -100,4 +102,272 @@ export async function updateStepField(
 
   revalidatePath(`/workflows/${step.workflow_id}`);
   return { ok: true };
+}
+
+async function loadCanEdit(workflowId: string) {
+  const user = await getSessionUser();
+  const supabase = await createClient();
+  const { data: workflow } = await supabase
+    .from("workflows")
+    .select("team")
+    .eq("id", workflowId)
+    .maybeSingle();
+  if (!workflow) {
+    return { ok: false as const, error: "Workflow not found." };
+  }
+  const canEdit =
+    user.role === "super_admin" || user.team === workflow.team;
+  if (!canEdit) {
+    return { ok: false as const, error: "You don't have permission." };
+  }
+  return { ok: true as const, supabase };
+}
+
+export async function addStep(
+  workflowId: string,
+): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+  const gate = await loadCanEdit(workflowId);
+  if (!gate.ok) return gate;
+
+  const { data: last } = await gate.supabase
+    .from("workflow_steps")
+    .select("position")
+    .eq("workflow_id", workflowId)
+    .order("position", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const nextPosition = (last?.position ?? 0) + 1;
+
+  const { data: inserted, error } = await gate.supabase
+    .from("workflow_steps")
+    .insert({
+      workflow_id: workflowId,
+      position: nextPosition,
+      title: "New step",
+    })
+    .select("id")
+    .single();
+
+  if (error || !inserted) {
+    return { ok: false, error: error?.message ?? "Insert failed." };
+  }
+
+  revalidatePath(`/workflows/${workflowId}`);
+  return { ok: true, id: inserted.id };
+}
+
+export async function deleteStep(
+  stepId: string,
+): Promise<UpdateResult> {
+  const supabase = await createClient();
+  const { data: step } = await supabase
+    .from("workflow_steps")
+    .select("workflow_id")
+    .eq("id", stepId)
+    .maybeSingle();
+  if (!step) return { ok: false, error: "Step not found." };
+
+  const gate = await loadCanEdit(step.workflow_id);
+  if (!gate.ok) return gate;
+
+  const { error } = await gate.supabase
+    .from("workflow_steps")
+    .delete()
+    .eq("id", stepId);
+
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath(`/workflows/${step.workflow_id}`);
+  return { ok: true };
+}
+
+export async function moveStep(
+  stepId: string,
+  direction: "up" | "down",
+): Promise<UpdateResult> {
+  const supabase = await createClient();
+  const { data: step } = await supabase
+    .from("workflow_steps")
+    .select("id, workflow_id, position")
+    .eq("id", stepId)
+    .maybeSingle();
+  if (!step) return { ok: false, error: "Step not found." };
+
+  const gate = await loadCanEdit(step.workflow_id);
+  if (!gate.ok) return gate;
+
+  // Find the adjacent step in the chosen direction.
+  const query = gate.supabase
+    .from("workflow_steps")
+    .select("id, position")
+    .eq("workflow_id", step.workflow_id)
+    .limit(1);
+  const { data: neighbours } =
+    direction === "up"
+      ? await query.lt("position", step.position).order("position", { ascending: false })
+      : await query.gt("position", step.position).order("position", { ascending: true });
+
+  const neighbour = neighbours?.[0];
+  if (!neighbour) {
+    // Already at the boundary — silent no-op.
+    return { ok: true };
+  }
+
+  // Swap positions. There's no unique constraint on (workflow_id, position),
+  // so two sequential updates are safe.
+  const a = await gate.supabase
+    .from("workflow_steps")
+    .update({ position: neighbour.position })
+    .eq("id", step.id);
+  if (a.error) return { ok: false, error: a.error.message };
+
+  const b = await gate.supabase
+    .from("workflow_steps")
+    .update({ position: step.position })
+    .eq("id", neighbour.id);
+  if (b.error) return { ok: false, error: b.error.message };
+
+  revalidatePath(`/workflows/${step.workflow_id}`);
+  return { ok: true };
+}
+
+const CRITICALITIES = ["low", "medium", "high", "critical"] as const;
+
+const UpdateWorkflowSchema = z.object({
+  name: z.string().min(1, "Name is required").max(200),
+  team: z.string().max(120).nullable(),
+  regulatory: z.boolean(),
+  frequency: z.string().max(120).nullable(),
+  criticality: z.enum(CRITICALITIES).nullable(),
+  business_kpi: z.string().max(500).nullable(),
+  owner_names: z.array(z.string().min(1)).max(20),
+});
+
+export type UpdateWorkflowState =
+  | { kind: "idle" }
+  | { kind: "error"; message: string }
+  | { kind: "success" };
+
+export async function updateWorkflow(
+  workflowId: string,
+  _prev: UpdateWorkflowState,
+  formData: FormData,
+): Promise<UpdateWorkflowState> {
+  const gate = await loadCanEdit(workflowId);
+  if (!gate.ok) return { kind: "error", message: gate.error };
+
+  const rawTeam = (formData.get("team") as string | null)?.trim() || null;
+  const rawFrequency =
+    (formData.get("frequency") as string | null)?.trim() || null;
+  const rawCriticality =
+    (formData.get("criticality") as string | null)?.trim() || null;
+  const rawKpi =
+    (formData.get("business_kpi") as string | null)?.trim() || null;
+  const rawOwners = ((formData.get("owner_names") as string | null) ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  const parsed = UpdateWorkflowSchema.safeParse({
+    name: (formData.get("name") as string | null)?.trim() ?? "",
+    team: rawTeam,
+    regulatory: formData.get("regulatory") === "on",
+    frequency: rawFrequency,
+    criticality: rawCriticality,
+    business_kpi: rawKpi,
+    owner_names: rawOwners,
+  });
+
+  if (!parsed.success) {
+    return {
+      kind: "error",
+      message: parsed.error.issues.map((i) => i.message).join(" - "),
+    };
+  }
+
+  const next = parsed.data;
+
+  const { data: current, error: curErr } = await gate.supabase
+    .from("workflows")
+    .select(
+      "id, name, team, regulatory, frequency, criticality, business_kpi, owner_names",
+    )
+    .eq("id", workflowId)
+    .maybeSingle();
+
+  if (curErr || !current) {
+    return { kind: "error", message: "Workflow not found." };
+  }
+
+  // Diff each field. Skip writes if nothing changed; record one revision row
+  // per changed field so /admin's audit log lists them individually.
+  const user = await getSessionUser();
+  const revisions: {
+    workflow_id: string;
+    field: string;
+    old_value: string | null;
+    new_value: string | null;
+    changed_by: string;
+    changed_by_email: string;
+  }[] = [];
+
+  function record(field: string, oldV: unknown, newV: unknown) {
+    revisions.push({
+      workflow_id: workflowId,
+      field,
+      old_value: oldV == null ? null : String(oldV),
+      new_value: newV == null ? null : String(newV),
+      changed_by: user.id,
+      changed_by_email: user.email,
+    });
+  }
+
+  if (current.name !== next.name) record("name", current.name, next.name);
+  if ((current.team ?? null) !== next.team)
+    record("team", current.team, next.team);
+  if (Boolean(current.regulatory) !== next.regulatory)
+    record("regulatory", current.regulatory, next.regulatory);
+  if ((current.frequency ?? null) !== next.frequency)
+    record("frequency", current.frequency, next.frequency);
+  if ((current.criticality ?? null) !== next.criticality)
+    record("criticality", current.criticality, next.criticality);
+  if ((current.business_kpi ?? null) !== next.business_kpi)
+    record("business_kpi", current.business_kpi, next.business_kpi);
+  const currentOwners = (current.owner_names as string[] | null) ?? [];
+  if (currentOwners.join("|") !== next.owner_names.join("|"))
+    record("owner_names", currentOwners.join(", "), next.owner_names.join(", "));
+
+  if (revisions.length === 0) {
+    return { kind: "success" };
+  }
+
+  const { error: revErr } = await gate.supabase
+    .from("workflow_revisions")
+    .insert(revisions);
+  if (revErr) {
+    return { kind: "error", message: `Could not record revisions: ${revErr.message}` };
+  }
+
+  const { error: updErr } = await gate.supabase
+    .from("workflows")
+    .update({
+      name: next.name,
+      team: next.team,
+      regulatory: next.regulatory,
+      frequency: next.frequency,
+      criticality: next.criticality,
+      business_kpi: next.business_kpi,
+      owner_names: next.owner_names,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", workflowId);
+
+  if (updErr) {
+    return { kind: "error", message: `Could not save: ${updErr.message}` };
+  }
+
+  revalidatePath(`/workflows/${workflowId}`);
+  revalidatePath("/workflows");
+  return { kind: "success" };
 }

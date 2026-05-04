@@ -4,7 +4,10 @@ import { format } from "date-fns";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionUser } from "@/lib/auth";
 import { Badge } from "@/components/ui/badge";
+import { toTitle } from "@/lib/utils";
 import { LogMetricSnapshotButton } from "./_components/log-metric-snapshot-button";
+import { EditInterventionDialog } from "./_components/edit-intervention-dialog";
+import { StatusButton } from "./_components/status-button";
 
 type InterventionType =
   | "tool"
@@ -15,6 +18,7 @@ type InterventionType =
   | "process_change";
 
 type Status = "active" | "paused" | "retired";
+type Confidence = "high" | "medium" | "low";
 
 type Intervention = {
   id: string;
@@ -24,8 +28,22 @@ type Intervention = {
   description: string | null;
   owner: string | null;
   minutes_saved_per_week: number | null;
+  attribution_confidence: Confidence | null;
+  created_by: string | null;
   created_at: string;
 };
+
+type EditRow = {
+  id: string;
+  actor_email: string | null;
+  action: "edit" | "status_change";
+  field: string | null;
+  old_value: string | null;
+  new_value: string | null;
+  created_at: string;
+};
+
+type ChampionRow = { team: string };
 
 type LinkedWorkflow = {
   workflows: { id: string; name: string; team: string | null } | null;
@@ -64,7 +82,7 @@ export default async function InterventionDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  await getSessionUser();
+  const user = await getSessionUser();
   const supabase = await createClient();
 
   const [
@@ -72,11 +90,12 @@ export default async function InterventionDetailPage({
     { data: links },
     { data: baselines },
     { data: metrics },
+    { data: edits },
   ] = await Promise.all([
     supabase
       .from("ai_interventions")
       .select(
-        "id, name, type, status, description, owner, minutes_saved_per_week, created_at",
+        "id, name, type, status, description, owner, minutes_saved_per_week, attribution_confidence, created_by, created_at",
       )
       .eq("id", id)
       .maybeSingle<Intervention>(),
@@ -100,10 +119,46 @@ export default async function InterventionDetailPage({
       .eq("intervention_id", id)
       .order("snapshot_date", { ascending: false })
       .returns<MetricRow[]>(),
+    supabase
+      .from("intervention_edits")
+      .select("id, actor_email, action, field, old_value, new_value, created_at")
+      .eq("intervention_id", id)
+      .order("created_at", { ascending: false })
+      .limit(20)
+      .returns<EditRow[]>(),
   ]);
 
   if (!intervention) {
     notFound();
+  }
+
+  let ownerDisplayName: string | null = null;
+  if (intervention.created_by) {
+    const { data: ownerProfile } = await supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("user_id", intervention.created_by)
+      .maybeSingle<{ display_name: string | null }>();
+    ownerDisplayName = ownerProfile?.display_name?.trim() || null;
+  }
+  const ownerLabel = ownerDisplayName ?? intervention.owner;
+
+  // Mirror of public.can_edit_intervention(): super_admin / champion of
+  // record (created_by) / a champion for any linked-workflow team.
+  let canEdit = user.role === "super_admin" || intervention.created_by === user.id;
+  if (!canEdit) {
+    const teams = (links ?? [])
+      .map((l) => l.workflows?.team)
+      .filter((t): t is string => !!t);
+    if (teams.length > 0) {
+      const { data: championRows } = await supabase
+        .from("champions")
+        .select("team")
+        .eq("user_id", user.id)
+        .in("team", teams)
+        .returns<ChampionRow[]>();
+      canEdit = (championRows?.length ?? 0) > 0;
+    }
   }
 
   const linkedWorkflows = (links ?? [])
@@ -114,6 +169,7 @@ export default async function InterventionDetailPage({
     (baselines ?? []).map((b) => [b.workflow_id, b]),
   );
   const metricRows = metrics ?? [];
+  const editRows = edits ?? [];
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-6 px-6 py-8">
@@ -136,14 +192,14 @@ export default async function InterventionDetailPage({
               </h1>
               {intervention.type && (
                 <Badge variant="secondary">
-                  {intervention.type.replace("_", " ")}
+                  {toTitle(intervention.type)}
                 </Badge>
               )}
               {intervention.status && (
                 <span
                   className={`rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${STATUS_STYLES[intervention.status]}`}
                 >
-                  {intervention.status}
+                  {toTitle(intervention.status)}
                 </span>
               )}
             </div>
@@ -153,7 +209,7 @@ export default async function InterventionDetailPage({
             )}
 
             <dl className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm sm:grid-cols-3">
-              <Field label="Owner" value={intervention.owner} />
+              <Field label="Owner" value={ownerLabel} />
               <Field
                 label="Estimated mins / week"
                 value={
@@ -169,7 +225,27 @@ export default async function InterventionDetailPage({
             </dl>
           </div>
 
-          <LogMetricSnapshotButton interventionId={intervention.id} />
+          <div className="flex flex-wrap gap-2">
+            {canEdit && (
+              <>
+                <EditInterventionDialog
+                  intervention={{
+                    id: intervention.id,
+                    name: intervention.name,
+                    type: intervention.type,
+                    description: intervention.description,
+                    minutes_saved_per_week: intervention.minutes_saved_per_week,
+                    attribution_confidence: intervention.attribution_confidence,
+                  }}
+                />
+                <StatusButton
+                  interventionId={intervention.id}
+                  status={intervention.status ?? "active"}
+                />
+              </>
+            )}
+            <LogMetricSnapshotButton interventionId={intervention.id} />
+          </div>
         </div>
       </section>
 
@@ -257,6 +333,52 @@ export default async function InterventionDetailPage({
           )}
         </div>
       </section>
+
+      {/* Audit trail */}
+      <section className="space-y-2">
+        <h2 className="text-sm font-semibold tracking-tight text-zinc-900">
+          Edit history
+        </h2>
+        <div className="rounded-lg border border-zinc-200 bg-white">
+          {editRows.length === 0 ? (
+            <div className="px-4 py-6 text-center text-sm text-zinc-400">
+              No edits yet.
+            </div>
+          ) : (
+            <ul className="divide-y divide-zinc-100">
+              {editRows.map((e) => (
+                <li key={e.id} className="px-4 py-3 text-sm">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="text-zinc-900">
+                      <span className="font-medium">
+                        {e.actor_email ?? "Unknown"}
+                      </span>{" "}
+                      <span className="text-zinc-500">
+                        {e.action === "status_change"
+                          ? "changed status"
+                          : `edited ${e.field?.replaceAll("_", " ")}`}
+                      </span>
+                    </span>
+                    <span className="text-xs text-zinc-400 tabular-nums">
+                      {format(new Date(e.created_at), "d MMM yyyy, HH:mm")}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs text-zinc-500">
+                    <span className="text-zinc-400">from</span>{" "}
+                    <span className="text-zinc-700">
+                      {e.old_value ?? "-"}
+                    </span>{" "}
+                    <span className="text-zinc-400">to</span>{" "}
+                    <span className="text-zinc-700">
+                      {e.new_value ?? "-"}
+                    </span>
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </section>
     </div>
   );
 }
@@ -268,7 +390,7 @@ function Field({ label, value }: { label: string; value: string | null }) {
         {label}
       </dt>
       <dd className="text-zinc-900">
-        {value ?? <span className="text-zinc-400">—</span>}
+        {value ?? <span className="text-zinc-400">-</span>}
       </dd>
     </div>
   );
@@ -287,7 +409,7 @@ function BaselineChip({
     return (
       <span className="tabular-nums">
         <span className="text-zinc-400">{label}</span>{" "}
-        <span className="text-zinc-300">—</span>
+        <span className="text-zinc-300">-</span>
       </span>
     );
   }

@@ -15,6 +15,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   logIntervention,
   type LogInterventionState,
 } from "../actions";
@@ -42,9 +49,15 @@ export function LogInterventionDialog({
     { kind: "idle" },
   );
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [type, setType] = useState<string>("");
+  const [confidence, setConfidence] = useState<string>("medium");
 
   const handleOpenChange = (next: boolean) => {
-    if (!next) setSelected(new Set());
+    if (!next) {
+      setSelected(new Set());
+      setType("");
+      setConfidence("medium");
+    }
     onOpenChange(next);
   };
 
@@ -77,22 +90,21 @@ export function LogInterventionDialog({
 
           <div className="space-y-1.5">
             <Label htmlFor="type">Type</Label>
-            <select
-              id="type"
-              name="type"
-              required
-              defaultValue=""
-              className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-            >
-              <option value="" disabled>
-                Pick one…
-              </option>
-              {TYPES.map((t) => (
-                <option key={t.value} value={t.value}>
-                  {t.label}
-                </option>
-              ))}
-            </select>
+            {/* Hidden input carries the value into the form;
+                Base UI Select doesn't post a native form value. */}
+            <input type="hidden" name="type" value={type} />
+            <Select value={type} onValueChange={(v) => setType(v ?? "")}>
+              <SelectTrigger id="type" className="w-full">
+                <SelectValue placeholder="Pick one…" />
+              </SelectTrigger>
+              <SelectContent>
+                {TYPES.map((t) => (
+                  <SelectItem key={t.value} value={t.value}>
+                    {t.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-1.5">
@@ -100,7 +112,7 @@ export function LogInterventionDialog({
             <div className="max-h-44 overflow-y-auto rounded-lg border border-input">
               {workflows.length === 0 ? (
                 <div className="px-3 py-3 text-sm text-zinc-400">
-                  No workflows yet — create one first.
+                  No workflows yet - create one first.
                 </div>
               ) : (
                 <ul className="divide-y divide-zinc-100">
@@ -123,7 +135,7 @@ export function LogInterventionDialog({
               )}
             </div>
             <p className="text-xs text-zinc-500">
-              {selected.size} selected — at least one required.
+              {selected.size} selected - at least one required.
             </p>
           </div>
 
@@ -156,16 +168,30 @@ export function LogInterventionDialog({
             <Label htmlFor="attribution_confidence">
               Attribution confidence
             </Label>
-            <select
-              id="attribution_confidence"
+            <input
+              type="hidden"
               name="attribution_confidence"
-              defaultValue="medium"
-              className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+              value={confidence}
+            />
+            <Select
+              value={confidence}
+              onValueChange={(v) => setConfidence(v ?? "medium")}
             >
-              <option value="high">High — clean before/after, isolated change</option>
-              <option value="medium">Medium — confounded by other changes</option>
-              <option value="low">Low — best-guess; many things moved at once</option>
-            </select>
+              <SelectTrigger id="attribution_confidence" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="high">
+                  High - clean before/after, isolated change
+                </SelectItem>
+                <SelectItem value="medium">
+                  Medium - confounded by other changes
+                </SelectItem>
+                <SelectItem value="low">
+                  Low - best-guess; many things moved at once
+                </SelectItem>
+              </SelectContent>
+            </Select>
             <p className="text-xs text-zinc-500">
               How sure are you the impact is from this intervention? Weighted on
               the dashboard: high ×1.0, medium ×0.7, low ×0.4.
@@ -189,7 +215,7 @@ export function LogInterventionDialog({
             >
               Cancel
             </Button>
-            <SubmitButton disabled={selected.size === 0} />
+            <SubmitButton disabled={selected.size === 0 || type === ""} />
           </DialogFooter>
         </form>
       </DialogContent>

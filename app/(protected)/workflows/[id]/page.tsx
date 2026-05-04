@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { loadTeamOptions } from "@/lib/teams";
 import { HeaderCard, type WorkflowHeader } from "./_components/header-card";
 import {
   MetricsStrip,
@@ -32,10 +33,11 @@ export default async function WorkflowDetailPage({
     supabase
       .from("workflows")
       .select(
-        "id, name, team, regulatory, frequency, criticality, business_kpi, owner_names",
+        "id, name, team, regulatory, frequency, criticality, business_kpi, owner_names, created_by",
       )
       .eq("id", id)
-      .maybeSingle<WorkflowHeader>(),
+      .is("deleted_at", null)
+      .maybeSingle<WorkflowHeader & { created_by: string | null }>(),
     supabase
       .from("workflow_metrics")
       .select(
@@ -73,7 +75,21 @@ export default async function WorkflowDetailPage({
     notFound();
   }
 
-  const canEdit = user.role === "admin" || user.team === workflow.team;
+  const teams = await loadTeamOptions(supabase, workflow.team);
+
+  const canEdit =
+    user.role === "super_admin" || user.team === workflow.team;
+
+  let canDelete =
+    user.role === "super_admin" || workflow.created_by === user.id;
+  if (!canDelete && workflow.team) {
+    const { data: championRows } = await supabase
+      .from("champions")
+      .select("team")
+      .eq("user_id", user.id)
+      .eq("team", workflow.team);
+    canDelete = (championRows?.length ?? 0) > 0;
+  }
 
   const interventions: LinkedIntervention[] =
     interventionLinks
@@ -94,9 +110,18 @@ export default async function WorkflowDetailPage({
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-6 px-6 py-8">
-      <HeaderCard workflow={workflow} canEdit={canEdit} />
+      <HeaderCard
+        workflow={workflow}
+        teams={teams}
+        canEdit={canEdit}
+        canDelete={canDelete}
+      />
       <MetricsStrip metrics={metrics ?? null} />
-      <StepsTable steps={steps ?? []} canEdit={canEdit} />
+      <StepsTable
+        steps={steps ?? []}
+        workflowId={workflow.id}
+        canEdit={canEdit}
+      />
       <LinkedInterventions interventions={interventions} />
       <Activity revisions={activity} />
     </div>

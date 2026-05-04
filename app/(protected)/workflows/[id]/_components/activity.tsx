@@ -58,11 +58,11 @@ export function Activity({ revisions }: { revisions: ActivityRevision[] }) {
                 </div>
                 <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
                   <span className="rounded bg-red-50 px-1.5 py-0.5 text-red-800 ring-1 ring-inset ring-red-200 line-through">
-                    {rev.old_value ?? "—"}
+                    {rev.old_value ?? "-"}
                   </span>
                   <span className="text-zinc-400">→</span>
                   <span className="rounded bg-green-50 px-1.5 py-0.5 text-green-800 ring-1 ring-inset ring-green-200">
-                    {rev.new_value ?? "—"}
+                    {rev.new_value ?? "-"}
                   </span>
                 </div>
               </li>

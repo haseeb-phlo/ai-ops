@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { DeleteWorkflowButton } from "./delete-workflow-button";
+import { EditWorkflowDialog } from "./edit-workflow-dialog";
 
 export type WorkflowHeader = {
   id: string;
@@ -20,10 +21,14 @@ const CRITICALITY_STYLES: Record<string, string> = {
 
 export function HeaderCard({
   workflow,
+  teams,
   canEdit,
+  canDelete,
 }: {
   workflow: WorkflowHeader;
+  teams: string[];
   canEdit: boolean;
+  canDelete: boolean;
 }) {
   return (
     <section className="rounded-lg border border-zinc-200 bg-white p-6">
@@ -64,14 +69,17 @@ export function HeaderCard({
           </dl>
         </div>
 
-        {canEdit && (
-          <Link
-            href={`/workflows/${workflow.id}/edit`}
-            className="shrink-0 rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
-          >
-            Edit
-          </Link>
-        )}
+        <div className="flex shrink-0 flex-wrap gap-2">
+          {canEdit && (
+            <EditWorkflowDialog workflow={workflow} teams={teams} />
+          )}
+          {canDelete && (
+            <DeleteWorkflowButton
+              workflowId={workflow.id}
+              workflowName={workflow.name}
+            />
+          )}
+        </div>
       </div>
     </section>
   );
@@ -83,7 +91,7 @@ function Field({ label, value }: { label: string; value: string | null }) {
       <dt className="text-xs font-medium uppercase tracking-wide text-zinc-500">
         {label}
       </dt>
-      <dd className="text-zinc-900">{value ?? <span className="text-zinc-400">—</span>}</dd>
+      <dd className="text-zinc-900">{value ?? <span className="text-zinc-400">-</span>}</dd>
     </div>
   );
 }
