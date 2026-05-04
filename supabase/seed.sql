@@ -1,5 +1,5 @@
 -- =========================================================================
--- Phlo AI Ops — sample data
+-- Phlo AI Ops - sample data
 -- Run AFTER all migration files. Re-runnable: every insert is guarded.
 -- Lets you see the /workflows table and /map populated end-to-end before
 -- any real users have signed up.
@@ -33,9 +33,9 @@ select v.name, v.description, v.status
 from (values
   ('Refund triage agent',    'Auto-categorises refund requests by reason code so humans only see edge cases.',   'active'),
   ('Invoice extraction',     'OCR + LLM extraction of AP invoice header + line items into the ERP.',             'active'),
-  ('Stock count vision',     'Phone camera counts stock and flags variance against the system count.',           'piloting'),
+  ('Stock count vision',     'Phone camera counts stock and flags variance against the system count.',           'paused'),
   ('Forecast assistant',     'Drafts the weekly forecast narrative from the underlying numbers.',                'active'),
-  ('NPS reply drafter',      'Drafts personalised replies to NPS detractors for human review.',                  'piloting')
+  ('NPS reply drafter',      'Drafts personalised replies to NPS detractors for human review.',                  'paused')
 ) as v(name, description, status)
 where not exists (select 1 from public.ai_interventions a where a.name = v.name);
 

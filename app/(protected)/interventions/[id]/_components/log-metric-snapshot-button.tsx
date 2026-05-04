@@ -121,7 +121,7 @@ function NumField({ label, name }: { label: string; name: string }) {
   return (
     <div className="space-y-1.5">
       <Label htmlFor={name}>{label}</Label>
-      <Input id={name} name={name} type="number" step="any" placeholder="—" />
+      <Input id={name} name={name} type="number" step="any" placeholder="-" />
     </div>
   );
 }

@@ -1,5 +1,5 @@
 -- =========================================================================
--- Phlo AI Ops — auth schema
+-- Phlo AI Ops - auth schema
 -- Run this in Supabase Studio → SQL Editor (one block at a time is fine).
 -- =========================================================================
 

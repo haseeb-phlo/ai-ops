@@ -1,5 +1,5 @@
 -- =========================================================================
--- Phlo AI Ops — interventions migration (additive)
+-- Phlo AI Ops - interventions migration (additive)
 -- Run in Supabase Studio → SQL Editor AFTER schema.sql, workflows.sql,
 -- workflows_migration.sql. Safe to re-run.
 -- =========================================================================
@@ -131,8 +131,10 @@ begin
     raise exception 'Invalid intervention type: %', p_type using errcode = '22023';
   end if;
 
-  -- Owner name = the signed-in user's email (best effort).
-  select email into v_owner from auth.users where id = v_user_id;
+  -- Owner name = the signed-in user's email, read from the JWT.
+  -- The `authenticated` role has no SELECT on auth.users, so querying
+  -- that table from a security-invoker function would fail.
+  v_owner := auth.jwt() ->> 'email';
 
   -- (a) insert the intervention row.
   insert into public.ai_interventions
@@ -174,3 +176,6 @@ $$;
 
 grant execute on function public.log_intervention(text, text, uuid[], text, numeric)
   to authenticated;
+
+-- Refresh PostgREST's schema cache so the new RPC is callable immediately.
+notify pgrst, 'reload schema';

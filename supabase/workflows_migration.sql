@@ -1,5 +1,5 @@
 -- =========================================================================
--- Phlo AI Ops — workflows migration (additive)
+-- Phlo AI Ops - workflows migration (additive)
 -- Run this in Supabase Studio → SQL Editor AFTER schema.sql + workflows.sql.
 -- Safe to re-run.
 -- =========================================================================
@@ -34,3 +34,6 @@ create policy "auth insert workflow_steps"
         and w.created_by = auth.uid()
     )
   );
+
+-- Refresh PostgREST's schema cache so the new tables/policies are visible.
+notify pgrst, 'reload schema';

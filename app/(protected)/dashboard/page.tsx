@@ -1,7 +1,10 @@
+import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionUser } from "@/lib/auth";
+import { PageContainer, PageHeader } from "@/components/page-header";
 import { TeamTypeChart } from "./_components/team-type-chart";
 import { TopInterventions } from "./_components/top-interventions";
+import { RedirectToast } from "./_components/redirect-toast";
 
 const CONFIDENCE_WEIGHT = { high: 1.0, medium: 0.7, low: 0.4 } as const;
 type Confidence = keyof typeof CONFIDENCE_WEIGHT;
@@ -21,7 +24,10 @@ type Intervention = {
   status: "active" | "paused" | "retired" | null;
   attribution_confidence: Confidence | null;
   owner: string | null;
+  created_by: string | null;
 };
+
+type ProfileLite = { user_id: string; display_name: string | null };
 
 type Link = {
   intervention_id: string;
@@ -75,10 +81,11 @@ export default async function DashboardPage() {
     { data: links },
     { data: baselines },
     { data: metrics },
+    { data: profiles },
   ] = await Promise.all([
     supabase
       .from("ai_interventions")
-      .select("id, name, type, status, attribution_confidence, owner")
+      .select("id, name, type, status, attribution_confidence, owner, created_by")
       .returns<Intervention[]>(),
     supabase
       .from("intervention_workflows")
@@ -93,7 +100,17 @@ export default async function DashboardPage() {
       .select("intervention_id, snapshot_date, time_value, cost_value")
       .order("snapshot_date", { ascending: false })
       .returns<Metric[]>(),
+    supabase
+      .from("profiles")
+      .select("user_id, display_name")
+      .returns<ProfileLite[]>(),
   ]);
+
+  const displayNameByUserId = new Map<string, string>();
+  for (const p of profiles ?? []) {
+    const dn = p.display_name?.trim();
+    if (dn) displayNameByUserId.set(p.user_id, dn);
+  }
 
   const interventionsList = interventions ?? [];
   const linksByIntervention = new Map<string, Link[]>();
@@ -111,7 +128,7 @@ export default async function DashboardPage() {
     baselineSums.set(b.intervention_id, cur);
   }
 
-  // metrics is sorted snapshot_date desc — first non-null per intervention wins.
+  // metrics is sorted snapshot_date desc - first non-null per intervention wins.
   const latestTime = new Map<string, Metric>();
   const latestCost = new Map<string, Metric>();
   const latestTimeThisMonth = new Map<string, Metric>();
@@ -166,13 +183,16 @@ export default async function DashboardPage() {
       .map((l) => l.workflows?.team)
       .filter((t): t is string => !!t);
 
+    const ownerName =
+      (iv.created_by && displayNameByUserId.get(iv.created_by)) || iv.owner;
+
     return {
       id: iv.id,
       name: iv.name,
       type: iv.type,
       status: iv.status,
       confidence,
-      owner: iv.owner,
+      owner: ownerName,
       teams,
       weightedMinutes:
         rawMinutesDelta == null ? null : rawMinutesDelta * weight,
@@ -184,7 +204,7 @@ export default async function DashboardPage() {
     };
   });
 
-  // Top stats — exclude retired (no longer running, can't claim a weekly rate).
+  // Top stats - exclude retired (no longer running, can't claim a weekly rate).
   const liveRows = rows.filter((r) => r.status !== "retired");
 
   let totalMinutes = 0;
@@ -276,16 +296,14 @@ export default async function DashboardPage() {
     }));
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-8 px-6 py-8">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
-          Phlo impact
-        </h1>
-        <p className="text-sm text-zinc-500">
-          Confidence-weighted savings across every team. Honest numbers — including
-          when an intervention&apos;s done worse than the baseline.
-        </p>
-      </header>
+    <PageContainer>
+      <Suspense fallback={null}>
+        <RedirectToast />
+      </Suspense>
+      <PageHeader
+        title="Dashboard"
+        description="Confidence-weighted savings across every team. Includes interventions that have regressed against their baseline."
+      />
 
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Stat
@@ -296,12 +314,12 @@ export default async function DashboardPage() {
               format={(v) => minutes(Math.round(v))}
             />
           }
-          caveat={`${minutesPct("high")}% high · ${minutesPct("medium")}% medium · ${minutesPct("low")}% low`}
+          caveat={`${minutesPct("high")}% high, ${minutesPct("medium")}% medium, ${minutesPct("low")}% low confidence`}
         />
         <Stat
           label="GBP saved / week"
           value={<ColouredNumber value={totalGbp} format={gbp} />}
-          caveat={`${gbpPct("high")}% high · ${gbpPct("medium")}% medium · ${gbpPct("low")}% low`}
+          caveat={`${gbpPct("high")}% high, ${gbpPct("medium")}% medium, ${gbpPct("low")}% low confidence`}
         />
         <Stat
           label="Active interventions"
@@ -315,17 +333,17 @@ export default async function DashboardPage() {
       </section>
 
       <section className="space-y-3">
-        <div className="flex items-baseline justify-between">
+        <div className="flex items-baseline justify-between gap-4">
           <h2 className="text-sm font-semibold tracking-tight text-zinc-900">
             Minutes saved this month, by team and type
           </h2>
-          <p className="text-xs text-zinc-500">
-            Only counts interventions with a snapshot logged this month. Confidence-weighted.
+          <p className="text-xs text-muted-foreground">
+            Confidence-weighted; only this month&apos;s snapshots.
           </p>
         </div>
         <div className="rounded-lg border border-zinc-200 bg-white p-4">
           {chartData.length === 0 ? (
-            <p className="px-2 py-10 text-center text-sm text-zinc-400">
+            <p className="px-2 py-10 text-center text-sm text-muted-foreground">
               No measurements logged this month yet.
             </p>
           ) : (
@@ -340,7 +358,7 @@ export default async function DashboardPage() {
         </h2>
         <TopInterventions rows={topRows} />
       </section>
-    </div>
+    </PageContainer>
   );
 }
 

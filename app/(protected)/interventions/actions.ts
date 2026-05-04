@@ -61,7 +61,7 @@ export async function logIntervention(
   if (!parsed.success) {
     return {
       kind: "error",
-      message: parsed.error.issues.map((i) => i.message).join(" — "),
+      message: parsed.error.issues.map((i) => i.message).join(" - "),
     };
   }
 
@@ -85,5 +85,6 @@ export async function logIntervention(
   }
 
   revalidatePath("/interventions");
+  revalidatePath("/dashboard");
   redirect(`/interventions/${newId}`);
 }

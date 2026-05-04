@@ -74,7 +74,7 @@ export default function LoginPage() {
 
         {status.kind === "sent" && (
           <p className="text-sm text-green-700">
-            Check your inbox — we sent a link to {email}.
+            Check your inbox - we sent a link to {email}.
           </p>
         )}
         {status.kind === "error" && (

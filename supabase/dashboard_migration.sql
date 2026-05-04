@@ -1,5 +1,5 @@
 -- =========================================================================
--- Phlo AI Ops — dashboard migration (additive)
+-- Phlo AI Ops - dashboard migration (additive)
 -- Adds attribution_confidence so the company-wide /dashboard can weight
 -- savings honestly. Run AFTER interventions_migration.sql. Safe to re-run.
 -- =========================================================================
@@ -8,7 +8,7 @@
 alter table public.ai_interventions
   add column if not exists attribution_confidence text;
 
--- Existing rows pre-dating this column are 'medium' — sensible neutral
+-- Existing rows pre-dating this column are 'medium' - sensible neutral
 -- default that doesn't claim more credit than we can defend.
 update public.ai_interventions
    set attribution_confidence = 'medium'
@@ -64,7 +64,10 @@ begin
       using errcode = '22023';
   end if;
 
-  select email into v_owner from auth.users where id = v_user_id;
+  -- Pull email from the request's JWT instead of querying auth.users -
+  -- the `authenticated` role has no SELECT on auth.users, and granting it
+  -- would leak every user's email. JWT claims are already authoritative.
+  v_owner := auth.jwt() ->> 'email';
 
   insert into public.ai_interventions
         (name, type, description, status, owner, minutes_saved_per_week,
@@ -104,3 +107,8 @@ $$;
 
 grant execute on function public.log_intervention(text, text, uuid[], text, numeric, text)
   to authenticated;
+
+-- 3. Tell PostgREST to reload its schema cache so the new RPC signature is
+-- visible immediately. Without this, hosted PostgREST eventually picks up
+-- DDL on its own (~10s), but a fresh `notify` makes it instant.
+notify pgrst, 'reload schema';

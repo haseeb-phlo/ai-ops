@@ -1,5 +1,5 @@
 -- =========================================================================
--- Phlo AI Ops — profiles + metrics history migration (additive)
+-- Phlo AI Ops - profiles + metrics history migration (additive)
 -- Run in Supabase Studio → SQL Editor AFTER schema.sql, workflows.sql,
 -- workflows_migration.sql, interventions_migration.sql. Safe to re-run.
 -- =========================================================================
@@ -85,3 +85,6 @@ create policy "wmh read all"
 
 create policy "wmh insert authed"
   on public.workflow_metrics_history for insert to authenticated with check (true);
+
+-- Refresh PostgREST's schema cache so the new tables/policies are visible.
+notify pgrst, 'reload schema';

@@ -2,6 +2,7 @@
 
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
+import { toTitle } from "@/lib/utils";
 
 export function Filters({
   type,
@@ -43,7 +44,7 @@ export function Filters({
           <option value="">All</option>
           {types.map((t) => (
             <option key={t} value={t}>
-              {t.replace("_", " ")}
+              {toTitle(t)}
             </option>
           ))}
         </select>
@@ -60,7 +61,7 @@ export function Filters({
           <option value="">All</option>
           {statuses.map((s) => (
             <option key={s} value={s}>
-              {s}
+              {toTitle(s)}
             </option>
           ))}
         </select>

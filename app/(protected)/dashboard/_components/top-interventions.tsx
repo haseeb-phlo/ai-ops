@@ -36,12 +36,12 @@ const CONFIDENCE_STYLES: Record<Confidence, string> = {
 };
 
 function fmtMinutes(v: number | null): string {
-  if (v == null) return "—";
+  if (v == null) return "-";
   return `${Math.round(v).toLocaleString()} min`;
 }
 
 function fmtGbp(v: number | null): string {
-  if (v == null) return "—";
+  if (v == null) return "-";
   const sign = v < 0 ? "-" : "";
   return `${sign}£${Math.abs(v).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
 }
@@ -76,7 +76,7 @@ export function TopInterventions({ rows }: { rows: Row[] }) {
   if (rows.length === 0) {
     return (
       <div className="rounded-lg border border-zinc-200 bg-white px-4 py-10 text-center text-sm text-zinc-400">
-        No measured interventions yet — once you log a snapshot, they&apos;ll
+        No measured interventions yet - once you log a snapshot, they&apos;ll
         rank here.
       </div>
     );
@@ -129,14 +129,14 @@ export function TopInterventions({ rows }: { rows: Row[] }) {
                   {r.type ? (
                     <Badge variant="secondary">{r.type.replace("_", " ")}</Badge>
                   ) : (
-                    <span className="text-zinc-400">—</span>
+                    <span className="text-zinc-400">-</span>
                   )}
                 </TableCell>
                 <TableCell className="text-zinc-700">
                   {r.teams.length > 0 ? (
                     r.teams.join(", ")
                   ) : (
-                    <span className="text-zinc-400">—</span>
+                    <span className="text-zinc-400">-</span>
                   )}
                 </TableCell>
                 <TableCell>

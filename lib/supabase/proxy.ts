@@ -26,7 +26,7 @@ export async function updateSession(request: NextRequest) {
   );
 
   // IMPORTANT: getUser() refreshes the auth token if needed.
-  // Don't run code between createServerClient and getUser — it can break the session.
+  // Don't run code between createServerClient and getUser - it can break the session.
   const {
     data: { user },
   } = await supabase.auth.getUser();

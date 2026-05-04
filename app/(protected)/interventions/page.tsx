@@ -11,6 +11,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { PageContainer, PageHeader } from "@/components/page-header";
+import { toTitle } from "@/lib/utils";
 import { Filters } from "./_components/filters";
 import { LogInterventionButton } from "./_components/log-intervention-button";
 
@@ -34,11 +36,14 @@ type InterventionRow = {
   type: InterventionType | null;
   status: Status | null;
   owner: string | null;
+  created_by: string | null;
   created_at: string;
   intervention_workflows: { workflows: { id: string; name: string } | null }[];
 };
 
 type WorkflowOption = { id: string; name: string };
+
+type ProfileLite = { user_id: string; display_name: string | null };
 
 const TYPE_VARIANT: Record<InterventionType, "default" | "secondary" | "outline"> = {
   tool: "default",
@@ -77,38 +82,42 @@ export default async function InterventionsListPage({
   let interventionsQuery = supabase
     .from("ai_interventions")
     .select(
-      "id, name, type, status, owner, created_at, intervention_workflows(workflows(id, name))",
+      "id, name, type, status, owner, created_by, created_at, intervention_workflows(workflows(id, name))",
     )
     .order("created_at", { ascending: false });
 
   if (typeFilter) interventionsQuery = interventionsQuery.eq("type", typeFilter);
   if (statusFilter) interventionsQuery = interventionsQuery.eq("status", statusFilter);
 
-  const [{ data: interventions }, { data: workflows }] = await Promise.all([
-    interventionsQuery.returns<InterventionRow[]>(),
-    supabase
-      .from("workflows")
-      .select("id, name")
-      .order("name", { ascending: true })
-      .returns<WorkflowOption[]>(),
-  ]);
+  const [{ data: interventions }, { data: workflows }, { data: profiles }] =
+    await Promise.all([
+      interventionsQuery.returns<InterventionRow[]>(),
+      supabase
+        .from("workflows")
+        .select("id, name")
+        .is("deleted_at", null)
+        .order("name", { ascending: true })
+        .returns<WorkflowOption[]>(),
+      supabase
+        .from("profiles")
+        .select("user_id, display_name")
+        .returns<ProfileLite[]>(),
+    ]);
 
   const rows = interventions ?? [];
+  const displayNameByUserId = new Map<string, string>();
+  for (const p of profiles ?? []) {
+    const dn = p.display_name?.trim();
+    if (dn) displayNameByUserId.set(p.user_id, dn);
+  }
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-6 px-6 py-8">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
-            AI interventions
-          </h1>
-          <p className="mt-1 text-sm text-zinc-500">
-            Tools, prompts, training, automations and process changes you&apos;ve
-            shipped against workflows.
-          </p>
-        </div>
-        <LogInterventionButton workflows={workflows ?? []} />
-      </div>
+    <PageContainer>
+      <PageHeader
+        title="AI interventions"
+        description="Tools, prompts, training, automations, and process changes shipped against workflows."
+        actions={<LogInterventionButton workflows={workflows ?? []} />}
+      />
 
       <Filters
         type={typeFilter}
@@ -119,8 +128,8 @@ export default async function InterventionsListPage({
 
       <div className="rounded-lg border border-zinc-200 bg-white">
         {rows.length === 0 ? (
-          <div className="px-4 py-10 text-center text-sm text-zinc-400">
-            No interventions logged{typeFilter || statusFilter ? " for this filter" : " yet"}.
+          <div className="px-4 py-10 text-center text-sm text-muted-foreground">
+            No interventions{typeFilter || statusFilter ? " for this filter" : " logged yet"}.
           </div>
         ) : (
           <Table>
@@ -139,6 +148,9 @@ export default async function InterventionsListPage({
                 const linkedCount = row.intervention_workflows.filter(
                   (l) => l.workflows !== null,
                 ).length;
+                const ownerName =
+                  (row.created_by && displayNameByUserId.get(row.created_by)) ||
+                  row.owner;
                 return (
                   <TableRow key={row.id}>
                     <TableCell className="font-medium text-zinc-900">
@@ -152,10 +164,10 @@ export default async function InterventionsListPage({
                     <TableCell>
                       {row.type ? (
                         <Badge variant={TYPE_VARIANT[row.type]}>
-                          {row.type.replace("_", " ")}
+                          {toTitle(row.type)}
                         </Badge>
                       ) : (
-                        <span className="text-zinc-400">—</span>
+                        <span className="text-zinc-400">-</span>
                       )}
                     </TableCell>
                     <TableCell>
@@ -163,17 +175,17 @@ export default async function InterventionsListPage({
                         <span
                           className={`rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${STATUS_STYLES[row.status]}`}
                         >
-                          {row.status}
+                          {toTitle(row.status)}
                         </span>
                       ) : (
-                        <span className="text-zinc-400">—</span>
+                        <span className="text-zinc-400">-</span>
                       )}
                     </TableCell>
                     <TableCell className="tabular-nums text-zinc-700">
                       {linkedCount}
                     </TableCell>
                     <TableCell className="text-zinc-700">
-                      {row.owner ?? <span className="text-zinc-400">—</span>}
+                      {ownerName ?? <span className="text-zinc-400">-</span>}
                     </TableCell>
                     <TableCell className="text-zinc-500">
                       {format(new Date(row.created_at), "d MMM yyyy")}
@@ -185,6 +197,6 @@ export default async function InterventionsListPage({
           </Table>
         )}
       </div>
-    </div>
+    </PageContainer>
   );
 }

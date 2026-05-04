@@ -27,7 +27,7 @@ import {
   type CreateWorkflowState,
 } from "../actions";
 
-const CRITICALITY_LABELS = ["1 — Trivial", "2 — Low", "3 — Medium", "4 — High", "5 — Critical"];
+const CRITICALITY_LABELS = ["1 - Trivial", "2 - Low", "3 - Medium", "4 - High", "5 - Critical"];
 
 export function NewWorkflowDialog({
   teams,
@@ -71,7 +71,7 @@ export function NewWorkflowDialog({
 
             <div className="space-y-2">
               <Label htmlFor="team">Owner team</Label>
-              {/* Hidden input is what actually gets submitted —
+              {/* Hidden input is what actually gets submitted -
                   shadcn Select doesn't post a native form value. */}
               <input type="hidden" name="team" value={team} />
               <Select
@@ -87,10 +87,8 @@ export function NewWorkflowDialog({
                       {t}
                     </SelectItem>
                   ))}
-                  {teams.length === 0 && (
-                    <SelectItem value={defaultTeam || "unknown"}>
-                      {defaultTeam || "(none)"}
-                    </SelectItem>
+                  {teams.length === 0 && defaultTeam && (
+                    <SelectItem value={defaultTeam}>{defaultTeam}</SelectItem>
                   )}
                 </SelectContent>
               </Select>
