@@ -17,6 +17,7 @@ const ProfileSchema = z.object({
       "Avatar URL must start with http:// or https://",
     ),
   title: z.string().trim().min(1, "Job title is required").max(100),
+  team: z.string().trim().min(1, "Team is required").max(100),
 });
 
 export type UpdateProfileState =
@@ -34,6 +35,7 @@ export async function updateProfile(
     display_name: formData.get("display_name"),
     avatar_url: formData.get("avatar_url") ?? "",
     title: formData.get("title"),
+    team: formData.get("team") ?? "",
   });
 
   if (!parsed.success) {
@@ -59,6 +61,20 @@ export async function updateProfile(
 
   if (error) {
     return { kind: "error", message: `Could not save profile: ${error.message}` };
+  }
+
+  const { error: teamError } = await supabase
+    .from("role_grants")
+    .upsert(
+      {
+        user_id: user.id,
+        team: parsed.data.team,
+      },
+      { onConflict: "user_id" },
+    );
+
+  if (teamError) {
+    return { kind: "error", message: `Could not save team: ${teamError.message}` };
   }
 
   revalidatePath("/", "layout");
