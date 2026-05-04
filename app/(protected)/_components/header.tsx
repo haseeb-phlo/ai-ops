@@ -18,11 +18,20 @@ export function Header({ user }: { user: SessionUser }) {
           href="/"
           className="text-sm font-semibold tracking-tight"
         >
-          Phlo Workshop
+          Phlo AI Ops
         </Link>
         <nav className="flex items-center gap-4 text-sm text-zinc-600">
+          <Link href="/dashboard" className="hover:text-zinc-900">
+            Dashboard
+          </Link>
           <Link href="/workflows" className="hover:text-zinc-900">
             Workflows
+          </Link>
+          <Link href="/interventions" className="hover:text-zinc-900">
+            Interventions
+          </Link>
+          <Link href="/map" className="hover:text-zinc-900">
+            Map
           </Link>
         </nav>
       </div>
@@ -43,6 +52,19 @@ export function Header({ user }: { user: SessionUser }) {
         >
           {user.role}
         </span>
+
+        <Link
+          href="/profile"
+          aria-label="Edit profile"
+          className="block size-8 overflow-hidden rounded-full ring-1 ring-zinc-200 hover:ring-zinc-400"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={user.avatarUrl}
+            alt={user.displayName}
+            className="h-full w-full object-cover"
+          />
+        </Link>
 
         <form action="/auth/signout" method="post">
           <button
