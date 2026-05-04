@@ -152,6 +152,26 @@ export function LogInterventionDialog({
             />
           </div>
 
+          <div className="space-y-1.5">
+            <Label htmlFor="attribution_confidence">
+              Attribution confidence
+            </Label>
+            <select
+              id="attribution_confidence"
+              name="attribution_confidence"
+              defaultValue="medium"
+              className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+            >
+              <option value="high">High — clean before/after, isolated change</option>
+              <option value="medium">Medium — confounded by other changes</option>
+              <option value="low">Low — best-guess; many things moved at once</option>
+            </select>
+            <p className="text-xs text-zinc-500">
+              How sure are you the impact is from this intervention? Weighted on
+              the dashboard: high ×1.0, medium ×0.7, low ×0.4.
+            </p>
+          </div>
+
           {state.kind === "error" && (
             <p
               role="alert"

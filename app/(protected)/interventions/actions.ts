@@ -15,6 +15,8 @@ const INTERVENTION_TYPES = [
   "process_change",
 ] as const;
 
+const CONFIDENCES = ["high", "medium", "low"] as const;
+
 const FormSchema = z.object({
   name: z.string().min(1, "Name is required").max(200),
   type: z.enum(INTERVENTION_TYPES, { error: "Pick an intervention type" }),
@@ -27,6 +29,7 @@ const FormSchema = z.object({
     .min(0, "Minutes saved can't be negative")
     .max(100000)
     .optional(),
+  attribution_confidence: z.enum(CONFIDENCES).default("medium"),
 });
 
 export type LogInterventionState =
@@ -51,6 +54,8 @@ export async function logIntervention(
     workflow_ids: formData.getAll("workflow_ids"),
     description: (formData.get("description") as string) || undefined,
     minutes_saved_per_week: minutesParsed,
+    attribution_confidence:
+      (formData.get("attribution_confidence") as string) || "medium",
   });
 
   if (!parsed.success) {
@@ -69,6 +74,7 @@ export async function logIntervention(
     p_workflow_ids: data.workflow_ids,
     p_description: data.description ?? null,
     p_minutes_saved_per_week: data.minutes_saved_per_week ?? null,
+    p_attribution_confidence: data.attribution_confidence,
   });
 
   if (error || !newId) {
