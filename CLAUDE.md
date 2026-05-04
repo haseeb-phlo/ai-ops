@@ -20,7 +20,7 @@ Vitest runs in `jsdom` with globals enabled; tests live in `tests/**/*.test.ts(x
 
 ## Environment
 
-Env vars (see `../.example_env`):
+Env vars (see `../.example_env` — the example file lives one directory **above** the repo root, shared with sibling Phlo projects):
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
 - `ANTHROPIC_API_KEY`
@@ -58,7 +58,8 @@ Treat `proxy.ts` as the single global gate. Pages do not need to re-check auth f
 ### Route layout
 
 - `app/(protected)/` — route group whose `layout.tsx` calls `getSessionUser()` and renders `<Header user={user} />`. New authenticated pages go inside this group.
-- `app/(protected)/interventions/` and `app/(protected)/workflows/` — the two main feature areas. Both follow the same shape: `page.tsx` (list), `[id]/` (detail), `_components/` (route-local components), `actions.ts` (Server Actions). Mutations go through `actions.ts` next to the route, not separate API routes.
+- Feature areas under `app/(protected)/` follow a consistent shape: `page.tsx` (list/index), `[id]/` (detail), `_components/` (route-local UI), `actions.ts` (Server Actions). Mutations go through `actions.ts` next to the route, not separate API routes. Server Actions validate inputs with Zod at the boundary; trust the parsed shape downstream.
+- The `_components/` underscore prefix marks a Next.js **private folder** — excluded from routing. Use it for any route-local file that isn't a page/layout/route handler.
 - `app/login/page.tsx` — Client Component using Supabase magic-link OTP (`signInWithOtp`), redirect target `${origin}/auth/callback`.
 - `app/auth/callback/route.ts` — exchanges the OTP `code` for a session via `exchangeCodeForSession`, then redirects to `?next=` or `/`.
 - `app/auth/signout/route.ts` — POST handler used by the header's sign-out form.
