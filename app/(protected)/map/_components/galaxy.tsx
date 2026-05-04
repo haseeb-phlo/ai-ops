@@ -63,14 +63,27 @@ type Link = SimulationLinkDatum<Node> & {
 const COMPANY_ID = "company:phlo";
 
 const HEAT_OPTIONS = [
-  { value: "criticality", label: "Criticality" },
-  { value: "time", label: "Time saved (lower = better)" },
-  { value: "cost", label: "Cost saved (lower = better)" },
-  { value: "errors", label: "Error rate" },
-  { value: "revenue", label: "Revenue (higher = better)" },
-  { value: "interventions", label: "Active AI interventions" },
+  {
+    value: "criticality",
+    label: "Criticality",
+    unit: "/ 5",
+    direction: "lower",
+  },
+  { value: "time", label: "Time per run", unit: "min", direction: "lower" },
+  { value: "cost", label: "Cost per run", unit: "£", direction: "lower" },
+  { value: "errors", label: "Error rate", unit: "%", direction: "lower" },
+  { value: "revenue", label: "Revenue per run", unit: "£", direction: "higher" },
+  {
+    value: "interventions",
+    label: "Active AI interventions",
+    unit: "",
+    direction: "higher",
+  },
 ] as const;
 type Heat = (typeof HEAT_OPTIONS)[number]["value"];
+
+const FRESH_DAYS = 14;
+const STALE_DAYS = 60;
 
 // =============================================================================
 // Component
@@ -224,21 +237,9 @@ export function Galaxy({ data }: { data: GalaxyData }) {
 
       const { x: tx, y: ty, k } = transformRef.current;
 
-      // Background gradient
-      const bg = ctx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, Math.max(w, h));
-      bg.addColorStop(0, "#0b1020");
-      bg.addColorStop(1, "#05060d");
-      ctx.fillStyle = bg;
+      // White background to match the rest of the platform.
+      ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, w, h);
-
-      // Faint star field — cheap decoration, deterministic per draw
-      ctx.fillStyle = "rgba(255,255,255,0.35)";
-      for (let i = 0; i < 80; i++) {
-        const seed = (i * 9301 + 49297) % 233280;
-        const sx = (seed / 233280) * w;
-        const sy = ((i * 7919) % 233280 / 233280) * h;
-        ctx.fillRect(sx, sy, 1, 1);
-      }
 
       ctx.translate(w / 2 + tx, h / 2 + ty);
       ctx.scale(k, k);
@@ -250,17 +251,17 @@ export function Galaxy({ data }: { data: GalaxyData }) {
       // Per-frame: value of the active heat metric, per workflow, at the
       // currently scrubbed date. Drives workflow node colour.
       const heatValues = new Map<string, number | null>();
+      const freshness = new Map<string, "fresh" | "stale" | "none">();
+      const scrubDate = dateList[dateIdx];
       for (const n of nodes) {
         if (n.kind !== "workflow") continue;
         heatValues.set(
           n.id,
-          heatValueForWorkflow(
-            heat,
-            n.id,
-            dateList[dateIdx],
-            n.meta,
-            historyIndex,
-          ),
+          heatValueForWorkflow(heat, n.id, scrubDate, n.meta, historyIndex),
+        );
+        freshness.set(
+          n.id,
+          freshnessFor(heat, n.id, scrubDate, historyIndex),
         );
       }
 
@@ -278,7 +279,7 @@ export function Galaxy({ data }: { data: GalaxyData }) {
           : touchesTeam(s, teamFilter) && touchesTeam(t, teamFilter);
         const dim = !inSub || !inTeam;
 
-        ctx.strokeStyle = dim ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.18)";
+        ctx.strokeStyle = dim ? "rgba(24,24,27,0.06)" : "rgba(24,24,27,0.22)";
         ctx.lineWidth = dim ? 0.6 : 1;
         ctx.beginPath();
         ctx.moveTo(s.x!, s.y!);
@@ -302,6 +303,7 @@ export function Galaxy({ data }: { data: GalaxyData }) {
           heat,
           heatScales,
           heatValue: heatValues.get(n.id) ?? null,
+          freshness: freshness.get(n.id) ?? "none",
           activeInterventions:
             (n.meta.activeInterventions as number | undefined) ?? 0,
           imageMap: imagesRef.current,
@@ -326,7 +328,7 @@ export function Galaxy({ data }: { data: GalaxyData }) {
         const inSub = subgraph ? subgraph.has(n.id) : true;
         const inTeam = !isFiltered ? true : touchesTeam(n, teamFilter);
         ctx.globalAlpha = !inSub || !inTeam ? 0.3 : 1;
-        ctx.fillStyle = "#e5e7eb";
+        ctx.fillStyle = "#18181b";
         ctx.fillText(n.label, n.x!, n.y! + n.radius + 6);
         ctx.globalAlpha = 1;
       }
@@ -455,7 +457,7 @@ export function Galaxy({ data }: { data: GalaxyData }) {
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-3 border-b bg-zinc-50 px-6 py-2 text-xs">
         <label className="flex items-center gap-2">
-          <span className="text-zinc-500">Heat</span>
+          <span className="text-zinc-500">Colour by</span>
           <select
             value={heat}
             onChange={(e) => setHeat(e.target.value as Heat)}
@@ -468,6 +470,28 @@ export function Galaxy({ data }: { data: GalaxyData }) {
             ))}
           </select>
         </label>
+
+        <div
+          role="group"
+          aria-label="Zoom"
+          className="inline-flex items-center overflow-hidden rounded-md border border-zinc-300 bg-white"
+        >
+          <ZoomButton
+            label="Zoom out"
+            onClick={() => zoomBy(transformRef, 1 / 1.3)}
+          >
+            −
+          </ZoomButton>
+          <ZoomButton label="Reset zoom" onClick={() => resetZoom(transformRef)}>
+            ⌖
+          </ZoomButton>
+          <ZoomButton
+            label="Zoom in"
+            onClick={() => zoomBy(transformRef, 1.3)}
+          >
+            +
+          </ZoomButton>
+        </div>
 
         <label className="flex items-center gap-2">
           <span className="text-zinc-500">Team</span>
@@ -502,12 +526,12 @@ export function Galaxy({ data }: { data: GalaxyData }) {
         )}
 
         <span className="ml-auto text-zinc-400">
-          Drag to pan · Scroll to zoom · Click a node to focus
+          Drag to pan · Click a node to focus
         </span>
       </div>
 
       {/* Canvas */}
-      <div ref={containerRef} className="relative flex-1 overflow-hidden">
+      <div ref={containerRef} className="relative flex-1 overflow-hidden bg-white">
         <canvas
           ref={canvasRef}
           style={{
@@ -515,6 +539,17 @@ export function Galaxy({ data }: { data: GalaxyData }) {
             height: size.h,
             cursor: hoveredId ? "pointer" : "grab",
           }}
+        />
+
+        <Legend
+          heat={heat}
+          range={
+            (heat === "criticality"
+              ? { min: 1, max: 5 }
+              : heat === "interventions"
+                ? { min: 0, max: 1 }
+                : heatRange[heat]?.[dateList[dateIdx]]) ?? null
+          }
         />
 
         {/* Detail card */}
@@ -525,9 +560,9 @@ export function Galaxy({ data }: { data: GalaxyData }) {
         {/* Empty state */}
         {data.workflows.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="rounded-lg bg-black/60 p-6 text-center text-sm text-zinc-200 max-w-sm">
+            <div className="rounded-lg border border-zinc-200 bg-white p-6 text-center text-sm text-zinc-700 shadow-sm max-w-sm">
               <p className="font-medium">The galaxy is empty.</p>
-              <p className="mt-1 text-zinc-400">
+              <p className="mt-1 text-zinc-500">
                 Apply <code>supabase/seed.sql</code> in the Supabase SQL Editor
                 or add a workflow at <code>/workflows</code>.
               </p>
@@ -536,6 +571,170 @@ export function Galaxy({ data }: { data: GalaxyData }) {
         )}
       </div>
     </div>
+  );
+}
+
+// =============================================================================
+// Legend
+// =============================================================================
+function Legend({
+  heat,
+  range,
+}: {
+  heat: Heat;
+  range: { min: number; max: number } | null;
+}) {
+  const opt = HEAT_OPTIONS.find((o) => o.value === heat);
+  const heatLabel = opt?.label ?? heat;
+  const direction = opt?.direction ?? "lower";
+  const unit = opt?.unit ?? "";
+
+  // Direction = "lower" means lower-is-better, so the green end labels the
+  // minimum and the red end labels the maximum. Reverse for "higher".
+  const lo = range
+    ? formatRange(range.min, unit)
+    : direction === "lower"
+      ? "Good"
+      : "Bad";
+  const hi = range
+    ? formatRange(range.max, unit)
+    : direction === "lower"
+      ? "Bad"
+      : "Good";
+  const goodLabel = direction === "lower" ? lo : hi;
+  const badLabel = direction === "lower" ? hi : lo;
+  const gradient =
+    direction === "lower"
+      ? "linear-gradient(to right, rgb(22,163,74), rgb(217,119,6), rgb(220,38,38))"
+      : "linear-gradient(to right, rgb(220,38,38), rgb(217,119,6), rgb(22,163,74))";
+
+  return (
+    <div className="absolute right-4 top-4 max-w-[280px] rounded-lg border border-zinc-200 bg-white/95 p-3 text-xs text-zinc-700 shadow-sm backdrop-blur">
+      <p className="font-semibold text-zinc-900">Legend</p>
+
+      <p className="mt-2 text-[11px] uppercase tracking-wide text-zinc-500">
+        {heatLabel}
+      </p>
+      <div className="mt-1 flex items-center gap-2">
+        <div
+          className="h-2 w-full rounded-full"
+          style={{ background: gradient }}
+        />
+      </div>
+      <div className="mt-1 flex justify-between text-[10px] tabular-nums text-zinc-600">
+        <span>← {goodLabel}</span>
+        <span>{badLabel} →</span>
+      </div>
+      <p className="mt-1 text-[10px] text-zinc-500">
+        Green = good · Red = bad · Grey = no data
+      </p>
+
+      <p className="mt-3 text-[11px] uppercase tracking-wide text-zinc-500">
+        Data freshness
+      </p>
+      <ul className="mt-1 space-y-0.5 text-[11px]">
+        <li>
+          <span className="mr-1 inline-block h-2 w-2 rounded-full ring-1 ring-zinc-700/70 align-middle" />
+          Fresh (≤{FRESH_DAYS}d)
+        </li>
+        <li>
+          <span
+            className="mr-1 inline-block h-2 w-2 rounded-full align-middle"
+            style={{
+              border: "1px dashed rgba(24,24,27,0.55)",
+            }}
+          />
+          Stale ({FRESH_DAYS}–{STALE_DAYS}d old)
+        </li>
+        <li>
+          <span className="mr-1 inline-block h-2 w-2 rounded-full bg-zinc-300 align-middle" />
+          No recent measurement
+        </li>
+      </ul>
+
+      <p className="mt-3 text-[11px] uppercase tracking-wide text-zinc-500">
+        Nodes
+      </p>
+      <ul className="mt-1 space-y-1">
+        <LegendRow swatch={<Swatch fill="#18181b" size={12} />} label="Phlo (company)" />
+        <LegendRow
+          swatch={<Swatch fill="#e4e4e7" stroke="#52525b" size={12} />}
+          label="Team"
+        />
+        <LegendRow
+          swatch={<Swatch fill="#a1a1aa" stroke="#71717a" size={10} />}
+          label="Person"
+        />
+        <LegendRow
+          swatch={<Swatch fill="#16a34a" stroke="rgba(24,24,27,0.4)" size={10} />}
+          label="Workflow"
+        />
+      </ul>
+
+      <p className="mt-3 text-[11px] uppercase tracking-wide text-zinc-500">
+        Workflow markers
+      </p>
+      <ul className="mt-1 space-y-1">
+        <LegendRow
+          swatch={<Swatch fill="#16a34a" ring="#9333ea" size={10} />}
+          label="Has active AI intervention"
+        />
+        <LegendRow
+          swatch={<Swatch fill="#16a34a" ring="#dc2626" ringDashed size={10} />}
+          label="Regulatory"
+        />
+      </ul>
+    </div>
+  );
+}
+
+function LegendRow({ swatch, label }: { swatch: React.ReactNode; label: string }) {
+  return (
+    <li className="flex items-center gap-2">
+      <span className="flex h-4 w-4 shrink-0 items-center justify-center">
+        {swatch}
+      </span>
+      <span>{label}</span>
+    </li>
+  );
+}
+
+function Swatch({
+  fill,
+  stroke,
+  ring,
+  ringDashed,
+  size,
+}: {
+  fill: string;
+  stroke?: string;
+  ring?: string;
+  ringDashed?: boolean;
+  size: number;
+}) {
+  const ringSize = size + 6;
+  return (
+    <svg width={ringSize} height={ringSize} viewBox={`0 0 ${ringSize} ${ringSize}`}>
+      {ring && (
+        <circle
+          cx={ringSize / 2}
+          cy={ringSize / 2}
+          r={(size + 3) / 2}
+          fill="none"
+          stroke={ring}
+          strokeWidth={1}
+          strokeDasharray={ringDashed ? "2 2" : undefined}
+        />
+      )}
+      <circle
+        cx={ringSize / 2}
+        cy={ringSize / 2}
+        r={size / 2}
+        fill={fill}
+        stroke={stroke}
+        strokeWidth={stroke ? 1 : 0}
+      />
+    </svg>
   );
 }
 
@@ -691,6 +890,85 @@ function heatValueForWorkflow(
   return historyIndex[heat]?.[workflowId]?.[date] ?? null;
 }
 
+// "fresh" = a measurement exists within FRESH_DAYS of the scrubbed date,
+// "stale" = within STALE_DAYS, "none" = older than that or never measured.
+// criticality + interventions are static, so always treat them as fresh.
+function freshnessFor(
+  heat: Heat,
+  workflowId: string,
+  scrubDate: string | undefined,
+  historyIndex: Record<string, Record<string, Record<string, number>>>,
+): "fresh" | "stale" | "none" {
+  if (heat === "criticality" || heat === "interventions") return "fresh";
+  if (!scrubDate) return "none";
+  const byDate = historyIndex[heat]?.[workflowId];
+  if (!byDate) return "none";
+  let bestDate: string | null = null;
+  for (const d of Object.keys(byDate)) {
+    if (d > scrubDate) continue;
+    if (bestDate === null || d > bestDate) bestDate = d;
+  }
+  if (!bestDate) return "none";
+  const ageMs = Date.parse(scrubDate) - Date.parse(bestDate);
+  const ageDays = ageMs / 86_400_000;
+  if (ageDays <= FRESH_DAYS) return "fresh";
+  if (ageDays <= STALE_DAYS) return "stale";
+  return "none";
+}
+
+// Programmatic zoom helpers driven by the toolbar buttons. Mutating the ref
+// alone is enough — the requestAnimationFrame loop reads it every frame.
+type TransformRef = { current: { x: number; y: number; k: number } };
+function zoomBy(ref: TransformRef, factor: number) {
+  const t = ref.current;
+  const newK = Math.max(0.3, Math.min(3, t.k * factor));
+  // Zoom toward the centre (i.e. the current viewport origin in world space).
+  const ratio = newK / t.k;
+  t.x = -(0 - t.x) * ratio;
+  t.y = -(0 - t.y) * ratio;
+  t.k = newK;
+}
+function resetZoom(ref: TransformRef) {
+  ref.current.x = 0;
+  ref.current.y = 0;
+  ref.current.k = 1;
+}
+
+function formatRange(value: number, unit: string): string {
+  const n =
+    Math.abs(value) >= 1000
+      ? `${(value / 1000).toFixed(1)}k`
+      : value % 1 === 0
+        ? `${value}`
+        : value.toFixed(1);
+  if (unit === "£") return `£${n}`;
+  if (unit === "/ 5") return `${n} / 5`;
+  if (!unit) return n;
+  return `${n} ${unit}`;
+}
+
+function ZoomButton({
+  children,
+  label,
+  onClick,
+}: {
+  children: React.ReactNode;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      onClick={onClick}
+      className="flex h-7 w-7 items-center justify-center text-base leading-none text-zinc-700 hover:bg-zinc-100 not-first:border-l not-first:border-zinc-200"
+    >
+      {children}
+    </button>
+  );
+}
+
 function lerpColor(a: [number, number, number], b: [number, number, number], t: number) {
   const tt = Math.max(0, Math.min(1, t));
   return [
@@ -700,21 +978,19 @@ function lerpColor(a: [number, number, number], b: [number, number, number], t: 
   ];
 }
 
-const COLOR_COOL: [number, number, number] = [59, 130, 246]; // blue-500
-const COLOR_HOT: [number, number, number] = [239, 68, 68]; // red-500
-const COLOR_OK: [number, number, number] = [16, 185, 129]; // emerald-500
+// Conventional traffic-light scale: green = good, amber = warning, red = bad.
+const COLOR_GOOD: [number, number, number] = [22, 163, 74]; // green-600
+const COLOR_WARN: [number, number, number] = [217, 119, 6]; // amber-600
+const COLOR_BAD: [number, number, number] = [220, 38, 38]; // red-600
+const COLOR_UNKNOWN = "#a1a1aa"; // zinc-400
 
-function workflowColor(
-  value: number | null,
-  scales: HeatScales,
-): string {
-  if (value === null) return `rgb(120,120,140)`;
+function workflowColor(value: number | null, scales: HeatScales): string {
+  if (value === null) return COLOR_UNKNOWN;
   const t = scales.max === scales.min ? 0.5 : (value - scales.min) / (scales.max - scales.min);
   const adjusted = scales.better === "high" ? 1 - t : t;
-  // 0 = good (green) → 0.5 = warning (blue) → 1 = bad (red)
   const c = adjusted < 0.5
-    ? lerpColor(COLOR_OK, COLOR_COOL, adjusted * 2)
-    : lerpColor(COLOR_COOL, COLOR_HOT, (adjusted - 0.5) * 2);
+    ? lerpColor(COLOR_GOOD, COLOR_WARN, adjusted * 2)
+    : lerpColor(COLOR_WARN, COLOR_BAD, (adjusted - 0.5) * 2);
   return `rgb(${c[0]},${c[1]},${c[2]})`;
 }
 
@@ -725,6 +1001,7 @@ type DrawOpts = {
   heat: Heat;
   heatScales: HeatScales;
   heatValue: number | null;
+  freshness: "fresh" | "stale" | "none";
   activeInterventions: number;
   imageMap: Map<string, HTMLImageElement>;
   isHover: boolean;
@@ -742,16 +1019,7 @@ function drawCompany(ctx: CanvasRenderingContext2D, n: Node) {
   const y = n.y!;
   const r = n.radius;
 
-  const grad = ctx.createRadialGradient(x, y, 0, x, y, r * 2);
-  grad.addColorStop(0, "rgba(255,235,180,1)");
-  grad.addColorStop(0.6, "rgba(255,170,80,0.6)");
-  grad.addColorStop(1, "rgba(255,170,80,0)");
-  ctx.fillStyle = grad;
-  ctx.beginPath();
-  ctx.arc(x, y, r * 2, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.fillStyle = "#fde68a";
+  ctx.fillStyle = "#18181b";
   ctx.beginPath();
   ctx.arc(x, y, r, 0, Math.PI * 2);
   ctx.fill();
@@ -762,13 +1030,8 @@ function drawTeam(ctx: CanvasRenderingContext2D, n: Node) {
   const y = n.y!;
   const r = n.radius;
 
-  ctx.fillStyle = "rgba(150,180,220,0.18)";
-  ctx.beginPath();
-  ctx.arc(x, y, r + 6, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.fillStyle = "#94a3b8";
-  ctx.strokeStyle = "#cbd5e1";
+  ctx.fillStyle = "#e4e4e7";
+  ctx.strokeStyle = "#52525b";
   ctx.lineWidth = 1.5;
   ctx.beginPath();
   ctx.arc(x, y, r, 0, Math.PI * 2);
@@ -784,13 +1047,12 @@ function drawPerson(ctx: CanvasRenderingContext2D, n: Node, opts: DrawOpts) {
   const isGhost = n.meta.kind === "ghost";
 
   // Avatar ring
-  ctx.strokeStyle = isGhost ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.7)";
+  ctx.strokeStyle = isGhost ? "rgba(82,82,91,0.5)" : "#71717a";
   ctx.lineWidth = opts.isHover ? 2.5 : 1.2;
   ctx.beginPath();
   ctx.arc(x, y, r + 1, 0, Math.PI * 2);
   ctx.stroke();
 
-  // Avatar image (clipped to circle)
   if (img && img.complete && img.naturalWidth > 0) {
     ctx.save();
     ctx.beginPath();
@@ -803,7 +1065,7 @@ function drawPerson(ctx: CanvasRenderingContext2D, n: Node, opts: DrawOpts) {
     }
     ctx.restore();
   } else {
-    ctx.fillStyle = "#475569";
+    ctx.fillStyle = "#a1a1aa";
     ctx.beginPath();
     ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.fill();
@@ -817,46 +1079,52 @@ function drawWorkflow(ctx: CanvasRenderingContext2D, n: Node, opts: DrawOpts) {
 
   const color = workflowColor(opts.heatValue, opts.heatScales);
 
-  // Comet trail for active interventions
+  // Halo around workflows with an active intervention.
   if (opts.activeInterventions > 0) {
-    const trail = ctx.createRadialGradient(x, y, r, x, y, r * 4);
-    trail.addColorStop(0, "rgba(250, 204, 21, 0.45)");
-    trail.addColorStop(1, "rgba(250, 204, 21, 0)");
-    ctx.fillStyle = trail;
-    ctx.beginPath();
-    ctx.arc(x, y, r * 4, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  // Outer glow scaled by criticality
-  const crit = (n.meta.criticality as number) ?? 3;
-  const glow = ctx.createRadialGradient(x, y, r * 0.4, x, y, r * (1 + crit * 0.3));
-  glow.addColorStop(0, color);
-  glow.addColorStop(1, "rgba(0,0,0,0)");
-  ctx.fillStyle = glow;
-  ctx.beginPath();
-  ctx.arc(x, y, r * (1 + crit * 0.3), 0, Math.PI * 2);
-  ctx.fill();
-
-  // Core
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.arc(x, y, r, 0, Math.PI * 2);
-  ctx.fill();
-
-  if (n.meta.regulatory) {
-    ctx.strokeStyle = "#fca5a5";
+    ctx.strokeStyle = "#9333ea"; // purple-600
     ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.arc(x, y, r + 3, 0, Math.PI * 2);
+    ctx.arc(x, y, r + 4, 0, Math.PI * 2);
     ctx.stroke();
   }
 
+  ctx.fillStyle = color;
+  // Stroke style encodes data freshness:
+  //   fresh = solid dark ring, stale = dashed ring, none = no ring at all.
+  if (opts.freshness === "fresh") {
+    ctx.strokeStyle = "rgba(24,24,27,0.6)";
+    ctx.lineWidth = 1;
+    ctx.setLineDash([]);
+  } else if (opts.freshness === "stale") {
+    ctx.strokeStyle = "rgba(24,24,27,0.55)";
+    ctx.lineWidth = 1;
+    ctx.setLineDash([2, 2]);
+  } else {
+    ctx.strokeStyle = "rgba(24,24,27,0)";
+    ctx.lineWidth = 0;
+    ctx.setLineDash([]);
+  }
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fill();
+  if (opts.freshness !== "none") ctx.stroke();
+  ctx.setLineDash([]);
+
+  if (n.meta.regulatory) {
+    ctx.strokeStyle = "#dc2626";
+    ctx.setLineDash([3, 3]);
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(x, y, r + (opts.activeInterventions > 0 ? 8 : 4), 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
   if (opts.isHover) {
-    ctx.strokeStyle = "#fff";
+    ctx.strokeStyle = "#18181b";
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.arc(x, y, r + 5, 0, Math.PI * 2);
+    ctx.arc(x, y, r + (n.meta.regulatory ? 10 : 6), 0, Math.PI * 2);
     ctx.stroke();
   }
 }
@@ -874,10 +1142,10 @@ function DetailCard({
   onClose: () => void;
 }) {
   return (
-    <div className="absolute bottom-4 left-4 max-w-xs rounded-lg bg-black/70 p-4 text-sm text-zinc-100 backdrop-blur shadow-xl ring-1 ring-white/10">
+    <div className="absolute bottom-4 left-4 max-w-xs rounded-lg border border-zinc-200 bg-white p-4 text-sm text-zinc-900 shadow-md">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <p className="text-xs uppercase tracking-wide text-zinc-400">
+          <p className="text-xs uppercase tracking-wide text-zinc-500">
             {node.kind}
           </p>
           <p className="mt-0.5 font-semibold">{node.label}</p>
@@ -885,7 +1153,7 @@ function DetailCard({
         <button
           type="button"
           onClick={onClose}
-          className="text-xs text-zinc-400 hover:text-white"
+          className="text-xs text-zinc-500 hover:text-zinc-900"
           aria-label="Close"
         >
           ✕
@@ -919,14 +1187,14 @@ function PersonDetail({ node, data }: { node: Node; data: GalaxyData }) {
   return (
     <div className="mt-2 space-y-1 text-xs">
       {typeof node.meta.title === "string" && node.meta.title && (
-        <p className="text-zinc-300">{node.meta.title}</p>
+        <p className="text-zinc-700">{node.meta.title}</p>
       )}
-      <p className="text-zinc-400">
+      <p className="text-zinc-500">
         {node.team ? `Team: ${node.team}` : "No team"}
       </p>
       <p>{ownedWorkflows.length} workflows owned</p>
       {ownedWorkflows.slice(0, 5).map((w) => (
-        <p key={w.id} className="truncate text-zinc-300">
+        <p key={w.id} className="truncate text-zinc-700">
           · {w.name}
         </p>
       ))}
@@ -938,8 +1206,8 @@ function WorkflowDetail({ node }: { node: Node }) {
   const m = node.meta;
   return (
     <div className="mt-2 space-y-1 text-xs">
-      <p className="text-zinc-400">
-        Team: {(m.team as string | null) ?? "—"}
+      <p className="text-zinc-500">
+        Team: {(m.team as string | null) ?? "-"}
       </p>
       <p>Frequency / wk: {(m.frequencyPerWeek as number) ?? 0}</p>
       <p>Criticality: {(m.criticality as number) ?? 3}/5</p>
@@ -947,7 +1215,7 @@ function WorkflowDetail({ node }: { node: Node }) {
         Active interventions: {(m.activeInterventions as number) ?? 0}
       </p>
       {(m.regulatory as boolean) && (
-        <p className="text-rose-300">⚠ Regulatory</p>
+        <p className="text-red-600">⚠ Regulatory</p>
       )}
     </div>
   );
