@@ -1,18 +1,20 @@
 import { getSessionUser } from "@/lib/auth";
 
+const VOWELS = new Set(["a", "e", "i", "o", "u"]);
+
 export default async function Home() {
   const user = await getSessionUser();
-  const firstName = user.email.split("@")[0].split(".")[0];
-  const greeting = firstName.charAt(0).toUpperCase() + firstName.slice(1);
+  const firstName = user.displayName.split(" ")[0];
+  const article = VOWELS.has(user.role.charAt(0).toLowerCase()) ? "an" : "a";
 
   return (
     <div className="flex flex-1 items-center justify-center px-6 py-24">
       <div className="space-y-3 text-center">
         <h1 className="text-3xl font-semibold tracking-tight">
-          Hello, {greeting} 👋
+          Hello, {firstName}
         </h1>
         <p className="text-zinc-500">
-          You&apos;re signed in as{" "}
+          You&apos;re signed in as {article}{" "}
           <span className="font-medium text-zinc-900">{user.role}</span>
           {user.team && (
             <>

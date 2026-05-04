@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { resolveAvatar } from "@/lib/profile";
@@ -19,10 +20,36 @@ export type SessionUser = {
   email: string;
   role: string;
   team: string | null;
+  realRole: string;
+  realTeam: string | null;
+  isImpersonating: boolean;
   displayName: string;
   avatarUrl: string;
   title: string | null;
 };
+
+export const VIEW_AS_COOKIE = "view_as";
+export const ROLES = ["super_admin", "member"] as const;
+export type Role = (typeof ROLES)[number];
+
+type ViewAs = { role: string; team: string | null };
+
+async function readViewAs(): Promise<ViewAs | null> {
+  const store = await cookies();
+  const raw = store.get(VIEW_AS_COOKIE)?.value;
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as ViewAs;
+    if (!parsed?.role) return null;
+    if (!(ROLES as readonly string[]).includes(parsed.role)) return null;
+    return {
+      role: parsed.role,
+      team: typeof parsed.team === "string" ? parsed.team : null,
+    };
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Loads the current user + role_grant + profile.
@@ -53,16 +80,41 @@ export const getSessionUser = cache(async (): Promise<SessionUser> => {
       .maybeSingle<Profile>(),
   ]);
 
+  if (grantRes.error) {
+    throw new Error(`Failed to load role_grants: ${grantRes.error.message}`);
+  }
+  if (profileRes.error) {
+    throw new Error(`Failed to load profile: ${profileRes.error.message}`);
+  }
+
   const grant = grantRes.data;
   const profile = profileRes.data;
   const fallbackName = user.email.split("@")[0];
   const displayName = profile?.display_name?.trim() || fallbackName;
 
+  const realRole = grant?.role ?? "member";
+  const realTeam = grant?.team ?? null;
+
+  let role = realRole;
+  let team = realTeam;
+  let isImpersonating = false;
+  if (realRole === "super_admin") {
+    const viewAs = await readViewAs();
+    if (viewAs) {
+      role = viewAs.role;
+      team = viewAs.team;
+      isImpersonating = true;
+    }
+  }
+
   return {
     id: user.id,
     email: user.email,
-    role: grant?.role ?? "member",
-    team: grant?.team ?? null,
+    role,
+    team,
+    realRole,
+    realTeam,
+    isImpersonating,
     displayName,
     avatarUrl: resolveAvatar(profile?.avatar_url ?? null, user.id),
     title: profile?.title ?? null,
