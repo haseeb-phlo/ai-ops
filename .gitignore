@@ -42,3 +42,6 @@ next-env.d.ts
 
 # supabase cli scratch state
 /supabase/.temp/
+
+# local scratch files (one-off scripts, verification helpers)
+/.scratch/
