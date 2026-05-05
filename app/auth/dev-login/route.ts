@@ -3,7 +3,16 @@ import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 
 export async function GET(request: NextRequest) {
+  // Defense in depth: NODE_ENV is the primary gate, but if SUPABASE_SERVICE_
+  // ROLE_KEY ever leaks into a non-dev env this route would otherwise become
+  // passwordless account takeover for any email. Pinning to localhost makes
+  // a leaked-key scenario non-exploitable from outside the host.
   if (process.env.NODE_ENV !== "development") {
+    return new NextResponse("Not found", { status: 404 });
+  }
+  const host = request.headers.get("host") ?? "";
+  const isLocalhost = /^(localhost|127\.0\.0\.1)(:\d+)?$/.test(host);
+  if (!isLocalhost) {
     return new NextResponse("Not found", { status: 404 });
   }
 
