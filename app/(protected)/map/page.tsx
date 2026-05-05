@@ -1,9 +1,21 @@
 import { getSessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { resolveAvatar } from "@/lib/profile";
+import { championsByTeam, championsByDisplayName } from "@/lib/champions";
+import { loadTeamOptions } from "@/lib/teams";
 import { Galaxy, type GalaxyData } from "./_components/galaxy";
+import {
+  ViewToggle,
+  DEFAULT_VIEW,
+  type ViewKey,
+} from "./_components/view-toggle";
+import { DirectoryView } from "./_components/directory-view";
+import { ChampionsView } from "./_components/champions-view";
+import { InviteButton } from "../admin/_components/invite-button";
 
 export const dynamic = "force-dynamic";
+
+const VALID_VIEWS = new Set<ViewKey>(["map", "directory", "champions"]);
 
 function ninetyDaysAgo(): string {
   const d = new Date();
@@ -51,8 +63,85 @@ type HistoryRow = {
   value: number;
 };
 
-export default async function MapPage() {
+export default async function MapPage({
+  searchParams,
+}: {
+  searchParams: Promise<{
+    view?: string | string[];
+    team?: string | string[];
+    q?: string | string[];
+  }>;
+}) {
+  const sp = await searchParams;
+  const rawView = Array.isArray(sp.view) ? sp.view[0] : sp.view;
+  const rawTeam = Array.isArray(sp.team) ? sp.team[0] : sp.team;
+  const rawQ = Array.isArray(sp.q) ? sp.q[0] : sp.q;
+  const requestedView =
+    typeof rawView === "string" && rawView.length > 0
+      ? rawView.toLowerCase()
+      : DEFAULT_VIEW;
+  const view: ViewKey = VALID_VIEWS.has(requestedView as ViewKey)
+    ? (requestedView as ViewKey)
+    : DEFAULT_VIEW;
+
   const user = await getSessionUser();
+  const isSuper = user.realRole === "super_admin";
+  const inviteTeams = isSuper
+    ? await loadTeamOptions(await createClient())
+    : [];
+
+  if (view === "directory") {
+    return (
+      <div className="flex flex-1 flex-col">
+        <div className="border-b bg-white px-6 py-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
+                People
+              </h1>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Search and browse everyone in the directory.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              {isSuper && <InviteButton teams={inviteTeams} />}
+              <ViewToggle active={view} />
+            </div>
+          </div>
+        </div>
+        <div className="px-6 py-6">
+          <DirectoryView team={rawTeam ?? null} q={rawQ ?? null} />
+        </div>
+      </div>
+    );
+  }
+
+  if (view === "champions") {
+    return (
+      <div className="flex flex-1 flex-col">
+        <div className="border-b bg-white px-6 py-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
+                People
+              </h1>
+              <p className="mt-1 text-sm text-muted-foreground">
+                AI Champions - one per team, the editorial voice for AI work.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              {isSuper && <InviteButton teams={inviteTeams} />}
+              <ViewToggle active={view} />
+            </div>
+          </div>
+        </div>
+        <div className="px-6 py-6">
+          <ChampionsView />
+        </div>
+      </div>
+    );
+  }
+
   const supabase = await createClient();
 
   const [
@@ -149,6 +238,16 @@ export default async function MapPage() {
     history: [],
   };
 
+  const championsByUser = await (async () => {
+    const byTeam = await championsByTeam();
+    const m = new Map<string, { team: string }>();
+    for (const c of byTeam.values()) {
+      if (c.user_id) m.set(c.user_id, { team: c.team });
+    }
+    return m;
+  })();
+  const championsByName = await championsByDisplayName();
+
   // 1. People from profiles (real users), enriched with people-table data
   //    when the names match.
   for (const p of profilesRes.data ?? []) {
@@ -158,6 +257,11 @@ export default async function MapPage() {
         : null;
     if (!displayName) continue;
     const peopleMatch = peopleByName.get(displayName.toLowerCase());
+    const champ =
+      championsByUser.get(p.user_id) ??
+      (championsByName.get(displayName.toLowerCase())
+        ? { team: championsByName.get(displayName.toLowerCase())!.team }
+        : null);
     data.people.push({
       id: `user:${p.user_id}`,
       name: displayName,
@@ -165,6 +269,8 @@ export default async function MapPage() {
       avatarUrl: resolveAvatar(p.avatar_url, p.user_id),
       team: peopleMatch?.team ?? teamByUser.get(p.user_id) ?? null,
       kind: "user",
+      isChampion: !!champ,
+      championTeam: champ?.team ?? null,
     });
     profileNames.add(displayName.toLowerCase());
   }
@@ -177,6 +283,7 @@ export default async function MapPage() {
     if (!name) continue;
     const key = name.toLowerCase();
     if (profileNames.has(key)) continue;
+    const champ = championsByName.get(key);
     data.people.push({
       id: `name:${key}`,
       name,
@@ -184,6 +291,8 @@ export default async function MapPage() {
       avatarUrl: resolveAvatar(null, name),
       team: p.team ?? null,
       kind: "ghost",
+      isChampion: !!champ,
+      championTeam: champ?.team ?? null,
     });
     profileNames.add(key);
   }
@@ -199,6 +308,7 @@ export default async function MapPage() {
       if (profileNames.has(key) || ghostByName.has(key)) continue;
       const id = `name:${key}`;
       ghostByName.set(key, id);
+      const champ = championsByName.get(key);
       data.people.push({
         id,
         name,
@@ -206,6 +316,8 @@ export default async function MapPage() {
         avatarUrl: resolveAvatar(null, name),
         team: w.team,
         kind: "ghost",
+        isChampion: !!champ,
+        championTeam: champ?.team ?? null,
       });
     }
   }
@@ -265,12 +377,21 @@ export default async function MapPage() {
   return (
     <div className="flex flex-1 flex-col">
       <div className="border-b bg-white px-6 py-5">
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
-          Company map
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Teams orbit Phlo, people orbit their team, workflows orbit their owners. Pick a heat metric; see the legend for what each colour means.
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
+              People
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Teams orbit Phlo, people orbit their team, workflows orbit their
+              owners. AI champions glow amber.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {isSuper && <InviteButton teams={inviteTeams} />}
+            <ViewToggle active="map" />
+          </div>
+        </div>
       </div>
       <Galaxy data={data} />
     </div>

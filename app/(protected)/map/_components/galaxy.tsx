@@ -25,6 +25,8 @@ export type GalaxyData = {
     avatarUrl: string;
     team: string | null;
     kind: "user" | "ghost";
+    isChampion?: boolean;
+    championTeam?: string | null;
   }[];
   workflows: {
     id: string;
@@ -778,7 +780,14 @@ function buildGraph(data: GalaxyData): { nodes: Node[]; links: Link[] } {
       label: p.name,
       radius: 14,
       team: p.team,
-      meta: { name: p.name, title: p.title, avatarUrl: p.avatarUrl, kind: p.kind },
+      meta: {
+        name: p.name,
+        title: p.title,
+        avatarUrl: p.avatarUrl,
+        kind: p.kind,
+        isChampion: !!p.isChampion,
+        championTeam: p.championTeam ?? null,
+      },
     });
     if (p.team) {
       links.push({
@@ -1045,10 +1054,16 @@ function drawPerson(ctx: CanvasRenderingContext2D, n: Node, opts: DrawOpts) {
   const r = n.radius;
   const img = opts.imageMap.get(n.id);
   const isGhost = n.meta.kind === "ghost";
+  const isChampion = n.meta.isChampion === true;
 
-  // Avatar ring
-  ctx.strokeStyle = isGhost ? "rgba(82,82,91,0.5)" : "#71717a";
-  ctx.lineWidth = opts.isHover ? 2.5 : 1.2;
+  // Avatar ring - amber + thicker for champions, default zinc otherwise.
+  if (isChampion) {
+    ctx.strokeStyle = "#f59e0b"; // amber-500
+    ctx.lineWidth = opts.isHover ? 3.5 : 2.5;
+  } else {
+    ctx.strokeStyle = isGhost ? "rgba(82,82,91,0.5)" : "#71717a";
+    ctx.lineWidth = opts.isHover ? 2.5 : 1.2;
+  }
   ctx.beginPath();
   ctx.arc(x, y, r + 1, 0, Math.PI * 2);
   ctx.stroke();
@@ -1069,6 +1084,22 @@ function drawPerson(ctx: CanvasRenderingContext2D, n: Node, opts: DrawOpts) {
     ctx.beginPath();
     ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.fill();
+  }
+
+  // Champion lightning glyph in the bottom-right corner of the avatar.
+  if (isChampion) {
+    const glyphR = Math.max(4, r * 0.32);
+    const cx = x + r * 0.7;
+    const cy = y + r * 0.7;
+    ctx.fillStyle = "#f59e0b";
+    ctx.beginPath();
+    ctx.arc(cx, cy, glyphR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#ffffff";
+    ctx.font = `bold ${Math.round(glyphR * 1.3)}px ui-sans-serif, system-ui`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("⚡", cx, cy + 0.5);
   }
 }
 
