@@ -12,10 +12,12 @@ const initial: ChampionEditorialState = { kind: "idle" };
 
 export function EditorialForm({
   team,
+  championId,
   defaultBlurb,
   defaultChewingOn,
 }: {
   team: string;
+  championId: string;
   defaultBlurb: string;
   defaultChewingOn: string;
 }) {
@@ -26,6 +28,7 @@ export function EditorialForm({
 
   return (
     <form action={action} className="space-y-4">
+      <input type="hidden" name="champion_id" value={championId} />
       <input type="hidden" name="team" value={team} />
 
       <div className="space-y-1">

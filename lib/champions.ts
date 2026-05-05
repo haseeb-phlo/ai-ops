@@ -15,6 +15,11 @@ export type Champion = {
  * Loads every champion row. Cached for the duration of a single render so
  * the header, owner chips, and activity rows on the same page share one
  * round-trip.
+ *
+ * Ordered by team, then by created_at ascending — so when a team has
+ * multiple champions (Executive, mainly), the FIRST to be assigned is
+ * the one returned by `championsByTeam` for back-compat with surfaces
+ * that just want "any champion of team X".
  */
 export const loadChampions = cache(async (): Promise<Champion[]> => {
   const supabase = await createClient();
@@ -22,17 +27,43 @@ export const loadChampions = cache(async (): Promise<Champion[]> => {
     .from("champions")
     .select("id, team, user_id, display_name, last_check_in, blurb, chewing_on")
     .order("team", { ascending: true })
+    .order("created_at", { ascending: true })
     .returns<Champion[]>();
   return data ?? [];
 });
 
 /**
- * Index of champions keyed by team for cheap lookup during render.
+ * Index of champions keyed by team. When multiple champions exist for a
+ * team, returns the FIRST-assigned one — kept for callers that just want
+ * "any champion of team X" (owner chips, mention links, ribbon labels).
+ *
+ * Use `championsForTeam` when you need the full list for a team.
  */
 export const championsByTeam = cache(
   async (): Promise<Map<string, Champion>> => {
     const list = await loadChampions();
-    return new Map(list.map((c) => [c.team, c]));
+    const map = new Map<string, Champion>();
+    for (const c of list) {
+      if (!map.has(c.team)) map.set(c.team, c);
+    }
+    return map;
+  },
+);
+
+/**
+ * Index of champions keyed by team, returning ALL champions per team.
+ * Use on the champion profile page where the full list matters.
+ */
+export const championsForTeam = cache(
+  async (): Promise<Map<string, Champion[]>> => {
+    const list = await loadChampions();
+    const map = new Map<string, Champion[]>();
+    for (const c of list) {
+      const arr = map.get(c.team) ?? [];
+      arr.push(c);
+      map.set(c.team, arr);
+    }
+    return map;
   },
 );
 

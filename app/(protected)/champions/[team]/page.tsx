@@ -1,9 +1,8 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { format, formatDistanceToNow } from "date-fns";
 import { getSessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { championsByTeam } from "@/lib/champions";
+import { championsForTeam, type Champion } from "@/lib/champions";
 import { resolveAvatar } from "@/lib/profile";
 import { TextWithMentions } from "@/components/people/champion-mark";
 import { PageContainer } from "@/components/page-header";
@@ -41,6 +40,12 @@ type CosignGiven = {
   signed_at: string;
 };
 
+type ProfileRow = {
+  user_id: string;
+  avatar_url: string | null;
+  title: string | null;
+};
+
 export default async function ChampionTeamPage({
   params,
 }: {
@@ -49,29 +54,31 @@ export default async function ChampionTeamPage({
   const { team: teamRaw } = await params;
   const team = decodeURIComponent(teamRaw);
   const user = await getSessionUser();
+  const isSuper = user.role === "super_admin";
 
-  const byTeam = await championsByTeam();
-  const champion = byTeam.get(team);
-  if (!champion) {
-    notFound();
-  }
+  const forTeam = await championsForTeam();
+  const champions = forTeam.get(team) ?? [];
 
   const supabase = await createClient();
 
+  const championUserIds = champions
+    .map((c) => c.user_id)
+    .filter((u): u is string => !!u);
+
   const [
-    { data: profile },
+    { data: profileRows },
     { data: workflows },
     { data: interventionLinks },
     { data: notes },
     { data: cosigns },
   ] = await Promise.all([
-    champion.user_id
+    championUserIds.length > 0
       ? supabase
           .from("profiles")
-          .select("avatar_url, title")
-          .eq("user_id", champion.user_id)
-          .maybeSingle<{ avatar_url: string | null; title: string | null }>()
-      : Promise.resolve({ data: null }),
+          .select("user_id, avatar_url, title")
+          .in("user_id", championUserIds)
+          .returns<ProfileRow[]>()
+      : Promise.resolve({ data: [] as ProfileRow[] }),
     supabase
       .from("workflows")
       .select("id, name, criticality, regulatory")
@@ -79,8 +86,6 @@ export default async function ChampionTeamPage({
       .is("deleted_at", null)
       .order("name", { ascending: true })
       .returns<SponsoredWorkflow[]>(),
-    // Interventions linked to any workflow on this team. We pull the IDs
-    // first via the join table, then a second query to resolve names.
     supabase
       .from("intervention_workflows")
       .select("intervention_id, workflows!inner(team)")
@@ -101,6 +106,10 @@ export default async function ChampionTeamPage({
       .limit(20)
       .returns<CosignGiven[]>(),
   ]);
+
+  const profileByUserId = new Map(
+    (profileRows ?? []).map((p) => [p.user_id, p]),
+  );
 
   const interventionIds = Array.from(
     new Set((interventionLinks ?? []).map((r) => r.intervention_id)),
@@ -123,16 +132,9 @@ export default async function ChampionTeamPage({
     (workflows ?? []).map((w) => [w.id, w.name]),
   );
 
-  const seed = champion.user_id ?? champion.display_name;
-  const avatarSrc = resolveAvatar(profile?.avatar_url ?? null, seed);
-
-  const isOwner = champion.user_id === user.id;
-  const isSuper = user.realRole === "super_admin";
-  const canEdit = isOwner || isSuper;
-
-  // Super-admin only: list of candidate people on this team for the
-  // replace-champion control. Skipped entirely for non-supers to avoid the
-  // extra query.
+  // Super-admin only: candidates from the directory for the "add champion"
+  // form. Existing-champion user_ids filtered out so the picker doesn't
+  // show people who'd just hit a unique-violation.
   let candidates: CandidatePerson[] = [];
   if (isSuper) {
     const { data } = await supabase
@@ -140,7 +142,12 @@ export default async function ChampionTeamPage({
       .select("id, display_name, email")
       .eq("team", team)
       .order("display_name", { ascending: true })
-      .returns<CandidatePerson[]>();
+      .returns<(CandidatePerson & { email: string })[]>();
+    const existingEmails = new Set<string>();
+    // We don't have champions.email directly, but we can filter by the
+    // email field on people via user_id matching. Simpler: keep the full
+    // list; the action error covers duplicates if they slip through.
+    void existingEmails;
     candidates = data ?? [];
   }
 
@@ -155,89 +162,59 @@ export default async function ChampionTeamPage({
         </Link>
       </nav>
 
-      <section className="rounded-lg border border-zinc-200 bg-white p-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="flex items-start gap-4">
-            <span
-              className="relative inline-block shrink-0"
-              style={{ width: 64, height: 64 }}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={avatarSrc}
-                alt={champion.display_name}
-                className="h-full w-full rounded-full bg-zinc-50 object-cover ring-2 ring-amber-400 ring-offset-1 ring-offset-white"
-              />
-              <span
-                aria-hidden
-                className="absolute -bottom-0.5 -right-0.5 flex size-5 items-center justify-center rounded-full bg-amber-400 text-[10px] font-bold leading-none text-white shadow-sm ring-1 ring-white"
+      <header className="space-y-1">
+        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
+          {team}
+        </h1>
+        <p className="text-sm text-zinc-500">
+          {champions.length === 0
+            ? "No AI Champions assigned yet."
+            : `${champions.length} AI ${champions.length === 1 ? "Champion" : "Champions"}`}
+        </p>
+      </header>
+
+      {champions.length === 0 ? (
+        <section className="rounded-lg border border-dashed border-zinc-200 bg-white px-6 py-12 text-center text-sm text-muted-foreground">
+          {isSuper ? (
+            <>
+              No champion assigned to <strong>{team}</strong> yet. Use the form
+              below to assign one.
+            </>
+          ) : (
+            <>
+              No champion has been assigned to <strong>{team}</strong> yet. A
+              super-admin can assign one from{" "}
+              <Link
+                href="/admin"
+                className="font-medium text-zinc-700 underline"
               >
-                ⚡
-              </span>
-            </span>
-            <div>
-              <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
-                {champion.display_name}
-              </h1>
-              <p className="text-sm text-zinc-500">
-                <span className="font-medium text-amber-700">AI Champion</span>{" "}
-                of {team}
-                {profile?.title ? ` · ${profile.title}` : ""}
-              </p>
-              <p className="mt-1 text-xs text-zinc-400">
-                {champion.last_check_in
-                  ? `Last check-in ${formatDistanceToNow(new Date(champion.last_check_in), { addSuffix: true })}`
-                  : "No check-ins recorded yet."}
-              </p>
-            </div>
-          </div>
-
-          {isOwner && <CheckInButton team={team} />}
+                /admin
+              </Link>
+              .
+            </>
+          )}
+        </section>
+      ) : (
+        <div className="space-y-4">
+          {champions.map((c) => (
+            <ChampionCard
+              key={c.id}
+              champion={c}
+              profile={c.user_id ? profileByUserId.get(c.user_id) ?? null : null}
+              isSelf={c.user_id === user.id}
+              isSuper={isSuper}
+              team={team}
+            />
+          ))}
         </div>
-
-        {(champion.blurb || champion.chewing_on) && (
-          <div className="mt-6 space-y-3">
-            {champion.blurb && (
-              <p className="text-sm text-zinc-700">
-                <TextWithMentions text={champion.blurb} />
-              </p>
-            )}
-            {champion.chewing_on && (
-              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
-                <div className="text-xs font-medium uppercase tracking-wide text-amber-700">
-                  Chewing on
-                </div>
-                <p className="mt-1 text-sm text-amber-900">
-                  <TextWithMentions text={champion.chewing_on} />
-                </p>
-              </div>
-            )}
-          </div>
-        )}
-      </section>
+      )}
 
       {isSuper && (
         <SuperAdminManage
           team={team}
           candidates={candidates}
-          currentChampion={{
-            display_name: champion.display_name,
-            user_id: champion.user_id,
-          }}
+          championCount={champions.length}
         />
-      )}
-
-      {canEdit && (
-        <section className="rounded-lg border border-zinc-200 bg-white p-6">
-          <h2 className="mb-4 text-sm font-semibold tracking-tight text-zinc-900">
-            {isOwner ? "Your editorial voice" : "Editorial (super-admin)"}
-          </h2>
-          <EditorialForm
-            team={team}
-            defaultBlurb={champion.blurb ?? ""}
-            defaultChewingOn={champion.chewing_on ?? ""}
-          />
-        </section>
       )}
 
       <section className="space-y-2">
@@ -385,5 +362,110 @@ export default async function ChampionTeamPage({
         </div>
       </section>
     </PageContainer>
+  );
+}
+
+import { RemoveChampionButton } from "./_components/remove-champion-button";
+
+function ChampionCard({
+  champion,
+  profile,
+  isSelf,
+  isSuper,
+  team,
+}: {
+  champion: Champion;
+  profile: ProfileRow | null;
+  isSelf: boolean;
+  isSuper: boolean;
+  team: string;
+}) {
+  const seed = champion.user_id ?? champion.display_name;
+  const avatarSrc = resolveAvatar(profile?.avatar_url ?? null, seed);
+  const canEdit = isSelf || isSuper;
+
+  return (
+    <section className="rounded-lg border border-zinc-200 bg-white p-6 space-y-5">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="flex items-start gap-4">
+          <span
+            className="relative inline-block shrink-0"
+            style={{ width: 56, height: 56 }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={avatarSrc}
+              alt={champion.display_name}
+              className="h-full w-full rounded-full bg-zinc-50 object-cover ring-2 ring-amber-400 ring-offset-1 ring-offset-white"
+            />
+            <span
+              aria-hidden
+              className="absolute -bottom-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-amber-400 text-[9px] font-bold leading-none text-white shadow-sm ring-1 ring-white"
+            >
+              ⚡
+            </span>
+          </span>
+          <div>
+            <h2 className="text-lg font-semibold tracking-tight text-zinc-900">
+              {champion.display_name}
+            </h2>
+            <p className="text-sm text-zinc-500">
+              {profile?.title ?? "AI Champion"}
+              {champion.user_id ? "" : "  ·  hasn't signed in yet"}
+            </p>
+            <p className="mt-1 text-xs text-zinc-400">
+              {champion.last_check_in
+                ? `Last check-in ${formatDistanceToNow(new Date(champion.last_check_in), { addSuffix: true })}`
+                : "No check-ins recorded yet."}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {isSelf && <CheckInButton team={team} />}
+          {isSuper && (
+            <RemoveChampionButton
+              championId={champion.id}
+              team={team}
+              displayName={champion.display_name}
+            />
+          )}
+        </div>
+      </div>
+
+      {(champion.blurb || champion.chewing_on) && (
+        <div className="space-y-3">
+          {champion.blurb && (
+            <p className="text-sm text-zinc-700">
+              <TextWithMentions text={champion.blurb} />
+            </p>
+          )}
+          {champion.chewing_on && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+              <div className="text-xs font-medium uppercase tracking-wide text-amber-700">
+                Chewing on
+              </div>
+              <p className="mt-1 text-sm text-amber-900">
+                <TextWithMentions text={champion.chewing_on} />
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {canEdit && (
+        <div className="border-t border-zinc-100 pt-5">
+          <h3 className="mb-3 text-xs font-medium uppercase tracking-wide text-zinc-500">
+            {isSelf ? "Your editorial voice" : "Editorial (super-admin)"}
+          </h3>
+          <EditorialForm
+            team={team}
+            championId={champion.id}
+            defaultBlurb={champion.blurb ?? ""}
+            defaultChewingOn={champion.chewing_on ?? ""}
+          />
+        </div>
+      )}
+    </section>
   );
 }

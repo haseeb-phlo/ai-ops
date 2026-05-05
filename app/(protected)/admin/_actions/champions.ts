@@ -2,6 +2,7 @@
 
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { getSessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -29,7 +30,7 @@ export async function assignChampion(
   formData: FormData,
 ): Promise<AssignChampionState> {
   const user = await getSessionUser();
-  if (user.realRole !== "super_admin") {
+  if (user.role !== "super_admin") {
     return { kind: "error", message: "Only super-admins can assign champions." };
   }
 
@@ -69,19 +70,23 @@ export async function assignChampion(
     p_email: person.email,
   });
 
-  const { error: upsertError } = await supabase
-    .from("champions")
-    .upsert(
-      {
-        team: parsed.data.team,
-        user_id: (resolvedUserId as string | null) ?? null,
-        display_name: person.display_name,
-      },
-      { onConflict: "team" },
-    );
+  // With the team-unique constraint dropped (multi-champion teams), this
+  // is now an insert. The partial unique index on (team, user_id) catches
+  // the "same person assigned twice to the same team" case as 23505.
+  const { error: insertError } = await supabase.from("champions").insert({
+    team: parsed.data.team,
+    user_id: (resolvedUserId as string | null) ?? null,
+    display_name: person.display_name,
+  });
 
-  if (upsertError) {
-    return { kind: "error", message: upsertError.message };
+  if (insertError) {
+    if (insertError.code === "23505") {
+      return {
+        kind: "error",
+        message: `${person.display_name} is already a champion of ${parsed.data.team}.`,
+      };
+    }
+    return { kind: "error", message: insertError.message };
   }
 
   // Send notification. Failure here doesn't roll back the assignment - it's
@@ -113,15 +118,23 @@ export async function assignChampion(
 
 export async function removeChampion(formData: FormData): Promise<void> {
   const user = await getSessionUser();
-  if (user.realRole !== "super_admin") return;
+  if (user.role !== "super_admin") return;
 
+  const championId = (formData.get("champion_id") as string | null)?.trim();
   const team = (formData.get("team") as string | null)?.trim();
-  if (!team) return;
+  const redirectTo = (formData.get("redirect_to") as string | null)?.trim();
+  if (!championId) return;
 
   const supabase = await createClient();
-  await supabase.from("champions").delete().eq("team", team);
+  await supabase.from("champions").delete().eq("id", championId);
 
   revalidatePath("/admin");
-  revalidatePath("/champions");
-  revalidatePath(`/champions/${team}`);
+  revalidatePath("/map");
+  if (team) revalidatePath(`/champions/${team}`);
+
+  // Profile-page Remove asks to be sent back to the directory because the
+  // page lookup would 404 if this was the team's only champion.
+  if (redirectTo) {
+    redirect(redirectTo);
+  }
 }

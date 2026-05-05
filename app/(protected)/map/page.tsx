@@ -1,7 +1,7 @@
 import { getSessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { resolveAvatar } from "@/lib/profile";
-import { championsByTeam, championsByDisplayName } from "@/lib/champions";
+import { championsByDisplayName, loadChampions } from "@/lib/champions";
 import { loadTeamOptions } from "@/lib/teams";
 import { Galaxy, type GalaxyData } from "./_components/galaxy";
 import {
@@ -85,7 +85,9 @@ export default async function MapPage({
     : DEFAULT_VIEW;
 
   const user = await getSessionUser();
-  const isSuper = user.realRole === "super_admin";
+  // Effective role honours impersonation: a super-admin viewing as a member
+  // sees Member affordances and loses the Invite button.
+  const isSuper = user.role === "super_admin";
   const inviteTeams = isSuper
     ? await loadTeamOptions(await createClient())
     : [];
@@ -239,10 +241,13 @@ export default async function MapPage({
   };
 
   const championsByUser = await (async () => {
-    const byTeam = await championsByTeam();
+    const all = await loadChampions();
     const m = new Map<string, { team: string }>();
-    for (const c of byTeam.values()) {
-      if (c.user_id) m.set(c.user_id, { team: c.team });
+    for (const c of all) {
+      // A user can be a champion of multiple teams; the galaxy node only
+      // shows one, so we keep the first encountered (loadChampions orders
+      // by team then created_at, so this is deterministic).
+      if (c.user_id && !m.has(c.user_id)) m.set(c.user_id, { team: c.team });
     }
     return m;
   })();

@@ -6,6 +6,7 @@ import { getSessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
 const EditorialSchema = z.object({
+  champion_id: z.string().uuid(),
   team: z.string().trim().min(1),
   blurb: z.string().trim().max(2000).optional().default(""),
   chewing_on: z.string().trim().max(2000).optional().default(""),
@@ -23,6 +24,7 @@ export async function updateChampionEditorial(
   const user = await getSessionUser();
 
   const parsed = EditorialSchema.safeParse({
+    champion_id: formData.get("champion_id"),
     team: formData.get("team"),
     blurb: formData.get("blurb") ?? "",
     chewing_on: formData.get("chewing_on") ?? "",
@@ -37,17 +39,22 @@ export async function updateChampionEditorial(
 
   const supabase = await createClient();
 
-  // Authorisation: only the champion themself, or a super-admin, can edit.
+  // Authorisation: only the champion themself (the row's user_id matches
+  // auth.uid()), or a super-admin, can edit.
   const { data: champ } = await supabase
     .from("champions")
     .select("user_id")
-    .eq("team", parsed.data.team)
+    .eq("id", parsed.data.champion_id)
     .maybeSingle<{ user_id: string | null }>();
 
-  const isOwner = champ?.user_id === user.id;
-  const isSuper = user.realRole === "super_admin";
+  if (!champ) {
+    return { kind: "error", message: "Champion record not found." };
+  }
+
+  const isOwner = champ.user_id === user.id;
+  const isSuper = user.role === "super_admin";
   if (!isOwner && !isSuper) {
-    return { kind: "error", message: "You're not the champion of this team." };
+    return { kind: "error", message: "You're not this champion." };
   }
 
   const { error } = await supabase
@@ -57,14 +64,14 @@ export async function updateChampionEditorial(
       chewing_on: parsed.data.chewing_on || null,
       updated_at: new Date().toISOString(),
     })
-    .eq("team", parsed.data.team);
+    .eq("id", parsed.data.champion_id);
 
   if (error) {
     return { kind: "error", message: error.message };
   }
 
   revalidatePath(`/champions/${parsed.data.team}`);
-  revalidatePath("/champions");
+  revalidatePath("/map");
   return { kind: "ok" };
 }
 
@@ -74,25 +81,28 @@ export async function recordChampionCheckIn(
   const user = await getSessionUser();
   const supabase = await createClient();
 
+  // The user can have at most one champion row for this team (partial
+  // unique on team+user_id). Match by both so multi-champion teams work.
   const { data: champ } = await supabase
     .from("champions")
-    .select("user_id")
+    .select("id")
     .eq("team", team)
-    .maybeSingle<{ user_id: string | null }>();
+    .eq("user_id", user.id)
+    .maybeSingle<{ id: string }>();
 
-  if (!champ || champ.user_id !== user.id) {
+  if (!champ) {
     return { ok: false, message: "Only the team's champion can check in." };
   }
 
   const { error } = await supabase
     .from("champions")
     .update({ last_check_in: new Date().toISOString() })
-    .eq("team", team);
+    .eq("id", champ.id);
 
   if (error) return { ok: false, message: error.message };
 
   revalidatePath(`/champions/${team}`);
-  revalidatePath("/champions");
+  revalidatePath("/map");
   revalidatePath("/admin");
   return { ok: true };
 }

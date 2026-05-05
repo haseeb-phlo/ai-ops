@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/select";
 import {
   assignChampion,
-  removeChampion,
   type AssignChampionState,
 } from "@/app/(protected)/admin/_actions/champions";
 
@@ -23,14 +22,20 @@ export type CandidatePerson = {
   email: string;
 };
 
+/**
+ * Add-a-champion form for /champions/[team]. Per-row Remove buttons live
+ * on each champion card above this form, so this component only handles
+ * adding new champions to the team. Multiple champions per team are
+ * supported (Executive being the canonical case).
+ */
 export function SuperAdminManage({
   team,
   candidates,
-  currentChampion,
+  championCount,
 }: {
   team: string;
   candidates: CandidatePerson[];
-  currentChampion: { display_name: string; user_id: string | null };
+  championCount: number;
 }) {
   const [personId, setPersonId] = useState<string>("");
   const [state, action, pending] = useActionState(assignChampion, initial);
@@ -41,74 +46,59 @@ export function SuperAdminManage({
     <section className="rounded-lg border border-zinc-200 bg-white p-5 space-y-4">
       <div>
         <h2 className="text-sm font-semibold tracking-tight text-zinc-900">
-          Manage champion
+          {championCount === 0 ? "Assign a champion" : "Add a champion"}
         </h2>
         <p className="text-xs text-zinc-500">
-          Super admin only. Replacing assigns the new person and emails them;
-          removing leaves the team without a champion until you assign a new
-          one.
+          {championCount === 0
+            ? "Pick a person from the directory. They'll get an email letting them know they've been made champion."
+            : "Add another person as champion of this team. Useful for cross-functional teams (e.g. Executive)."}
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-[1fr_auto_auto]">
-        <form action={action} className="contents">
-          <input type="hidden" name="team" value={team} />
-          <input type="hidden" name="person_id" value={personId} />
+      <form action={action} className="grid gap-3 sm:grid-cols-[1fr_auto]">
+        <input type="hidden" name="team" value={team} />
+        <input type="hidden" name="person_id" value={personId} />
 
-          <div className="space-y-1">
-            <label className="text-xs font-medium uppercase tracking-wide text-zinc-500">
-              Replace with
-            </label>
-            <Select
-              value={personId}
-              onValueChange={(v) => setPersonId(v ?? "")}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue
-                  placeholder={
-                    candidates.length > 0
-                      ? "Pick a person on this team"
-                      : "No one in the directory for this team"
-                  }
-                >
-                  {(v) => {
-                    const p = peopleById.get(v as string);
-                    return p ? `${p.display_name}  ·  ${p.email}` : null;
-                  }}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {candidates.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.display_name}  ·  {p.email}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <Button
-            type="submit"
-            disabled={pending || !personId}
-            className="self-end"
+        <div className="space-y-1">
+          <label className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+            New champion
+          </label>
+          <Select
+            value={personId}
+            onValueChange={(v) => setPersonId(v ?? "")}
           >
-            {pending ? "Saving..." : "Replace champion"}
-          </Button>
-        </form>
+            <SelectTrigger className="w-full">
+              <SelectValue
+                placeholder={
+                  candidates.length > 0
+                    ? "Pick a person on this team"
+                    : "No one in the directory for this team"
+                }
+              >
+                {(v) => {
+                  const p = peopleById.get(v as string);
+                  return p ? `${p.display_name}  ·  ${p.email}` : null;
+                }}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {candidates.map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {p.display_name}  ·  {p.email}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-        {/* Sibling form so submit buttons don't collide. */}
-        <form action={removeChampion} className="self-end">
-          <input type="hidden" name="team" value={team} />
-          <Button type="submit" variant="outline" className="text-red-700">
-            Remove
-          </Button>
-        </form>
-      </div>
-
-      <p className="text-xs text-zinc-500">
-        Current: <strong>{currentChampion.display_name}</strong>
-        {currentChampion.user_id ? "" : "  ·  hasn't signed in yet"}
-      </p>
+        <Button
+          type="submit"
+          disabled={pending || !personId}
+          className="self-end"
+        >
+          {pending ? "Saving..." : "Add champion"}
+        </Button>
+      </form>
 
       {state.kind === "ok" && (
         <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-900">

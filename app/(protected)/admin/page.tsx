@@ -332,6 +332,7 @@ export default async function AdminPage() {
     lastCheckIn: c.last_check_in,
   }));
   const managerExisting = (champions ?? []).map((c) => ({
+    id: c.id,
     team: c.team,
     display_name: c.display_name,
     user_id: c.user_id,
