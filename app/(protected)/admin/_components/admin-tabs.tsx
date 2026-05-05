@@ -3,54 +3,29 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const TABS = [
-  { value: "impact", label: "Company impact" },
-  { value: "activity", label: "Activity feed" },
-  { value: "movers", label: "Top movers" },
-  { value: "league", label: "League table" },
   { value: "regulatory", label: "Regulatory" },
-  { value: "cost", label: "Cost summary" },
-  { value: "audit", label: "Audit log" },
+  { value: "cost", label: "Cost" },
   { value: "champions", label: "Champions" },
-  { value: "deleted", label: "Deleted workflows" },
+  { value: "audit", label: "Audit" },
 ] as const;
 
 type Props = {
-  impact: React.ReactNode;
-  activity: React.ReactNode;
-  topMovers: React.ReactNode;
-  league: React.ReactNode;
   regulatory: React.ReactNode;
   cost: React.ReactNode;
-  audit: React.ReactNode;
   champions: React.ReactNode;
-  deleted: React.ReactNode;
+  audit: React.ReactNode;
 };
 
-export function AdminTabs({
-  impact,
-  activity,
-  topMovers,
-  league,
-  regulatory,
-  cost,
-  audit,
-  champions,
-  deleted,
-}: Props) {
+export function AdminTabs({ regulatory, cost, champions, audit }: Props) {
   const panels: Record<(typeof TABS)[number]["value"], React.ReactNode> = {
-    impact,
-    activity,
-    movers: topMovers,
-    league,
     regulatory,
     cost,
-    audit,
     champions,
-    deleted,
+    audit,
   };
 
   return (
-    <Tabs defaultValue="impact">
+    <Tabs defaultValue="regulatory">
       <TabsList>
         {TABS.map((t) => (
           <TabsTrigger key={t.value} value={t.value}>

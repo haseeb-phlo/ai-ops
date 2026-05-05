@@ -18,13 +18,11 @@ export function RedirectToast() {
   useEffect(() => {
     if (!message) return;
     const t = setTimeout(() => setVisible(false), 4000);
-    // Strip the param so a refresh doesn't replay the toast.
     const clean = new URLSearchParams(params.toString());
     clean.delete("toast");
     const qs = clean.toString();
-    router.replace(qs ? `/dashboard?${qs}` : "/dashboard", { scroll: false });
+    router.replace(qs ? `/?${qs}` : "/", { scroll: false });
     return () => clearTimeout(t);
-    // We deliberately only run this on initial mount with a message.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

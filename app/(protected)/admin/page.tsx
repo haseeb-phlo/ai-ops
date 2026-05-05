@@ -3,21 +3,15 @@ import { createClient } from "@/lib/supabase/server";
 import { getSessionUser } from "@/lib/auth";
 import { PageContainer, PageHeader } from "@/components/page-header";
 import { AdminTabs } from "./_components/admin-tabs";
-import { CompanyImpact } from "./_components/company-impact";
-import { ActivityFeed } from "./_components/activity-feed";
-import { TopMovers } from "./_components/top-movers";
-import { LeagueTable } from "./_components/league-table";
 import { RegulatoryRegister } from "./_components/regulatory-register";
 import { CostSummary } from "./_components/cost-summary";
 import { AuditLog } from "./_components/audit-log";
 import { ChampionsFreshness } from "./_components/champions-freshness";
+import { ChampionsManager } from "./_components/champions-manager";
 import {
   DeletedWorkflows,
   type DeletedWorkflowRow,
 } from "./_components/deleted-workflows";
-
-const CONFIDENCE_WEIGHT = { high: 1.0, medium: 0.7, low: 0.4 } as const;
-type Confidence = keyof typeof CONFIDENCE_WEIGHT;
 
 type InterventionType =
   | "tool"
@@ -32,31 +26,20 @@ type Intervention = {
   name: string;
   type: InterventionType | null;
   status: "active" | "paused" | "retired" | null;
-  attribution_confidence: Confidence | null;
   owner: string | null;
   vendor: string | null;
-  minutes_saved_per_week: number | null;
   created_at: string;
 };
 
-type Link = {
+type LinkRow = {
   intervention_id: string;
   workflows: { id: string; name: string; team: string | null } | null;
 };
 
-type Baseline = {
-  intervention_id: string;
-  time_value: number | null;
-  cost_value: number | null;
-};
-
-type Metric = {
-  id: string;
+type CostMetric = {
   intervention_id: string;
   snapshot_date: string;
-  time_value: number | null;
   cost_value: number | null;
-  created_at: string;
 };
 
 type StepRevisionRow = {
@@ -101,14 +84,6 @@ type WorkflowRow = {
   id: string;
   name: string;
   team: string | null;
-  active: boolean | null;
-};
-
-type WorkflowMetricsHistoryRow = {
-  workflow_id: string;
-  snapshot_date: string;
-  metric: "time" | "cost" | "people" | "errors" | "revenue";
-  value: number;
 };
 
 type Champion = {
@@ -116,13 +91,20 @@ type Champion = {
   team: string;
   display_name: string;
   last_check_in: string | null;
+  user_id: string | null;
+};
+
+type DirectoryPerson = {
+  id: string;
+  display_name: string;
+  email: string;
+  team: string;
 };
 
 export default async function AdminPage() {
   const user = await getSessionUser();
-
   if (user.role !== "super_admin") {
-    redirect("/dashboard?toast=admin-only");
+    redirect("/?toast=admin-only");
   }
 
   const supabase = await createClient();
@@ -130,41 +112,32 @@ export default async function AdminPage() {
   const [
     { data: interventions },
     { data: links },
-    { data: baselines },
-    { data: metrics },
+    { data: costMetrics },
     { data: workflows },
     { data: stepRevisions },
     { data: workflowRevisions },
     { data: regulatoryEvents },
     { data: regulatorySteps },
-    { data: history },
     { data: champions },
+    { data: directoryPeople },
   ] = await Promise.all([
     supabase
       .from("ai_interventions")
-      .select(
-        "id, name, type, status, attribution_confidence, owner, vendor, minutes_saved_per_week, created_at",
-      )
+      .select("id, name, type, status, owner, vendor, created_at")
       .order("created_at", { ascending: false })
       .returns<Intervention[]>(),
     supabase
       .from("intervention_workflows")
       .select("intervention_id, workflows(id, name, team)")
-      .returns<Link[]>(),
-    supabase
-      .from("workflow_baselines")
-      .select("intervention_id, time_value, cost_value")
-      .returns<Baseline[]>(),
+      .returns<LinkRow[]>(),
     supabase
       .from("intervention_metrics")
-      .select(
-        "id, intervention_id, snapshot_date, time_value, cost_value, created_at",
-      )
+      .select("intervention_id, snapshot_date, cost_value")
       .order("snapshot_date", { ascending: false })
-      .returns<Metric[]>(),
+      .returns<CostMetric[]>(),
     supabase
       .from("workflows")
-      .select("id, name, team, active")
+      .select("id, name, team")
       .is("deleted_at", null)
       .returns<WorkflowRow[]>(),
     supabase
@@ -192,219 +165,30 @@ export default async function AdminPage() {
       .returns<RegulatoryEventRow[]>(),
     supabase
       .from("workflow_steps")
-      .select(
-        "id, title, workflow_id, regulatory_flag, workflows(id, name, team)",
-      )
+      .select("id, title, workflow_id, regulatory_flag, workflows(id, name, team)")
       .eq("regulatory_flag", "red")
       .returns<RegulatoryStepRow[]>(),
     supabase
-      .from("workflow_metrics_history")
-      .select("workflow_id, snapshot_date, metric, value")
-      .eq("metric", "time")
-      .order("snapshot_date", { ascending: false })
-      .returns<WorkflowMetricsHistoryRow[]>(),
-    supabase
       .from("champions")
-      .select("id, team, display_name, last_check_in")
+      .select("id, team, display_name, last_check_in, user_id")
       .order("team")
       .returns<Champion[]>(),
+    supabase
+      .from("people")
+      .select("id, display_name, email, team")
+      .order("display_name", { ascending: true })
+      .returns<DirectoryPerson[]>(),
   ]);
 
   const interventionsList = interventions ?? [];
-  const workflowsList = workflows ?? [];
-  const workflowsById = new Map(workflowsList.map((w) => [w.id, w]));
+  const workflowsById = new Map((workflows ?? []).map((w) => [w.id, w]));
 
-  // Build links map.
-  const linksByIntervention = new Map<string, Link[]>();
+  const linksByIntervention = new Map<string, LinkRow[]>();
   for (const l of links ?? []) {
     const arr = linksByIntervention.get(l.intervention_id) ?? [];
     arr.push(l);
     linksByIntervention.set(l.intervention_id, arr);
   }
-
-  // Baseline sums per intervention.
-  const baselineSums = new Map<string, { time: number; cost: number }>();
-  for (const b of baselines ?? []) {
-    const cur = baselineSums.get(b.intervention_id) ?? { time: 0, cost: 0 };
-    cur.time += b.time_value ?? 0;
-    cur.cost += b.cost_value ?? 0;
-    baselineSums.set(b.intervention_id, cur);
-  }
-
-  // Latest non-null time/cost per intervention.
-  const latestTime = new Map<string, Metric>();
-  const latestCost = new Map<string, Metric>();
-  for (const m of metrics ?? []) {
-    if (m.time_value != null && !latestTime.has(m.intervention_id)) {
-      latestTime.set(m.intervention_id, m);
-    }
-    if (m.cost_value != null && !latestCost.has(m.intervention_id)) {
-      latestCost.set(m.intervention_id, m);
-    }
-  }
-
-  type Row = {
-    id: string;
-    name: string;
-    type: InterventionType | null;
-    status: Intervention["status"];
-    confidence: Confidence;
-    owner: string | null;
-    vendor: string | null;
-    teams: string[];
-    weightedMinutes: number | null;
-    weightedGbp: number | null;
-    rawMinutesDelta: number | null;
-    rawGbpDelta: number | null;
-    minutesSavedPerWeek: number | null;
-  };
-
-  const rows: Row[] = interventionsList.map((iv) => {
-    const confidence: Confidence = iv.attribution_confidence ?? "medium";
-    const weight = CONFIDENCE_WEIGHT[confidence];
-    const baseline = baselineSums.get(iv.id) ?? { time: 0, cost: 0 };
-    const lt = latestTime.get(iv.id);
-    const lc = latestCost.get(iv.id);
-
-    const rawMinutesDelta =
-      lt && lt.time_value != null ? baseline.time - lt.time_value : null;
-    const rawGbpDelta =
-      lc && lc.cost_value != null ? baseline.cost - lc.cost_value : null;
-
-    const teams = (linksByIntervention.get(iv.id) ?? [])
-      .map((l) => l.workflows?.team)
-      .filter((t): t is string => !!t);
-
-    return {
-      id: iv.id,
-      name: iv.name,
-      type: iv.type,
-      status: iv.status,
-      confidence,
-      owner: iv.owner,
-      vendor: iv.vendor,
-      teams,
-      weightedMinutes:
-        rawMinutesDelta == null ? null : rawMinutesDelta * weight,
-      weightedGbp: rawGbpDelta == null ? null : rawGbpDelta * weight,
-      rawMinutesDelta,
-      rawGbpDelta,
-      minutesSavedPerWeek: iv.minutes_saved_per_week,
-    };
-  });
-
-  // Live = anything not retired (consistent with /dashboard).
-  const liveRows = rows.filter((r) => r.status !== "retired");
-
-  // ---- Company impact totals + confidence breakdown -------------------
-  const minutesByConfidence: Record<Confidence, number> = {
-    high: 0,
-    medium: 0,
-    low: 0,
-  };
-  const gbpByConfidence: Record<Confidence, number> = {
-    high: 0,
-    medium: 0,
-    low: 0,
-  };
-  let totalMinutes = 0;
-  let totalGbp = 0;
-  for (const r of liveRows) {
-    if (r.weightedMinutes != null) {
-      totalMinutes += r.weightedMinutes;
-      minutesByConfidence[r.confidence] += r.weightedMinutes;
-    }
-    if (r.weightedGbp != null) {
-      totalGbp += r.weightedGbp;
-      gbpByConfidence[r.confidence] += r.weightedGbp;
-    }
-  }
-  const activeCount = rows.filter((r) => r.status === "active").length;
-  const countByConfidence: Record<Confidence, number> = {
-    high: 0,
-    medium: 0,
-    low: 0,
-  };
-  for (const r of rows) {
-    if (r.status === "active") countByConfidence[r.confidence] += 1;
-  }
-
-  // ---- Top movers (week-on-week change in time per workflow) ----------
-  const historyByWorkflow = new Map<string, WorkflowMetricsHistoryRow[]>();
-  for (const h of history ?? []) {
-    const arr = historyByWorkflow.get(h.workflow_id) ?? [];
-    arr.push(h);
-    historyByWorkflow.set(h.workflow_id, arr);
-  }
-  type Mover = {
-    workflowId: string;
-    name: string;
-    team: string | null;
-    latest: number;
-    prior: number;
-    delta: number;
-  };
-  const movers: Mover[] = [];
-  for (const [workflowId, snapshots] of historyByWorkflow) {
-    if (snapshots.length < 2) continue;
-    // Sorted desc above. snapshots[0] is the most recent.
-    const wf = workflowsById.get(workflowId);
-    if (!wf) continue;
-    const latest = snapshots[0];
-    // Find a snapshot at least 6 days before latest (treat as "previous week").
-    const latestDate = new Date(latest.snapshot_date);
-    const cutoff = new Date(latestDate.getTime() - 6 * 24 * 60 * 60 * 1000);
-    const prior = snapshots.find((s) => new Date(s.snapshot_date) <= cutoff);
-    if (!prior) continue;
-    movers.push({
-      workflowId,
-      name: wf.name,
-      team: wf.team,
-      latest: latest.value,
-      prior: prior.value,
-      delta: latest.value - prior.value,
-    });
-  }
-  // delta < 0 == time went down == improvement.
-  const improvers = [...movers]
-    .filter((m) => m.delta < 0)
-    .sort((a, b) => a.delta - b.delta)
-    .slice(0, 5);
-  const regressors = [...movers]
-    .filter((m) => m.delta > 0)
-    .sort((a, b) => b.delta - a.delta)
-    .slice(0, 5);
-
-  // ---- League table (every active intervention) ----------------------
-  const leagueRows = rows
-    .filter((r) => r.status === "active")
-    .sort((a, b) => {
-      // weighted minutes saved per week, falling back to declared minutes_saved_per_week.
-      const aMin =
-        a.weightedMinutes ??
-        (a.minutesSavedPerWeek != null
-          ? a.minutesSavedPerWeek * CONFIDENCE_WEIGHT[a.confidence]
-          : 0);
-      const bMin =
-        b.weightedMinutes ??
-        (b.minutesSavedPerWeek != null
-          ? b.minutesSavedPerWeek * CONFIDENCE_WEIGHT[b.confidence]
-          : 0);
-      return bMin - aMin;
-    })
-    .map((r) => ({
-      id: r.id,
-      name: r.name,
-      type: r.type,
-      owner: r.owner,
-      vendor: r.vendor,
-      confidence: r.confidence,
-      teams: r.teams,
-      weightedMinutes: r.weightedMinutes,
-      weightedGbp: r.weightedGbp,
-      minutesSavedPerWeek: r.minutesSavedPerWeek,
-      rawGbpDelta: r.rawGbpDelta,
-    }));
 
   // ---- Regulatory register -------------------------------------------
   const regulatoryEventsList = regulatoryEvents ?? [];
@@ -420,12 +204,7 @@ export default async function AdminPage() {
   }));
 
   // ---- Cost summary --------------------------------------------------
-  // Monthly AI spend = sum of cost_value snapshots, grouped by month +
-  // (vendor / type / team). We include retired interventions on purpose.
-  type CostBucket = {
-    month: string;
-    spend: number;
-  };
+  type CostBucket = { month: string; spend: number };
   const monthKey = (iso: string) => iso.slice(0, 7);
   const interventionMeta = new Map(
     interventionsList.map((iv) => [
@@ -433,16 +212,17 @@ export default async function AdminPage() {
       {
         type: iv.type,
         vendor: iv.vendor,
-        teams: linksByIntervention.get(iv.id)?.flatMap((l) =>
-          l.workflows?.team ? [l.workflows.team] : [],
-        ) ?? [],
+        teams:
+          linksByIntervention
+            .get(iv.id)
+            ?.flatMap((l) => (l.workflows?.team ? [l.workflows.team] : [])) ?? [],
       },
     ]),
   );
   const byVendor = new Map<string, Map<string, number>>();
   const byType = new Map<string, Map<string, number>>();
   const byTeam = new Map<string, Map<string, number>>();
-  for (const m of metrics ?? []) {
+  for (const m of costMetrics ?? []) {
     if (m.cost_value == null) continue;
     const meta = interventionMeta.get(m.intervention_id);
     if (!meta) continue;
@@ -451,23 +231,22 @@ export default async function AdminPage() {
     const vendor = meta.vendor ?? "(unspecified)";
     const type = meta.type ?? "(untyped)";
 
-    const vMap = byVendor.get(vendor) ?? new Map();
+    const vMap = byVendor.get(vendor) ?? new Map<string, number>();
     vMap.set(month, (vMap.get(month) ?? 0) + cost);
     byVendor.set(vendor, vMap);
 
-    const tMap = byType.get(type) ?? new Map();
+    const tMap = byType.get(type) ?? new Map<string, number>();
     tMap.set(month, (tMap.get(month) ?? 0) + cost);
     byType.set(type, tMap);
 
     if (meta.teams.length === 0) {
-      const teamKey = "(no team)";
-      const teMap = byTeam.get(teamKey) ?? new Map();
+      const teMap = byTeam.get("(no team)") ?? new Map<string, number>();
       teMap.set(month, (teMap.get(month) ?? 0) + cost);
-      byTeam.set(teamKey, teMap);
+      byTeam.set("(no team)", teMap);
     } else {
       const share = cost / meta.teams.length;
       for (const team of meta.teams) {
-        const teMap = byTeam.get(team) ?? new Map();
+        const teMap = byTeam.get(team) ?? new Map<string, number>();
         teMap.set(month, (teMap.get(month) ?? 0) + share);
         byTeam.set(team, teMap);
       }
@@ -490,7 +269,7 @@ export default async function AdminPage() {
     byTeam: flattenCost(byTeam),
   };
 
-  // ---- Audit log (workflow_revisions + step_revisions + intervention status) ----
+  // ---- Audit log: revisions + intervention status changes ------------
   type AuditEntry = {
     id: string;
     when: string;
@@ -528,12 +307,6 @@ export default async function AdminPage() {
       newValue: r.new_value,
     });
   }
-  // Intervention status "changes" - we don't have a status_history table, so
-  // we surface non-active interventions as one entry each (their created_at
-  // is their best-known timestamp). This is honest about a known schema gap.
-  const interventionsByName = new Map(
-    interventionsList.map((iv) => [iv.id, iv]),
-  );
   for (const iv of interventionsList) {
     if (iv.status && iv.status !== "active") {
       audit.push({
@@ -541,7 +314,7 @@ export default async function AdminPage() {
         when: iv.created_at,
         who: iv.owner ?? "(unknown)",
         kind: "intervention",
-        target: interventionsByName.get(iv.id)?.name ?? iv.name,
+        target: iv.name,
         field: "status",
         oldValue: "active",
         newValue: iv.status,
@@ -551,15 +324,26 @@ export default async function AdminPage() {
   audit.sort((a, b) => b.when.localeCompare(a.when));
   const auditTop100 = audit.slice(0, 100);
 
-  // ---- Champions freshness -------------------------------------------
-  // (Traffic lights computed inside the component - Date.now() is impure
-  // and React 19's purity lint rule rejects it in server-render code.)
+  // ---- Champions -----------------------------------------------------
   const championRows = (champions ?? []).map((c) => ({
     id: c.id,
     team: c.team,
     displayName: c.display_name,
     lastCheckIn: c.last_check_in,
   }));
+  const managerExisting = (champions ?? []).map((c) => ({
+    team: c.team,
+    display_name: c.display_name,
+    user_id: c.user_id,
+  }));
+  const teamsForManager = Array.from(
+    new Set([
+      ...(directoryPeople ?? []).map((p) => p.team),
+      ...(champions ?? []).map((c) => c.team),
+    ]),
+  )
+    .filter(Boolean)
+    .sort();
 
   // ---- Deleted workflows ---------------------------------------------
   type DeletedRow = {
@@ -584,14 +368,14 @@ export default async function AdminPage() {
     ),
   );
 
-  let emailByUserId = new Map<string, string>();
+  let nameByUserId = new Map<string, string>();
   if (deletedUserIds.length > 0) {
     const { data: deleterProfiles } = await supabase
       .from("profiles")
       .select("user_id, display_name")
       .in("user_id", deletedUserIds)
       .returns<{ user_id: string; display_name: string | null }[]>();
-    emailByUserId = new Map(
+    nameByUserId = new Map(
       (deleterProfiles ?? []).map((p) => [
         p.user_id,
         p.display_name ?? p.user_id,
@@ -605,7 +389,7 @@ export default async function AdminPage() {
       name: r.name,
       team: r.team,
       deleted_at: r.deleted_at,
-      deleted_by_email: r.deleted_by ? emailByUserId.get(r.deleted_by) ?? null : null,
+      deleted_by_email: r.deleted_by ? nameByUserId.get(r.deleted_by) ?? null : null,
     }),
   );
 
@@ -620,24 +404,10 @@ export default async function AdminPage() {
             </span>
           </span>
         }
-        description="Cross-company state, including failed and retired interventions."
+        description="Cross-company controls. Company stats and rankings live on the home dashboard for everyone."
       />
 
-
       <AdminTabs
-        impact={
-          <CompanyImpact
-            totalMinutes={totalMinutes}
-            totalGbp={totalGbp}
-            activeCount={activeCount}
-            minutesByConfidence={minutesByConfidence}
-            gbpByConfidence={gbpByConfidence}
-            countByConfidence={countByConfidence}
-          />
-        }
-        activity={<ActivityFeed />}
-        topMovers={<TopMovers improvers={improvers} regressors={regressors} />}
-        league={<LeagueTable rows={leagueRows} />}
         regulatory={
           <RegulatoryRegister
             steps={regulatoryStepsList}
@@ -646,9 +416,27 @@ export default async function AdminPage() {
           />
         }
         cost={<CostSummary cost={cost} />}
-        audit={<AuditLog rows={auditTop100} />}
-        champions={<ChampionsFreshness rows={championRows} />}
-        deleted={<DeletedWorkflows rows={deletedWorkflowRows} />}
+        champions={
+          <div className="space-y-4">
+            <ChampionsManager
+              teams={teamsForManager}
+              people={directoryPeople ?? []}
+              existing={managerExisting}
+            />
+            <ChampionsFreshness rows={championRows} />
+          </div>
+        }
+        audit={
+          <div className="space-y-6">
+            <AuditLog rows={auditTop100} />
+            <section className="space-y-2">
+              <h2 className="text-sm font-semibold tracking-tight text-zinc-900">
+                Deleted workflows
+              </h2>
+              <DeletedWorkflows rows={deletedWorkflowRows} />
+            </section>
+          </div>
+        }
       />
     </PageContainer>
   );
