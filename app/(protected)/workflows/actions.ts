@@ -50,6 +50,21 @@ const FormSchema = z.object({
   criticality_score: z.number().int().min(1).max(5),
   business_kpi: z.string().max(500).optional(),
   regulatory_flag: z.boolean(),
+  hours_per_week: z
+    .number({ error: "Hours per week must be a number" })
+    .min(0, "Hours can't be negative")
+    .max(168, "More hours per week than exist isn't possible")
+    .optional(),
+  cost_per_week: z
+    .number({ error: "Cost per week must be a number" })
+    .min(0, "Cost can't be negative")
+    .max(10_000_000)
+    .optional(),
+  revenue_per_week: z
+    .number({ error: "Revenue per week must be a number" })
+    .min(0, "Revenue can't be negative")
+    .max(10_000_000)
+    .optional(),
   walkthrough: z
     .string()
     .min(20, "Walkthrough must be at least 20 characters")
@@ -92,6 +107,13 @@ export async function createWorkflow(
     };
   }
 
+  const numericField = (key: string): number | undefined => {
+    const raw = formData.get(key);
+    return typeof raw === "string" && raw.trim() !== ""
+      ? Number(raw)
+      : undefined;
+  };
+
   const parsed = FormSchema.safeParse({
     name: formData.get("name"),
     team: formData.get("team"),
@@ -99,6 +121,9 @@ export async function createWorkflow(
     criticality_score: Number(formData.get("criticality_score") ?? 3),
     business_kpi: (formData.get("business_kpi") as string) || undefined,
     regulatory_flag: formData.get("regulatory_flag") === "on",
+    hours_per_week: numericField("hours_per_week"),
+    cost_per_week: numericField("cost_per_week"),
+    revenue_per_week: numericField("revenue_per_week"),
     walkthrough: formData.get("walkthrough"),
   });
 
@@ -133,6 +158,41 @@ export async function createWorkflow(
       kind: "error",
       message: `Could not save workflow: ${insertError?.message ?? "unknown error"}`,
     };
+  }
+
+  // 1b. If the user supplied today's baseline numbers, seed workflow_metrics.
+  // The dashboard / log_intervention RPC reads these to compute "savings vs
+  // baseline" once interventions land. Time stored in minutes/week to match
+  // the rest of the schema; UI gathers hours and converts here.
+  if (
+    data.hours_per_week != null ||
+    data.cost_per_week != null ||
+    data.revenue_per_week != null
+  ) {
+    const timeMinutes =
+      data.hours_per_week != null ? data.hours_per_week * 60 : null;
+    const cost = data.cost_per_week ?? null;
+    const revenue = data.revenue_per_week ?? null;
+    const { error: metricsError } = await supabase
+      .from("workflow_metrics")
+      .upsert(
+        {
+          workflow_id: workflow.id,
+          time_baseline: timeMinutes,
+          time_current: timeMinutes,
+          cost_baseline: cost,
+          cost_current: cost,
+          revenue_baseline: revenue,
+          revenue_current: revenue,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "workflow_id" },
+      );
+    if (metricsError) {
+      // Don't fail the whole creation — surface a soft warning by carrying on
+      // and logging server-side. The user can re-enter numbers later.
+      console.error("createWorkflow: workflow_metrics seed failed", metricsError);
+    }
   }
 
   // 2. Ask Claude to extract structured steps from the walkthrough.

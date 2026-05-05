@@ -140,6 +140,53 @@ export function NewWorkflowDialog({
               />
             </div>
 
+            <div className="space-y-2 sm:col-span-2">
+              <Label className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+                Today&apos;s baseline (optional)
+              </Label>
+              <p className="text-xs text-zinc-500">
+                Roughly what this workflow currently consumes per week. Used as
+                the baseline that AI interventions are measured against.
+                Leave blank or 0 if you&apos;re not sure.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="hours_per_week">Hours per week</Label>
+              <Input
+                id="hours_per_week"
+                name="hours_per_week"
+                type="number"
+                min="0"
+                step="0.5"
+                placeholder="e.g. 5"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="cost_per_week">Cost per week (£)</Label>
+              <Input
+                id="cost_per_week"
+                name="cost_per_week"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="e.g. 250"
+              />
+            </div>
+
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor="revenue_per_week">Revenue generated per week (£)</Label>
+              <Input
+                id="revenue_per_week"
+                name="revenue_per_week"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="If this workflow drives revenue. Leave blank otherwise."
+              />
+            </div>
+
             <div className="flex items-center gap-2 sm:col-span-2">
               <input
                 id="regulatory_flag"
