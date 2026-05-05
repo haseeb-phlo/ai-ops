@@ -1,0 +1,127 @@
+"use server";
+
+import { headers } from "next/headers";
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
+import { getSessionUser } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
+import { sendChampionAssignedEmail } from "@/lib/emails/champion-assigned";
+
+const AssignSchema = z.object({
+  team: z.string().trim().min(1, "Pick a team"),
+  person_id: z.string().uuid("Pick a person"),
+});
+
+export type AssignChampionState =
+  | { kind: "idle" }
+  | { kind: "ok"; team: string; emailed: boolean; emailNote?: string }
+  | { kind: "error"; message: string };
+
+async function appUrl(): Promise<string> {
+  const hdrs = await headers();
+  const host = hdrs.get("x-forwarded-host") ?? hdrs.get("host");
+  const proto = hdrs.get("x-forwarded-proto") ?? "https";
+  return host ? `${proto}://${host}` : "http://localhost:3000";
+}
+
+export async function assignChampion(
+  _prev: AssignChampionState,
+  formData: FormData,
+): Promise<AssignChampionState> {
+  const user = await getSessionUser();
+  if (user.realRole !== "super_admin") {
+    return { kind: "error", message: "Only super-admins can assign champions." };
+  }
+
+  const parsed = AssignSchema.safeParse({
+    team: formData.get("team"),
+    person_id: formData.get("person_id"),
+  });
+  if (!parsed.success) {
+    return {
+      kind: "error",
+      message: parsed.error.issues[0]?.message ?? "Invalid input",
+    };
+  }
+
+  const supabase = await createClient();
+
+  const { data: person } = await supabase
+    .from("people")
+    .select("id, email, display_name, team")
+    .eq("id", parsed.data.person_id)
+    .maybeSingle<{
+      id: string;
+      email: string;
+      display_name: string;
+      team: string;
+    }>();
+
+  if (!person) {
+    return { kind: "error", message: "Person not found." };
+  }
+
+  // Resolve auth.users.id by email if they've already signed in. Otherwise
+  // user_id stays null until first login - the trigger in handle_new_user
+  // doesn't backfill champions, but our champion-write RLS will start
+  // working as soon as a super-admin reassigns/refreshes the row.
+  const { data: resolvedUserId } = await supabase.rpc("user_id_for_email", {
+    p_email: person.email,
+  });
+
+  const { error: upsertError } = await supabase
+    .from("champions")
+    .upsert(
+      {
+        team: parsed.data.team,
+        user_id: (resolvedUserId as string | null) ?? null,
+        display_name: person.display_name,
+      },
+      { onConflict: "team" },
+    );
+
+  if (upsertError) {
+    return { kind: "error", message: upsertError.message };
+  }
+
+  // Send notification. Failure here doesn't roll back the assignment - it's
+  // surfaced as a soft note so the admin knows to retry/check Resend.
+  let emailed = false;
+  let emailNote: string | undefined;
+  const sendResult = await sendChampionAssignedEmail({
+    to: person.email,
+    recipientName: person.display_name,
+    team: parsed.data.team,
+    assignedByName: user.displayName,
+    appUrl: await appUrl(),
+  });
+
+  if ("ok" in sendResult && sendResult.ok) {
+    emailed = true;
+  } else if ("skipped" in sendResult) {
+    emailNote = "RESEND_API_KEY not configured - email skipped.";
+  } else if ("ok" in sendResult && !sendResult.ok) {
+    emailNote = `Saved, but email failed: ${sendResult.message}`;
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/champions");
+  revalidatePath(`/champions/${parsed.data.team}`);
+
+  return { kind: "ok", team: parsed.data.team, emailed, emailNote };
+}
+
+export async function removeChampion(formData: FormData): Promise<void> {
+  const user = await getSessionUser();
+  if (user.realRole !== "super_admin") return;
+
+  const team = (formData.get("team") as string | null)?.trim();
+  if (!team) return;
+
+  const supabase = await createClient();
+  await supabase.from("champions").delete().eq("team", team);
+
+  revalidatePath("/admin");
+  revalidatePath("/champions");
+  revalidatePath(`/champions/${team}`);
+}
