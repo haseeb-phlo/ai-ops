@@ -38,7 +38,7 @@ export async function upsertChampionNote(
     };
   }
 
-  const isSuper = user.realRole === "super_admin";
+  const isSuper = user.role === "super_admin";
   const isOwner = await isChampionOfTeam(user.id, parsed.data.team);
   if (!isOwner && !isSuper) {
     return {
@@ -88,7 +88,7 @@ export async function deleteChampionNote(formData: FormData): Promise<void> {
     }>();
   if (!existing) return;
 
-  const isSuper = user.realRole === "super_admin";
+  const isSuper = user.role === "super_admin";
   const isOwner = await isChampionOfTeam(user.id, existing.team);
   if (!isOwner && !isSuper) return;
 

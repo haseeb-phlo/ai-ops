@@ -102,21 +102,29 @@ export async function Header({
         <div
           className={
             user.isImpersonating
-              ? "flex items-center justify-between gap-3 border-b border-amber-200 bg-amber-50 px-6 py-1.5"
+              ? "flex items-center justify-between gap-3 border-b-2 border-amber-300 bg-amber-100 px-6 py-2.5"
               : "flex items-center justify-between gap-3 border-b border-zinc-200 bg-zinc-50 px-6 py-1.5"
           }
         >
           {user.isImpersonating ? (
-            <span className="text-xs text-amber-900">
-              Viewing as <strong>{ROLE_LABEL[user.role] ?? user.role}</strong>
-              {user.team ? (
-                <>
-                  {" "}
-                  on team <strong>{user.team}</strong>
-                </>
-              ) : null}
-              . You aren&apos;t seeing data through your real super-admin
-              permissions.
+            <span className="flex items-center gap-2 text-sm text-amber-900">
+              <span
+                aria-hidden
+                className="inline-flex items-center rounded bg-amber-900 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-50"
+              >
+                View-as
+              </span>
+              <span>
+                You&apos;re seeing the app as a{" "}
+                <strong>{ROLE_LABEL[user.role] ?? user.role}</strong>
+                {user.team ? (
+                  <>
+                    {" "}on{" "}
+                    <strong>{user.team}</strong>
+                  </>
+                ) : null}
+                . Super-admin powers are hidden until you exit.
+              </span>
             </span>
           ) : (
             <span className="text-xs text-zinc-500">

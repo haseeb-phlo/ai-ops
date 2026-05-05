@@ -57,6 +57,12 @@ export function ViewAsSwitcher({
     });
   }
 
+  function exitImpersonation() {
+    startTransition(async () => {
+      await clearViewAs();
+    });
+  }
+
   return (
     <div className="flex items-center gap-2 text-xs">
       <span className="text-zinc-500">View as</span>
@@ -80,23 +86,34 @@ export function ViewAsSwitcher({
       </Select>
 
       {isImpersonating && (
-        <Select
-          value={teamValue}
-          onValueChange={handleTeamChange}
-          disabled={isPending}
-        >
-          <SelectTrigger className="h-7 px-2 text-xs">
-            <SelectValue placeholder="No team" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={NO_TEAM}>No team</SelectItem>
-            {teams.map((t) => (
-              <SelectItem key={t} value={t}>
-                {t}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <>
+          <Select
+            value={teamValue}
+            onValueChange={handleTeamChange}
+            disabled={isPending}
+          >
+            <SelectTrigger className="h-7 px-2 text-xs">
+              <SelectValue placeholder="No team" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={NO_TEAM}>No team</SelectItem>
+              {teams.map((t) => (
+                <SelectItem key={t} value={t}>
+                  {t}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <button
+            type="button"
+            onClick={exitImpersonation}
+            disabled={isPending}
+            className="rounded-md bg-amber-900 px-2.5 py-1 text-xs font-medium text-white hover:bg-amber-950 disabled:opacity-50"
+          >
+            Exit view-as
+          </button>
+        </>
       )}
     </div>
   );

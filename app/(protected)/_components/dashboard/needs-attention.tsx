@@ -102,7 +102,7 @@ export async function NeedsAttention({
 
   // Source 1: red regulatory events (super-admins always; everyone else only
   // for events that touch their team's workflow).
-  const isSuper = user.realRole === "super_admin";
+  const isSuper = user.role === "super_admin";
   for (const e of redEvents ?? []) {
     const wf = e.workflow_id ? wfById.get(e.workflow_id) : null;
     const eventOnMyTeam = wf?.team && wf.team === user.team;

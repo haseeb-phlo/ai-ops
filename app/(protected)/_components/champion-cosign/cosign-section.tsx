@@ -36,7 +36,7 @@ export async function CosignSection({
     .returns<CosignRow[]>();
 
   const signedByTeam = new Map((cosigns ?? []).map((c) => [c.team, c]));
-  const isSuper = user.realRole === "super_admin";
+  const isSuper = user.role === "super_admin";
   const teamsUserCanSign = relevantTeams.filter((t) => {
     if (isSuper) return true;
     const c = byTeam.get(t);

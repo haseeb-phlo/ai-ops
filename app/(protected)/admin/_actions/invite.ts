@@ -30,7 +30,7 @@ export async function invitePerson(
   formData: FormData,
 ): Promise<InviteState> {
   const user = await getSessionUser();
-  if (user.realRole !== "super_admin") {
+  if (user.role !== "super_admin") {
     return { kind: "error", message: "Only super admins can invite people." };
   }
 

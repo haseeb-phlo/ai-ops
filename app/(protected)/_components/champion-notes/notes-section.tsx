@@ -48,7 +48,7 @@ export async function ChampionNotesSection({
     .returns<Note[]>();
 
   const noteByTeam = new Map((notes ?? []).map((n) => [n.team, n]));
-  const isSuper = user.realRole === "super_admin";
+  const isSuper = user.role === "super_admin";
 
   // Editor slots: every relevant team where the user can write (champion or
   // super-admin), de-duped against teams that already have a note - those

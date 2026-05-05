@@ -20,7 +20,7 @@ export async function toggleInterventionCosign(formData: FormData): Promise<void
   });
   if (!parsed.success) return;
 
-  const isSuper = user.realRole === "super_admin";
+  const isSuper = user.role === "super_admin";
   const isOwner = await isChampionOfTeam(user.id, parsed.data.team);
   if (!isOwner && !isSuper) return;
 
