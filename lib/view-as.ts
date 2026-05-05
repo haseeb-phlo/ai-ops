@@ -18,6 +18,7 @@ export async function setViewAs(role: string, team: string | null) {
     path: "/",
     httpOnly: true,
     sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
     maxAge: 60 * 60 * 24,
   });
   revalidatePath("/", "layout");

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { getSessionUser } from "@/lib/auth";
+import { requireWriter } from "@/lib/auth";
 
 const INTERVENTION_TYPES = [
   "tool",
@@ -17,14 +17,24 @@ const INTERVENTION_TYPES = [
 const CONFIDENCES = ["high", "medium", "low"] as const;
 const STATUSES = ["active", "paused", "retired"] as const;
 
+// Bounds catch typos (a £1,000,000 entered as £1,0000,000) before they
+// poison dashboard aggregates. Ceilings are deliberately generous; mirrored
+// as CHECK constraints in audit_integrity_migration.sql.
+const nonNegMax = (max: number) =>
+  z
+    .number()
+    .min(0, "Value can't be negative")
+    .max(max, `Value can't exceed ${max.toLocaleString()}`)
+    .nullable();
+
 const SnapshotSchema = z.object({
   intervention_id: z.string().uuid(),
   snapshot_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Pick a valid date"),
-  time_value: z.number().nullable(),
-  cost_value: z.number().nullable(),
-  people_value: z.number().nullable(),
-  errors_value: z.number().nullable(),
-  revenue_value: z.number().nullable(),
+  time_value: nonNegMax(1_000_000),
+  cost_value: nonNegMax(10_000_000),
+  people_value: nonNegMax(10_000),
+  errors_value: nonNegMax(1_000_000),
+  revenue_value: nonNegMax(100_000_000),
   notes: z.string().max(500).optional(),
 });
 
@@ -43,7 +53,9 @@ export async function logMetricSnapshot(
   _prev: LogSnapshotState,
   formData: FormData,
 ): Promise<LogSnapshotState> {
-  const user = await getSessionUser();
+  const gate = await requireWriter();
+  if (!gate.ok) return { kind: "error", message: gate.error };
+  const user = gate.user;
 
   const parsed = SnapshotSchema.safeParse({
     intervention_id: formData.get("intervention_id"),
@@ -116,7 +128,8 @@ export async function updateIntervention(
   _prev: UpdateInterventionState,
   formData: FormData,
 ): Promise<UpdateInterventionState> {
-  await getSessionUser();
+  const gate = await requireWriter();
+  if (!gate.ok) return { kind: "error", message: gate.error };
 
   const minutesRaw = formData.get("minutes_saved_per_week");
   const minutesParsed =
@@ -181,7 +194,8 @@ export async function setInterventionStatus(
   _prev: SetStatusState,
   formData: FormData,
 ): Promise<SetStatusState> {
-  await getSessionUser();
+  const gate = await requireWriter();
+  if (!gate.ok) return { kind: "error", message: gate.error };
 
   const parsed = StatusSchema.safeParse({
     id: formData.get("id"),

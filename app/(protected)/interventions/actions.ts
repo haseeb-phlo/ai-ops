@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { getSessionUser } from "@/lib/auth";
+import { requireWriter } from "@/lib/auth";
 
 const INTERVENTION_TYPES = [
   "tool",
@@ -40,7 +40,8 @@ export async function logIntervention(
   _prev: LogInterventionState,
   formData: FormData,
 ): Promise<LogInterventionState> {
-  await getSessionUser();
+  const gate = await requireWriter();
+  if (!gate.ok) return { kind: "error", message: gate.error };
 
   const minutesRaw = formData.get("minutes_saved_per_week");
   const minutesParsed =

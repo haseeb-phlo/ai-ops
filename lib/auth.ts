@@ -32,6 +32,23 @@ export const VIEW_AS_COOKIE = "view_as";
 export const ROLES = ["super_admin", "member"] as const;
 export type Role = (typeof ROLES)[number];
 
+export const IMPERSONATION_BLOCK_MESSAGE =
+  "Mutations are disabled while viewing as another role. Switch back to Super admin to make changes.";
+
+// Use at the top of every mutating Server Action. A super_admin viewing as
+// member still has super_admin privileges at the DB layer (auth.uid() is
+// unchanged), so without this guard "test as a member" can silently write
+// through any UI seam that didn't perfectly hide an admin path.
+export async function requireWriter(): Promise<
+  { ok: true; user: SessionUser } | { ok: false; error: string }
+> {
+  const user = await getSessionUser();
+  if (user.isImpersonating) {
+    return { ok: false, error: IMPERSONATION_BLOCK_MESSAGE };
+  }
+  return { ok: true, user };
+}
+
 type ViewAs = { role: string; team: string | null };
 
 async function readViewAs(): Promise<ViewAs | null> {

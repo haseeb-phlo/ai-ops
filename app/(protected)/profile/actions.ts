@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { getSessionUser } from "@/lib/auth";
+import { requireWriter } from "@/lib/auth";
 
 const ProfileSchema = z.object({
   display_name: z.string().trim().min(1, "Name is required").max(100),
@@ -29,7 +29,9 @@ export async function updateProfile(
   _prev: UpdateProfileState,
   formData: FormData,
 ): Promise<UpdateProfileState> {
-  const user = await getSessionUser();
+  const gate = await requireWriter();
+  if (!gate.ok) return { kind: "error", message: gate.error };
+  const user = gate.user;
 
   const parsed = ProfileSchema.safeParse({
     display_name: formData.get("display_name"),

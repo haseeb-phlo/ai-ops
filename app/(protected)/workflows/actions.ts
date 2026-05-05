@@ -5,7 +5,9 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { anthropic, CLAUDE_MODEL } from "@/lib/anthropic";
 import { createClient } from "@/lib/supabase/server";
-import { getSessionUser } from "@/lib/auth";
+import { requireWriter } from "@/lib/auth";
+
+const CREATE_WORKFLOW_HOURLY_LIMIT = 10;
 
 const StepsSchema = z.object({
   steps: z
@@ -62,7 +64,33 @@ export async function createWorkflow(
   _prev: CreateWorkflowState,
   formData: FormData,
 ): Promise<CreateWorkflowState> {
-  const user = await getSessionUser();
+  const gate = await requireWriter();
+  if (!gate.ok) return { kind: "error", message: gate.error };
+  const user = gate.user;
+  const supabase = await createClient();
+
+  // Rate limit: createWorkflow calls Claude with a high-effort budget, so a
+  // single user spamming this can burn the API spend. Throttle per-user
+  // against the workflows table itself (no extra storage needed).
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const { count: recentCount, error: rateError } = await supabase
+    .from("workflows")
+    .select("id", { count: "exact", head: true })
+    .eq("created_by", user.id)
+    .gte("created_at", oneHourAgo);
+
+  if (rateError) {
+    return {
+      kind: "error",
+      message: "Could not verify rate limit. Please try again.",
+    };
+  }
+  if ((recentCount ?? 0) >= CREATE_WORKFLOW_HOURLY_LIMIT) {
+    return {
+      kind: "error",
+      message: `You've created ${recentCount} workflows in the last hour. Please wait before creating more.`,
+    };
+  }
 
   const parsed = FormSchema.safeParse({
     name: formData.get("name"),
@@ -82,7 +110,6 @@ export async function createWorkflow(
   }
 
   const data = parsed.data;
-  const supabase = await createClient();
 
   // 1. Insert the workflow row.
   const { data: workflow, error: insertError } = await supabase
@@ -134,11 +161,13 @@ export async function createWorkflow(
     const validated = StepsSchema.parse(response.parsed_output);
     extractedSteps = validated.steps;
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    // Workflow row exists but step extraction failed - surface it.
+    // Don't surface raw SDK errors to the UI - they can leak model names,
+    // request IDs, and provider hints. Log server-side, return a safe blurb.
+    console.error("createWorkflow: step extraction failed", err);
     return {
       kind: "error",
-      message: `Workflow saved, but step extraction failed: ${message}. You can still open the workflow.`,
+      message:
+        "Workflow saved, but step extraction failed. You can still open the workflow and add steps manually.",
     };
   }
 
@@ -173,7 +202,9 @@ export type SoftDeleteState =
 export async function softDeleteWorkflow(
   workflowId: string,
 ): Promise<SoftDeleteState> {
-  const user = await getSessionUser();
+  const gate = await requireWriter();
+  if (!gate.ok) return { kind: "error", message: gate.error };
+  const user = gate.user;
   const supabase = await createClient();
 
   const { error, data } = await supabase
@@ -205,6 +236,8 @@ export async function softDeleteWorkflow(
 export async function restoreWorkflow(
   workflowId: string,
 ): Promise<SoftDeleteState> {
+  const gate = await requireWriter();
+  if (!gate.ok) return { kind: "error", message: gate.error };
   const supabase = await createClient();
 
   const { error, data } = await supabase

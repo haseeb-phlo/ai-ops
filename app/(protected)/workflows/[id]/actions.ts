@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { getSessionUser } from "@/lib/auth";
+import { getSessionUser, requireWriter } from "@/lib/auth";
 
 export type StepField = "title" | "description" | "owner" | "duration_minutes";
 
@@ -25,7 +25,9 @@ export async function updateStepField(
     return { ok: false, error: `Field "${field}" is not editable.` };
   }
 
-  const user = await getSessionUser();
+  const gate = await requireWriter();
+  if (!gate.ok) return { ok: false, error: gate.error };
+  const user = gate.user;
   const supabase = await createClient();
 
   const { data: step, error: stepErr } = await supabase
@@ -105,7 +107,9 @@ export async function updateStepField(
 }
 
 async function loadCanEdit(workflowId: string) {
-  const user = await getSessionUser();
+  const gate = await requireWriter();
+  if (!gate.ok) return { ok: false as const, error: gate.error };
+  const user = gate.user;
   const supabase = await createClient();
   const { data: workflow } = await supabase
     .from("workflows")
