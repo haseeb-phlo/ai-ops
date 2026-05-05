@@ -35,11 +35,22 @@ create policy "auth insert intervention_metrics"
 -- 3. intervention_edits: bind actor ---------------------------------------
 -- update_intervention()/set_intervention_status() RPCs are the only legit
 -- writers and both stamp actor_id from auth.uid().
-drop policy if exists "auth insert intervention_edits"
-  on public.intervention_edits;
-create policy "auth insert intervention_edits"
-  on public.intervention_edits for insert to authenticated
-  with check (actor_id = auth.uid());
+-- Guarded: intervention_edits is created by interventions_edit_migration.sql,
+-- which may not have been run in every environment yet. Skip silently if so.
+do $$
+begin
+  if to_regclass('public.intervention_edits') is not null then
+    execute $sql$
+      drop policy if exists "auth insert intervention_edits"
+        on public.intervention_edits
+    $sql$;
+    execute $sql$
+      create policy "auth insert intervention_edits"
+        on public.intervention_edits for insert to authenticated
+        with check (actor_id = auth.uid())
+    $sql$;
+  end if;
+end $$;
 
 -- 4. Bounds on intervention_metrics ---------------------------------------
 alter table public.intervention_metrics
@@ -66,17 +77,28 @@ alter table public.workflow_baselines
   );
 
 -- 6. workflow_metrics_history: per-metric bound on the single value col --
-alter table public.workflow_metrics_history
-  drop constraint if exists wmh_value_bounds;
-alter table public.workflow_metrics_history
-  add constraint wmh_value_bounds check (
-    value >= 0 and (
-      (metric = 'time'    and value <=    1000000) or
-      (metric = 'cost'    and value <=   10000000) or
-      (metric = 'people'  and value <=      10000) or
-      (metric = 'errors'  and value <=    1000000) or
-      (metric = 'revenue' and value <=  100000000)
-    )
-  );
+-- Same guard pattern: this table is created by profiles_and_history_migration
+-- and may not exist in every environment.
+do $$
+begin
+  if to_regclass('public.workflow_metrics_history') is not null then
+    execute $sql$
+      alter table public.workflow_metrics_history
+        drop constraint if exists wmh_value_bounds
+    $sql$;
+    execute $sql$
+      alter table public.workflow_metrics_history
+        add constraint wmh_value_bounds check (
+          value >= 0 and (
+            (metric = 'time'    and value <=    1000000) or
+            (metric = 'cost'    and value <=   10000000) or
+            (metric = 'people'  and value <=      10000) or
+            (metric = 'errors'  and value <=    1000000) or
+            (metric = 'revenue' and value <=  100000000)
+          )
+        )
+    $sql$;
+  end if;
+end $$;
 
 notify pgrst, 'reload schema';
