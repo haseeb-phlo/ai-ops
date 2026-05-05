@@ -67,7 +67,7 @@ export function ViewAsSwitcher({
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value={REAL_VALUE}>Super admin (you)</SelectItem>
+          <SelectItem value={REAL_VALUE}>Super admin</SelectItem>
           {ROLES.filter((r) => r !== "super_admin").map((r) => (
             <SelectItem key={r} value={r}>
               {ROLE_LABEL[r] ?? toTitle(r)}
