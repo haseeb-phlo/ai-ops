@@ -35,6 +35,16 @@ const TYPES = [
   { value: "process_change", label: "Process change" },
 ] as const;
 
+const TYPE_LABEL: Record<string, string> = Object.fromEntries(
+  TYPES.map((t) => [t.value, t.label]),
+);
+
+const CONFIDENCE_LABEL: Record<string, string> = {
+  high: "High - clean before/after, isolated change",
+  medium: "Medium - confounded by other changes",
+  low: "Low - best-guess; many things moved at once",
+};
+
 export function LogInterventionDialog({
   open,
   onOpenChange,
@@ -95,7 +105,9 @@ export function LogInterventionDialog({
             <input type="hidden" name="type" value={type} />
             <Select value={type} onValueChange={(v) => setType(v ?? "")}>
               <SelectTrigger id="type" className="w-full">
-                <SelectValue placeholder="Pick one…" />
+                <SelectValue placeholder="Pick one…">
+                  {(v) => (v ? TYPE_LABEL[v as string] ?? "" : null)}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {TYPES.map((t) => (
@@ -150,19 +162,51 @@ export function LogInterventionDialog({
             />
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="minutes_saved_per_week">
-              Estimated minutes saved per week
-            </Label>
-            <Input
-              id="minutes_saved_per_week"
-              name="minutes_saved_per_week"
-              type="number"
-              min={0}
-              step={1}
-              placeholder="Optional"
-            />
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="minutes_saved_per_week">
+                Minutes saved / week
+              </Label>
+              <Input
+                id="minutes_saved_per_week"
+                name="minutes_saved_per_week"
+                type="number"
+                min={0}
+                step={1}
+                placeholder="Optional"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="estimated_gbp_saved_per_week">
+                £ saved / week
+              </Label>
+              <Input
+                id="estimated_gbp_saved_per_week"
+                name="estimated_gbp_saved_per_week"
+                type="number"
+                min={0}
+                step="0.01"
+                placeholder="Optional"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="estimated_revenue_per_week">
+                £ revenue / week
+              </Label>
+              <Input
+                id="estimated_revenue_per_week"
+                name="estimated_revenue_per_week"
+                type="number"
+                min={0}
+                step="0.01"
+                placeholder="Optional"
+              />
+            </div>
           </div>
+          <p className="text-xs text-zinc-500">
+            All three are estimates; 0 is fine if you&apos;re not sure. Snapshots
+            you log later will refine these.
+          </p>
 
           <div className="space-y-1.5">
             <Label htmlFor="attribution_confidence">
@@ -178,18 +222,18 @@ export function LogInterventionDialog({
               onValueChange={(v) => setConfidence(v ?? "medium")}
             >
               <SelectTrigger id="attribution_confidence" className="w-full">
-                <SelectValue />
+                <SelectValue>
+                  {(v) =>
+                    CONFIDENCE_LABEL[v as string] ?? CONFIDENCE_LABEL.medium
+                  }
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="high">
-                  High - clean before/after, isolated change
-                </SelectItem>
+                <SelectItem value="high">{CONFIDENCE_LABEL.high}</SelectItem>
                 <SelectItem value="medium">
-                  Medium - confounded by other changes
+                  {CONFIDENCE_LABEL.medium}
                 </SelectItem>
-                <SelectItem value="low">
-                  Low - best-guess; many things moved at once
-                </SelectItem>
+                <SelectItem value="low">{CONFIDENCE_LABEL.low}</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-xs text-zinc-500">

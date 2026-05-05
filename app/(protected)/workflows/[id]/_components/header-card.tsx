@@ -1,3 +1,6 @@
+import { championsByDisplayName, championsByTeam } from "@/lib/champions";
+import { PersonName } from "@/components/people/champion-mark";
+import Link from "next/link";
 import { DeleteWorkflowButton } from "./delete-workflow-button";
 import { EditWorkflowDialog } from "./edit-workflow-dialog";
 
@@ -19,7 +22,7 @@ const CRITICALITY_STYLES: Record<string, string> = {
   critical: "bg-red-50 text-red-800 ring-red-200",
 };
 
-export function HeaderCard({
+export async function HeaderCard({
   workflow,
   teams,
   canEdit,
@@ -30,6 +33,9 @@ export function HeaderCard({
   canEdit: boolean;
   canDelete: boolean;
 }) {
+  const champByName = await championsByDisplayName();
+  const champByTeam = await championsByTeam();
+  const teamChampion = workflow.team ? champByTeam.get(workflow.team) : null;
   return (
     <section className="rounded-lg border border-zinc-200 bg-white p-6">
       <div className="flex items-start justify-between gap-4">
@@ -55,17 +61,55 @@ export function HeaderCard({
           </div>
 
           <dl className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm sm:grid-cols-4">
-            <Field label="Team" value={workflow.team} />
+            <div>
+              <dt className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+                Team
+              </dt>
+              <dd className="text-zinc-900">
+                {workflow.team ? (
+                  teamChampion ? (
+                    <Link
+                      href={`/champions/${encodeURIComponent(workflow.team)}`}
+                      className="hover:underline"
+                      title={`${teamChampion.display_name} - AI Champion of ${workflow.team}`}
+                    >
+                      {workflow.team}
+                    </Link>
+                  ) : (
+                    workflow.team
+                  )
+                ) : (
+                  <span className="text-zinc-400">-</span>
+                )}
+              </dd>
+            </div>
             <Field label="Frequency" value={workflow.frequency} />
             <Field label="Business KPI" value={workflow.business_kpi} />
-            <Field
-              label="Owners"
-              value={
-                workflow.owner_names.length
-                  ? workflow.owner_names.join(", ")
-                  : null
-              }
-            />
+            <div>
+              <dt className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+                Owners
+              </dt>
+              <dd className="text-zinc-900">
+                {workflow.owner_names.length === 0 ? (
+                  <span className="text-zinc-400">-</span>
+                ) : (
+                  <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    {workflow.owner_names.map((n, i) => {
+                      const champ =
+                        champByName.get(n.trim().toLowerCase()) ?? null;
+                      return (
+                        <span key={`${n}-${i}`} className="inline-flex">
+                          <PersonName name={n} champion={champ} />
+                          {i < workflow.owner_names.length - 1 && (
+                            <span className="text-zinc-300">,</span>
+                          )}
+                        </span>
+                      );
+                    })}
+                  </span>
+                )}
+              </dd>
+            </div>
           </dl>
         </div>
 

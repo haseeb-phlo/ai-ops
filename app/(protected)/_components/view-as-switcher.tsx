@@ -9,10 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { setViewAs, clearViewAs } from "@/lib/view-as";
-import { toTitle } from "@/lib/utils";
 
-const ROLES = ["super_admin", "member"] as const;
-const REAL_VALUE = "__real__";
 const NO_TEAM = "__none__";
 
 const ROLE_LABEL: Record<string, string> = {
@@ -20,26 +17,31 @@ const ROLE_LABEL: Record<string, string> = {
   member: "Member",
 };
 
+const ROLE_OPTIONS = ["super_admin", "member"] as const;
+
 export function ViewAsSwitcher({
   role,
   team,
   isImpersonating,
   teams,
+  realRole,
 }: {
   role: string;
   team: string | null;
   isImpersonating: boolean;
   teams: string[];
+  realRole: string;
 }) {
   const [isPending, startTransition] = useTransition();
 
-  const roleValue = isImpersonating ? role : REAL_VALUE;
   const teamValue = team ?? NO_TEAM;
 
   function handleRoleChange(next: string | null) {
     if (!next) return;
     startTransition(async () => {
-      if (next === REAL_VALUE) {
+      // Selecting your real role exits impersonation; selecting any other
+      // role enters impersonation as that role.
+      if (next === realRole) {
         await clearViewAs();
       } else {
         await setViewAs(next, team);
@@ -59,18 +61,19 @@ export function ViewAsSwitcher({
     <div className="flex items-center gap-2 text-xs">
       <span className="text-zinc-500">View as</span>
       <Select
-        value={roleValue}
+        value={role}
         onValueChange={handleRoleChange}
         disabled={isPending}
       >
         <SelectTrigger className="h-7 px-2 text-xs">
-          <SelectValue />
+          <SelectValue>
+            {(v) => ROLE_LABEL[v as string] ?? "Super admin"}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value={REAL_VALUE}>Super admin</SelectItem>
-          {ROLES.filter((r) => r !== "super_admin").map((r) => (
+          {ROLE_OPTIONS.map((r) => (
             <SelectItem key={r} value={r}>
-              {ROLE_LABEL[r] ?? toTitle(r)}
+              {ROLE_LABEL[r]}
             </SelectItem>
           ))}
         </SelectContent>

@@ -29,6 +29,16 @@ const FormSchema = z.object({
     .min(0, "Minutes saved can't be negative")
     .max(100000)
     .optional(),
+  estimated_gbp_saved_per_week: z
+    .number({ error: "GBP saved must be a number" })
+    .min(0, "GBP saved can't be negative")
+    .max(10_000_000)
+    .optional(),
+  estimated_revenue_per_week: z
+    .number({ error: "Revenue must be a number" })
+    .min(0, "Revenue can't be negative")
+    .max(10_000_000)
+    .optional(),
   attribution_confidence: z.enum(CONFIDENCES).default("medium"),
 });
 
@@ -43,18 +53,21 @@ export async function logIntervention(
   const gate = await requireWriter();
   if (!gate.ok) return { kind: "error", message: gate.error };
 
-  const minutesRaw = formData.get("minutes_saved_per_week");
-  const minutesParsed =
-    typeof minutesRaw === "string" && minutesRaw.trim() !== ""
-      ? Number(minutesRaw)
+  const numericField = (key: string): number | undefined => {
+    const raw = formData.get(key);
+    return typeof raw === "string" && raw.trim() !== ""
+      ? Number(raw)
       : undefined;
+  };
 
   const parsed = FormSchema.safeParse({
     name: formData.get("name"),
     type: formData.get("type"),
     workflow_ids: formData.getAll("workflow_ids"),
     description: (formData.get("description") as string) || undefined,
-    minutes_saved_per_week: minutesParsed,
+    minutes_saved_per_week: numericField("minutes_saved_per_week"),
+    estimated_gbp_saved_per_week: numericField("estimated_gbp_saved_per_week"),
+    estimated_revenue_per_week: numericField("estimated_revenue_per_week"),
     attribution_confidence:
       (formData.get("attribution_confidence") as string) || "medium",
   });
@@ -76,6 +89,8 @@ export async function logIntervention(
     p_description: data.description ?? null,
     p_minutes_saved_per_week: data.minutes_saved_per_week ?? null,
     p_attribution_confidence: data.attribution_confidence,
+    p_estimated_gbp_saved_per_week: data.estimated_gbp_saved_per_week ?? null,
+    p_estimated_revenue_per_week: data.estimated_revenue_per_week ?? null,
   });
 
   if (error || !newId) {
@@ -86,6 +101,6 @@ export async function logIntervention(
   }
 
   revalidatePath("/interventions");
-  revalidatePath("/dashboard");
+  revalidatePath("/");
   redirect(`/interventions/${newId}`);
 }

@@ -31,6 +31,16 @@ const TYPES = [
   { value: "process_change", label: "Process change" },
 ] as const;
 
+const TYPE_LABEL: Record<string, string> = Object.fromEntries(
+  TYPES.map((t) => [t.value, t.label]),
+);
+
+const CONFIDENCE_LABEL: Record<string, string> = {
+  high: "High - clean before/after",
+  medium: "Medium - confounded by other changes",
+  low: "Low - best-guess; many things moved at once",
+};
+
 type InterventionType = (typeof TYPES)[number]["value"];
 type Confidence = "high" | "medium" | "low";
 
@@ -112,7 +122,9 @@ export function EditInterventionDialog({
               <input type="hidden" name="type" value={type} />
               <Select value={type} onValueChange={(v) => setType(v ?? "")}>
                 <SelectTrigger id="type" className="w-full">
-                  <SelectValue placeholder="Pick one…" />
+                  <SelectValue placeholder="Pick one…">
+                    {(v) => (v ? TYPE_LABEL[v as string] ?? "" : null)}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {TYPES.map((t) => (
@@ -169,16 +181,18 @@ export function EditInterventionDialog({
                 onValueChange={(v) => setConfidence(v ?? "medium")}
               >
                 <SelectTrigger id="attribution_confidence" className="w-full">
-                  <SelectValue />
+                  <SelectValue>
+                    {(v) =>
+                      CONFIDENCE_LABEL[v as string] ?? CONFIDENCE_LABEL.medium
+                    }
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="high">High - clean before/after</SelectItem>
+                  <SelectItem value="high">{CONFIDENCE_LABEL.high}</SelectItem>
                   <SelectItem value="medium">
-                    Medium - confounded by other changes
+                    {CONFIDENCE_LABEL.medium}
                   </SelectItem>
-                  <SelectItem value="low">
-                    Low - best-guess; many things moved at once
-                  </SelectItem>
+                  <SelectItem value="low">{CONFIDENCE_LABEL.low}</SelectItem>
                 </SelectContent>
               </Select>
             </div>

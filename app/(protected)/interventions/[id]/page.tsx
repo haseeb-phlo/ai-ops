@@ -3,6 +3,13 @@ import { notFound } from "next/navigation";
 import { format } from "date-fns";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionUser } from "@/lib/auth";
+import { findChampionForPerson } from "@/lib/champions";
+import {
+  PersonName,
+  TextWithMentions,
+} from "@/components/people/champion-mark";
+import { ChampionNotesSection } from "@/app/(protected)/_components/champion-notes/notes-section";
+import { CosignSection } from "@/app/(protected)/_components/champion-cosign/cosign-section";
 import { Badge } from "@/components/ui/badge";
 import { toTitle } from "@/lib/utils";
 import { LogMetricSnapshotButton } from "./_components/log-metric-snapshot-button";
@@ -142,6 +149,10 @@ export default async function InterventionDetailPage({
     ownerDisplayName = ownerProfile?.display_name?.trim() || null;
   }
   const ownerLabel = ownerDisplayName ?? intervention.owner;
+  const ownerChampion = await findChampionForPerson({
+    userId: intervention.created_by,
+    displayName: ownerLabel,
+  });
 
   // Mirror of public.can_edit_intervention(): super_admin / champion of
   // record (created_by) / a champion for any linked-workflow team.
@@ -205,11 +216,24 @@ export default async function InterventionDetailPage({
             </div>
 
             {intervention.description && (
-              <p className="text-sm text-zinc-600">{intervention.description}</p>
+              <p className="text-sm text-zinc-600">
+                <TextWithMentions text={intervention.description} />
+              </p>
             )}
 
             <dl className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm sm:grid-cols-3">
-              <Field label="Owner" value={ownerLabel} />
+              <div>
+                <dt className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+                  Owner
+                </dt>
+                <dd className="text-zinc-900">
+                  {ownerLabel ? (
+                    <PersonName name={ownerLabel} champion={ownerChampion} />
+                  ) : (
+                    <span className="text-zinc-400">-</span>
+                  )}
+                </dd>
+              </div>
               <Field
                 label="Estimated mins / week"
                 value={
@@ -249,6 +273,29 @@ export default async function InterventionDetailPage({
         </div>
       </section>
 
+      {/* Champion co-signs + notes (per linked-workflow team) */}
+      <CosignSection
+        interventionId={intervention.id}
+        relevantTeams={Array.from(
+          new Set(
+            (links ?? [])
+              .map((l) => l.workflows?.team)
+              .filter((t): t is string => !!t),
+          ),
+        )}
+      />
+      <ChampionNotesSection
+        targetType="intervention"
+        targetId={intervention.id}
+        relevantTeams={Array.from(
+          new Set(
+            (links ?? [])
+              .map((l) => l.workflows?.team)
+              .filter((t): t is string => !!t),
+          ),
+        )}
+      />
+
       {/* Linked workflows */}
       <section className="space-y-2">
         <h2 className="text-sm font-semibold tracking-tight text-zinc-900">
@@ -276,9 +323,13 @@ export default async function InterventionDetailPage({
                         {w.name}
                       </Link>
                       {w.team && (
-                        <span className="ml-2 text-xs text-zinc-500">
+                        <Link
+                          href={`/champions/${encodeURIComponent(w.team)}`}
+                          className="ml-2 text-xs text-zinc-500 hover:text-amber-700 hover:underline"
+                          title={`AI Champion of ${w.team}`}
+                        >
                           {w.team}
-                        </span>
+                        </Link>
                       )}
                     </div>
                     {b && (
@@ -325,7 +376,9 @@ export default async function InterventionDetailPage({
                     </div>
                   </div>
                   {m.notes && (
-                    <p className="mt-1 text-sm text-zinc-600">{m.notes}</p>
+                    <p className="mt-1 text-sm text-zinc-600">
+                      <TextWithMentions text={m.notes} />
+                    </p>
                   )}
                 </li>
               ))}

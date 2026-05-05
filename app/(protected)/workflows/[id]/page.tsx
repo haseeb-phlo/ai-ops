@@ -13,6 +13,7 @@ import {
   type LinkedIntervention,
 } from "./_components/linked-interventions";
 import { Activity, type ActivityRevision } from "./_components/activity";
+import { ChampionNotesSection } from "@/app/(protected)/_components/champion-notes/notes-section";
 
 export default async function WorkflowDetailPage({
   params,
@@ -117,6 +118,11 @@ export default async function WorkflowDetailPage({
         canDelete={canDelete}
       />
       <MetricsStrip metrics={metrics ?? null} />
+      <ChampionNotesSection
+        targetType="workflow"
+        targetId={workflow.id}
+        relevantTeams={workflow.team ? [workflow.team] : []}
+      />
       <StepsTable
         steps={steps ?? []}
         workflowId={workflow.id}

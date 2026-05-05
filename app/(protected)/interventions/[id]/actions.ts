@@ -98,7 +98,7 @@ export async function logMetricSnapshot(
   }
 
   revalidatePath(`/interventions/${data.intervention_id}`);
-  revalidatePath("/dashboard");
+  revalidatePath("/");
   return { kind: "success" };
 }
 
@@ -176,7 +176,7 @@ export async function updateIntervention(
 
   revalidatePath(`/interventions/${data.id}`);
   revalidatePath("/interventions");
-  revalidatePath("/dashboard");
+  revalidatePath("/");
   return { kind: "success" };
 }
 
@@ -223,6 +223,6 @@ export async function setInterventionStatus(
 
   revalidatePath(`/interventions/${data.id}`);
   revalidatePath("/interventions");
-  revalidatePath("/dashboard");
+  revalidatePath("/");
   return { kind: "success" };
 }

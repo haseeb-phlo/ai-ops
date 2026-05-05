@@ -169,7 +169,7 @@ export function EditWorkflowDialog({
                   <SelectItem value={CRIT_NONE}>Unset</SelectItem>
                   {CRITICALITIES.map((c) => (
                     <SelectItem key={c!} value={c!}>
-                      {c}
+                      {c!.charAt(0).toUpperCase() + c!.slice(1)}
                     </SelectItem>
                   ))}
                 </SelectContent>
