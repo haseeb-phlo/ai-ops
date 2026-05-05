@@ -38,6 +38,7 @@ type Baseline = {
   intervention_id: string;
   time_value: number | null;
   cost_value: number | null;
+  revenue_value: number | null;
 };
 
 type Metric = {
@@ -45,6 +46,7 @@ type Metric = {
   snapshot_date: string;
   time_value: number | null;
   cost_value: number | null;
+  revenue_value: number | null;
 };
 
 function startOfMonthISO(now = new Date()): string {
@@ -93,11 +95,11 @@ export default async function DashboardPage() {
       .returns<Link[]>(),
     supabase
       .from("workflow_baselines")
-      .select("intervention_id, time_value, cost_value")
+      .select("intervention_id, time_value, cost_value, revenue_value")
       .returns<Baseline[]>(),
     supabase
       .from("intervention_metrics")
-      .select("intervention_id, snapshot_date, time_value, cost_value")
+      .select("intervention_id, snapshot_date, time_value, cost_value, revenue_value")
       .order("snapshot_date", { ascending: false })
       .returns<Metric[]>(),
     supabase
@@ -120,17 +122,23 @@ export default async function DashboardPage() {
     linksByIntervention.set(l.intervention_id, arr);
   }
 
-  const baselineSums = new Map<string, { time: number; cost: number }>();
+  const baselineSums = new Map<
+    string,
+    { time: number; cost: number; revenue: number }
+  >();
   for (const b of baselines ?? []) {
-    const cur = baselineSums.get(b.intervention_id) ?? { time: 0, cost: 0 };
+    const cur =
+      baselineSums.get(b.intervention_id) ?? { time: 0, cost: 0, revenue: 0 };
     cur.time += b.time_value ?? 0;
     cur.cost += b.cost_value ?? 0;
+    cur.revenue += b.revenue_value ?? 0;
     baselineSums.set(b.intervention_id, cur);
   }
 
   // metrics is sorted snapshot_date desc - first non-null per intervention wins.
   const latestTime = new Map<string, Metric>();
   const latestCost = new Map<string, Metric>();
+  const latestRevenue = new Map<string, Metric>();
   const latestTimeThisMonth = new Map<string, Metric>();
   for (const m of metrics ?? []) {
     if (m.time_value != null && !latestTime.has(m.intervention_id)) {
@@ -138,6 +146,9 @@ export default async function DashboardPage() {
     }
     if (m.cost_value != null && !latestCost.has(m.intervention_id)) {
       latestCost.set(m.intervention_id, m);
+    }
+    if (m.revenue_value != null && !latestRevenue.has(m.intervention_id)) {
+      latestRevenue.set(m.intervention_id, m);
     }
     if (
       m.time_value != null &&
@@ -159,23 +170,30 @@ export default async function DashboardPage() {
     teams: string[];
     weightedMinutes: number | null;
     weightedGbp: number | null;
+    weightedRevenue: number | null;
     weightedMinutesThisMonth: number | null;
     rawMinutesDelta: number | null;
     rawGbpDelta: number | null;
+    rawRevenueDelta: number | null;
   };
 
   const rows: Row[] = interventionsList.map((iv) => {
     const confidence: Confidence = iv.attribution_confidence ?? "medium";
     const weight = CONFIDENCE_WEIGHT[confidence];
-    const baseline = baselineSums.get(iv.id) ?? { time: 0, cost: 0 };
+    const baseline =
+      baselineSums.get(iv.id) ?? { time: 0, cost: 0, revenue: 0 };
     const lt = latestTime.get(iv.id);
     const lc = latestCost.get(iv.id);
+    const lr = latestRevenue.get(iv.id);
     const ltm = latestTimeThisMonth.get(iv.id);
 
     const rawMinutesDelta =
       lt && lt.time_value != null ? baseline.time - lt.time_value : null;
     const rawGbpDelta =
       lc && lc.cost_value != null ? baseline.cost - lc.cost_value : null;
+    // Revenue is higher-better, so the sign flips vs cost: positive = uplift.
+    const rawRevenueDelta =
+      lr && lr.revenue_value != null ? lr.revenue_value - baseline.revenue : null;
     const rawMinutesThisMonth =
       ltm && ltm.time_value != null ? baseline.time - ltm.time_value : null;
 
@@ -197,10 +215,13 @@ export default async function DashboardPage() {
       weightedMinutes:
         rawMinutesDelta == null ? null : rawMinutesDelta * weight,
       weightedGbp: rawGbpDelta == null ? null : rawGbpDelta * weight,
+      weightedRevenue:
+        rawRevenueDelta == null ? null : rawRevenueDelta * weight,
       weightedMinutesThisMonth:
         rawMinutesThisMonth == null ? null : rawMinutesThisMonth * weight,
       rawMinutesDelta,
       rawGbpDelta,
+      rawRevenueDelta,
     };
   });
 
@@ -243,6 +264,27 @@ export default async function DashboardPage() {
   const gbpPct = (c: Confidence) =>
     gbpAbsTotal > 0
       ? Math.round((gbpByConfidence[c] / gbpAbsTotal) * 100)
+      : 0;
+
+  let totalRevenue = 0;
+  const revenueByConfidence: Record<Confidence, number> = {
+    high: 0,
+    medium: 0,
+    low: 0,
+  };
+  for (const r of liveRows) {
+    if (r.weightedRevenue != null) {
+      totalRevenue += r.weightedRevenue;
+      revenueByConfidence[r.confidence] += Math.abs(r.weightedRevenue);
+    }
+  }
+  const revenueAbsTotal =
+    revenueByConfidence.high +
+    revenueByConfidence.medium +
+    revenueByConfidence.low;
+  const revenuePct = (c: Confidence) =>
+    revenueAbsTotal > 0
+      ? Math.round((revenueByConfidence[c] / revenueAbsTotal) * 100)
       : 0;
 
   const activeCount = rows.filter((r) => r.status === "active").length;
@@ -302,10 +344,10 @@ export default async function DashboardPage() {
       </Suspense>
       <PageHeader
         title="Dashboard"
-        description="Confidence-weighted savings across every team. Includes interventions that have regressed against their baseline."
+        description="Confidence-weighted savings and revenue across every team. Includes interventions that have regressed against their baseline."
       />
 
-      <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat
           label="Minutes saved / week"
           value={
@@ -320,6 +362,15 @@ export default async function DashboardPage() {
           label="GBP saved / week"
           value={<ColouredNumber value={totalGbp} format={gbp} />}
           caveat={`${gbpPct("high")}% high, ${gbpPct("medium")}% medium, ${gbpPct("low")}% low confidence`}
+        />
+        <Stat
+          label="Revenue generated / week"
+          value={<ColouredNumber value={totalRevenue} format={gbp} />}
+          caveat={
+            revenueAbsTotal > 0
+              ? `${revenuePct("high")}% high, ${revenuePct("medium")}% medium, ${revenuePct("low")}% low confidence`
+              : "No revenue uplift logged yet"
+          }
         />
         <Stat
           label="Active interventions"
