@@ -78,6 +78,28 @@ export default async function WorkflowsPage(props: {
   //    is selectable, even if nobody has logged a workflow on it yet.
   const teamOptions = await loadTeamOptions(supabase, user.team);
 
+  // 4. Directory snapshot for the New Workflow people picker. Sourcing from
+  //    public.people keeps owners canonical (vs free-text "Alice K") so the
+  //    galaxy / champion lookups can resolve them later.
+  const { data: directoryPeople } = await supabase
+    .from("people")
+    .select("email, display_name, title, team")
+    .order("display_name", { ascending: true })
+    .returns<
+      {
+        email: string;
+        display_name: string;
+        title: string | null;
+        team: string | null;
+      }[]
+    >();
+  const pickerPeople = (directoryPeople ?? []).map((p) => ({
+    email: p.email,
+    displayName: p.display_name,
+    title: p.title,
+    team: p.team,
+  }));
+
   return (
     <PageContainer>
       <PageHeader
@@ -93,6 +115,7 @@ export default async function WorkflowsPage(props: {
             <NewWorkflowDialog
               teams={teamOptions}
               defaultTeam={user.team ?? teamOptions[0] ?? ""}
+              people={pickerPeople}
             />
           </>
         }

@@ -214,7 +214,7 @@ export async function moveStep(
 
   const neighbour = neighbours?.[0];
   if (!neighbour) {
-    // Already at the boundary — silent no-op.
+    // Already at the boundary - silent no-op.
     return { ok: true };
   }
 

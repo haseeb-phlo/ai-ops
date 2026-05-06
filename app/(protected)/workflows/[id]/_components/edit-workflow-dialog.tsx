@@ -82,7 +82,7 @@ export function EditWorkflowDialog({
   }
 
   // The team list may not include the workflow's current team if no other
-  // workflow uses it — make sure it's always selectable.
+  // workflow uses it - make sure it's always selectable.
   const teamOptions = workflow.team && !teams.includes(workflow.team)
     ? [...teams, workflow.team]
     : teams;
@@ -217,7 +217,7 @@ export function EditWorkflowDialog({
             {workflow.regulatory && !regulatory && (
               <p className="rounded-md bg-amber-50 p-2 text-xs text-amber-900 sm:col-span-2">
                 You&apos;re removing the regulatory flag. Make sure that&apos;s
-                intentional — regulatory_events are still tracked separately.
+                intentional - regulatory_events are still tracked separately.
               </p>
             )}
           </div>

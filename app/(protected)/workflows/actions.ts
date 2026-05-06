@@ -48,27 +48,30 @@ const FormSchema = z.object({
     .min(0, "Frequency can't be negative")
     .max(1000),
   criticality_score: z.number().int().min(1).max(5),
-  business_kpi: z.string().max(500).optional(),
+  business_kpi: z.string().min(1, "Business KPI is required").max(500),
   regulatory_flag: z.boolean(),
   hours_per_week: z
-    .number({ error: "Hours per week must be a number" })
+    .number({ error: "Hours per week is required" })
     .min(0, "Hours can't be negative")
-    .max(168, "More hours per week than exist isn't possible")
-    .optional(),
+    .max(168, "More hours per week than exist isn't possible"),
   cost_per_week: z
-    .number({ error: "Cost per week must be a number" })
+    .number({ error: "Cost per week is required" })
     .min(0, "Cost can't be negative")
-    .max(10_000_000)
-    .optional(),
+    .max(10_000_000),
   revenue_per_week: z
-    .number({ error: "Revenue per week must be a number" })
+    .number({ error: "Revenue per week is required" })
     .min(0, "Revenue can't be negative")
-    .max(10_000_000)
-    .optional(),
+    .max(10_000_000),
   walkthrough: z
     .string()
     .min(20, "Walkthrough must be at least 20 characters")
     .max(8000),
+  // Owners are picked from the company directory by canonical email.
+  // Required: every workflow has at least one person who actually does it.
+  owner_emails: z
+    .array(z.string().email().toLowerCase())
+    .min(1, "Pick at least one person involved in this workflow")
+    .max(50, "That's a lot of owners; consider scoping the workflow."),
 });
 
 export type CreateWorkflowState =
@@ -125,6 +128,9 @@ export async function createWorkflow(
     cost_per_week: numericField("cost_per_week"),
     revenue_per_week: numericField("revenue_per_week"),
     walkthrough: formData.get("walkthrough"),
+    owner_emails: formData.getAll("owner_emails").filter(
+      (v): v is string => typeof v === "string" && v.trim().length > 0,
+    ),
   });
 
   if (!parsed.success) {
@@ -135,6 +141,27 @@ export async function createWorkflow(
   }
 
   const data = parsed.data;
+
+  // Resolve picked emails → canonical display names so workflow.owner_names
+  // (legacy text[]) stays the source of truth for human-readable owners.
+  // Anything not found in the directory is silently dropped - the picker
+  // already restricts the user to known emails, so this is defence in depth.
+  let ownerNames: string[] = [];
+  if (data.owner_emails.length > 0) {
+    const { data: directoryRows } = await supabase
+      .from("people")
+      .select("email, display_name")
+      .in("email", data.owner_emails);
+    const nameByEmail = new Map<string, string>();
+    for (const row of directoryRows ?? []) {
+      if (row.email && row.display_name) {
+        nameByEmail.set(row.email.toLowerCase(), row.display_name);
+      }
+    }
+    ownerNames = data.owner_emails
+      .map((e) => nameByEmail.get(e.toLowerCase()))
+      .filter((n): n is string => !!n);
+  }
 
   // 1. Insert the workflow row.
   const { data: workflow, error: insertError } = await supabase
@@ -147,6 +174,7 @@ export async function createWorkflow(
       business_kpi: data.business_kpi ?? null,
       regulatory: data.regulatory_flag,
       walkthrough: data.walkthrough,
+      owner_names: ownerNames,
       active: true,
       created_by: user.id,
     })
@@ -160,19 +188,12 @@ export async function createWorkflow(
     };
   }
 
-  // 1b. If the user supplied today's baseline numbers, seed workflow_metrics.
-  // The dashboard / log_intervention RPC reads these to compute "savings vs
-  // baseline" once interventions land. Time stored in minutes/week to match
-  // the rest of the schema; UI gathers hours and converts here.
-  if (
-    data.hours_per_week != null ||
-    data.cost_per_week != null ||
-    data.revenue_per_week != null
-  ) {
-    const timeMinutes =
-      data.hours_per_week != null ? data.hours_per_week * 60 : null;
-    const cost = data.cost_per_week ?? null;
-    const revenue = data.revenue_per_week ?? null;
+  // 1b. Seed workflow_metrics with today's baseline. The dashboard /
+  // log_intervention RPC reads these to compute "savings vs baseline" once
+  // interventions land. Time stored in minutes/week to match the rest of the
+  // schema; UI gathers hours and converts here.
+  {
+    const timeMinutes = data.hours_per_week * 60;
     const { error: metricsError } = await supabase
       .from("workflow_metrics")
       .upsert(
@@ -180,16 +201,16 @@ export async function createWorkflow(
           workflow_id: workflow.id,
           time_baseline: timeMinutes,
           time_current: timeMinutes,
-          cost_baseline: cost,
-          cost_current: cost,
-          revenue_baseline: revenue,
-          revenue_current: revenue,
+          cost_baseline: data.cost_per_week,
+          cost_current: data.cost_per_week,
+          revenue_baseline: data.revenue_per_week,
+          revenue_current: data.revenue_per_week,
           updated_at: new Date().toISOString(),
         },
         { onConflict: "workflow_id" },
       );
     if (metricsError) {
-      // Don't fail the whole creation — surface a soft warning by carrying on
+      // Don't fail the whole creation - surface a soft warning by carrying on
       // and logging server-side. The user can re-enter numbers later.
       console.error("createWorkflow: workflow_metrics seed failed", metricsError);
     }

@@ -23,218 +23,328 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  createWorkflow,
-  type CreateWorkflowState,
-} from "../actions";
+  PeoplePicker,
+  type PickerPerson,
+} from "@/components/ui/people-picker";
+import { cn } from "@/lib/utils";
+import { createWorkflow, type CreateWorkflowState } from "../actions";
 
-const CRITICALITY_LABELS = ["1 - Trivial", "2 - Low", "3 - Medium", "4 - High", "5 - Critical"];
+const CRITICALITY = [
+  { value: "1", label: "Trivial" },
+  { value: "2", label: "Low" },
+  { value: "3", label: "Medium" },
+  { value: "4", label: "High" },
+  { value: "5", label: "Critical" },
+] as const;
 
 export function NewWorkflowDialog({
   teams,
   defaultTeam,
+  people,
 }: {
   teams: string[];
   defaultTeam: string;
+  people: PickerPerson[];
 }) {
   const [open, setOpen] = useState(false);
   const [team, setTeam] = useState(defaultTeam);
   const [criticality, setCriticality] = useState("3");
+  const [owners, setOwners] = useState<Set<string>>(new Set());
 
-  const [state, action, pending] = useActionState<
-    CreateWorkflowState,
-    FormData
-  >(createWorkflow, { kind: "idle" });
+  const [state, action, pending] = useActionState<CreateWorkflowState, FormData>(
+    createWorkflow,
+    { kind: "idle" },
+  );
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger render={<Button>Add new workflow</Button>} />
-      <DialogContent className="sm:max-w-2xl">
-        <DialogHeader>
+      <DialogContent className="gap-0 p-0 sm:max-w-2xl">
+        <DialogHeader className="gap-2 px-6 pt-5 pb-5">
           <DialogTitle>Add new workflow</DialogTitle>
           <DialogDescription>
-            Describe how you do this work today. Claude will turn the description
-            into structured steps you can edit later.
+            Describe how this work gets done today. Claude turns your
+            walk-through into structured steps you can edit later.
           </DialogDescription>
         </DialogHeader>
 
-        <form action={action} className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="name">Workflow name</Label>
-              <Input
-                id="name"
-                name="name"
-                required
-                placeholder="e.g. Weekly stock count"
+        <form action={action} className="flex min-h-0 flex-1 flex-col">
+          <div className="flex-1 space-y-6 overflow-y-auto border-t border-border px-6 py-5">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label htmlFor="name">Workflow name</Label>
+                <Input
+                  id="name"
+                  name="name"
+                  required
+                  placeholder="e.g. Weekly stock count"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="team">Owner team</Label>
+                <input type="hidden" name="team" value={team} required />
+                <Select value={team} onValueChange={(v) => setTeam(v ?? "")}>
+                  <SelectTrigger id="team" className="w-full">
+                    <SelectValue placeholder="Pick a team" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {teams.map((t) => (
+                      <SelectItem key={t} value={t}>
+                        {t}
+                      </SelectItem>
+                    ))}
+                    {teams.length === 0 && defaultTeam && (
+                      <SelectItem value={defaultTeam}>{defaultTeam}</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="frequency_per_week">Frequency per week</Label>
+                <SuffixInput suffix="/ wk">
+                  <Input
+                    id="frequency_per_week"
+                    name="frequency_per_week"
+                    type="number"
+                    step="0.5"
+                    min="0"
+                    defaultValue="1"
+                    required
+                  />
+                </SuffixInput>
+              </div>
+
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label>Criticality</Label>
+                <input
+                  type="hidden"
+                  name="criticality_score"
+                  value={criticality}
+                />
+                <SegmentedControl
+                  value={criticality}
+                  onChange={setCriticality}
+                  options={CRITICALITY.map((c) => ({
+                    value: c.value,
+                    label: c.label,
+                    suffix: c.value,
+                  }))}
+                />
+              </div>
+
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label htmlFor="business_kpi">Business KPI</Label>
+                <Input
+                  id="business_kpi"
+                  name="business_kpi"
+                  required
+                  placeholder="e.g. Order accuracy"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 sm:col-span-2">
+                <input
+                  id="regulatory_flag"
+                  name="regulatory_flag"
+                  type="checkbox"
+                  className="size-4 rounded border-zinc-300"
+                />
+                <Label htmlFor="regulatory_flag" className="font-normal">
+                  This workflow has regulatory implications
+                </Label>
+              </div>
+            </div>
+
+            <div className="space-y-3 border-t border-border pt-5">
+              <div className="space-y-1">
+                <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  People involved
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Who actually does this work today? Pick at least one person
+                  from the company directory. You can adjust later from the
+                  workflow page.
+                </p>
+              </div>
+              <PeoplePicker
+                people={people}
+                selected={owners}
+                onChange={setOwners}
+                inputName="owner_emails"
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="team">Owner team</Label>
-              {/* Hidden input is what actually gets submitted -
-                  shadcn Select doesn't post a native form value. */}
-              <input type="hidden" name="team" value={team} />
-              <Select
-                value={team}
-                onValueChange={(v) => setTeam(v ?? "")}
-              >
-                <SelectTrigger id="team">
-                  <SelectValue placeholder="Pick a team" />
-                </SelectTrigger>
-                <SelectContent>
-                  {teams.map((t) => (
-                    <SelectItem key={t} value={t}>
-                      {t}
-                    </SelectItem>
-                  ))}
-                  {teams.length === 0 && defaultTeam && (
-                    <SelectItem value={defaultTeam}>{defaultTeam}</SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
+            <div className="space-y-3 border-t border-border pt-5">
+              <div className="space-y-1">
+                <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Today&apos;s baseline
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Roughly what this currently consumes per week. AI savings get
+                  measured against these. Enter 0 if a number doesn&apos;t apply.
+                </p>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="hours_per_week">Hours / week</Label>
+                  <Input
+                    id="hours_per_week"
+                    name="hours_per_week"
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    required
+                    placeholder="0"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="cost_per_week">Cost / week</Label>
+                  <PrefixInput prefix="£">
+                    <Input
+                      id="cost_per_week"
+                      name="cost_per_week"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      required
+                      placeholder="0"
+                    />
+                  </PrefixInput>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="revenue_per_week">Revenue generated / week</Label>
+                  <PrefixInput prefix="£">
+                    <Input
+                      id="revenue_per_week"
+                      name="revenue_per_week"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      required
+                      placeholder="0"
+                    />
+                  </PrefixInput>
+                </div>
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="frequency_per_week">Frequency per week</Label>
-              <Input
-                id="frequency_per_week"
-                name="frequency_per_week"
-                type="number"
-                step="0.5"
-                min="0"
-                defaultValue="1"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="criticality_score">Criticality (1–5)</Label>
-              <input
-                type="hidden"
-                name="criticality_score"
-                value={criticality}
-              />
-              <Select
-                value={criticality}
-                onValueChange={(v) => setCriticality(v ?? "3")}
-              >
-                <SelectTrigger id="criticality_score">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {CRITICALITY_LABELS.map((label, i) => (
-                    <SelectItem key={i} value={String(i + 1)}>
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="business_kpi">Business KPI (optional)</Label>
-              <Input
-                id="business_kpi"
-                name="business_kpi"
-                placeholder="e.g. Order accuracy"
-              />
-            </div>
-
-            <div className="space-y-2 sm:col-span-2">
-              <Label className="text-xs font-medium uppercase tracking-wide text-zinc-500">
-                Today&apos;s baseline (optional)
-              </Label>
-              <p className="text-xs text-zinc-500">
-                Roughly what this workflow currently consumes per week. Used as
-                the baseline that AI interventions are measured against.
-                Leave blank or 0 if you&apos;re not sure.
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="hours_per_week">Hours per week</Label>
-              <Input
-                id="hours_per_week"
-                name="hours_per_week"
-                type="number"
-                min="0"
-                step="0.5"
-                placeholder="e.g. 5"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="cost_per_week">Cost per week (£)</Label>
-              <Input
-                id="cost_per_week"
-                name="cost_per_week"
-                type="number"
-                min="0"
-                step="0.01"
-                placeholder="e.g. 250"
-              />
-            </div>
-
-            <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="revenue_per_week">Revenue generated per week (£)</Label>
-              <Input
-                id="revenue_per_week"
-                name="revenue_per_week"
-                type="number"
-                min="0"
-                step="0.01"
-                placeholder="If this workflow drives revenue. Leave blank otherwise."
-              />
-            </div>
-
-            <div className="flex items-center gap-2 sm:col-span-2">
-              <input
-                id="regulatory_flag"
-                name="regulatory_flag"
-                type="checkbox"
-                className="h-4 w-4 rounded border-zinc-300"
-              />
-              <Label htmlFor="regulatory_flag" className="font-normal">
-                This workflow has regulatory implications
-              </Label>
-            </div>
-
-            <div className="space-y-2 sm:col-span-2">
+            <div className="space-y-1.5 border-t border-border pt-5">
               <Label htmlFor="walkthrough">Walk through what you do</Label>
               <Textarea
                 id="walkthrough"
                 name="walkthrough"
-                rows={8}
+                rows={7}
                 required
                 minLength={20}
-                placeholder="In plain English, describe how this gets done step by step. Talk like you're explaining it to a new joiner. Claude will turn this into structured steps."
+                placeholder="Plain English, step by step. Talk like you're explaining it to a new joiner."
+                className="leading-relaxed"
               />
             </div>
+
+            {state.kind === "error" && (
+              <p
+                role="alert"
+                className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700"
+              >
+                {state.message}
+              </p>
+            )}
           </div>
 
-          {state.kind === "error" && (
-            <p
-              className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700"
-              role="alert"
-            >
-              {state.message}
-            </p>
-          )}
-
-          <DialogFooter>
+          <DialogFooter className="m-0 border-t border-border bg-muted/40 px-6 py-3">
             <DialogClose
               render={
-                <Button type="button" variant="outline" disabled={pending}>
+                <Button type="button" variant="ghost" disabled={pending}>
                   Cancel
                 </Button>
               }
             />
-            <Button type="submit" disabled={pending}>
-              {pending ? "Saving + extracting steps…" : "Create workflow"}
+            <Button type="submit" disabled={pending || owners.size === 0}>
+              {pending ? "Extracting steps…" : "Create workflow"}
             </Button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function SegmentedControl({
+  value,
+  options,
+  onChange,
+}: {
+  value: string;
+  options: { value: string; label: string; suffix?: string }[];
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div className="flex w-full rounded-lg border border-border bg-background p-0.5">
+      {options.map((o) => {
+        const active = value === o.value;
+        return (
+          <button
+            key={o.value}
+            type="button"
+            onClick={() => onChange(o.value)}
+            className={cn(
+              "flex-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors",
+              active
+                ? "bg-foreground text-background"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {o.suffix && (
+              <span
+                className={cn(
+                  "mr-1 font-mono text-[10px]",
+                  active ? "opacity-60" : "opacity-50",
+                )}
+              >
+                {o.suffix}
+              </span>
+            )}
+            {o.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function PrefixInput({
+  prefix,
+  children,
+}: {
+  prefix: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="relative">
+      <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+        {prefix}
+      </span>
+      <div className="[&_input]:pl-6">{children}</div>
+    </div>
+  );
+}
+
+function SuffixInput({
+  suffix,
+  children,
+}: {
+  suffix: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="relative">
+      <div className="[&_input]:pr-12">{children}</div>
+      <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+        {suffix}
+      </span>
+    </div>
   );
 }
