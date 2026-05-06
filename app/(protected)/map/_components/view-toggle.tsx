@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 const VIEWS = [
   { value: "champions", label: "AI Champions" },
   { value: "map", label: "Map" },
+  { value: "org", label: "Org" },
   { value: "directory", label: "Directory" },
 ] as const;
 

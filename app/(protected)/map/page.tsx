@@ -11,11 +11,17 @@ import {
 } from "./_components/view-toggle";
 import { DirectoryView } from "./_components/directory-view";
 import { ChampionsView } from "./_components/champions-view";
+import { OrgView } from "./_components/org-view";
 import { InviteButton } from "../admin/_components/invite-button";
 
 export const dynamic = "force-dynamic";
 
-const VALID_VIEWS = new Set<ViewKey>(["map", "directory", "champions"]);
+const VALID_VIEWS = new Set<ViewKey>([
+  "map",
+  "directory",
+  "champions",
+  "org",
+]);
 
 function ninetyDaysAgo(): string {
   const d = new Date();
@@ -139,6 +145,33 @@ export default async function MapPage({
         </div>
         <div className="px-6 py-6">
           <ChampionsView />
+        </div>
+      </div>
+    );
+  }
+
+  if (view === "org") {
+    return (
+      <div className="flex flex-1 flex-col">
+        <div className="border-b bg-white px-6 py-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
+                People
+              </h1>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Reporting structure top to bottom. AI Champions glow amber;
+                people who haven&apos;t signed in are dimmed.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              {isSuper && <InviteButton teams={inviteTeams} />}
+              <ViewToggle active={view} />
+            </div>
+          </div>
+        </div>
+        <div className="px-6 py-8">
+          <OrgView />
         </div>
       </div>
     );
