@@ -71,7 +71,7 @@ insert into public.people (email, display_name, title, team, start_date) values
   ('katie.devlin@wearephlo.com',          'Katie Devlin',                'Patient Care Advisor',                     'Patient Care',       '2025-10-13'),
   ('keertan.kaur@wearephlo.com',          'Keertan Kaur',                'Prescribing Pharmacist',                   'Clinical',           '2025-01-27'),
   ('kerri.ashe@wearephlo.com',            'Kerri Gibson',                'Patient Care Advisor',                     'Patient Care',       '2023-07-31'),
-  ('khusboo.patel@wearephlo.com',         'Khusboo Patel',               'Head of Clinical Product',                 'Clinical Product',   '2026-01-05'),
+  ('khusboo.patel@wearephlo.com',         'Khushboo Patel',              'Head of Clinical Product',                 'Clinical Product',   '2026-01-05'),
   ('kyla.godwin@wearephlo.com',           'Kyla Godwin',                 'Pharmacy Dispenser',                       'Dispensary',         '2025-01-27'),
   ('laura.hannar@wearephlo.com',          'Laura Hannar',                'Remote Pharmacy Technician',               'Clinical',           '2025-08-04'),
   ('lauren.hobbs@wearephlo.com',          'Lauren Philippa Hobbs',       'Prescribing Pharmacist',                   'Clinical',           '2025-11-03'),
