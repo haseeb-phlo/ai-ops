@@ -149,8 +149,8 @@ export default async function ChampionTeamPage({
             </p>
             <ol className="mt-2 list-decimal space-y-0.5 pl-5 text-xs text-emerald-900">
               <li>
-                Write a short message to the team below so colleagues know
-                where you stand on AI.
+                Write a short message to the team below - your editorial voice
+                on how the team should approach AI.
               </li>
               <li>
                 Drop into a workflow or intervention page to leave a champion
@@ -401,7 +401,7 @@ function ChampionCard({
           {champion.chewing_on && (
             <div className="rounded-md bg-zinc-50 p-3">
               <div className="text-xs font-medium uppercase tracking-wide text-zinc-500">
-                Chewing on
+                Open question
               </div>
               <p className="mt-1 text-sm text-zinc-800">
                 <TextWithMentions text={champion.chewing_on} />
