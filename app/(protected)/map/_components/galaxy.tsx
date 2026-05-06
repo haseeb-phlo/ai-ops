@@ -97,16 +97,17 @@ export function Galaxy({ data }: { data: GalaxyData }) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  // --- History indexing for scrubber --------------------------------------
-  const dateList = useMemo(() => {
-    const set = new Set<string>();
-    for (const h of data.history) set.add(h.date);
-    return Array.from(set).sort();
+  // Latest history snapshot date drives heat colour. The galaxy now always
+  // reflects the most recent state - the date scrubber was removed because
+  // it added a dense control without a clear "what changed?" payoff for
+  // users with limited history.
+  const latestDate = useMemo(() => {
+    let max: string | null = null;
+    for (const h of data.history) {
+      if (!max || h.date > max) max = h.date;
+    }
+    return max;
   }, [data.history]);
-
-  const [dateIdx, setDateIdx] = useState(() =>
-    dateList.length > 0 ? dateList.length - 1 : 0,
-  );
 
   // history[metric][workflowId][date] = value
   const historyIndex = useMemo(() => {
@@ -153,7 +154,16 @@ export function Galaxy({ data }: { data: GalaxyData }) {
   // --- Canvas setup -------------------------------------------------------
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const transformRef = useRef({ x: 0, y: 0, k: 1 });
+  // Initial zoom is intentionally < 1 so the whole galaxy fits on screen on
+  // first paint. Once the simulation settles, the draw loop refines this with
+  // a one-shot fit-to-bbox so the map is framed regardless of size.
+  const transformRef = useRef({ x: 0, y: 0, k: 0.65 });
+  const hasAutoFitRef = useRef(false);
+  // Tracks whether the user has manually panned/zoomed since the last
+  // auto-fit attempt. The fit-to-bbox in the draw loop is gated on this so
+  // we never yank the camera away from a viewport the user is actively
+  // exploring.
+  const userInteractedRef = useRef(false);
   const simRef = useRef<Simulation<Node, Link> | null>(null);
 
   const [size, setSize] = useState({ w: 800, h: 600 });
@@ -212,6 +222,9 @@ export function Galaxy({ data }: { data: GalaxyData }) {
     }
 
     simRef.current = sim;
+    // New nodes/links → re-trigger the one-shot auto-fit on the next settle.
+    hasAutoFitRef.current = false;
+    userInteractedRef.current = false;
     return () => {
       sim.stop();
     };
@@ -237,6 +250,43 @@ export function Galaxy({ data }: { data: GalaxyData }) {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, w, h);
 
+      // Once the simulation has cooled, fit the bounding box of all nodes to
+      // the viewport (with padding) so the whole map is visible on first
+      // glance. Runs once per nodes/links change, and skipped entirely if
+      // the user has already panned/zoomed - otherwise the fit would yank
+      // the camera away from the viewport they're exploring.
+      if (
+        !hasAutoFitRef.current &&
+        !userInteractedRef.current &&
+        simRef.current &&
+        simRef.current.alpha() < 0.05
+      ) {
+        let minX = Infinity;
+        let minY = Infinity;
+        let maxX = -Infinity;
+        let maxY = -Infinity;
+        for (const n of nodes) {
+          if (typeof n.x !== "number" || typeof n.y !== "number") continue;
+          minX = Math.min(minX, n.x - n.radius);
+          minY = Math.min(minY, n.y - n.radius);
+          maxX = Math.max(maxX, n.x + n.radius);
+          maxY = Math.max(maxY, n.y + n.radius);
+        }
+        const bboxW = maxX - minX;
+        const bboxH = maxY - minY;
+        if (bboxW > 0 && bboxH > 0 && w > 0 && h > 0) {
+          const padding = 0.85;
+          const fitK = Math.min(w / bboxW, h / bboxH) * padding;
+          const clampedK = Math.max(0.3, Math.min(3, fitK));
+          const cx = (minX + maxX) / 2;
+          const cy = (minY + maxY) / 2;
+          transformRef.current.k = clampedK;
+          transformRef.current.x = -cx * clampedK;
+          transformRef.current.y = -cy * clampedK;
+          hasAutoFitRef.current = true;
+        }
+      }
+
       const { x: tx, y: ty, k } = transformRef.current;
 
       // White background to match the rest of the platform.
@@ -246,15 +296,15 @@ export function Galaxy({ data }: { data: GalaxyData }) {
       ctx.translate(w / 2 + tx, h / 2 + ty);
       ctx.scale(k, k);
 
-      const heatScales = computeHeatScales(heat, dateList[dateIdx], heatRange);
+      const scrubDate = latestDate ?? undefined;
+      const heatScales = computeHeatScales(heat, scrubDate, heatRange);
       const subgraph = getHighlightedIds(selectedId ?? hoveredId, nodes, links);
       const isFiltered = teamFilter !== "all";
 
       // Per-frame: value of the active heat metric, per workflow, at the
-      // currently scrubbed date. Drives workflow node colour.
+      // most-recent snapshot date. Drives workflow node colour.
       const heatValues = new Map<string, number | null>();
       const freshness = new Map<string, "fresh" | "stale" | "none">();
-      const scrubDate = dateList[dateIdx];
       for (const n of nodes) {
         if (n.kind !== "workflow") continue;
         heatValues.set(
@@ -351,8 +401,7 @@ export function Galaxy({ data }: { data: GalaxyData }) {
     hoveredId,
     selectedId,
     data,
-    dateIdx,
-    dateList,
+    latestDate,
   ]);
 
   // --- Pan / zoom / hover / click -----------------------------------------
@@ -393,6 +442,7 @@ export function Galaxy({ data }: { data: GalaxyData }) {
       dragging = true;
       lastX = e.clientX;
       lastY = e.clientY;
+      userInteractedRef.current = true;
     }
     function onMouseMove(e: MouseEvent) {
       const rect = canvas!.getBoundingClientRect();
@@ -433,6 +483,7 @@ export function Galaxy({ data }: { data: GalaxyData }) {
       t.x = cx - (cx - t.x) * ratio;
       t.y = cy - (cy - t.y) * ratio;
       t.k = newK;
+      userInteractedRef.current = true;
     }
 
     canvas.addEventListener("mousedown", onMouseDown);
@@ -473,28 +524,6 @@ export function Galaxy({ data }: { data: GalaxyData }) {
           </select>
         </label>
 
-        <div
-          role="group"
-          aria-label="Zoom"
-          className="inline-flex items-center overflow-hidden rounded-md border border-zinc-300 bg-white"
-        >
-          <ZoomButton
-            label="Zoom out"
-            onClick={() => zoomBy(transformRef, 1 / 1.3)}
-          >
-            −
-          </ZoomButton>
-          <ZoomButton label="Reset zoom" onClick={() => resetZoom(transformRef)}>
-            ⌖
-          </ZoomButton>
-          <ZoomButton
-            label="Zoom in"
-            onClick={() => zoomBy(transformRef, 1.3)}
-          >
-            +
-          </ZoomButton>
-        </div>
-
         <label className="flex items-center gap-2">
           <span className="text-zinc-500">Team</span>
           <select
@@ -510,22 +539,6 @@ export function Galaxy({ data }: { data: GalaxyData }) {
             ))}
           </select>
         </label>
-
-        {dateList.length > 1 && (
-          <label className="flex items-center gap-2 flex-1 min-w-[200px] max-w-[400px]">
-            <span className="text-zinc-500 whitespace-nowrap">
-              {dateList[dateIdx]?.slice(0, 10) ?? ""}
-            </span>
-            <input
-              type="range"
-              min={0}
-              max={dateList.length - 1}
-              value={dateIdx}
-              onChange={(e) => setDateIdx(parseInt(e.target.value, 10))}
-              className="flex-1 accent-zinc-700"
-            />
-          </label>
-        )}
 
         <span className="ml-auto text-zinc-400">
           Drag to pan · Click a node to focus
@@ -543,6 +556,46 @@ export function Galaxy({ data }: { data: GalaxyData }) {
           }}
         />
 
+        {/* Floating zoom controls. Bottom-right is the canonical place for
+            map-canvas controls (Google Maps / Mapbox / Figma) - frees the
+            top toolbar for filter widgets. */}
+        <div
+          role="group"
+          aria-label="Zoom"
+          className="absolute bottom-4 right-4 flex flex-col overflow-hidden rounded-lg border border-zinc-200 bg-white/95 shadow-sm backdrop-blur"
+        >
+          <ZoomButton
+            label="Zoom in"
+            onClick={() => {
+              zoomBy(transformRef, 1.3);
+              userInteractedRef.current = true;
+            }}
+          >
+            +
+          </ZoomButton>
+          <span aria-hidden className="h-px bg-zinc-200" />
+          <ZoomButton
+            label="Zoom out"
+            onClick={() => {
+              zoomBy(transformRef, 1 / 1.3);
+              userInteractedRef.current = true;
+            }}
+          >
+            −
+          </ZoomButton>
+          <span aria-hidden className="h-px bg-zinc-200" />
+          <ZoomButton
+            label="Fit to screen"
+            onClick={() => {
+              resetZoom(transformRef);
+              hasAutoFitRef.current = false;
+              userInteractedRef.current = false;
+            }}
+          >
+            ⌖
+          </ZoomButton>
+        </div>
+
         <Legend
           heat={heat}
           range={
@@ -550,7 +603,9 @@ export function Galaxy({ data }: { data: GalaxyData }) {
               ? { min: 1, max: 5 }
               : heat === "interventions"
                 ? { min: 0, max: 1 }
-                : heatRange[heat]?.[dateList[dateIdx]]) ?? null
+                : latestDate
+                  ? heatRange[heat]?.[latestDate]
+                  : null) ?? null
           }
         />
 
@@ -611,81 +666,104 @@ function Legend({
       : "linear-gradient(to right, rgb(220,38,38), rgb(217,119,6), rgb(22,163,74))";
 
   return (
-    <div className="absolute right-4 top-4 max-w-[280px] rounded-lg border border-zinc-200 bg-white/95 p-3 text-xs text-zinc-700 shadow-sm backdrop-blur">
-      <p className="font-semibold text-zinc-900">Legend</p>
-
-      <p className="mt-2 text-[11px] uppercase tracking-wide text-zinc-500">
-        {heatLabel}
-      </p>
-      <div className="mt-1 flex items-center gap-2">
+    <div className="absolute right-4 top-4 w-[240px] rounded-lg border border-zinc-200 bg-white/90 text-xs text-zinc-700 shadow-sm backdrop-blur">
+      <LegendSection title={heatLabel}>
         <div
-          className="h-2 w-full rounded-full"
+          className="h-1.5 w-full rounded-full"
           style={{ background: gradient }}
         />
-      </div>
-      <div className="mt-1 flex justify-between text-[10px] tabular-nums text-zinc-600">
-        <span>← {goodLabel}</span>
-        <span>{badLabel} →</span>
-      </div>
-      <p className="mt-1 text-[10px] text-zinc-500">
-        Green = good · Red = bad · Grey = no data
-      </p>
+        <div className="mt-1.5 flex justify-between text-[10px] tabular-nums text-zinc-500">
+          <span>{goodLabel}</span>
+          <span>{badLabel}</span>
+        </div>
+      </LegendSection>
 
-      <p className="mt-3 text-[11px] uppercase tracking-wide text-zinc-500">
-        Data freshness
-      </p>
-      <ul className="mt-1 space-y-0.5 text-[11px]">
-        <li>
-          <span className="mr-1 inline-block h-2 w-2 rounded-full ring-1 ring-zinc-700/70 align-middle" />
-          Fresh (≤{FRESH_DAYS}d)
-        </li>
-        <li>
-          <span
-            className="mr-1 inline-block h-2 w-2 rounded-full align-middle"
-            style={{
-              border: "1px dashed rgba(24,24,27,0.55)",
-            }}
+      <LegendSection title="Freshness">
+        <ul className="space-y-1">
+          <LegendRow
+            swatch={
+              <span className="inline-block size-2 rounded-full ring-1 ring-zinc-700/70" />
+            }
+            label={`Fresh (≤${FRESH_DAYS}d)`}
           />
-          Stale ({FRESH_DAYS}–{STALE_DAYS}d old)
-        </li>
-        <li>
-          <span className="mr-1 inline-block h-2 w-2 rounded-full bg-zinc-300 align-middle" />
-          No recent measurement
-        </li>
-      </ul>
+          <LegendRow
+            swatch={
+              <span
+                className="inline-block size-2 rounded-full"
+                style={{ border: "1px dashed rgba(24,24,27,0.55)" }}
+              />
+            }
+            label={`Stale (${FRESH_DAYS}-${STALE_DAYS}d)`}
+          />
+          <LegendRow
+            swatch={<span className="inline-block size-2 rounded-full bg-zinc-300" />}
+            label="No measurement"
+          />
+        </ul>
+      </LegendSection>
 
-      <p className="mt-3 text-[11px] uppercase tracking-wide text-zinc-500">
-        Nodes
-      </p>
-      <ul className="mt-1 space-y-1">
-        <LegendRow swatch={<Swatch fill="#18181b" size={12} />} label="Phlo (company)" />
-        <LegendRow
-          swatch={<Swatch fill="#e4e4e7" stroke="#52525b" size={12} />}
-          label="Team"
-        />
-        <LegendRow
-          swatch={<Swatch fill="#a1a1aa" stroke="#71717a" size={10} />}
-          label="Person"
-        />
-        <LegendRow
-          swatch={<Swatch fill="#16a34a" stroke="rgba(24,24,27,0.4)" size={10} />}
-          label="Workflow"
-        />
-      </ul>
+      <LegendSection title="Nodes">
+        <ul className="space-y-1">
+          <LegendRow
+            swatch={<Swatch fill="#18181b" size={10} />}
+            label="Phlo"
+          />
+          <LegendRow
+            swatch={<Swatch fill="#e4e4e7" stroke="#52525b" size={10} />}
+            label="Team"
+          />
+          <LegendRow
+            swatch={<Swatch fill="#a1a1aa" stroke="#71717a" size={9} />}
+            label="Person"
+          />
+          <LegendRow
+            swatch={
+              <Swatch fill="#16a34a" stroke="rgba(24,24,27,0.4)" size={9} />
+            }
+            label="Workflow"
+          />
+        </ul>
+      </LegendSection>
 
-      <p className="mt-3 text-[11px] uppercase tracking-wide text-zinc-500">
-        Workflow markers
+      <LegendSection title="Markers" last>
+        <ul className="space-y-1">
+          <LegendRow
+            swatch={<Swatch fill="#16a34a" ring="#9333ea" size={9} />}
+            label="Has active intervention"
+          />
+          <LegendRow
+            swatch={
+              <Swatch fill="#16a34a" ring="#dc2626" ringDashed size={9} />
+            }
+            label="Regulatory"
+          />
+        </ul>
+      </LegendSection>
+    </div>
+  );
+}
+
+function LegendSection({
+  title,
+  last,
+  children,
+}: {
+  title: string;
+  last?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className={
+        last
+          ? "px-3 py-2.5"
+          : "border-b border-zinc-100 px-3 py-2.5"
+      }
+    >
+      <p className="text-[10px] font-medium uppercase tracking-wide text-zinc-500">
+        {title}
       </p>
-      <ul className="mt-1 space-y-1">
-        <LegendRow
-          swatch={<Swatch fill="#16a34a" ring="#9333ea" size={10} />}
-          label="Has active AI intervention"
-        />
-        <LegendRow
-          swatch={<Swatch fill="#16a34a" ring="#dc2626" ringDashed size={10} />}
-          label="Regulatory"
-        />
-      </ul>
+      <div className="mt-1.5">{children}</div>
     </div>
   );
 }
@@ -926,7 +1004,7 @@ function freshnessFor(
 }
 
 // Programmatic zoom helpers driven by the toolbar buttons. Mutating the ref
-// alone is enough — the requestAnimationFrame loop reads it every frame.
+// alone is enough - the requestAnimationFrame loop reads it every frame.
 type TransformRef = { current: { x: number; y: number; k: number } };
 function zoomBy(ref: TransformRef, factor: number) {
   const t = ref.current;
@@ -938,9 +1016,11 @@ function zoomBy(ref: TransformRef, factor: number) {
   t.k = newK;
 }
 function resetZoom(ref: TransformRef) {
+  // Reset to the same starting state as first paint; the draw loop's
+  // one-shot auto-fit (gated on hasAutoFitRef) will re-frame the map.
   ref.current.x = 0;
   ref.current.y = 0;
-  ref.current.k = 1;
+  ref.current.k = 0.65;
 }
 
 function formatRange(value: number, unit: string): string {
@@ -971,7 +1051,7 @@ function ZoomButton({
       aria-label={label}
       title={label}
       onClick={onClick}
-      className="flex h-7 w-7 items-center justify-center text-base leading-none text-zinc-700 hover:bg-zinc-100 not-first:border-l not-first:border-zinc-200"
+      className="flex size-8 items-center justify-center text-base leading-none text-zinc-700 hover:bg-zinc-100"
     >
       {children}
     </button>
@@ -1095,26 +1175,60 @@ function drawPerson(ctx: CanvasRenderingContext2D, n: Node, opts: DrawOpts) {
     ctx.fill();
   }
 
-  // Champion lightning glyph in the bottom-right corner of the avatar.
+  // AI Champion mark in the bottom-right corner of the avatar: a small amber
+  // pill stamped "AI" so the badge tells you what role it represents instead
+  // of relying on a generic lightning bolt.
   if (isChampion) {
     const glyphR = Math.max(5, r * 0.36);
-    const cx = x + r * 0.7;
-    const cy = y + r * 0.7;
-    // White halo so the glyph reads against the avatar.
+    const pillH = glyphR * 2;
+    const pillW = pillH * 1.55;
+    const cx = x + r * 0.65;
+    const cy = y + r * 0.65;
+    // White halo so the pill reads against the avatar.
     ctx.fillStyle = "#ffffff";
-    ctx.beginPath();
-    ctx.arc(cx, cy, glyphR + 1.5, 0, Math.PI * 2);
+    roundRect(
+      ctx,
+      cx - pillW / 2 - 1,
+      cy - pillH / 2 - 1,
+      pillW + 2,
+      pillH + 2,
+      pillH / 2 + 1,
+    );
     ctx.fill();
     ctx.fillStyle = "#f59e0b";
-    ctx.beginPath();
-    ctx.arc(cx, cy, glyphR, 0, Math.PI * 2);
+    roundRect(
+      ctx,
+      cx - pillW / 2,
+      cy - pillH / 2,
+      pillW,
+      pillH,
+      pillH / 2,
+    );
     ctx.fill();
     ctx.fillStyle = "#ffffff";
-    ctx.font = `bold ${Math.round(glyphR * 1.3)}px ui-sans-serif, system-ui`;
+    ctx.font = `600 ${Math.round(glyphR * 1.05)}px ui-monospace, SFMono-Regular, Menlo, monospace`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText("⚡", cx, cy + 0.5);
+    ctx.fillText("AI", cx, cy + 0.5);
   }
+}
+
+function roundRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number,
+) {
+  const radius = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.arcTo(x + w, y, x + w, y + h, radius);
+  ctx.arcTo(x + w, y + h, x, y + h, radius);
+  ctx.arcTo(x, y + h, x, y, radius);
+  ctx.arcTo(x, y, x + w, y, radius);
+  ctx.closePath();
 }
 
 function drawWorkflow(ctx: CanvasRenderingContext2D, n: Node, opts: DrawOpts) {

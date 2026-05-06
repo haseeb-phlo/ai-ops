@@ -63,7 +63,7 @@ export function OrgTreeClient({
         </div>
       )}
 
-      {/* L1 exec row — single line, scroll horizontally on narrow screens. */}
+      {/* L1 exec row - single line, scroll horizontally on narrow screens. */}
       <div className="-mx-2 overflow-x-auto pb-2">
         <div className="flex w-max items-start gap-x-5 px-2">
           {l1.map((node) => (
@@ -190,9 +190,9 @@ function BigCard({
         {isChamp && (
           <span
             aria-hidden
-            className="absolute -bottom-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-amber-400 text-[9px] font-bold leading-none text-white shadow-sm ring-1 ring-white"
+            className="absolute -bottom-0.5 -right-0.5 inline-flex h-4 items-center rounded-full bg-amber-400 px-1 font-mono text-[8px] font-semibold leading-none tracking-tight text-white shadow-sm ring-1 ring-white"
           >
-            ⚡
+            AI
           </span>
         )}
       </span>
@@ -258,9 +258,9 @@ function SmallCard({
         {isChamp && (
           <span
             aria-hidden
-            className="absolute -bottom-0.5 -right-0.5 flex size-3.5 items-center justify-center rounded-full bg-amber-400 text-[8px] font-bold leading-none text-white shadow-sm ring-1 ring-white"
+            className="absolute -bottom-0.5 -right-0.5 inline-flex h-3.5 items-center rounded-full bg-amber-400 px-1 font-mono text-[7px] font-semibold leading-none tracking-tight text-white shadow-sm ring-1 ring-white"
           >
-            ⚡
+            AI
           </span>
         )}
       </span>

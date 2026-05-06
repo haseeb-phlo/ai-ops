@@ -14,7 +14,7 @@
  */
 
 export type OrgNode = {
-  /** Lowercased email — matches `people.email`. */
+  /** Lowercased email - matches `people.email`. */
   email: string;
   /**
    * `people.team` values this person owns. Members of those teams (excluding

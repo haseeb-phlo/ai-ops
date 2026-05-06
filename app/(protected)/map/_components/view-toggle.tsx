@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 const VIEWS = [
@@ -15,15 +14,15 @@ export type ViewKey = (typeof VIEWS)[number]["value"];
 export const DEFAULT_VIEW: ViewKey = "champions";
 
 export function ViewToggle({ active }: { active: ViewKey }) {
-  const params = useSearchParams();
-
+  // View-scoped params (mode, team, q) belong to the Directory view only.
+  // Switching the top-level view resets them, so each tab opens in its
+  // canonical default state instead of inheriting a stale `mode=list` from
+  // a previous Directory visit. Directory's default mode (tree) is set
+  // explicitly so the URL is canonical and the router cache key matches
+  // what the server rendered.
   function hrefFor(value: ViewKey): string {
-    // Always include ?view= so each toggle target is a distinct URL. Without
-    // this, clicking AI Champions while the URL is bare /map would resolve
-    // to the same href and the router cache treats it as a no-op.
-    const next = new URLSearchParams(params.toString());
-    next.set("view", value);
-    return `/map?${next.toString()}`;
+    if (value === "directory") return "/map?view=directory&mode=tree";
+    return `/map?view=${value}`;
   }
 
   return (

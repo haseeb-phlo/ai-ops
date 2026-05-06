@@ -120,7 +120,7 @@ export async function DirectoryView({
                   >
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        {/* Avatar — desaturated for un-signed-in entries. */}
+                        {/* Avatar - desaturated for un-signed-in entries. */}
                         <span className="relative inline-block shrink-0 size-7">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
@@ -135,9 +135,9 @@ export async function DirectoryView({
                           {champion && (
                             <span
                               aria-hidden
-                              className="pointer-events-none absolute -bottom-0.5 -right-0.5 flex size-3.5 items-center justify-center rounded-full bg-amber-400 text-[8px] font-bold leading-none text-white shadow-sm ring-1 ring-white"
+                              className="pointer-events-none absolute -bottom-0.5 -right-0.5 inline-flex h-3.5 items-center rounded-full bg-amber-400 px-1 font-mono text-[7px] font-semibold leading-none tracking-tight text-white shadow-sm ring-1 ring-white"
                             >
-                              ⚡
+                              AI
                             </span>
                           )}
                         </span>

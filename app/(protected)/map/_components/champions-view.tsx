@@ -103,7 +103,7 @@ export async function ChampionsView() {
                   aria-hidden
                   className={`size-1.5 rounded-full ${DOT[s.tone]}`}
                 />
-                {s.days == null ? "—" : `${s.days}d`}
+                {s.days == null ? "-" : `${s.days}d`}
               </span>
             </div>
 

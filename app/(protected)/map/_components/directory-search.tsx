@@ -29,10 +29,10 @@ export function DirectorySearch({ defaultValue }: { defaultValue: string }) {
   }
 
   return (
-    <div className="relative max-w-xs">
+    <div className="relative w-full max-w-md sm:w-80">
       <Input
         type="search"
-        placeholder="Search name, email, title, team…"
+        placeholder="Search name, email, title, team"
         value={value}
         onChange={onChange}
         aria-label="Search directory"

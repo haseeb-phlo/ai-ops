@@ -38,9 +38,15 @@ type ProfileRow = {
 };
 
 type PeopleRow = {
+  email: string | null;
   display_name: string | null;
   title: string | null;
   team: string | null;
+};
+
+type UserEmailRow = {
+  user_id: string;
+  email: string | null;
 };
 
 type RoleGrantRow = {
@@ -176,6 +182,7 @@ export default async function MapPage({
     workflowsRes,
     interventionsRes,
     historyRes,
+    userEmailsRes,
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -187,7 +194,7 @@ export default async function MapPage({
       .returns<RoleGrantRow[]>(),
     supabase
       .from("people")
-      .select("display_name, title, team")
+      .select("email, display_name, title, team")
       .returns<PeopleRow[]>(),
     supabase
       .from("workflows")
@@ -206,6 +213,7 @@ export default async function MapPage({
       .select("workflow_id, snapshot_date, metric, value")
       .gte("snapshot_date", ninetyDaysAgo())
       .returns<HistoryRow[]>(),
+    supabase.rpc("user_emails"),
   ]);
 
   const errors = [
@@ -238,20 +246,31 @@ export default async function MapPage({
     teamByUser.set(g.user_id, g.team ?? null);
   }
 
-  // people-table info keyed by lowercased display_name. The People page is
-  // the source of truth for org structure, so when a profile and a people
-  // row collide on name we prefer the people row's team and title.
-  const peopleByName = new Map<
-    string,
-    { team: string | null; title: string | null }
-  >();
+  // user_id → canonical email (from auth.users, exposed via the user_emails
+  // RPC). Drives the email-based fallback used when a profile's customised
+  // display_name diverges from the seeded people.display_name.
+  const emailByUserId = new Map<string, string>();
+  const userEmailsData = (userEmailsRes.data ?? []) as UserEmailRow[];
+  for (const row of userEmailsData) {
+    if (row.email) emailByUserId.set(row.user_id, row.email.toLowerCase());
+  }
+
+  // people-table info keyed by lowercased display_name and lowercased email.
+  // The People page is the source of truth for org structure, so when a
+  // profile and a people row collide we prefer the people row's team and
+  // title. Email match is the canonical key; display_name is a secondary
+  // path for ghosted entries where we don't yet know the email.
+  type PeopleInfo = { team: string | null; title: string | null };
+  const peopleByName = new Map<string, PeopleInfo>();
+  const peopleByEmail = new Map<string, PeopleInfo>();
   for (const p of peopleRes.data ?? []) {
-    const name = p.display_name?.trim();
-    if (!name) continue;
-    peopleByName.set(name.toLowerCase(), {
+    const info: PeopleInfo = {
       team: p.team ?? null,
       title: p.title ?? null,
-    });
+    };
+    const name = p.display_name?.trim();
+    if (name) peopleByName.set(name.toLowerCase(), info);
+    if (p.email) peopleByEmail.set(p.email.trim().toLowerCase(), info);
   }
 
   const profileNames = new Set<string>();
@@ -276,15 +295,31 @@ export default async function MapPage({
   })();
   const championsByName = await championsByDisplayName();
 
-  // 1. People from profiles (real users), enriched with people-table data
-  //    when the names match.
+  // 1. People from profiles (real users), enriched with people-table data.
+  //    Resolution order: display_name match → canonical email match →
+  //    role_grant team. Email is the most reliable key because users can
+  //    customise display_name on the profile page and drift from the seed.
   for (const p of profilesRes.data ?? []) {
+    const userEmail = emailByUserId.get(p.user_id) ?? null;
+    const fallbackFromEmail = userEmail
+      ? userEmail
+          .split("@")[0]
+          .replace(/\./g, " ")
+          .replace(/\b\w/g, (c) => c.toUpperCase())
+      : null;
     const displayName =
-      p.display_name?.trim() && p.display_name.trim().length > 0
+      (p.display_name?.trim() && p.display_name.trim().length > 0
         ? p.display_name.trim()
-        : null;
+        : null) ??
+      // Fall back to "First Last" derived from email so an unset profile
+      // still renders as a proper named node in the galaxy.
+      fallbackFromEmail;
     if (!displayName) continue;
-    const peopleMatch = peopleByName.get(displayName.toLowerCase());
+
+    const peopleMatch =
+      peopleByName.get(displayName.toLowerCase()) ??
+      (userEmail ? peopleByEmail.get(userEmail) : undefined);
+
     const champ =
       championsByUser.get(p.user_id) ??
       (championsByName.get(displayName.toLowerCase())
@@ -410,32 +445,26 @@ export default async function MapPage({
             <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
               People
             </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Teams orbit Phlo, people orbit their team, workflows orbit their
-              owners.
+            <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+              <span>
+                Teams orbit Phlo, people orbit their team, workflows orbit
+                their owners.
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-zinc-500">
+                <span
+                  aria-hidden
+                  className="inline-flex h-3.5 items-center rounded-full bg-amber-400 px-1 font-mono text-[7px] font-semibold leading-none tracking-tight text-white"
+                >
+                  AI
+                </span>
+                marks an AI Champion.
+              </span>
             </p>
           </div>
           <div className="flex items-center gap-2">
             {isSuper && <InviteButton teams={inviteTeams} />}
             <ViewToggle active="map" />
           </div>
-        </div>
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center gap-2 rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-xs text-amber-900">
-            <span
-              aria-hidden
-              className="relative inline-flex size-4 items-center justify-center"
-            >
-              <span className="size-3 rounded-full ring-2 ring-amber-500 bg-zinc-50" />
-              <span className="absolute -bottom-0.5 -right-0.5 flex size-2.5 items-center justify-center rounded-full bg-amber-500 text-[7px] font-bold leading-none text-white">
-                ⚡
-              </span>
-            </span>
-            <span>
-              <strong>AI Champion</strong> — amber ring + lightning. Click to
-              open their page.
-            </span>
-          </span>
         </div>
       </div>
       <Galaxy data={data} />

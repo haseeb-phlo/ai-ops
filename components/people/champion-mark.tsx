@@ -51,10 +51,10 @@ export function PersonAvatar({
       {champion && (
         <span
           aria-hidden
-          className="pointer-events-none absolute -bottom-0.5 -right-0.5 flex size-3.5 items-center justify-center rounded-full bg-amber-400 text-[8px] font-bold leading-none text-white shadow-sm ring-1 ring-white"
+          className="pointer-events-none absolute -bottom-0.5 -right-0.5 inline-flex h-4 items-center justify-center rounded-full bg-amber-400 px-1 font-mono text-[8px] font-semibold leading-none tracking-tight text-white shadow-sm ring-1 ring-white"
           title={`AI Champion · ${champion.team}`}
         >
-          ⚡
+          AI
         </span>
       )}
     </span>
@@ -75,7 +75,7 @@ export function PersonAvatar({
 }
 
 /**
- * Inline name with an optional champion lightning suffix and link to the
+ * Inline name with an optional AI Champion mark suffix and link to the
  * champion profile. Use in dense rows (activity feed, owners list) where
  * the avatar is too heavy.
  */
@@ -105,9 +105,9 @@ export function PersonName({
         <span>{name}</span>
         <span
           aria-hidden
-          className="inline-flex size-3.5 items-center justify-center rounded-full bg-amber-400 text-[8px] font-bold leading-none text-white"
+          className="inline-flex h-4 items-center rounded-full bg-amber-400 px-1 font-mono text-[8px] font-semibold leading-none tracking-tight text-white"
         >
-          ⚡
+          AI
         </span>
       </Link>
     );
