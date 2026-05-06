@@ -26,6 +26,7 @@ type InterventionType =
 
 type Status = "active" | "paused" | "retired";
 type Confidence = "high" | "medium" | "low";
+type AdoptionStatus = "daily" | "weekly" | "occasional" | "abandoned";
 
 type Intervention = {
   id: string;
@@ -36,6 +37,8 @@ type Intervention = {
   owner: string | null;
   minutes_saved_per_week: number | null;
   attribution_confidence: Confidence | null;
+  adoption_status: AdoptionStatus | null;
+  satisfaction: number | null;
   created_by: string | null;
   created_at: string;
 };
@@ -102,7 +105,7 @@ export default async function InterventionDetailPage({
     supabase
       .from("ai_interventions")
       .select(
-        "id, name, type, status, description, owner, minutes_saved_per_week, attribution_confidence, created_by, created_at",
+        "id, name, type, status, description, owner, minutes_saved_per_week, attribution_confidence, adoption_status, satisfaction, created_by, created_at",
       )
       .eq("id", id)
       .maybeSingle<Intervention>(),
@@ -246,6 +249,22 @@ export default async function InterventionDetailPage({
                 label="Created"
                 value={format(new Date(intervention.created_at), "d MMM yyyy")}
               />
+              <div>
+                <dt className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+                  Adoption
+                </dt>
+                <dd>
+                  <AdoptionChip status={intervention.adoption_status} />
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+                  Satisfaction
+                </dt>
+                <dd>
+                  <SatisfactionChip score={intervention.satisfaction} />
+                </dd>
+              </div>
             </dl>
           </div>
 
@@ -260,6 +279,8 @@ export default async function InterventionDetailPage({
                     description: intervention.description,
                     minutes_saved_per_week: intervention.minutes_saved_per_week,
                     attribution_confidence: intervention.attribution_confidence,
+                    adoption_status: intervention.adoption_status,
+                    satisfaction: intervention.satisfaction,
                   }}
                 />
                 <StatusButton
@@ -446,6 +467,47 @@ function Field({ label, value }: { label: string; value: string | null }) {
         {value ?? <span className="text-zinc-400">-</span>}
       </dd>
     </div>
+  );
+}
+
+const ADOPTION_DOT: Record<AdoptionStatus, string> = {
+  daily: "bg-emerald-500",
+  weekly: "bg-emerald-400",
+  occasional: "bg-amber-500",
+  abandoned: "bg-red-500",
+};
+
+const ADOPTION_LABEL: Record<AdoptionStatus, string> = {
+  daily: "Daily",
+  weekly: "Weekly",
+  occasional: "Occasional",
+  abandoned: "Abandoned",
+};
+
+function AdoptionChip({ status }: { status: AdoptionStatus | null }) {
+  if (!status) return <span className="text-zinc-400">-</span>;
+  return (
+    <span className="inline-flex items-center gap-1.5 text-zinc-900">
+      <span
+        aria-hidden
+        className={`size-1.5 rounded-full ${ADOPTION_DOT[status]}`}
+      />
+      {ADOPTION_LABEL[status]}
+    </span>
+  );
+}
+
+function SatisfactionChip({ score }: { score: number | null }) {
+  if (score == null) return <span className="text-zinc-400">-</span>;
+  return (
+    <span
+      className="inline-flex items-baseline gap-0.5 text-zinc-900 tabular-nums"
+      aria-label={`Satisfaction ${score} of 5`}
+      title={`${score} of 5`}
+    >
+      <span className="font-medium">{score}</span>
+      <span className="text-xs text-zinc-400">/ 5</span>
+    </span>
   );
 }
 

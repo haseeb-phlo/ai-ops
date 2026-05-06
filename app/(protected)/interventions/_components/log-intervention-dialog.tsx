@@ -45,6 +45,21 @@ const CONFIDENCE_LABEL: Record<string, string> = {
   low: "Low - best-guess; many things moved at once",
 };
 
+const ADOPTION_LABEL: Record<string, string> = {
+  daily: "Daily — used every day",
+  weekly: "Weekly — used a few times a week",
+  occasional: "Occasional — used now and then",
+  abandoned: "Abandoned — nobody's using it",
+};
+
+const SATISFACTION_LABEL: Record<string, string> = {
+  "1": "1 — Hate it",
+  "2": "2 — Don't like it",
+  "3": "3 — Neutral",
+  "4": "4 — Like it",
+  "5": "5 — Love it",
+};
+
 export function LogInterventionDialog({
   open,
   onOpenChange,
@@ -61,12 +76,16 @@ export function LogInterventionDialog({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [type, setType] = useState<string>("");
   const [confidence, setConfidence] = useState<string>("medium");
+  const [adoption, setAdoption] = useState<string>("");
+  const [satisfaction, setSatisfaction] = useState<string>("");
 
   const handleOpenChange = (next: boolean) => {
     if (!next) {
       setSelected(new Set());
       setType("");
       setConfidence("medium");
+      setAdoption("");
+      setSatisfaction("");
     }
     onOpenChange(next);
   };
@@ -241,6 +260,72 @@ export function LogInterventionDialog({
               the dashboard: high ×1.0, medium ×0.7, low ×0.4.
             </p>
           </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="adoption_status">Is it being used?</Label>
+              <input
+                type="hidden"
+                name="adoption_status"
+                value={adoption}
+              />
+              <Select
+                value={adoption}
+                onValueChange={(v) => setAdoption(v ?? "")}
+              >
+                <SelectTrigger id="adoption_status" className="w-full">
+                  <SelectValue placeholder="Optional">
+                    {(v) => (v ? ADOPTION_LABEL[v as string] ?? "" : null)}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="daily">{ADOPTION_LABEL.daily}</SelectItem>
+                  <SelectItem value="weekly">
+                    {ADOPTION_LABEL.weekly}
+                  </SelectItem>
+                  <SelectItem value="occasional">
+                    {ADOPTION_LABEL.occasional}
+                  </SelectItem>
+                  <SelectItem value="abandoned">
+                    {ADOPTION_LABEL.abandoned}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="satisfaction">Do people like it?</Label>
+              <input
+                type="hidden"
+                name="satisfaction"
+                value={satisfaction}
+              />
+              <Select
+                value={satisfaction}
+                onValueChange={(v) => setSatisfaction(v ?? "")}
+              >
+                <SelectTrigger id="satisfaction" className="w-full">
+                  <SelectValue placeholder="Optional">
+                    {(v) =>
+                      v ? SATISFACTION_LABEL[v as string] ?? "" : null
+                    }
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">{SATISFACTION_LABEL["1"]}</SelectItem>
+                  <SelectItem value="2">{SATISFACTION_LABEL["2"]}</SelectItem>
+                  <SelectItem value="3">{SATISFACTION_LABEL["3"]}</SelectItem>
+                  <SelectItem value="4">{SATISFACTION_LABEL["4"]}</SelectItem>
+                  <SelectItem value="5">{SATISFACTION_LABEL["5"]}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <p className="-mt-2 text-xs text-zinc-500">
+            Both optional and snapshot-able — leave blank if you don&apos;t
+            know yet. Adoption and satisfaction tend to drift, so log a
+            snapshot when they do.
+          </p>
 
           {state.kind === "error" && (
             <p

@@ -16,6 +16,12 @@ const INTERVENTION_TYPES = [
 ] as const;
 
 const CONFIDENCES = ["high", "medium", "low"] as const;
+const ADOPTION_STATUSES = [
+  "daily",
+  "weekly",
+  "occasional",
+  "abandoned",
+] as const;
 
 const FormSchema = z.object({
   name: z.string().min(1, "Name is required").max(200),
@@ -40,6 +46,13 @@ const FormSchema = z.object({
     .max(10_000_000)
     .optional(),
   attribution_confidence: z.enum(CONFIDENCES).default("medium"),
+  adoption_status: z.enum(ADOPTION_STATUSES).optional(),
+  satisfaction: z
+    .number({ error: "Satisfaction must be a number" })
+    .int()
+    .min(1, "Satisfaction is 1-5")
+    .max(5, "Satisfaction is 1-5")
+    .optional(),
 });
 
 export type LogInterventionState =
@@ -70,6 +83,9 @@ export async function logIntervention(
     estimated_revenue_per_week: numericField("estimated_revenue_per_week"),
     attribution_confidence:
       (formData.get("attribution_confidence") as string) || "medium",
+    adoption_status:
+      (formData.get("adoption_status") as string) || undefined,
+    satisfaction: numericField("satisfaction"),
   });
 
   if (!parsed.success) {
@@ -91,6 +107,8 @@ export async function logIntervention(
     p_attribution_confidence: data.attribution_confidence,
     p_estimated_gbp_saved_per_week: data.estimated_gbp_saved_per_week ?? null,
     p_estimated_revenue_per_week: data.estimated_revenue_per_week ?? null,
+    p_adoption_status: data.adoption_status ?? null,
+    p_satisfaction: data.satisfaction ?? null,
   });
 
   if (error || !newId) {

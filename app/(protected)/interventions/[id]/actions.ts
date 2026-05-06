@@ -16,6 +16,12 @@ const INTERVENTION_TYPES = [
 
 const CONFIDENCES = ["high", "medium", "low"] as const;
 const STATUSES = ["active", "paused", "retired"] as const;
+const ADOPTION_STATUSES = [
+  "daily",
+  "weekly",
+  "occasional",
+  "abandoned",
+] as const;
 
 // Bounds catch typos (a £1,000,000 entered as £1,0000,000) before they
 // poison dashboard aggregates. Ceilings are deliberately generous; mirrored
@@ -117,6 +123,13 @@ const UpdateSchema = z.object({
     .max(100000)
     .nullable(),
   attribution_confidence: z.enum(CONFIDENCES),
+  adoption_status: z.enum(ADOPTION_STATUSES).nullable(),
+  satisfaction: z
+    .number({ error: "Satisfaction must be a number" })
+    .int()
+    .min(1, "Satisfaction is 1-5")
+    .max(5, "Satisfaction is 1-5")
+    .nullable(),
 });
 
 export type UpdateInterventionState =
@@ -141,6 +154,16 @@ export async function updateIntervention(
     typeof descriptionRaw === "string" && descriptionRaw.trim() !== ""
       ? descriptionRaw
       : null;
+  const adoptionRaw = formData.get("adoption_status");
+  const adoption =
+    typeof adoptionRaw === "string" && adoptionRaw.trim() !== ""
+      ? adoptionRaw
+      : null;
+  const satisfactionRaw = formData.get("satisfaction");
+  const satisfaction =
+    typeof satisfactionRaw === "string" && satisfactionRaw.trim() !== ""
+      ? Number(satisfactionRaw)
+      : null;
 
   const parsed = UpdateSchema.safeParse({
     id: formData.get("id"),
@@ -149,6 +172,8 @@ export async function updateIntervention(
     description,
     minutes_saved_per_week: minutesParsed,
     attribution_confidence: formData.get("attribution_confidence"),
+    adoption_status: adoption,
+    satisfaction,
   });
 
   if (!parsed.success) {
@@ -168,6 +193,8 @@ export async function updateIntervention(
     p_description: data.description,
     p_minutes_saved_per_week: data.minutes_saved_per_week,
     p_attribution_confidence: data.attribution_confidence,
+    p_adoption_status: data.adoption_status,
+    p_satisfaction: data.satisfaction,
   });
 
   if (error) {
