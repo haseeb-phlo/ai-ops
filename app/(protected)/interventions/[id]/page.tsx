@@ -9,8 +9,8 @@ import {
   TextWithMentions,
 } from "@/components/people/champion-mark";
 import { ChampionNotesSection } from "@/app/(protected)/_components/champion-notes/notes-section";
-import { CosignSection } from "@/app/(protected)/_components/champion-cosign/cosign-section";
 import { Badge } from "@/components/ui/badge";
+import { BackLink } from "@/components/ui/nav-link";
 import { toTitle } from "@/lib/utils";
 import { LogMetricSnapshotButton } from "./_components/log-metric-snapshot-button";
 import { EditInterventionDialog } from "./_components/edit-intervention-dialog";
@@ -187,14 +187,7 @@ export default async function InterventionDetailPage({
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-6 px-6 py-8">
-      <nav className="text-sm">
-        <Link
-          href="/interventions"
-          className="text-zinc-500 hover:text-zinc-900 hover:underline"
-        >
-          ← All interventions
-        </Link>
-      </nav>
+      <BackLink href="/interventions">All interventions</BackLink>
 
       {/* Full card */}
       <section className="rounded-lg border border-zinc-200 bg-white p-6">
@@ -294,17 +287,9 @@ export default async function InterventionDetailPage({
         </div>
       </section>
 
-      {/* Champion co-signs + notes (per linked-workflow team) */}
-      <CosignSection
-        interventionId={intervention.id}
-        relevantTeams={Array.from(
-          new Set(
-            (links ?? [])
-              .map((l) => l.workflows?.team)
-              .filter((t): t is string => !!t),
-          ),
-        )}
-      />
+      {/* Champion notes from each affected team's AI Champion. Endorsement
+          is implicit in the act of writing a positive note - no separate
+          "co-sign" affordance, which only added friction. */}
       <ChampionNotesSection
         targetType="intervention"
         targetId={intervention.id}

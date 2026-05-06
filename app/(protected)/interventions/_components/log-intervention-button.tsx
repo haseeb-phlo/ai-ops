@@ -2,12 +2,15 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import type { PickerPerson } from "@/components/ui/people-picker";
 import { LogInterventionDialog } from "./log-intervention-dialog";
 
 export function LogInterventionButton({
   workflows,
+  people,
 }: {
   workflows: { id: string; name: string }[];
+  people: PickerPerson[];
 }) {
   const [open, setOpen] = useState(false);
 
@@ -18,6 +21,7 @@ export function LogInterventionButton({
         open={open}
         onOpenChange={setOpen}
         workflows={workflows}
+        people={people}
       />
     </>
   );

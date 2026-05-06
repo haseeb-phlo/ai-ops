@@ -29,30 +29,38 @@ const FormSchema = z.object({
   workflow_ids: z
     .array(z.string().uuid())
     .min(1, "Select at least one affected workflow"),
-  description: z.string().max(500).optional(),
+  description: z
+    .string()
+    .min(3, "Description is required")
+    .max(500),
   minutes_saved_per_week: z
-    .number({ error: "Minutes saved must be a number" })
+    .number({ error: "Minutes saved is required" })
     .min(0, "Minutes saved can't be negative")
-    .max(100000)
-    .optional(),
+    .max(100000),
   estimated_gbp_saved_per_week: z
-    .number({ error: "GBP saved must be a number" })
+    .number({ error: "GBP saved is required" })
     .min(0, "GBP saved can't be negative")
-    .max(10_000_000)
-    .optional(),
+    .max(10_000_000),
   estimated_revenue_per_week: z
-    .number({ error: "Revenue must be a number" })
+    .number({ error: "Revenue is required" })
     .min(0, "Revenue can't be negative")
-    .max(10_000_000)
-    .optional(),
+    .max(10_000_000),
   attribution_confidence: z.enum(CONFIDENCES).default("medium"),
-  adoption_status: z.enum(ADOPTION_STATUSES).optional(),
+  adoption_status: z.enum(ADOPTION_STATUSES, {
+    error: "Pick an adoption status",
+  }),
   satisfaction: z
-    .number({ error: "Satisfaction must be a number" })
+    .number({ error: "Pick a satisfaction score" })
     .int()
     .min(1, "Satisfaction is 1-5")
-    .max(5, "Satisfaction is 1-5")
-    .optional(),
+    .max(5, "Satisfaction is 1-5"),
+  // Recipients are picked from the company directory by canonical email.
+  // Required: every intervention reaches someone; "team-wide" gets logged
+  // by adding the team's members explicitly.
+  recipient_emails: z
+    .array(z.string().email().toLowerCase())
+    .min(1, "Pick at least one person affected by this intervention")
+    .max(500, "Recipient list is unusually large; check the picker."),
 });
 
 export type LogInterventionState =
@@ -77,7 +85,7 @@ export async function logIntervention(
     name: formData.get("name"),
     type: formData.get("type"),
     workflow_ids: formData.getAll("workflow_ids"),
-    description: (formData.get("description") as string) || undefined,
+    description: (formData.get("description") as string) || "",
     minutes_saved_per_week: numericField("minutes_saved_per_week"),
     estimated_gbp_saved_per_week: numericField("estimated_gbp_saved_per_week"),
     estimated_revenue_per_week: numericField("estimated_revenue_per_week"),
@@ -86,6 +94,9 @@ export async function logIntervention(
     adoption_status:
       (formData.get("adoption_status") as string) || undefined,
     satisfaction: numericField("satisfaction"),
+    recipient_emails: formData.getAll("recipient_emails").filter(
+      (v): v is string => typeof v === "string" && v.trim().length > 0,
+    ),
   });
 
   if (!parsed.success) {
@@ -109,6 +120,7 @@ export async function logIntervention(
     p_estimated_revenue_per_week: data.estimated_revenue_per_week ?? null,
     p_adoption_status: data.adoption_status ?? null,
     p_satisfaction: data.satisfaction ?? null,
+    p_recipient_emails: data.recipient_emails,
   });
 
   if (error || !newId) {

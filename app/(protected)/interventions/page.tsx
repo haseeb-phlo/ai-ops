@@ -89,20 +89,36 @@ export default async function InterventionsListPage({
   if (typeFilter) interventionsQuery = interventionsQuery.eq("type", typeFilter);
   if (statusFilter) interventionsQuery = interventionsQuery.eq("status", statusFilter);
 
-  const [{ data: interventions }, { data: workflows }, { data: profiles }] =
-    await Promise.all([
-      interventionsQuery.returns<InterventionRow[]>(),
-      supabase
-        .from("workflows")
-        .select("id, name")
-        .is("deleted_at", null)
-        .order("name", { ascending: true })
-        .returns<WorkflowOption[]>(),
-      supabase
-        .from("profiles")
-        .select("user_id, display_name")
-        .returns<ProfileLite[]>(),
-    ]);
+  const [
+    { data: interventions },
+    { data: workflows },
+    { data: profiles },
+    { data: directoryPeople },
+  ] = await Promise.all([
+    interventionsQuery.returns<InterventionRow[]>(),
+    supabase
+      .from("workflows")
+      .select("id, name")
+      .is("deleted_at", null)
+      .order("name", { ascending: true })
+      .returns<WorkflowOption[]>(),
+    supabase
+      .from("profiles")
+      .select("user_id, display_name")
+      .returns<ProfileLite[]>(),
+    supabase
+      .from("people")
+      .select("email, display_name, title, team")
+      .order("display_name", { ascending: true })
+      .returns<
+        {
+          email: string;
+          display_name: string;
+          title: string | null;
+          team: string | null;
+        }[]
+      >(),
+  ]);
 
   const rows = interventions ?? [];
   const displayNameByUserId = new Map<string, string>();
@@ -111,12 +127,24 @@ export default async function InterventionsListPage({
     if (dn) displayNameByUserId.set(p.user_id, dn);
   }
 
+  const pickerPeople = (directoryPeople ?? []).map((p) => ({
+    email: p.email,
+    displayName: p.display_name,
+    title: p.title,
+    team: p.team,
+  }));
+
   return (
     <PageContainer>
       <PageHeader
         title="AI interventions"
         description="Tools, prompts, training, automations, and process changes shipped against workflows."
-        actions={<LogInterventionButton workflows={workflows ?? []} />}
+        actions={
+          <LogInterventionButton
+            workflows={workflows ?? []}
+            people={pickerPeople}
+          />
+        }
       />
 
       <Filters

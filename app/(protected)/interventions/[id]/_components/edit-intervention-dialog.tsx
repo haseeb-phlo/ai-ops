@@ -42,18 +42,18 @@ const CONFIDENCE_LABEL: Record<string, string> = {
 };
 
 const ADOPTION_LABEL: Record<string, string> = {
-  daily: "Daily — used every day",
-  weekly: "Weekly — used a few times a week",
-  occasional: "Occasional — used now and then",
-  abandoned: "Abandoned — nobody's using it",
+  daily: "Daily - used every day",
+  weekly: "Weekly - used a few times a week",
+  occasional: "Occasional - used now and then",
+  abandoned: "Abandoned - nobody's using it",
 };
 
 const SATISFACTION_LABEL: Record<string, string> = {
-  "1": "1 — Hate it",
-  "2": "2 — Don't like it",
-  "3": "3 — Neutral",
-  "4": "4 — Like it",
-  "5": "5 — Love it",
+  "1": "1 - Hate it",
+  "2": "2 - Don't like it",
+  "3": "3 - Neutral",
+  "4": "4 - Like it",
+  "5": "5 - Love it",
 };
 
 type InterventionType = (typeof TYPES)[number]["value"];
