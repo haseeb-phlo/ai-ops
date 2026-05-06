@@ -1056,10 +1056,19 @@ function drawPerson(ctx: CanvasRenderingContext2D, n: Node, opts: DrawOpts) {
   const isGhost = n.meta.kind === "ghost";
   const isChampion = n.meta.isChampion === true;
 
+  // Champions get a soft outer halo so they pop on a dense map.
+  if (isChampion) {
+    ctx.strokeStyle = "rgba(245, 158, 11, 0.35)";
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.arc(x, y, r + 4, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
   // Avatar ring - amber + thicker for champions, default zinc otherwise.
   if (isChampion) {
     ctx.strokeStyle = "#f59e0b"; // amber-500
-    ctx.lineWidth = opts.isHover ? 3.5 : 2.5;
+    ctx.lineWidth = opts.isHover ? 4 : 3;
   } else {
     ctx.strokeStyle = isGhost ? "rgba(82,82,91,0.5)" : "#71717a";
     ctx.lineWidth = opts.isHover ? 2.5 : 1.2;
@@ -1088,9 +1097,14 @@ function drawPerson(ctx: CanvasRenderingContext2D, n: Node, opts: DrawOpts) {
 
   // Champion lightning glyph in the bottom-right corner of the avatar.
   if (isChampion) {
-    const glyphR = Math.max(4, r * 0.32);
+    const glyphR = Math.max(5, r * 0.36);
     const cx = x + r * 0.7;
     const cy = y + r * 0.7;
+    // White halo so the glyph reads against the avatar.
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath();
+    ctx.arc(cx, cy, glyphR + 1.5, 0, Math.PI * 2);
+    ctx.fill();
     ctx.fillStyle = "#f59e0b";
     ctx.beginPath();
     ctx.arc(cx, cy, glyphR, 0, Math.PI * 2);
