@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { getSessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { loadPeopleTeams } from "@/lib/teams";
@@ -30,7 +31,7 @@ export default async function ProfilePage() {
       {champion && (
         <Link
           href={`/champions/${encodeURIComponent(champion.team)}`}
-          className="flex items-center justify-between rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 hover:bg-amber-100"
+          className="group flex items-center justify-between rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 hover:bg-amber-100"
         >
           <span className="inline-flex items-center gap-2">
             <span
@@ -44,7 +45,10 @@ export default async function ProfilePage() {
               Edit your blurb and check in here.
             </span>
           </span>
-          <span className="text-xs font-medium">Open champion page →</span>
+          <span className="inline-flex items-center gap-1 text-xs font-medium">
+            Open champion page
+            <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+          </span>
         </Link>
       )}
 
