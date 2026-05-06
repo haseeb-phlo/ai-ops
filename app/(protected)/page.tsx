@@ -12,11 +12,6 @@ import {
   type StreamItem,
 } from "./_components/dashboard/activity-stream";
 
-const ROLE_LABEL: Record<string, string> = {
-  super_admin: "Super admin",
-  member: "Member",
-};
-
 const CONFIDENCE_WEIGHT = { high: 1.0, medium: 0.7, low: 0.4 } as const;
 type Confidence = keyof typeof CONFIDENCE_WEIGHT;
 
@@ -24,6 +19,7 @@ type Intervention = {
   id: string;
   status: "active" | "paused" | "retired" | null;
   attribution_confidence: Confidence | null;
+  recipient_emails: string[] | null;
 };
 
 type Baseline = {
@@ -97,7 +93,7 @@ export default async function Home() {
   ] = await Promise.all([
     supabase
       .from("ai_interventions")
-      .select("id, status, attribution_confidence")
+      .select("id, status, attribution_confidence, recipient_emails")
       .returns<Intervention[]>(),
     supabase
       .from("workflow_baselines")
@@ -133,6 +129,11 @@ export default async function Home() {
       .returns<RecentNote[]>(),
   ]);
 
+  // Headcount drives the Reach metric's "X% of company" subtitle.
+  const { count: peopleCount } = await supabase
+    .from("people")
+    .select("*", { count: "exact", head: true });
+
   const interventionsList = interventions ?? [];
 
   const baselineSums = new Map<
@@ -167,8 +168,16 @@ export default async function Home() {
   let totalGbp = 0;
   let totalRevenue = 0;
   let activeCount = 0;
+  // Reach: unique people covered by any active intervention.
+  const reachedEmails = new Set<string>();
   for (const iv of interventionsList) {
     if (iv.status === "active") activeCount += 1;
+    if (iv.status === "active") {
+      for (const raw of iv.recipient_emails ?? []) {
+        const email = raw.toLowerCase().trim();
+        if (email) reachedEmails.add(email);
+      }
+    }
     if (iv.status === "retired") continue;
     const w = CONFIDENCE_WEIGHT[iv.attribution_confidence ?? "medium"];
     const baseline =
@@ -220,6 +229,16 @@ export default async function Home() {
   stream.sort((a, b) => b.at.localeCompare(a.at));
   const streamTop = stream.slice(0, 10);
 
+  // Reach: % of the company touched by an active intervention.
+  const reachedCount = reachedEmails.size;
+  const headcount = peopleCount ?? 0;
+  const reachedPercent =
+    headcount > 0 ? Math.round((reachedCount / headcount) * 100) : 0;
+  const reachSubtitle =
+    headcount > 0
+      ? `${reachedPercent}% of ${headcount} people`
+      : "No directory loaded";
+
   return (
     <PageContainer>
       <Suspense fallback={null}>
@@ -230,30 +249,30 @@ export default async function Home() {
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
           Hi {firstName} <span aria-hidden>👋</span>
         </h1>
-        <p className="text-sm text-zinc-500">
-          {ROLE_LABEL[user.role] ?? user.role}
-          {user.team ? ` · ${user.team}` : ""}
-          {champion ? (
-            <>
-              {" · "}
-              <Link
-                href={`/champions/${encodeURIComponent(champion.team)}`}
-                className="text-amber-700 hover:underline"
-              >
-                AI Champion of {champion.team}
-              </Link>
-            </>
-          ) : null}
-        </p>
+        {champion ? (
+          <p className="text-sm text-zinc-500">
+            <Link
+              href={`/champions/${encodeURIComponent(champion.team)}`}
+              className="text-amber-700 hover:underline"
+            >
+              AI Champion of {champion.team}
+            </Link>
+          </p>
+        ) : null}
       </header>
 
-      <section className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <section className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         <Stat label="Minutes saved / week" value={fmtMinutes(totalMinutes)} />
         <Stat label="GBP saved / week" value={gbp(totalGbp)} />
-        <Stat label="Revenue / week" value={gbp(totalRevenue)} />
+        <Stat label="Revenue generated / week" value={gbp(totalRevenue)} />
         <Stat
           label="Active interventions"
           value={activeCount.toLocaleString()}
+        />
+        <Stat
+          label="People reached"
+          value={reachedCount.toLocaleString()}
+          subtitle={reachSubtitle}
         />
       </section>
 
@@ -279,7 +298,15 @@ export default async function Home() {
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({
+  label,
+  value,
+  subtitle,
+}: {
+  label: string;
+  value: string;
+  subtitle?: string;
+}) {
   return (
     <div className="rounded-lg border border-zinc-200 bg-white p-4">
       <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
@@ -288,6 +315,9 @@ function Stat({ label, value }: { label: string; value: string }) {
       <p className="mt-1 text-2xl font-semibold tabular-nums text-zinc-900">
         {value}
       </p>
+      {subtitle && (
+        <p className="mt-0.5 text-xs text-zinc-500 tabular-nums">{subtitle}</p>
+      )}
     </div>
   );
 }

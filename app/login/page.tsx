@@ -44,13 +44,23 @@ export default function LoginPage() {
   return (
     <div className="flex flex-1 items-center justify-center px-6 py-24">
       <div className="w-full max-w-sm space-y-6">
-        <div className="space-y-2">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Sign in to Phlo AI Ops
-          </h1>
-          <p className="text-sm text-zinc-500">
-            Enter your @wearephlo.com email and we&apos;ll send you a magic link.
-          </p>
+        <div className="space-y-3">
+          <div className="flex items-center gap-2.5">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/phlo-mark.svg" alt="Phlo" className="h-6 w-auto" />
+            <span aria-hidden className="h-4 w-px bg-zinc-300" />
+            <span className="text-sm font-medium tracking-tight text-zinc-600">
+              AI Ops
+            </span>
+          </div>
+          <div className="space-y-1">
+            <h1 className="text-xl font-semibold tracking-tight">
+              Sign in
+            </h1>
+            <p className="text-sm text-zinc-500">
+              Enter your @wearephlo.com email and we&apos;ll send you a magic link.
+            </p>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">

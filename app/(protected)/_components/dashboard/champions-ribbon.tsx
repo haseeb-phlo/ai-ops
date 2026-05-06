@@ -66,10 +66,10 @@ export async function ChampionsRibbon() {
             <li key={c.id}>
               <Link
                 href={`/champions/${encodeURIComponent(c.team)}`}
-                title={`${c.display_name} — ${c.team}${
+                title={`${c.display_name} - ${c.team}${
                   c.last_check_in
-                    ? ` — last check-in ${new Date(c.last_check_in).toLocaleDateString()}`
-                    : " — no check-in yet"
+                    ? ` - last check-in ${new Date(c.last_check_in).toLocaleDateString()}`
+                    : " - no check-in yet"
                 }`}
                 className="group flex items-center gap-2"
               >

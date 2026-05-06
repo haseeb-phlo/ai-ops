@@ -16,7 +16,7 @@ export type Champion = {
  * the header, owner chips, and activity rows on the same page share one
  * round-trip.
  *
- * Ordered by team, then by created_at ascending — so when a team has
+ * Ordered by team, then by created_at ascending - so when a team has
  * multiple champions (Executive, mainly), the FIRST to be assigned is
  * the one returned by `championsByTeam` for back-compat with surfaces
  * that just want "any champion of team X".
@@ -34,7 +34,7 @@ export const loadChampions = cache(async (): Promise<Champion[]> => {
 
 /**
  * Index of champions keyed by team. When multiple champions exist for a
- * team, returns the FIRST-assigned one — kept for callers that just want
+ * team, returns the FIRST-assigned one - kept for callers that just want
  * "any champion of team X" (owner chips, mention links, ribbon labels).
  *
  * Use `championsForTeam` when you need the full list for a team.

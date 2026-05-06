@@ -41,7 +41,7 @@ const URGENCY: Record<Tone, number> = { red: 0, amber: 1, info: 2 };
 
 /**
  * Decision-oriented "needs attention" strip. Every source is bounded by a
- * recency window so the same item doesn't haunt the dashboard for months —
+ * recency window so the same item doesn't haunt the dashboard for months -
  * that matters most when usage is light at the start. After their window
  * passes, items fade out and the user must go to the deep page to find them.
  *
@@ -121,7 +121,7 @@ export async function NeedsAttention({
     });
   }
 
-  // Source 2: workflow regressions — group history by workflow, compare past
+  // Source 2: workflow regressions - group history by workflow, compare past
   // 7d to prior 7d.
   const byWorkflow = new Map<string, HistoryRow[]>();
   for (const h of history ?? []) {
@@ -161,7 +161,7 @@ export async function NeedsAttention({
     }
   }
 
-  // Source 3: newly-stale workflows — most recent snapshot is between 30 and
+  // Source 3: newly-stale workflows - most recent snapshot is between 30 and
   // 60 days old. (Older than 60d is considered "long since stale," skipped.)
   for (const [wfId, snapshots] of byWorkflow) {
     const wf = wfById.get(wfId);
@@ -185,7 +185,7 @@ export async function NeedsAttention({
     }
   }
 
-  // Source 4: champion check-in nag — only for the user's own staleness, in a
+  // Source 4: champion check-in nag - only for the user's own staleness, in a
   // tight 14-30d window so they're not nagged forever.
   if (champion?.last_check_in) {
     const ageDays = Math.floor(
@@ -221,7 +221,7 @@ export async function NeedsAttention({
       </div>
       {top.length === 0 ? (
         <p className="px-4 py-6 text-center text-xs text-zinc-400">
-          Nothing pressing this week. Quiet weeks are good — log a snapshot or
+          Nothing pressing this week. Quiet weeks are good - log a snapshot or
           a champion note when you have one.
         </p>
       ) : (

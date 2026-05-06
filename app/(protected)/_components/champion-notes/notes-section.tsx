@@ -81,24 +81,22 @@ export async function ChampionNotesSection({
         </p>
       </div>
 
-      <ul className="space-y-3">
+      <ul className="divide-y divide-zinc-100 rounded-lg border border-zinc-200 bg-white">
         {readOnlyNotes.map((n) => (
-          <li
-            key={n.id}
-            className="rounded-r-md border-l-4 border-amber-400 bg-amber-50 px-3 py-2 text-sm"
-          >
-            <div className="mb-1 flex items-center justify-between gap-2 text-xs">
+          <li key={n.id} className="px-4 py-3 text-sm">
+            <div className="mb-1 flex items-baseline justify-between gap-2 text-xs">
               <Link
                 href={`/champions/${encodeURIComponent(n.team)}`}
-                className="font-medium text-amber-800 hover:underline"
+                className="font-medium text-zinc-900 hover:underline"
               >
-                ⚡ {byTeam.get(n.team)?.display_name ?? n.team}
+                {byTeam.get(n.team)?.display_name ?? n.team}
               </Link>
-              <span className="text-amber-700/70">
-                {format(new Date(n.updated_at), "d MMM yyyy")}
+              <span className="text-zinc-500">
+                {format(new Date(n.updated_at), "d MMM yyyy")} ·{" "}
+                <span className="text-zinc-400">{n.team}</span>
               </span>
             </div>
-            <p className="text-amber-900">
+            <p className="text-zinc-700">
               <TextWithMentions text={n.body} />
             </p>
           </li>
@@ -107,12 +105,12 @@ export async function ChampionNotesSection({
         {[...editableTeams].sort().map((team) => {
           const existing = noteByTeam.get(team);
           return (
-            <li key={`editor-${team}`} className="space-y-1">
-              <div className="text-xs text-amber-700">
-                You — champion of{" "}
+            <li key={`editor-${team}`} className="space-y-2 px-4 py-3">
+              <div className="text-xs text-zinc-500">
+                You champion{" "}
                 <Link
                   href={`/champions/${encodeURIComponent(team)}`}
-                  className="font-medium hover:underline"
+                  className="font-medium text-zinc-900 hover:underline"
                 >
                   {team}
                 </Link>

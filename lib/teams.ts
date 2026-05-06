@@ -10,8 +10,8 @@ type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
  * surface every team a person has been assigned to and never drop a team
  * just because nobody on it has logged a workflow yet.
  *
- * `ensure` lets a caller guarantee a specific value stays in the list — e.g.
- * the current user's team or the workflow being edited's team — even if the
+ * `ensure` lets a caller guarantee a specific value stays in the list - e.g.
+ * the current user's team or the workflow being edited's team - even if the
  * underlying queries don't return it.
  */
 export async function loadTeamOptions(

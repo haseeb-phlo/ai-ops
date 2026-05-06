@@ -32,9 +32,19 @@ export async function Header({
         <div className="flex items-center gap-8">
           <Link
             href="/"
-            className="text-[15px] font-semibold tracking-tight text-zinc-900"
+            aria-label="Phlo AI Ops home"
+            className="flex items-center gap-2.5"
           >
-            Phlo AI Ops
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/phlo-mark.svg"
+              alt="Phlo"
+              className="h-5 w-auto"
+            />
+            <span aria-hidden className="h-4 w-px bg-zinc-300" />
+            <span className="text-sm font-medium tracking-tight text-zinc-600">
+              AI Ops
+            </span>
           </Link>
           <Nav canSeeAdmin={canSeeAdmin} />
         </div>
@@ -52,13 +62,9 @@ export async function Header({
             )}
             {user.role === "super_admin" && (
               <span
-                className="ml-1 inline-flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-zinc-500"
-                title="Super admin"
+                className="ml-1 rounded border border-zinc-200 px-1.5 py-0.5 text-[10px] font-medium tracking-tight text-zinc-500"
+                title="You have super-admin access"
               >
-                <span
-                  aria-hidden
-                  className="size-1.5 rounded-full bg-purple-500"
-                />
                 Super admin
               </span>
             )}
@@ -98,40 +104,25 @@ export async function Header({
         </div>
       </header>
 
-      {isReallySuperAdmin && (
-        <div
-          className={
-            user.isImpersonating
-              ? "flex items-center justify-between gap-3 border-b-2 border-amber-300 bg-amber-100 px-6 py-2.5"
-              : "flex items-center justify-between gap-3 border-b border-zinc-200 bg-zinc-50 px-6 py-1.5"
-          }
-        >
-          {user.isImpersonating ? (
-            <span className="flex items-center gap-2 text-sm text-amber-900">
-              <span
-                aria-hidden
-                className="inline-flex items-center rounded bg-amber-900 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-50"
-              >
-                View-as
-              </span>
-              <span>
-                You&apos;re seeing the app as a{" "}
-                <strong>{ROLE_LABEL[user.role] ?? user.role}</strong>
-                {user.team ? (
-                  <>
-                    {" "}on{" "}
-                    <strong>{user.team}</strong>
-                  </>
-                ) : null}
-                . Super-admin powers are hidden until you exit.
-              </span>
+      {isReallySuperAdmin && user.isImpersonating && (
+        <div className="flex items-center justify-between gap-3 border-b border-amber-200 bg-amber-50 px-6 py-2 text-sm text-amber-900">
+          <span className="flex items-center gap-2">
+            <span
+              aria-hidden
+              className="size-1.5 rounded-full bg-amber-500"
+            />
+            <span>
+              Viewing as{" "}
+              <strong>{ROLE_LABEL[user.role] ?? user.role}</strong>
+              {user.team ? (
+                <>
+                  {" "}on{" "}
+                  <strong>{user.team}</strong>
+                </>
+              ) : null}
+              . Super-admin powers are hidden until you exit.
             </span>
-          ) : (
-            <span className="text-xs text-zinc-500">
-              Super-admin tools — switch how you appear to other parts of the
-              app.
-            </span>
-          )}
+          </span>
           <ViewAsSwitcher
             role={user.role}
             team={user.team}

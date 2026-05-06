@@ -30,7 +30,7 @@ export function NoteEditor({
   if (!editing && initialBody) {
     return (
       <div className="space-y-2">
-        <div className="rounded-r-md border-l-4 border-amber-400 bg-amber-50 p-3 text-sm text-amber-900">
+        <div className="rounded-md bg-zinc-50 px-3 py-2 text-sm text-zinc-800">
           {initialBody}
         </div>
         <div className="flex items-center gap-2">
@@ -72,7 +72,6 @@ export function NoteEditor({
         rows={3}
         maxLength={2000}
         placeholder={`Champion note for ${team} - editorial guidance for anyone reading this.`}
-        className="border-amber-300 bg-amber-50/50 focus-visible:border-amber-500"
       />
 
       <div className="flex items-center gap-2">

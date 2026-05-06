@@ -92,7 +92,7 @@ export function ActivityStream({ items }: { items: StreamItem[] }) {
                   }
                   className="font-medium text-zinc-900 hover:underline"
                 >
-                  ⚡ {it.team} note
+                  {it.team} champion note
                 </Link>
               }
               meta={truncate(it.body, 120)}
@@ -141,8 +141,8 @@ function Glyph({ kind }: { kind: "intervention" | "note" }) {
     );
   }
   return (
-    <span className="flex size-5 items-center justify-center rounded-full bg-amber-100 text-[10px] font-semibold leading-none text-amber-700">
-      ⚡
+    <span className="inline-flex h-5 items-center justify-center rounded-full bg-amber-100 px-1.5 font-mono text-[8px] font-semibold leading-none tracking-tight text-amber-700">
+      AI
     </span>
   );
 }
