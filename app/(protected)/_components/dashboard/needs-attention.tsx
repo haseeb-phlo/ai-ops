@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import type { Champion } from "@/lib/champions";
 import type { SessionUser } from "@/lib/auth";
@@ -116,7 +117,7 @@ export async function NeedsAttention({
       title: "Red regulatory flag",
       body: e.summary,
       href: wf ? `/workflows/${wf.id}` : "/admin",
-      cta: wf ? `Open ${wf.name} →` : "Open register →",
+      cta: wf ? `Open ${wf.name}` : "Open register",
       weight: ageDays,
     });
   }
@@ -155,7 +156,7 @@ export async function NeedsAttention({
         title: `${wf.name} regressed this week`,
         body: `Time per run +${Math.round(pct * 100)}% vs last week (${Math.round(priorAvg)} → ${Math.round(pastAvg)} min).`,
         href: `/workflows/${wf.id}`,
-        cta: "Open workflow →",
+        cta: "Open workflow",
         weight: -pct, // bigger regression = higher priority within tone
       });
     }
@@ -179,7 +180,7 @@ export async function NeedsAttention({
         title: `${wf.name} hasn't been measured in ${ageDays}d`,
         body: "Log a metric snapshot so the dashboard reflects reality.",
         href: `/workflows/${wf.id}`,
-        cta: "Open workflow →",
+        cta: "Open workflow",
         weight: -ageDays,
       });
     }
@@ -198,7 +199,7 @@ export async function NeedsAttention({
         title: `${ageDays}d since your champion check-in`,
         body: `Keep ${champion.team}'s data fresh by checking in.`,
         href: `/champions/${encodeURIComponent(champion.team)}`,
-        cta: "Check in →",
+        cta: "Check in",
         weight: -ageDays,
       });
     }
@@ -252,8 +253,9 @@ export async function NeedsAttention({
                     {it.body}
                   </p>
                 </div>
-                <span className="shrink-0 self-center text-xs font-medium text-zinc-500 group-hover:text-zinc-900">
+                <span className="inline-flex shrink-0 items-center gap-1 self-center text-xs font-medium text-zinc-500 group-hover:text-zinc-900">
                   {it.cta}
+                  <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
                 </span>
               </Link>
             </li>

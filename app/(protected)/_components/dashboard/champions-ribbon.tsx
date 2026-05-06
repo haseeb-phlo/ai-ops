@@ -2,6 +2,7 @@ import Link from "next/link";
 import { loadChampions, type Champion } from "@/lib/champions";
 import { resolveAvatar } from "@/lib/profile";
 import { createClient } from "@/lib/supabase/server";
+import { ForwardLink } from "@/components/ui/nav-link";
 
 /**
  * Compact horizontal strip showing every team's champion. Each ring is
@@ -47,12 +48,9 @@ export async function ChampionsRibbon() {
         <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
           AI Champions
         </h2>
-        <Link
-          href="/map?view=champions"
-          className="text-xs text-zinc-500 hover:text-zinc-900 hover:underline"
-        >
-          View all →
-        </Link>
+        <ForwardLink href="/map?view=champions" className="text-xs">
+          View all
+        </ForwardLink>
       </div>
       <ul className="flex flex-wrap items-center gap-x-6 gap-y-4">
         {champions.map((c) => {

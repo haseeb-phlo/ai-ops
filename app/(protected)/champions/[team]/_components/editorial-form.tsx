@@ -36,7 +36,7 @@ export function EditorialForm({
           htmlFor="blurb"
           className="text-xs font-medium uppercase tracking-wide text-zinc-500"
         >
-          Blurb (what you care about)
+          Your message to the team
         </label>
         <Textarea
           id="blurb"
@@ -53,7 +53,7 @@ export function EditorialForm({
           htmlFor="chewing_on"
           className="text-xs font-medium uppercase tracking-wide text-zinc-500"
         >
-          What you&apos;re chewing on
+          An open question
         </label>
         <Textarea
           id="chewing_on"
@@ -61,7 +61,7 @@ export function EditorialForm({
           defaultValue={defaultChewingOn}
           rows={2}
           maxLength={2000}
-          placeholder="An open question or experiment for the team to weigh in on."
+          placeholder="Something you'd like the team to weigh in on."
         />
       </div>
 
