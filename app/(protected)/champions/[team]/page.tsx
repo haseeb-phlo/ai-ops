@@ -10,10 +10,6 @@ import { BackLink } from "@/components/ui/nav-link";
 import { Badge } from "@/components/ui/badge";
 import { EditorialForm } from "./_components/editorial-form";
 import { CheckInButton } from "./_components/check-in-button";
-import {
-  SuperAdminManage,
-  type CandidatePerson,
-} from "./_components/super-admin-manage";
 
 type SponsoredWorkflow = {
   id: string;
@@ -120,29 +116,6 @@ export default async function ChampionTeamPage({
     (workflows ?? []).map((w) => [w.id, w.name]),
   );
 
-  // Super-admin only: candidates from the directory for the "add champion"
-  // form. Surfaces every directory entry, with members of the URL team
-  // ranked first so the common case (assigning a team-mate) is one click,
-  // while the long-tail case (assigning anyone) still works on team URLs
-  // that aren't an exact `people.team` match (e.g. /champions/Tech when the
-  // canonical team name is "Technology").
-  let candidates: CandidatePerson[] = [];
-  if (isSuper) {
-    const { data } = await supabase
-      .from("people")
-      .select("id, display_name, email, team")
-      .order("display_name", { ascending: true })
-      .returns<(CandidatePerson & { email: string; team: string | null })[]>();
-    const rows = data ?? [];
-    const lowerTeam = team.toLowerCase();
-    const isOnTeam = (row: { team: string | null }) =>
-      (row.team ?? "").toLowerCase() === lowerTeam;
-    candidates = [
-      ...rows.filter(isOnTeam),
-      ...rows.filter((r) => !isOnTeam(r)),
-    ];
-  }
-
   return (
     <PageContainer>
       <BackLink href="/map?view=champions">All champions</BackLink>
@@ -158,17 +131,57 @@ export default async function ChampionTeamPage({
         </p>
       </header>
 
+      {/* Welcome banner for a freshly-assigned champion who hasn't filled
+          in their editorial voice yet. Shown only to self, only when the
+          blurb is empty - so it disappears the moment they've onboarded. */}
+      {(() => {
+        const selfChampion = champions.find(
+          (c) => c.user_id === user.id && !c.blurb,
+        );
+        if (!selfChampion) return null;
+        return (
+          <section className="rounded-lg border border-emerald-200 bg-emerald-50 px-5 py-4">
+            <h2 className="text-sm font-semibold tracking-tight text-emerald-900">
+              Welcome - you&apos;re the new AI Champion of {team}
+            </h2>
+            <p className="mt-1 text-xs text-emerald-800">
+              Your role in three lines:
+            </p>
+            <ol className="mt-2 list-decimal space-y-0.5 pl-5 text-xs text-emerald-900">
+              <li>
+                Write a short message to the team below so colleagues know
+                where you stand on AI.
+              </li>
+              <li>
+                Drop into a workflow or intervention page to leave a champion
+                note - your voice is the editorial one for this team.
+              </li>
+              <li>
+                Check in regularly so the dashboard knows you&apos;re still
+                active.
+              </li>
+            </ol>
+          </section>
+        );
+      })()}
+
       {champions.length === 0 ? (
         <section className="rounded-lg border border-dashed border-zinc-200 bg-white px-6 py-12 text-center text-sm text-muted-foreground">
+          No champion has been assigned to <strong>{team}</strong> yet.
           {isSuper ? (
             <>
-              No champion assigned to <strong>{team}</strong> yet. Use the form
-              below to assign one.
+              {" "}Assign one from the{" "}
+              <Link
+                href="/admin"
+                className="font-medium text-zinc-700 underline"
+              >
+                Champions tab in /admin
+              </Link>
+              .
             </>
           ) : (
             <>
-              No champion has been assigned to <strong>{team}</strong> yet. A
-              super-admin can assign one from{" "}
+              {" "}A super-admin can assign one from{" "}
               <Link
                 href="/admin"
                 className="font-medium text-zinc-700 underline"
@@ -192,14 +205,6 @@ export default async function ChampionTeamPage({
             />
           ))}
         </div>
-      )}
-
-      {isSuper && (
-        <SuperAdminManage
-          team={team}
-          candidates={candidates}
-          championCount={champions.length}
-        />
       )}
 
       <section className="space-y-2">
