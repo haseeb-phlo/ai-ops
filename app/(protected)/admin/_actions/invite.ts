@@ -98,7 +98,7 @@ export async function invitePerson(
       /already.*(registered|exists)|user.*registered/i.test(msg);
 
     if (alreadyRegistered) {
-      // Already in auth.users — directory entry was still updated, which is
+      // Already in auth.users - directory entry was still updated, which is
       // valuable on its own. Surface as a soft success rather than an error.
       return {
         kind: "ok",

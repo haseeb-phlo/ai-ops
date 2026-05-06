@@ -6,6 +6,7 @@ import { championsForTeam, type Champion } from "@/lib/champions";
 import { resolveAvatar } from "@/lib/profile";
 import { TextWithMentions } from "@/components/people/champion-mark";
 import { PageContainer } from "@/components/page-header";
+import { BackLink } from "@/components/ui/nav-link";
 import { Badge } from "@/components/ui/badge";
 import { EditorialForm } from "./_components/editorial-form";
 import { CheckInButton } from "./_components/check-in-button";
@@ -33,11 +34,6 @@ type LeftNote = {
   target_id: string;
   body: string;
   updated_at: string;
-};
-
-type CosignGiven = {
-  intervention_id: string;
-  signed_at: string;
 };
 
 type ProfileRow = {
@@ -70,7 +66,6 @@ export default async function ChampionTeamPage({
     { data: workflows },
     { data: interventionLinks },
     { data: notes },
-    { data: cosigns },
   ] = await Promise.all([
     championUserIds.length > 0
       ? supabase
@@ -98,13 +93,6 @@ export default async function ChampionTeamPage({
       .order("updated_at", { ascending: false })
       .limit(20)
       .returns<LeftNote[]>(),
-    supabase
-      .from("intervention_cosigns")
-      .select("intervention_id, signed_at")
-      .eq("team", team)
-      .order("signed_at", { ascending: false })
-      .limit(20)
-      .returns<CosignGiven[]>(),
   ]);
 
   const profileByUserId = new Map(
@@ -133,34 +121,31 @@ export default async function ChampionTeamPage({
   );
 
   // Super-admin only: candidates from the directory for the "add champion"
-  // form. Existing-champion user_ids filtered out so the picker doesn't
-  // show people who'd just hit a unique-violation.
+  // form. Surfaces every directory entry, with members of the URL team
+  // ranked first so the common case (assigning a team-mate) is one click,
+  // while the long-tail case (assigning anyone) still works on team URLs
+  // that aren't an exact `people.team` match (e.g. /champions/Tech when the
+  // canonical team name is "Technology").
   let candidates: CandidatePerson[] = [];
   if (isSuper) {
     const { data } = await supabase
       .from("people")
-      .select("id, display_name, email")
-      .eq("team", team)
+      .select("id, display_name, email, team")
       .order("display_name", { ascending: true })
-      .returns<(CandidatePerson & { email: string })[]>();
-    const existingEmails = new Set<string>();
-    // We don't have champions.email directly, but we can filter by the
-    // email field on people via user_id matching. Simpler: keep the full
-    // list; the action error covers duplicates if they slip through.
-    void existingEmails;
-    candidates = data ?? [];
+      .returns<(CandidatePerson & { email: string; team: string | null })[]>();
+    const rows = data ?? [];
+    const lowerTeam = team.toLowerCase();
+    const isOnTeam = (row: { team: string | null }) =>
+      (row.team ?? "").toLowerCase() === lowerTeam;
+    candidates = [
+      ...rows.filter(isOnTeam),
+      ...rows.filter((r) => !isOnTeam(r)),
+    ];
   }
 
   return (
     <PageContainer>
-      <nav className="text-sm">
-        <Link
-          href="/map?view=champions"
-          className="text-zinc-500 hover:text-zinc-900 hover:underline"
-        >
-          ← All champions
-        </Link>
-      </nav>
+      <BackLink href="/map?view=champions">All champions</BackLink>
 
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
@@ -329,38 +314,6 @@ export default async function ChampionTeamPage({
         </div>
       </section>
 
-      <section className="space-y-2">
-        <h2 className="text-sm font-semibold tracking-tight text-zinc-900">
-          Co-signs given
-        </h2>
-        <div className="rounded-lg border border-zinc-200 bg-white">
-          {(cosigns ?? []).length === 0 ? (
-            <div className="px-4 py-6 text-center text-sm text-zinc-400">
-              No co-signs yet.
-            </div>
-          ) : (
-            <ul className="divide-y divide-zinc-100">
-              {(cosigns ?? []).map((c) => (
-                <li
-                  key={c.intervention_id}
-                  className="flex items-center justify-between px-4 py-3 text-sm"
-                >
-                  <Link
-                    href={`/interventions/${c.intervention_id}`}
-                    className="font-medium text-zinc-900 hover:underline"
-                  >
-                    {interventionNameById.get(c.intervention_id) ??
-                      "(unknown intervention)"}
-                  </Link>
-                  <span className="text-xs text-zinc-400 tabular-nums">
-                    {format(new Date(c.signed_at), "d MMM yyyy")}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </section>
     </PageContainer>
   );
 }
@@ -400,9 +353,9 @@ function ChampionCard({
             />
             <span
               aria-hidden
-              className="absolute -bottom-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-amber-400 text-[9px] font-bold leading-none text-white shadow-sm ring-1 ring-white"
+              className="absolute -bottom-0.5 -right-0.5 inline-flex h-4 items-center rounded-full bg-amber-400 px-1 font-mono text-[8px] font-semibold leading-none tracking-tight text-white shadow-sm ring-1 ring-white"
             >
-              ⚡
+              AI
             </span>
           </span>
           <div>
@@ -441,11 +394,11 @@ function ChampionCard({
             </p>
           )}
           {champion.chewing_on && (
-            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
-              <div className="text-xs font-medium uppercase tracking-wide text-amber-700">
+            <div className="rounded-md bg-zinc-50 p-3">
+              <div className="text-xs font-medium uppercase tracking-wide text-zinc-500">
                 Chewing on
               </div>
-              <p className="mt-1 text-sm text-amber-900">
+              <p className="mt-1 text-sm text-zinc-800">
                 <TextWithMentions text={champion.chewing_on} />
               </p>
             </div>

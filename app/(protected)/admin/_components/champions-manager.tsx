@@ -34,7 +34,7 @@ export type ExistingChampion = {
 
 /**
  * Admin tab manager for AI Champions. Supports multiple champions per team
- * (Executive being the canonical case) — pick a team, see who's already a
+ * (Executive being the canonical case) - pick a team, see who's already a
  * champion of it with per-row Remove, and add another below.
  */
 export function ChampionsManager({
@@ -72,7 +72,7 @@ export function ChampionsManager({
     championsForSelected.map((c) => c.user_id).filter(Boolean) as string[],
   );
   const availablePeople = peopleForTeam.filter((p) => {
-    // We don't have user_id on `people` — best-effort dedupe via display
+    // We don't have user_id on `people` - best-effort dedupe via display
     // name (the assign action always re-resolves user_id from the email
     // anyway, so a stale duplicate would be caught server-side).
     const championNames = new Set(

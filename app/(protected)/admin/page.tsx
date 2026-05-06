@@ -8,6 +8,7 @@ import { CostSummary } from "./_components/cost-summary";
 import { AuditLog } from "./_components/audit-log";
 import { ChampionsFreshness } from "./_components/champions-freshness";
 import { ChampionsManager } from "./_components/champions-manager";
+import { ViewAsSwitcher } from "../_components/view-as-switcher";
 import {
   DeletedWorkflows,
   type DeletedWorkflowRow,
@@ -394,18 +395,31 @@ export default async function AdminPage() {
     }),
   );
 
+  // ---- View-as: full team list (any team appearing on a workflow) ------
+  const viewAsTeams = Array.from(
+    new Set(
+      (workflows ?? [])
+        .map((w) => w.team)
+        .filter((t): t is string => !!t),
+    ),
+  ).sort();
+
   return (
     <PageContainer className="max-w-7xl">
       <PageHeader
-        title={
-          <span className="inline-flex items-center gap-2">
-            Admin
-            <span className="rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-purple-800 ring-1 ring-inset ring-purple-200">
-              super admin
-            </span>
-          </span>
-        }
+        title="Admin"
         description="Cross-company controls. Company stats and rankings live on the home dashboard for everyone."
+        actions={
+          <div className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5">
+            <ViewAsSwitcher
+              role={user.role}
+              team={user.team}
+              isImpersonating={user.isImpersonating}
+              teams={viewAsTeams}
+              realRole={user.realRole}
+            />
+          </div>
+        }
       />
 
       <AdminTabs
