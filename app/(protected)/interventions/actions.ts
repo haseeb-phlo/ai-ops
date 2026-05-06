@@ -46,14 +46,18 @@ const FormSchema = z.object({
     .min(0, "Revenue can't be negative")
     .max(10_000_000),
   attribution_confidence: z.enum(CONFIDENCES).default("medium"),
-  adoption_status: z.enum(ADOPTION_STATUSES, {
-    error: "Pick an adoption status",
-  }),
+  // Adoption + satisfaction are intentionally optional at log time - most
+  // interventions are logged the day they ship and there's no usage signal
+  // yet. The first metric snapshot (7+ days later) is when these values
+  // start to make sense; the in-app prompt nudges champions to fill them
+  // in then.
+  adoption_status: z.enum(ADOPTION_STATUSES).optional(),
   satisfaction: z
-    .number({ error: "Pick a satisfaction score" })
+    .number()
     .int()
     .min(1, "Satisfaction is 1-5")
-    .max(5, "Satisfaction is 1-5"),
+    .max(5, "Satisfaction is 1-5")
+    .optional(),
   // Recipients are picked from the company directory by canonical email.
   // Required: every intervention reaches someone; "team-wide" gets logged
   // by adding the team's members explicitly.

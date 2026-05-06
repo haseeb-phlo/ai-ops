@@ -114,9 +114,7 @@ export function LogInterventionDialog({
   const isComplete =
     type !== "" &&
     selected.size > 0 &&
-    recipients.size > 0 &&
-    adoption !== "" &&
-    satisfaction !== "";
+    recipients.size > 0;
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -360,8 +358,8 @@ export function LogInterventionDialog({
                   Adoption & sentiment
                 </h3>
                 <p className="text-xs text-muted-foreground">
-                  Snapshot it now. Both drift over time, so log a fresh snapshot
-                  when they do.
+                  Optional - skip if you&apos;re logging the day you ship.
+                  Fill in on the first snapshot once people have used it.
                 </p>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
@@ -371,7 +369,6 @@ export function LogInterventionDialog({
                     type="hidden"
                     name="adoption_status"
                     value={adoption}
-                    required
                   />
                   <Select
                     value={adoption}
@@ -403,7 +400,6 @@ export function LogInterventionDialog({
                     type="hidden"
                     name="satisfaction"
                     value={satisfaction}
-                    required
                   />
                   <Select
                     value={satisfaction}
