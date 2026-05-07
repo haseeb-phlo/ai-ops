@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { CheckCircle2, AlertCircle } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,17 +10,40 @@ import { createClient } from "@/lib/supabase/client";
 type Status =
   | { kind: "idle" }
   | { kind: "sending" }
-  | { kind: "sent" }
+  | { kind: "awaiting-code" }
+  | { kind: "verifying" }
   | { kind: "error"; message: string };
 
 export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
   const [status, setStatus] = useState<Status>({ kind: "idle" });
+  const [linkError, setLinkError] = useState<string | null>(null);
 
-  const isBusy = status.kind === "sending" || status.kind === "sent";
+  // Surface errors Supabase puts in the URL hash fragment when an emailed
+  // magic link fails (typically "otp_expired" — single-use OTP consumed
+  // by a corporate email-security scanner before the human clicked). The
+  // server can't see the fragment, so we read it on the client; setState
+  // in an effect is the only hydration-safe pattern here.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(
+      window.location.hash.replace(/^#/, ""),
+    );
+    const description = params.get("error_description");
+    if (description) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setLinkError(description.replace(/\+/g, " "));
+      history.replaceState(null, "", window.location.pathname);
+    }
+  }, []);
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  const isBusy = status.kind === "sending" || status.kind === "verifying";
+
+  async function handleSendCode(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    setLinkError(null);
 
     if (!email.trim().toLowerCase().endsWith("@wearephlo.com")) {
       setStatus({
@@ -44,8 +67,37 @@ export default function LoginPage() {
       setStatus({ kind: "error", message: error.message });
       return;
     }
-    setStatus({ kind: "sent" });
+    setStatus({ kind: "awaiting-code" });
   }
+
+  async function handleVerifyCode(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const token = code.trim();
+    if (token.length < 6) return;
+
+    setStatus({ kind: "verifying" });
+
+    const supabase = createClient();
+    const { error } = await supabase.auth.verifyOtp({
+      email,
+      token,
+      type: "email",
+    });
+
+    if (error) {
+      setStatus({ kind: "error", message: error.message });
+      return;
+    }
+    router.replace("/");
+    router.refresh();
+  }
+
+  function handleResend() {
+    setCode("");
+    setStatus({ kind: "idle" });
+  }
+
+  const awaitingCode = status.kind === "awaiting-code" || status.kind === "verifying";
 
   return (
     <div className="flex flex-1 items-center justify-center px-6 py-16">
@@ -71,57 +123,103 @@ export default function LoginPage() {
         <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
           <div className="space-y-1">
             <h1 className="text-lg font-semibold tracking-tight text-zinc-900">
-              Sign in
+              {awaitingCode ? "Enter your code" : "Sign in"}
             </h1>
             <p className="text-sm text-zinc-500">
-              We&apos;ll email you a magic link. No password needed.
+              {awaitingCode ? (
+                <>
+                  We sent a 6-digit code to{" "}
+                  <strong className="text-zinc-900">{email}</strong>.
+                </>
+              ) : (
+                "We'll email you a 6-digit code. No password needed."
+              )}
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="mt-5 space-y-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="email">Work email</Label>
-              <Input
-                id="email"
-                type="email"
-                required
-                placeholder="you@wearephlo.com"
-                value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  if (status.kind === "error") setStatus({ kind: "idle" });
-                }}
-                disabled={isBusy}
-                autoComplete="email"
-                autoFocus
-              />
-            </div>
-            <Button
-              type="submit"
-              disabled={isBusy || email.trim() === ""}
-              className="w-full"
-            >
-              {status.kind === "sending"
-                ? "Sending"
-                : status.kind === "sent"
-                  ? "Link sent"
-                  : "Send magic link"}
-            </Button>
-          </form>
+          {!awaitingCode ? (
+            <form onSubmit={handleSendCode} className="mt-5 space-y-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="email">Work email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  required
+                  placeholder="you@wearephlo.com"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (status.kind === "error") setStatus({ kind: "idle" });
+                  }}
+                  disabled={isBusy}
+                  autoComplete="email"
+                  autoFocus
+                />
+              </div>
+              <Button
+                type="submit"
+                disabled={isBusy || email.trim() === ""}
+                className="w-full"
+              >
+                {status.kind === "sending" ? "Sending" : "Send code"}
+              </Button>
+            </form>
+          ) : (
+            <form onSubmit={handleVerifyCode} className="mt-5 space-y-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="code">6-digit code</Label>
+                <Input
+                  id="code"
+                  type="text"
+                  required
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  autoComplete="one-time-code"
+                  placeholder="123456"
+                  maxLength={6}
+                  value={code}
+                  onChange={(e) => {
+                    setCode(e.target.value.replace(/\D/g, ""));
+                    if (status.kind === "error")
+                      setStatus({ kind: "awaiting-code" });
+                  }}
+                  disabled={status.kind === "verifying"}
+                  autoFocus
+                />
+              </div>
+              <Button
+                type="submit"
+                disabled={status.kind === "verifying" || code.trim().length < 6}
+                className="w-full"
+              >
+                {status.kind === "verifying" ? "Verifying" : "Sign in"}
+              </Button>
+              <button
+                type="button"
+                onClick={handleResend}
+                className="block w-full text-center text-xs text-zinc-500 hover:text-zinc-700"
+              >
+                Use a different email
+              </button>
+            </form>
+          )}
 
-          {status.kind === "sent" && (
-            <p className="mt-4 flex items-start gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
-              <CheckCircle2 className="mt-0.5 size-4 shrink-0" />
-              <span>
-                Check your inbox - we sent a sign-in link to{" "}
-                <strong>{email}</strong>.
-              </span>
+          {linkError && status.kind !== "error" && (
+            <p className="mt-4 text-sm text-amber-700">
+              <span
+                aria-hidden
+                className="mr-1.5 inline-block size-1.5 rounded-full bg-amber-500 align-middle"
+              />
+              {linkError}. Request a fresh code below.
             </p>
           )}
           {status.kind === "error" && (
-            <p className="mt-4 flex items-start gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-              <AlertCircle className="mt-0.5 size-4 shrink-0" />
-              <span>{status.message}</span>
+            <p className="mt-4 text-sm text-red-700">
+              <span
+                aria-hidden
+                className="mr-1.5 inline-block size-1.5 rounded-full bg-red-500 align-middle"
+              />
+              {status.message}
             </p>
           )}
         </div>
