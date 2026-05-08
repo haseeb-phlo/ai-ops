@@ -1,8 +1,8 @@
 -- =========================================================================
--- Phlo AI Ops — roles simplification (additive)
+-- Phlo AI Ops - roles simplification (additive)
 -- Collapses the role set to two: 'super_admin' and 'member'.
 --   * 'admin' → 'member'  (cross-team editing now happens via team membership
---                          + super_admin escape hatch — see workflows.sql RLS)
+--                          + super_admin escape hatch - see workflows.sql RLS)
 --   * 'editor', 'viewer' → 'member'  (these were never enforced anywhere)
 -- Run AFTER admin_migration.sql. Safe to re-run.
 -- =========================================================================

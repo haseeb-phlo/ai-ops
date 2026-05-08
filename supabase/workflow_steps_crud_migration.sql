@@ -1,5 +1,5 @@
 -- =========================================================================
--- Phlo AI Ops — workflow_steps CRUD policies (additive)
+-- Phlo AI Ops - workflow_steps CRUD policies (additive)
 -- The /workflows/[id] page now lets team members + super_admins add, delete,
 -- and reorder steps. The original insert policy required the workflow's
 -- creator (too tight); there was no delete policy at all.
