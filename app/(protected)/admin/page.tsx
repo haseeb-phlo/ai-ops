@@ -442,9 +442,9 @@ export default async function AdminPage() {
             <ChampionsFreshness rows={championRows} />
           </div>
         }
-        logins={<Logins />}
         audit={
           <div className="space-y-6">
+            <Logins />
             <AuditLog rows={auditTop100} />
             <section className="space-y-2">
               <h2 className="text-sm font-semibold tracking-tight text-zinc-900">

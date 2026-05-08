@@ -3,10 +3,11 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Order leads with the value lens, then operational, then governance.
+// Logins lives inside Audit (sign-ins, edits, deletes are all "who did
+// what when") so the tab strip stays four wide instead of five.
 const TABS = [
   { value: "cost", label: "ROI" },
   { value: "champions", label: "Champions" },
-  { value: "logins", label: "Logins" },
   { value: "regulatory", label: "Compliance" },
   { value: "audit", label: "Audit" },
 ] as const;
@@ -15,7 +16,6 @@ type Props = {
   regulatory: React.ReactNode;
   cost: React.ReactNode;
   champions: React.ReactNode;
-  logins: React.ReactNode;
   audit: React.ReactNode;
 };
 
@@ -23,14 +23,12 @@ export function AdminTabs({
   regulatory,
   cost,
   champions,
-  logins,
   audit,
 }: Props) {
   const panels: Record<(typeof TABS)[number]["value"], React.ReactNode> = {
     regulatory,
     cost,
     champions,
-    logins,
     audit,
   };
 
