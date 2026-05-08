@@ -35,7 +35,16 @@ export function TeamFilter({
       <span className="text-muted-foreground">Team:</span>
       <Select value={value} onValueChange={handleChange}>
         <SelectTrigger className="w-[180px]">
-          <SelectValue />
+          {/* Format the trigger label explicitly. base-ui's SelectValue
+              otherwise falls back to the raw value (e.g. "all") if it
+              can't match the selected item, which made the trigger read
+              "all teams" with a lowercase a. */}
+          <SelectValue>
+            {(v: string | null) => {
+              if (!v || v === ALL_TEAMS) return "All teams";
+              return v === userTeam ? `${v} (yours)` : v;
+            }}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
           <SelectItem value={ALL_TEAMS}>All teams</SelectItem>

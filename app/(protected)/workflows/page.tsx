@@ -40,8 +40,12 @@ export default async function WorkflowsPage(props: {
 
   const supabase = await createClient();
 
-  // Default filter: user's own team (fall back to "all" if they have none).
-  const activeTeam = params.team ?? (user.team ? user.team : ALL_TEAMS);
+  // Default filter: super admins see every team, since they are
+  // company-wide editors; everyone else lands on their own team (or
+  // "all" if they don't have one set).
+  const defaultTeam =
+    user.role === "super_admin" || !user.team ? ALL_TEAMS : user.team;
+  const activeTeam = params.team ?? defaultTeam;
 
   // 1. Workflows + step counts (one round trip via Supabase aggregation).
   let q = supabase
