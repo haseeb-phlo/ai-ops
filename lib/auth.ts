@@ -2,6 +2,7 @@ import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { isAllowedEmail } from "@/lib/auth-domain";
 import { resolveAvatar } from "@/lib/profile";
 
 export type RoleGrant = {
@@ -82,6 +83,14 @@ export const getSessionUser = cache(async (): Promise<SessionUser> => {
 
   if (!user || !user.email) {
     redirect("/login");
+  }
+
+  // Defense in depth — proxy.ts is the primary domain gate, but in case a
+  // non-Phlo session reaches a Server Component (race during redirect, hook
+  // change, etc.) we refuse to hand back a SessionUser. Sign-out happens on
+  // the next proxy pass.
+  if (!isAllowedEmail(user.email)) {
+    redirect("/login?error=domain_blocked");
   }
 
   const [grantRes, profileRes] = await Promise.all([

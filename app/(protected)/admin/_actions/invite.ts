@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getSessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { ALLOWED_EMAIL_DOMAIN, isAllowedEmail } from "@/lib/auth-domain";
 
 const InviteSchema = z.object({
   email: z
@@ -12,8 +13,8 @@ const InviteSchema = z.object({
     .trim()
     .toLowerCase()
     .email("Enter a valid email address")
-    .refine((e) => /@wearephlo\.com$/i.test(e), {
-      message: "Email must be a @wearephlo.com address",
+    .refine(isAllowedEmail, {
+      message: `Email must be a @${ALLOWED_EMAIL_DOMAIN} address`,
     }),
   display_name: z.string().trim().min(1, "Name is required").max(100),
   title: z.string().trim().min(1, "Title is required").max(100),
