@@ -20,7 +20,7 @@ function TabsList({ className, ...props }: TabsPrimitive.List.Props) {
     <TabsPrimitive.List
       data-slot="tabs-list"
       className={cn(
-        "relative inline-flex h-9 items-center gap-1 overflow-x-auto rounded-lg bg-zinc-100 p-1 text-zinc-600",
+        "relative inline-flex items-center gap-0.5 overflow-x-auto rounded-lg border border-zinc-200 bg-white p-0.5 text-sm",
         className,
       )}
       {...props}
@@ -33,11 +33,16 @@ function TabsTrigger({ className, ...props }: TabsPrimitive.Tab.Props) {
     <TabsPrimitive.Tab
       data-slot="tabs-trigger"
       className={cn(
-        "inline-flex h-7 shrink-0 items-center justify-center rounded-md px-2.5 text-xs font-medium whitespace-nowrap transition-all outline-none",
-        "hover:text-zinc-900",
+        "inline-flex shrink-0 items-center justify-center rounded-md px-3 py-1 text-sm whitespace-nowrap transition-colors outline-none",
+        "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900",
         "focus-visible:ring-2 focus-visible:ring-zinc-400/40",
         "disabled:pointer-events-none disabled:opacity-50",
-        "data-[selected]:bg-white data-[selected]:text-zinc-900 data-[selected]:shadow-sm",
+        // Selected state: full contrast inversion. Base UI's <Tabs.Tab>
+        // marks the active tab with aria-selected="true" rather than a
+        // data-selected attribute, so we target that directly here -
+        // previously these styles never applied because data-[selected]
+        // matched nothing.
+        "aria-selected:bg-zinc-900 aria-selected:text-white aria-selected:hover:bg-zinc-900 aria-selected:hover:text-white",
         className,
       )}
       {...props}
