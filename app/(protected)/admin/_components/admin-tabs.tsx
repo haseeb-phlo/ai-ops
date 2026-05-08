@@ -2,10 +2,12 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+// Order leads with the value lens, then operational, then governance.
 const TABS = [
-  { value: "regulatory", label: "Regulatory" },
-  { value: "cost", label: "Cost" },
+  { value: "cost", label: "ROI" },
   { value: "champions", label: "Champions" },
+  { value: "logins", label: "Logins" },
+  { value: "regulatory", label: "Compliance" },
   { value: "audit", label: "Audit" },
 ] as const;
 
@@ -13,19 +15,27 @@ type Props = {
   regulatory: React.ReactNode;
   cost: React.ReactNode;
   champions: React.ReactNode;
+  logins: React.ReactNode;
   audit: React.ReactNode;
 };
 
-export function AdminTabs({ regulatory, cost, champions, audit }: Props) {
+export function AdminTabs({
+  regulatory,
+  cost,
+  champions,
+  logins,
+  audit,
+}: Props) {
   const panels: Record<(typeof TABS)[number]["value"], React.ReactNode> = {
     regulatory,
     cost,
     champions,
+    logins,
     audit,
   };
 
   return (
-    <Tabs defaultValue="regulatory">
+    <Tabs defaultValue="cost">
       <TabsList>
         {TABS.map((t) => (
           <TabsTrigger key={t.value} value={t.value}>

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getSessionUser } from "@/lib/auth";
 import { PageContainer, PageHeader } from "@/components/page-header";
 import { AdminTabs } from "./_components/admin-tabs";
+import { Logins } from "./_components/logins";
 import { RegulatoryRegister } from "./_components/regulatory-register";
 import { CostSummary } from "./_components/cost-summary";
 import { AuditLog } from "./_components/audit-log";
@@ -441,6 +442,7 @@ export default async function AdminPage() {
             <ChampionsFreshness rows={championRows} />
           </div>
         }
+        logins={<Logins />}
         audit={
           <div className="space-y-6">
             <AuditLog rows={auditTop100} />
