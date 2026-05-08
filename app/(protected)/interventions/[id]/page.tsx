@@ -92,10 +92,14 @@ const STATUS_DOT: Record<Status, string> = {
 
 export default async function InterventionDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ deleteFailed?: string }>;
 }) {
   const { id } = await params;
+  const sp = await searchParams;
+  const deleteFailed = sp.deleteFailed;
   const user = await getSessionUser();
   const supabase = await createClient();
 
@@ -233,6 +237,17 @@ export default async function InterventionDetailPage({
         title={intervention.name}
       />
       <div className="space-y-6">
+
+      {deleteFailed && (
+        <p
+          role="alert"
+          className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800"
+        >
+          {deleteFailed === "permission"
+            ? "Only super-admins can delete an intervention."
+            : "Could not delete this intervention. The database delete policy may not be applied yet — apply supabase/ai_interventions_delete_policy_migration.sql in the Supabase SQL editor and try again."}
+        </p>
+      )}
 
       {/* Full card */}
       <section className="rounded-lg border border-zinc-200 bg-white p-6">

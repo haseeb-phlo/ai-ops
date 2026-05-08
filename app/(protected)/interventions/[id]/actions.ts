@@ -313,14 +313,24 @@ export async function setInterventionStatus(
  * intervention_workflows / workflow_baselines / intervention_metrics
  * tables (FK on delete cascade), and clears any suggestion linkage so
  * shipped suggestions don't dangle.
+ *
+ * The select-after-delete is load-bearing: if the RLS DELETE policy is
+ * missing or the caller isn't authorised, Postgres returns OK with zero
+ * rows affected (no error). Without the .select we couldn't tell apart
+ * "deleted" from "silently blocked" and the UI looked broken.
  */
 export async function deleteIntervention(formData: FormData): Promise<void> {
   const { redirect } = await import("next/navigation");
-  const gate = await requireWriter();
-  if (!gate.ok) return;
-  if (gate.user.role !== "super_admin") return;
   const id = formData.get("id");
-  if (typeof id !== "string" || !id) return;
+  if (typeof id !== "string" || !id) {
+    redirect("/interventions");
+  }
+
+  const gate = await requireWriter();
+  if (!gate.ok || gate.user.role !== "super_admin") {
+    redirect(`/interventions/${id}?deleteFailed=permission`);
+  }
+
   const supabase = await createClient();
 
   // Detach suggestion links first so we don't leave orphaned shipped rows.
@@ -329,7 +339,16 @@ export async function deleteIntervention(formData: FormData): Promise<void> {
     .update({ intervention_id: null, status: "open" })
     .eq("intervention_id", id);
 
-  await supabase.from("ai_interventions").delete().eq("id", id);
+  const { data: deletedRows, error } = await supabase
+    .from("ai_interventions")
+    .delete()
+    .eq("id", id)
+    .select("id");
+
+  if (error || !deletedRows || deletedRows.length === 0) {
+    if (error) console.error("deleteIntervention failed", error);
+    redirect(`/interventions/${id}?deleteFailed=1`);
+  }
 
   revalidatePath("/interventions");
   revalidatePath("/");
