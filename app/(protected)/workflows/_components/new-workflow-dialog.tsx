@@ -14,7 +14,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -28,6 +27,7 @@ import {
 } from "@/components/ui/people-picker";
 import { cn } from "@/lib/utils";
 import { createWorkflow, type CreateWorkflowState } from "../actions";
+import { StepEditor } from "./step-editor";
 
 const CRITICALITY = [
   { value: "1", label: "Trivial" },
@@ -50,6 +50,7 @@ export function NewWorkflowDialog({
   const [team, setTeam] = useState(defaultTeam);
   const [criticality, setCriticality] = useState("3");
   const [owners, setOwners] = useState<Set<string>>(new Set());
+  const [stepCount, setStepCount] = useState(0);
 
   const [state, action, pending] = useActionState<CreateWorkflowState, FormData>(
     createWorkflow,
@@ -63,8 +64,8 @@ export function NewWorkflowDialog({
         <DialogHeader className="gap-2 px-6 pt-5 pb-5">
           <DialogTitle>Add new workflow</DialogTitle>
           <DialogDescription>
-            Describe how this work gets done today. Claude turns your
-            walk-through into structured steps you can edit later.
+            Describe how this work gets done today and list the steps in
+            order. You can edit, reorder, or add detail later.
           </DialogDescription>
         </DialogHeader>
 
@@ -237,17 +238,17 @@ export function NewWorkflowDialog({
               </div>
             </div>
 
-            <div className="space-y-1.5 border-t border-border pt-5">
-              <Label htmlFor="walkthrough">Walk through what you do</Label>
-              <Textarea
-                id="walkthrough"
-                name="walkthrough"
-                rows={7}
-                required
-                minLength={20}
-                placeholder="Plain English, step by step. Talk like you're explaining it to a new joiner."
-                className="leading-relaxed"
-              />
+            <div className="space-y-3 border-t border-border pt-5">
+              <div className="space-y-1">
+                <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Steps
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  The actions someone takes to complete this workflow, in
+                  order. At least one is required.
+                </p>
+              </div>
+              <StepEditor onCountChange={setStepCount} />
             </div>
 
             {state.kind === "error" && (
@@ -268,8 +269,11 @@ export function NewWorkflowDialog({
                 </Button>
               }
             />
-            <Button type="submit" disabled={pending || owners.size === 0}>
-              {pending ? "Extracting steps…" : "Create workflow"}
+            <Button
+              type="submit"
+              disabled={pending || owners.size === 0 || stepCount === 0}
+            >
+              {pending ? "Creating…" : "Create workflow"}
             </Button>
           </DialogFooter>
         </form>
