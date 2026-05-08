@@ -313,14 +313,15 @@ export type DeleteInterventionState =
   | { kind: "error"; reason: "permission" | "not_found" | "db"; message: string };
 
 /**
- * Hard delete an intervention. Super-admin only. Goes through the
- * delete_intervention RPC (security definer) because the `authenticated`
- * role has no GRANT DELETE on public.ai_interventions - a direct REST
- * DELETE used to return 200 + zero rows affected and the UI looked broken.
+ * Hard delete an intervention. Super-admin only. The RLS DELETE policy
+ * on public.ai_interventions (added in ai_interventions_delete_policy_-
+ * migration.sql) is what makes the direct REST delete actually remove
+ * rows instead of silently returning 200 + zero rows affected.
  *
- * The RPC handles cascading dependents (workflow_baselines /
- * intervention_metrics / intervention_workflows via FK cascade) and
- * detaches any suggestion linkage so shipped suggestions don't dangle.
+ * Suggestion linkage is detached first so any shipped suggestion flips
+ * back to open instead of dangling. FK cascades on intervention_-
+ * workflows / workflow_baselines / intervention_metrics clean up the
+ * rest.
  *
  * Returns a result object instead of redirecting. The button calls this
  * inside a transition and uses router.push on success - redirecting from
@@ -344,19 +345,34 @@ export async function deleteIntervention(
 
   const supabase = await createClient();
 
-  const { data: deletedId, error } = await supabase.rpc("delete_intervention", {
-    p_id: id,
-  });
+  // Detach suggestion linkage so a shipped suggestion flips back to open.
+  // Best-effort: if this fails we still attempt the delete - the user
+  // would rather lose suggestion linkage than be unable to delete the
+  // sample data we're trying to clean up.
+  const { error: detachError } = await supabase
+    .from("intervention_suggestions")
+    .update({ intervention_id: null, status: "open" })
+    .eq("intervention_id", id);
+  if (detachError) {
+    console.warn("deleteIntervention: detach suggestions failed", detachError);
+  }
+
+  const { data: deletedRows, error } = await supabase
+    .from("ai_interventions")
+    .delete()
+    .eq("id", id)
+    .select("id");
 
   if (error) {
     console.error("deleteIntervention failed", error);
     return { kind: "error", reason: "db", message: error.message };
   }
-  if (!deletedId) {
+  if (!deletedRows || deletedRows.length === 0) {
     return {
       kind: "error",
       reason: "not_found",
-      message: "Intervention not found - it may have been deleted already.",
+      message:
+        "Delete returned 0 rows. Apply supabase/ai_interventions_delete_policy_migration.sql in the SQL editor and try again.",
     };
   }
 

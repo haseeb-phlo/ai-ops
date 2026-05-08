@@ -46,14 +46,23 @@ export function DeleteInterventionButton({
   function handleConfirm() {
     setError(null);
     startTransition(async () => {
-      const result = await deleteIntervention(interventionId);
-      if (result.kind === "ok") {
-        setOpen(false);
-        router.push("/interventions");
-        router.refresh();
-        return;
+      try {
+        const result = await deleteIntervention(interventionId);
+        if (result.kind === "ok") {
+          setOpen(false);
+          router.push("/interventions");
+          router.refresh();
+          return;
+        }
+        setError(result.message);
+      } catch (err) {
+        console.error("deleteIntervention threw", err);
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Unexpected error while deleting.",
+        );
       }
-      setError(result.message);
     });
   }
 
