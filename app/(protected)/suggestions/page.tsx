@@ -10,7 +10,6 @@ import {
 } from "./_components/suggestion-card";
 import { RoadmapBoard } from "./_components/roadmap";
 import { VoteButton } from "./_components/vote-button";
-import { StatusFilter } from "./_components/status-filter";
 import { ViewToggle, type ViewMode } from "./_components/view-toggle";
 
 type RawSuggestion = {
@@ -28,41 +27,22 @@ type RawSuggestion = {
 
 const VALID_TABS: Tab[] = ["active", "roadmap", "declined"];
 
-type Status = SuggestionRow["status"];
-
-const TAB_STATUSES: Record<Tab, Status[]> = {
-  active: ["open", "under_review"],
-  roadmap: ["accepted", "in_progress", "shipped"],
-  declined: ["declined"],
-};
+const ROADMAP_STATUSES = new Set<SuggestionRow["status"]>([
+  "accepted",
+  "in_progress",
+  "shipped",
+]);
 
 export default async function SuggestionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; statuses?: string; view?: string }>;
+  searchParams: Promise<{ tab?: string; view?: string }>;
 }) {
   const sp = await searchParams;
   const tab: Tab =
     typeof sp.tab === "string" && VALID_TABS.includes(sp.tab as Tab)
       ? (sp.tab as Tab)
       : "roadmap";
-
-  const allowedStatuses = TAB_STATUSES[tab];
-  const requestedStatuses =
-    typeof sp.statuses === "string" && sp.statuses.length > 0
-      ? new Set(
-          sp.statuses
-            .split(",")
-            .map((s) => s.trim())
-            .filter((s): s is Status =>
-              (allowedStatuses as string[]).includes(s),
-            ),
-        )
-      : new Set<Status>(allowedStatuses);
-  const activeStatuses =
-    requestedStatuses.size === 0
-      ? new Set<Status>(allowedStatuses)
-      : requestedStatuses;
 
   const view: ViewMode =
     sp.view === "list" || sp.view === "board"
@@ -168,33 +148,17 @@ export default async function SuggestionsPage({
 
   const decorated = allRows.map(decorate);
 
-  // Per-status counts on the chip strip - always for the tab's full status
-  // set, not the active filter, so toggling chips can show how much each
-  // would surface.
-  const countsByStatus: Partial<Record<Status, number>> = {};
-  for (const s of decorated) countsByStatus[s.status] = (countsByStatus[s.status] ?? 0) + 1;
-
   // Lane groupings for the roadmap. Status-only mapping after the
   // in_progress migration: each suggestion sits in exactly one lane and
-  // moves between them by status alone. Only include rows whose status is
-  // in the active filter set.
+  // moves between them by status alone.
   const roadmapGroups = {
-    up_next: decorated.filter(
-      (s) => s.status === "accepted" && activeStatuses.has(s.status),
-    ),
-    in_progress: decorated.filter(
-      (s) => s.status === "in_progress" && activeStatuses.has(s.status),
-    ),
-    shipped: decorated.filter(
-      (s) => s.status === "shipped" && activeStatuses.has(s.status),
-    ),
+    up_next: decorated.filter((s) => s.status === "accepted"),
+    in_progress: decorated.filter((s) => s.status === "in_progress"),
+    shipped: decorated.filter((s) => s.status === "shipped"),
   };
 
-  // Tab list views, filtered by active chips.
   const activeRows = decorated.filter(
-    (s) =>
-      (s.status === "open" || s.status === "under_review") &&
-      activeStatuses.has(s.status),
+    (s) => s.status === "open" || s.status === "under_review",
   );
   // Active sort: most-voted first, ties broken by newest.
   activeRows.sort((a, b) => {
@@ -203,10 +167,7 @@ export default async function SuggestionsPage({
   });
   const declinedRows = decorated.filter((s) => s.status === "declined");
   const roadmapList = decorated
-    .filter(
-      (s) =>
-        TAB_STATUSES.roadmap.includes(s.status) && activeStatuses.has(s.status),
-    )
+    .filter((s) => ROADMAP_STATUSES.has(s.status))
     .sort((a, b) => b.created_at.localeCompare(a.created_at));
 
   function canTriageFor(team: string | null): boolean {
@@ -227,12 +188,6 @@ export default async function SuggestionsPage({
         <SuggestionTabs active={tab} />
         {tab === "roadmap" && <ViewToggle active={view} />}
       </div>
-
-      <StatusFilter
-        available={allowedStatuses}
-        active={activeStatuses}
-        counts={countsByStatus}
-      />
 
       {tab === "active" && (
         <ActiveList
