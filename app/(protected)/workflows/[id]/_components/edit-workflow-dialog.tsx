@@ -107,7 +107,7 @@ export function EditWorkflowDialog({
 
         <form action={formAction} className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2 sm:col-span-2">
+            <div className="space-y-1.5 sm:col-span-2">
               <Label htmlFor="name">Workflow name</Label>
               <Input
                 id="name"
@@ -118,7 +118,7 @@ export function EditWorkflowDialog({
               />
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="team">Team</Label>
               <input
                 type="hidden"
@@ -140,7 +140,7 @@ export function EditWorkflowDialog({
               </Select>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="frequency">Frequency</Label>
               <Input
                 id="frequency"
@@ -151,7 +151,7 @@ export function EditWorkflowDialog({
               />
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="criticality">Criticality</Label>
               <input
                 type="hidden"
@@ -176,7 +176,7 @@ export function EditWorkflowDialog({
               </Select>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="business_kpi">Business KPI</Label>
               <Input
                 id="business_kpi"
@@ -187,7 +187,7 @@ export function EditWorkflowDialog({
               />
             </div>
 
-            <div className="space-y-2 sm:col-span-2">
+            <div className="space-y-1.5 sm:col-span-2">
               <Label htmlFor="owner_names">Owners</Label>
               <Input
                 id="owner_names"
