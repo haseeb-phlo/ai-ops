@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
+import { ALLOWED_EMAIL_DOMAIN, isAllowedEmail } from "@/lib/auth-domain";
 
 type Status =
   | { kind: "idle" }
@@ -18,11 +19,35 @@ function friendlySignInError(
   slug: string | null,
   hashDescription: string | undefined,
 ): string {
+  if (slug === "domain_blocked") {
+    return "Sign-in is restricted to @wearephlo.com email addresses.";
+  }
   const expiredHash = hashDescription?.toLowerCase().includes("expired");
   if (slug === "link_invalid" || expiredHash) {
-    return "That sign-in link has expired or was already used. Request a fresh code below.";
+    return "That sign-in code has expired or was already used. Request a fresh one below.";
   }
-  return "We couldn't sign you in with that link. Request a fresh code below.";
+  return "We couldn't sign you in with that code. Request a fresh one below.";
+}
+
+// Map raw Supabase auth errors to a small, user-friendly set. Never echo
+// the raw `error.message` to the UI — it can leak SDK internals (HTTP
+// status, server identifiers, gated-feature flags) that aren't useful to
+// the user and broaden what an attacker can probe.
+function mapAuthError(
+  message: string | undefined,
+  ctx: "send" | "verify",
+): string {
+  const m = (message ?? "").toLowerCase();
+  if (m.includes("rate limit") || m.includes("too many")) {
+    return "Too many requests. Wait a moment and try again.";
+  }
+  if (m.includes("network") || m.includes("fetch")) {
+    return "Couldn't reach the sign-in server. Try again.";
+  }
+  if (ctx === "verify") {
+    return "That code is invalid or has expired. Request a new one.";
+  }
+  return "We couldn't send the sign-in code. Try again in a moment.";
 }
 
 export default function LoginPage() {
@@ -65,10 +90,10 @@ export default function LoginPage() {
     e.preventDefault();
     setLinkError(null);
 
-    if (!email.trim().toLowerCase().endsWith("@wearephlo.com")) {
+    if (!isAllowedEmail(email)) {
       setStatus({
         kind: "error",
-        message: "Use your @wearephlo.com email to sign in.",
+        message: `Use your @${ALLOWED_EMAIL_DOMAIN} email to sign in.`,
       });
       return;
     }
@@ -84,7 +109,7 @@ export default function LoginPage() {
     });
 
     if (error) {
-      setStatus({ kind: "error", message: error.message });
+      setStatus({ kind: "error", message: mapAuthError(error.message, "send") });
       return;
     }
     setStatus({ kind: "awaiting-code" });
@@ -105,7 +130,10 @@ export default function LoginPage() {
     });
 
     if (error) {
-      setStatus({ kind: "error", message: error.message });
+      setStatus({
+        kind: "error",
+        message: mapAuthError(error.message, "verify"),
+      });
       return;
     }
     router.replace("/");
@@ -148,12 +176,12 @@ export default function LoginPage() {
             <p className="text-sm text-zinc-500">
               {awaitingCode ? (
                 <>
-                  We sent a sign-in email to{" "}
-                  <strong className="text-zinc-900">{email}</strong>. Paste the
-                  6-digit code below, or click the link inside.
+                  We sent a 6-digit code to{" "}
+                  <strong className="text-zinc-900">{email}</strong>. Paste it
+                  below to sign in.
                 </>
               ) : (
-                "We'll email you a sign-in code. No password needed."
+                "We'll email you a 6-digit code to sign in. No password needed."
               )}
             </p>
           </div>
@@ -235,7 +263,7 @@ export default function LoginPage() {
                 aria-hidden
                 className="mr-1.5 inline-block size-1.5 rounded-full bg-amber-500 align-middle"
               />
-              {linkError}. Request a fresh code below.
+              {linkError}
             </p>
           )}
           {status.kind === "error" && (

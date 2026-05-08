@@ -44,7 +44,7 @@ export function InviteButton({ teams }: { teams: string[] }) {
           <DialogHeader>
             <DialogTitle>Invite a person</DialogTitle>
             <DialogDescription>
-              Sends a magic-link sign-in email and adds the person to the
+              Sends a sign-in invitation email and adds the person to the
               directory. Super admin only.
             </DialogDescription>
           </DialogHeader>
