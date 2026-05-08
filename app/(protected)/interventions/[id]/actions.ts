@@ -308,6 +308,10 @@ export async function setInterventionStatus(
   return { kind: "success" };
 }
 
+export type DeleteInterventionState =
+  | { kind: "ok" }
+  | { kind: "error"; reason: "permission" | "not_found" | "db"; message: string };
+
 /**
  * Hard delete an intervention. Super-admin only. Goes through the
  * delete_intervention RPC (security definer) because the `authenticated`
@@ -318,20 +322,24 @@ export async function setInterventionStatus(
  * intervention_metrics / intervention_workflows via FK cascade) and
  * detaches any suggestion linkage so shipped suggestions don't dangle.
  *
- * Returns the deleted id; null means the row wasn't there (e.g. someone
- * else deleted it first). The action turns that into a soft failure on
- * the detail page so the user gets visible feedback.
+ * Returns a result object instead of redirecting. The button calls this
+ * inside a transition and uses router.push on success - redirecting from
+ * a Server Action triggered inside a Dialog left the dialog open and
+ * the browser sitting on a now-404 detail page.
  */
-export async function deleteIntervention(formData: FormData): Promise<void> {
-  const { redirect } = await import("next/navigation");
-  const id = formData.get("id");
-  if (typeof id !== "string" || !id) {
-    redirect("/interventions");
-  }
-
+export async function deleteIntervention(
+  id: string,
+): Promise<DeleteInterventionState> {
   const gate = await requireWriter();
-  if (!gate.ok || gate.user.role !== "super_admin") {
-    redirect(`/interventions/${id}?deleteFailed=permission`);
+  if (!gate.ok) {
+    return { kind: "error", reason: "permission", message: gate.error };
+  }
+  if (gate.user.role !== "super_admin") {
+    return {
+      kind: "error",
+      reason: "permission",
+      message: "Only super_admin can delete an intervention.",
+    };
   }
 
   const supabase = await createClient();
@@ -340,12 +348,19 @@ export async function deleteIntervention(formData: FormData): Promise<void> {
     p_id: id,
   });
 
-  if (error || !deletedId) {
-    if (error) console.error("deleteIntervention failed", error);
-    redirect(`/interventions/${id}?deleteFailed=1`);
+  if (error) {
+    console.error("deleteIntervention failed", error);
+    return { kind: "error", reason: "db", message: error.message };
+  }
+  if (!deletedId) {
+    return {
+      kind: "error",
+      reason: "not_found",
+      message: "Intervention not found - it may have been deleted already.",
+    };
   }
 
   revalidatePath("/interventions");
   revalidatePath("/");
-  redirect("/interventions");
+  return { kind: "ok" };
 }
