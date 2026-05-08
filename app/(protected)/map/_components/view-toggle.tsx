@@ -14,14 +14,10 @@ export type ViewKey = (typeof VIEWS)[number]["value"];
 export const DEFAULT_VIEW: ViewKey = "champions";
 
 export function ViewToggle({ active }: { active: ViewKey }) {
-  // View-scoped params (mode, team, q) belong to the Directory view only.
-  // Switching the top-level view resets them, so each tab opens in its
-  // canonical default state instead of inheriting a stale `mode=list` from
-  // a previous Directory visit. Directory's default mode (tree) is set
-  // explicitly so the URL is canonical and the router cache key matches
-  // what the server rendered.
+  // View-scoped params (team, q) are filter state, not view identity, so
+  // switching the top-level view drops them. Each tab opens in its
+  // canonical default state instead of inheriting stale filters.
   function hrefFor(value: ViewKey): string {
-    if (value === "directory") return "/map?view=directory&mode=tree";
     return `/map?view=${value}`;
   }
 

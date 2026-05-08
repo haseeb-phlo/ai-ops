@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { resolveAvatar } from "@/lib/profile";
+import { Input } from "@/components/ui/input";
 
 export type ResolvedPerson = {
   email: string;
@@ -28,9 +29,56 @@ export type OtherTeam = {
 const COLLAPSED_LABEL = "Show team";
 const EXPANDED_LABEL = "Hide team";
 
+function personMatches(p: ResolvedPerson, needle: string): boolean {
+  return (
+    p.displayName.toLowerCase().includes(needle) ||
+    p.title.toLowerCase().includes(needle) ||
+    (p.team ?? "").toLowerCase().includes(needle) ||
+    p.email.toLowerCase().includes(needle)
+  );
+}
+
+/**
+ * Filter a node and its descendants against a search term. A node is kept
+ * if itself OR any descendant OR any team-member chip matches; team chips
+ * are filtered down to matches only when the parent is kept by descent.
+ * Empty `needle` returns the node unchanged.
+ */
+function filterNode(node: ResolvedNode, needle: string): ResolvedNode | null {
+  if (!needle) return node;
+  const selfMatches = personMatches(node.person, needle);
+  const directs = node.directs
+    .map((d) => filterNode(d, needle))
+    .filter((d): d is ResolvedNode => d !== null);
+  const teamMembers = node.teamMembers.filter((m) => personMatches(m, needle));
+  if (selfMatches) {
+    // Show the full chip strip when the leader itself matches so the user
+    // can read the team they own; sub-branches still filter to matches.
+    return { person: node.person, directs, teamMembers: node.teamMembers };
+  }
+  if (directs.length > 0 || teamMembers.length > 0) {
+    return { person: node.person, directs, teamMembers };
+  }
+  return null;
+}
+
+function filterOtherTeam(
+  cluster: OtherTeam,
+  needle: string,
+): OtherTeam | null {
+  if (!needle) return cluster;
+  const teamHit = cluster.team.toLowerCase().includes(needle);
+  const members = teamHit
+    ? cluster.members
+    : cluster.members.filter((m) => personMatches(m, needle));
+  if (members.length === 0 && !teamHit) return null;
+  return { team: cluster.team, members };
+}
+
 /**
  * Client component for the Org tree. The server pre-resolves everyone into
- * ResolvedNode; this component just renders + tracks collapse state.
+ * ResolvedNode; this component renders, tracks collapse state, and filters
+ * by a free-text search across name/title/team/email.
  *
  * Each card with children (directs OR team members) gets a fold chevron
  * that hides everything below that node. Refresh = back to fully expanded.
@@ -45,6 +93,28 @@ export function OrgTreeClient({
   otherTeams: OtherTeam[];
 }) {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [query, setQuery] = useState("");
+
+  const needle = query.trim().toLowerCase();
+
+  const { filteredCeo, filteredL1, filteredOther, anyMatches } = useMemo(() => {
+    const fl1 = l1
+      .map((n) => filterNode(n, needle))
+      .filter((n): n is ResolvedNode => n !== null);
+    const fother = otherTeams
+      .map((c) => filterOtherTeam(c, needle))
+      .filter((c): c is OtherTeam => c !== null);
+    const ceoHit = ceo && (!needle || personMatches(ceo, needle));
+    const has =
+      !!needle &&
+      (fl1.length > 0 || fother.length > 0 || !!ceoHit);
+    return {
+      filteredCeo: needle && !ceoHit ? null : ceo,
+      filteredL1: fl1,
+      filteredOther: fother,
+      anyMatches: has,
+    };
+  }, [ceo, l1, otherTeams, needle]);
 
   function toggle(email: string) {
     setCollapsed((prev) => {
@@ -55,47 +125,83 @@ export function OrgTreeClient({
     });
   }
 
-  return (
-    <div className="space-y-12">
-      {ceo && (
-        <div className="flex justify-center">
-          <BigCard person={ceo} />
-        </div>
-      )}
+  const isSearching = needle.length > 0;
+  const showEmpty = isSearching && !anyMatches;
 
-      {/* L1 exec row - single line, scroll horizontally on narrow screens. */}
-      <div className="-mx-2 overflow-x-auto pb-2">
-        <div className="flex w-max items-start gap-x-5 px-2">
-          {l1.map((node) => (
-            <Branch
-              key={node.person.email}
-              node={node}
-              size="big"
-              collapsed={collapsed}
-              onToggle={toggle}
-            />
-          ))}
-        </div>
+  return (
+    <div className="space-y-8">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search name, title, team, email"
+          aria-label="Search people"
+          className="w-full max-w-md sm:w-80"
+        />
+        {isSearching && (
+          <p className="text-xs text-zinc-500">
+            Showing matches for &ldquo;{query}&rdquo;.{" "}
+            <button
+              type="button"
+              onClick={() => setQuery("")}
+              className="text-zinc-700 underline-offset-2 hover:underline"
+            >
+              Clear
+            </button>
+          </p>
+        )}
       </div>
 
-      {otherTeams.length > 0 && (
-        <div className="space-y-4 border-t border-zinc-200 pt-8">
-          <div>
-            <h2 className="text-sm font-semibold tracking-tight text-zinc-900">
-              Other teams
-            </h2>
-            <p className="text-xs text-zinc-500">
-              Teams not assigned to a named leader in the tree above.
-            </p>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {otherTeams
-              .slice()
-              .sort((a, b) => a.team.localeCompare(b.team))
-              .map((c) => (
-                <TeamCluster key={c.team} cluster={c} />
-              ))}
-          </div>
+      {showEmpty ? (
+        <p className="rounded-lg border border-dashed border-zinc-200 bg-white px-6 py-12 text-center text-sm text-zinc-500">
+          No people match &ldquo;{query}&rdquo;.
+        </p>
+      ) : (
+        <div className="space-y-12">
+          {filteredCeo && (
+            <div className="flex justify-center">
+              <BigCard person={filteredCeo} />
+            </div>
+          )}
+
+          {/* L1 exec row - single line, scroll horizontally on narrow screens. */}
+          {filteredL1.length > 0 && (
+            <div className="-mx-2 overflow-x-auto pb-2">
+              <div className="flex w-max items-start gap-x-5 px-2">
+                {filteredL1.map((node) => (
+                  <Branch
+                    key={node.person.email}
+                    node={node}
+                    size="big"
+                    collapsed={collapsed}
+                    onToggle={toggle}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {filteredOther.length > 0 && (
+            <div className="space-y-4 border-t border-zinc-200 pt-8">
+              <div>
+                <h2 className="text-sm font-semibold tracking-tight text-zinc-900">
+                  Other teams
+                </h2>
+                <p className="text-xs text-zinc-500">
+                  Teams not assigned to a named leader in the tree above.
+                </p>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {filteredOther
+                  .slice()
+                  .sort((a, b) => a.team.localeCompare(b.team))
+                  .map((c) => (
+                    <TeamCluster key={c.team} cluster={c} />
+                  ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

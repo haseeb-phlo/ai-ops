@@ -9,20 +9,13 @@ import {
   DEFAULT_VIEW,
   type ViewKey,
 } from "./_components/view-toggle";
-import { DirectoryView } from "./_components/directory-view";
 import { ChampionsView } from "./_components/champions-view";
 import { OrgView } from "./_components/org-view";
-import {
-  DirectoryModeToggle,
-  DEFAULT_MODE,
-  type DirectoryMode,
-} from "./_components/directory-mode-toggle";
 import { InviteButton } from "../admin/_components/invite-button";
 
 export const dynamic = "force-dynamic";
 
 const VALID_VIEWS = new Set<ViewKey>(["map", "directory", "champions"]);
-const VALID_MODES = new Set<DirectoryMode>(["tree", "list"]);
 
 function ninetyDaysAgo(): string {
   const d = new Date();
@@ -81,20 +74,10 @@ export default async function MapPage({
 }: {
   searchParams: Promise<{
     view?: string | string[];
-    team?: string | string[];
-    q?: string | string[];
-    mode?: string | string[];
   }>;
 }) {
   const sp = await searchParams;
   const rawView = Array.isArray(sp.view) ? sp.view[0] : sp.view;
-  const rawTeam = Array.isArray(sp.team) ? sp.team[0] : sp.team;
-  const rawQ = Array.isArray(sp.q) ? sp.q[0] : sp.q;
-  const rawMode = Array.isArray(sp.mode) ? sp.mode[0] : sp.mode;
-  const directoryMode: DirectoryMode =
-    typeof rawMode === "string" && VALID_MODES.has(rawMode as DirectoryMode)
-      ? (rawMode as DirectoryMode)
-      : DEFAULT_MODE;
   const requestedView =
     typeof rawView === "string" && rawView.length > 0
       ? rawView.toLowerCase()
@@ -112,7 +95,6 @@ export default async function MapPage({
     : [];
 
   if (view === "directory") {
-    const isTree = directoryMode === "tree";
     return (
       <div className="flex flex-1 flex-col">
         <div className="border-b bg-white px-6 py-5">
@@ -122,9 +104,8 @@ export default async function MapPage({
                 People
               </h1>
               <p className="mt-1 text-sm text-muted-foreground">
-                {isTree
-                  ? "Reporting structure top to bottom. AI Champions glow amber; collapse any branch with the −/+ button."
-                  : "Search and browse everyone in the directory. Dimmed rows haven't signed in yet."}
+                Reporting structure top to bottom. AI Champions glow amber;
+                collapse any branch with the −/+ button.
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -132,16 +113,9 @@ export default async function MapPage({
               <ViewToggle active={view} />
             </div>
           </div>
-          <div className="mt-4">
-            <DirectoryModeToggle active={directoryMode} />
-          </div>
         </div>
         <div className="px-6 py-6">
-          {isTree ? (
-            <OrgView />
-          ) : (
-            <DirectoryView team={rawTeam ?? null} q={rawQ ?? null} />
-          )}
+          <OrgView />
         </div>
       </div>
     );
