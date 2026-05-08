@@ -14,6 +14,17 @@ type Status =
   | { kind: "verifying" }
   | { kind: "error"; message: string };
 
+function friendlySignInError(
+  slug: string | null,
+  hashDescription: string | undefined,
+): string {
+  const expiredHash = hashDescription?.toLowerCase().includes("expired");
+  if (slug === "link_invalid" || expiredHash) {
+    return "That sign-in link has expired or was already used. Request a fresh code below.";
+  }
+  return "We couldn't sign you in with that link. Request a fresh code below.";
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -21,22 +32,31 @@ export default function LoginPage() {
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const [linkError, setLinkError] = useState<string | null>(null);
 
-  // Surface errors Supabase puts in the URL hash fragment when an emailed
-  // magic link fails (typically "otp_expired" — single-use OTP consumed
-  // by a corporate email-security scanner before the human clicked). The
-  // server can't see the fragment, so we read it on the client; setState
-  // in an effect is the only hydration-safe pattern here.
+  // Surface sign-in errors from two sources:
+  //   1) ?error=<slug> in the query string — set by /auth/callback when
+  //      exchangeCodeForSession fails (expired/consumed/cross-browser).
+  //   2) #error_description=... in the hash fragment — set by Supabase's
+  //      /verify endpoint itself when the OTP is already invalid before
+  //      it reaches our callback. The server can't read the fragment, so
+  //      we read it on the client.
+  // We map both to a small set of friendly messages — never echo raw
+  // error strings, which can leak SDK internals and confuse the user.
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const params = new URLSearchParams(
+
+    const querySlug = new URLSearchParams(window.location.search).get("error");
+    const hashDescription = new URLSearchParams(
       window.location.hash.replace(/^#/, ""),
-    );
-    const description = params.get("error_description");
-    if (description) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setLinkError(description.replace(/\+/g, " "));
-      history.replaceState(null, "", window.location.pathname);
-    }
+    )
+      .get("error_description")
+      ?.replace(/\+/g, " ");
+
+    if (!querySlug && !hashDescription) return;
+
+    const message = friendlySignInError(querySlug, hashDescription);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLinkError(message);
+    history.replaceState(null, "", window.location.pathname);
   }, []);
 
   const isBusy = status.kind === "sending" || status.kind === "verifying";
@@ -123,16 +143,17 @@ export default function LoginPage() {
         <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
           <div className="space-y-1">
             <h1 className="text-lg font-semibold tracking-tight text-zinc-900">
-              {awaitingCode ? "Enter your code" : "Sign in"}
+              {awaitingCode ? "Check your email" : "Sign in"}
             </h1>
             <p className="text-sm text-zinc-500">
               {awaitingCode ? (
                 <>
-                  We sent a 6-digit code to{" "}
-                  <strong className="text-zinc-900">{email}</strong>.
+                  We sent a sign-in email to{" "}
+                  <strong className="text-zinc-900">{email}</strong>. Paste the
+                  6-digit code below, or click the link inside.
                 </>
               ) : (
-                "We'll email you a 6-digit code. No password needed."
+                "We'll email you a sign-in code. No password needed."
               )}
             </p>
           </div>
@@ -180,8 +201,10 @@ export default function LoginPage() {
                   value={code}
                   onChange={(e) => {
                     setCode(e.target.value.replace(/\D/g, ""));
-                    if (status.kind === "error")
-                      setStatus({ kind: "awaiting-code" });
+                    // Clear stale error state if the user re-enters a code.
+                    setStatus((s) =>
+                      s.kind === "error" ? { kind: "awaiting-code" } : s,
+                    );
                   }}
                   disabled={status.kind === "verifying"}
                   autoFocus
