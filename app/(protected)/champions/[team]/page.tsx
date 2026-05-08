@@ -6,9 +6,8 @@ import { championsForTeam, type Champion } from "@/lib/champions";
 import { resolveAvatar } from "@/lib/profile";
 import { TextWithMentions } from "@/components/people/champion-mark";
 import { PageContainer } from "@/components/page-header";
-import { BackLink } from "@/components/ui/nav-link";
+import { DetailHeader } from "@/components/ui/detail-header";
 import { Badge } from "@/components/ui/badge";
-import { EditorialForm } from "./_components/editorial-form";
 import { CheckInButton } from "./_components/check-in-button";
 
 type SponsoredWorkflow = {
@@ -118,52 +117,29 @@ export default async function ChampionTeamPage({
 
   return (
     <PageContainer>
-      <BackLink href="/map?view=champions">All champions</BackLink>
+      <DetailHeader
+        backHref="/map?view=champions"
+        backLabel="All champions"
+        title={team}
+      />
 
-      <header className="space-y-1">
+      <header>
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
           {team}
         </h1>
-        <p className="text-sm text-zinc-500">
-          {champions.length === 0
-            ? "No AI Champions assigned yet."
-            : `${champions.length} AI ${champions.length === 1 ? "Champion" : "Champions"}`}
-        </p>
       </header>
 
-      {/* Welcome banner for a freshly-assigned champion who hasn't filled
-          in their editorial voice yet. Shown only to self, only when the
-          blurb is empty - so it disappears the moment they've onboarded. */}
-      {(() => {
-        const selfChampion = champions.find(
-          (c) => c.user_id === user.id && !c.blurb,
-        );
-        if (!selfChampion) return null;
-        return (
-          <section className="rounded-lg border border-emerald-200 bg-emerald-50 px-5 py-4">
-            <h2 className="text-sm font-semibold tracking-tight text-emerald-900">
-              Welcome - you&apos;re the new AI Champion of {team}
-            </h2>
-            <p className="mt-1 text-xs text-emerald-800">
-              Your role in three lines:
-            </p>
-            <ol className="mt-2 list-decimal space-y-0.5 pl-5 text-xs text-emerald-900">
-              <li>
-                Write a short message to the team below - your editorial voice
-                on how the team should approach AI.
-              </li>
-              <li>
-                Drop into a workflow or intervention page to leave a champion
-                note - your voice is the editorial one for this team.
-              </li>
-              <li>
-                Check in regularly so the dashboard knows you&apos;re still
-                active.
-              </li>
-            </ol>
-          </section>
-        );
-      })()}
+      {/* One-time orientation for a freshly-assigned champion. Disappears
+          the moment any team note exists, since the role is exercised
+          through notes rather than a static profile. */}
+      {champions.some((c) => c.user_id === user.id) &&
+        (notes ?? []).length === 0 && (
+          <p className="rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-600">
+            You&apos;re the AI Champion of <strong>{team}</strong>. Leave
+            champion notes on workflows and interventions, and check in
+            regularly.
+          </p>
+        )}
 
       {champions.length === 0 ? (
         <section className="rounded-lg border border-dashed border-zinc-200 bg-white px-6 py-12 text-center text-sm text-muted-foreground">
@@ -340,7 +316,6 @@ function ChampionCard({
 }) {
   const seed = champion.user_id ?? champion.display_name;
   const avatarSrc = resolveAvatar(profile?.avatar_url ?? null, seed);
-  const canEdit = isSelf || isSuper;
 
   return (
     <section className="rounded-lg border border-zinc-200 bg-white p-6 space-y-5">
@@ -391,39 +366,6 @@ function ChampionCard({
         </div>
       </div>
 
-      {(champion.blurb || champion.chewing_on) && (
-        <div className="space-y-3">
-          {champion.blurb && (
-            <p className="text-sm text-zinc-700">
-              <TextWithMentions text={champion.blurb} />
-            </p>
-          )}
-          {champion.chewing_on && (
-            <div className="rounded-md bg-zinc-50 p-3">
-              <div className="text-xs font-medium uppercase tracking-wide text-zinc-500">
-                Open question
-              </div>
-              <p className="mt-1 text-sm text-zinc-800">
-                <TextWithMentions text={champion.chewing_on} />
-              </p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {canEdit && (
-        <div className="border-t border-zinc-100 pt-5">
-          <h3 className="mb-3 text-xs font-medium uppercase tracking-wide text-zinc-500">
-            {isSelf ? "Your editorial voice" : "Editorial (super-admin)"}
-          </h3>
-          <EditorialForm
-            team={team}
-            championId={champion.id}
-            defaultBlurb={champion.blurb ?? ""}
-            defaultChewingOn={champion.chewing_on ?? ""}
-          />
-        </div>
-      )}
     </section>
   );
 }

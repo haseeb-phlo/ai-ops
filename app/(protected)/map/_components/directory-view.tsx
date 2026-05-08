@@ -61,12 +61,22 @@ export async function DirectoryView({
     );
   }
 
-  const [{ data: people }, { count: totalCount }, signedInRpc] =
-    await Promise.all([
-      query.returns<PersonRow[]>(),
-      supabase.from("people").select("*", { count: "exact", head: true }),
-      supabase.rpc("signed_in_emails"),
-    ]);
+  const [
+    { data: people },
+    { count: totalCount },
+    signedInRpc,
+    userEmailsRpc,
+    { data: profileRows },
+  ] = await Promise.all([
+    query.returns<PersonRow[]>(),
+    supabase.from("people").select("*", { count: "exact", head: true }),
+    supabase.rpc("signed_in_emails"),
+    supabase.rpc("user_emails"),
+    supabase
+      .from("profiles")
+      .select("user_id, avatar_url")
+      .returns<{ user_id: string; avatar_url: string | null }[]>(),
+  ]);
 
   const rows = people ?? [];
   const champByName = await championsByDisplayName();
@@ -75,6 +85,25 @@ export async function DirectoryView({
       ? (signedInRpc.data as string[]).map((e) => e.toLowerCase())
       : [],
   );
+
+  // email → uploaded avatar_url, joining auth.users (via user_emails RPC)
+  // to public.profiles. Without this the directory always showed the
+  // generated Dicebear placeholder, even after someone had uploaded a
+  // photo on their profile page.
+  const avatarByEmail = new Map<string, string>();
+  {
+    const userIdToEmail = new Map<string, string>();
+    for (const row of (userEmailsRpc.data ?? []) as Array<{
+      user_id: string;
+      email: string | null;
+    }>) {
+      if (row.email) userIdToEmail.set(row.user_id, row.email.toLowerCase());
+    }
+    for (const p of profileRows ?? []) {
+      const email = userIdToEmail.get(p.user_id);
+      if (email && p.avatar_url) avatarByEmail.set(email, p.avatar_url);
+    }
+  }
 
   return (
     <div className="space-y-3">
@@ -124,7 +153,10 @@ export async function DirectoryView({
                         <span className="relative inline-block shrink-0 size-7">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
-                            src={resolveAvatar(null, row.email)}
+                            src={resolveAvatar(
+                              avatarByEmail.get(row.email.trim().toLowerCase()) ?? null,
+                              row.email,
+                            )}
                             alt={row.display_name}
                             className={`h-full w-full rounded-full bg-zinc-50 object-cover ring-1 ${
                               champion
@@ -141,9 +173,13 @@ export async function DirectoryView({
                             </span>
                           )}
                         </span>
+                        {/* The avatar's corner badge already marks
+                            champions; passing `champion={null}` suppresses
+                            the inline badge so we don't render two AI
+                            chips for the same person. */}
                         <PersonName
                           name={row.display_name}
-                          champion={champion}
+                          champion={null}
                           muted={!hasSignedIn}
                         />
                         {!hasSignedIn && (

@@ -19,10 +19,10 @@ type Row = {
   newValue: string | null;
 };
 
-const KIND_STYLE: Record<Row["kind"], string> = {
-  workflow: "bg-zinc-100 text-zinc-700 ring-zinc-200",
-  step: "bg-amber-50 text-amber-800 ring-amber-200",
-  intervention: "bg-blue-50 text-blue-800 ring-blue-200",
+const KIND_DOT: Record<Row["kind"], string> = {
+  workflow: "bg-zinc-400",
+  step: "bg-amber-500",
+  intervention: "bg-blue-500",
 };
 
 export function AuditLog({ rows }: { rows: Row[] }) {
@@ -33,8 +33,8 @@ export function AuditLog({ rows }: { rows: Row[] }) {
           Audit log
         </h2>
         <p className="text-xs text-zinc-500">
-          Last 100 changes across workflow_revisions, step_revisions, and
-          intervention status changes.
+          Last 100 edits across workflows, steps, and intervention status
+          changes.
         </p>
       </div>
       <Table>
@@ -69,9 +69,11 @@ export function AuditLog({ rows }: { rows: Row[] }) {
                 </TableCell>
                 <TableCell className="text-xs text-zinc-700">{r.who}</TableCell>
                 <TableCell>
-                  <span
-                    className={`inline-flex rounded-full px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide ring-1 ring-inset ${KIND_STYLE[r.kind]}`}
-                  >
+                  <span className="inline-flex items-center gap-1.5 text-xs text-zinc-700">
+                    <span
+                      aria-hidden
+                      className={`size-1.5 rounded-full ${KIND_DOT[r.kind]}`}
+                    />
                     {r.kind}
                   </span>
                 </TableCell>

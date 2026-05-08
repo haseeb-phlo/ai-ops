@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState, useMemo, useState } from "react";
-import Link from "next/link";
+import { useActionState, useEffect, useMemo, useRef, useState } from "react";
+import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -10,9 +11,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 import {
   assignChampion,
-  removeChampion,
   type AssignChampionState,
 } from "../_actions/champions";
 
@@ -33,9 +34,11 @@ export type ExistingChampion = {
 };
 
 /**
- * Admin tab manager for AI Champions. Supports multiple champions per team
- * (Executive being the canonical case) - pick a team, see who's already a
- * champion of it with per-row Remove, and add another below.
+ * Admin tab manager for AI Champions. Pick a team, see who's already a
+ * champion of it, add another or remove one. The "add" picker is search-
+ * first so non-canonical team names (e.g. "Tech" vs "Technology") still
+ * surface the directory - the previous strict `people.team === team`
+ * filter silently produced empty dropdowns when those values diverged.
  */
 export function ChampionsManager({
   teams,
@@ -47,12 +50,10 @@ export function ChampionsManager({
   existing: ExistingChampion[];
 }) {
   const [team, setTeam] = useState<string>(teams[0] ?? "");
-  const [personId, setPersonId] = useState<string>("");
-
-  const peopleForTeam = useMemo(
-    () => people.filter((p) => p.team === team),
-    [people, team],
-  );
+  const [picked, setPicked] = useState<Person | null>(null);
+  const [search, setSearch] = useState("");
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const championsByTeam = useMemo(() => {
     const m = new Map<string, ExistingChampion[]>();
@@ -64,37 +65,76 @@ export function ChampionsManager({
     return m;
   }, [existing]);
 
-  const championsForSelected = championsByTeam.get(team) ?? [];
-
-  // Filter out people who are already champions of this team so the
-  // picker doesn't surface duplicates that'll error on insert.
-  const existingUserIds = new Set(
-    championsForSelected.map((c) => c.user_id).filter(Boolean) as string[],
+  const championsForSelected = useMemo(
+    () => championsByTeam.get(team) ?? [],
+    [championsByTeam, team],
   );
-  const availablePeople = peopleForTeam.filter((p) => {
-    // We don't have user_id on `people` - best-effort dedupe via display
-    // name (the assign action always re-resolves user_id from the email
-    // anyway, so a stale duplicate would be caught server-side).
-    const championNames = new Set(
-      championsForSelected.map((c) => c.display_name.trim().toLowerCase()),
-    );
-    if (championNames.has(p.display_name.trim().toLowerCase())) return false;
-    return !existingUserIds.has(p.id);
-  });
 
-  const peopleById = new Map(people.map((p) => [p.id, p]));
+  // Already-a-champion lookups so the picker dedupes by display name.
+  const existingNames = useMemo(
+    () =>
+      new Set(
+        championsForSelected.map((c) =>
+          c.display_name.trim().toLowerCase(),
+        ),
+      ),
+    [championsForSelected],
+  );
+
+  // All directory people, with members of the selected team surfaced first
+  // when the search field is empty. Already-champion rows are filtered out
+  // server-side AND here so the picker is action-oriented.
+  const allCandidates = useMemo(() => {
+    const lowerTeam = team.toLowerCase();
+    const isOnTeam = (p: Person) => p.team.toLowerCase() === lowerTeam;
+    const filtered = people.filter(
+      (p) => !existingNames.has(p.display_name.trim().toLowerCase()),
+    );
+    return [
+      ...filtered.filter(isOnTeam),
+      ...filtered.filter((p) => !isOnTeam(p)),
+    ];
+  }, [people, team, existingNames]);
+
+  const matches = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return allCandidates;
+    return allCandidates.filter(
+      (p) =>
+        p.display_name.toLowerCase().includes(q) ||
+        p.email.toLowerCase().includes(q) ||
+        p.team.toLowerCase().includes(q),
+    );
+  }, [allCandidates, search]);
+
+  useEffect(() => {
+    if (!open) return;
+    function onDocClick(e: MouseEvent) {
+      if (!containerRef.current) return;
+      if (!containerRef.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, [open]);
 
   const [state, action, pending] = useActionState(assignChampion, initial);
+
+  function pick(p: Person) {
+    setPicked(p);
+    setSearch("");
+    setOpen(false);
+  }
 
   return (
     <div className="space-y-5 rounded-lg border border-zinc-200 bg-white p-5">
       <div>
         <h2 className="text-sm font-semibold tracking-tight text-zinc-900">
-          Manage champions
+          Assign a new champion
         </h2>
         <p className="text-xs text-zinc-500">
-          Pick a team, see who&apos;s already a champion, and add more if you
-          need to. Multiple champions per team is supported.
+          Pick a team and a person from the directory. Existing champions
+          appear in the &ldquo;All champions&rdquo; table below, where you
+          can also remove.
         </p>
       </div>
 
@@ -106,7 +146,8 @@ export function ChampionsManager({
           value={team}
           onValueChange={(v) => {
             setTeam(v ?? "");
-            setPersonId("");
+            setPicked(null);
+            setSearch("");
           }}
         >
           <SelectTrigger className="sm:max-w-sm">
@@ -128,106 +169,117 @@ export function ChampionsManager({
         </Select>
       </div>
 
-      <div className="space-y-2">
-        <h3 className="text-xs font-medium uppercase tracking-wide text-zinc-500">
-          Current champions
-        </h3>
-        {championsForSelected.length === 0 ? (
-          <p className="rounded-md border border-dashed border-zinc-200 px-3 py-3 text-xs text-zinc-500">
-            None yet.
-          </p>
-        ) : (
-          <ul className="divide-y divide-zinc-100 rounded-md border border-zinc-200">
-            {championsForSelected.map((c) => (
-              <li
-                key={c.id}
-                className="flex items-center justify-between gap-3 px-3 py-2 text-sm"
-              >
-                <Link
-                  href={`/champions/${encodeURIComponent(c.team)}`}
-                  className="font-medium text-zinc-900 hover:underline"
-                >
-                  {c.display_name}
-                </Link>
-                <span className="text-xs text-zinc-500">
-                  {c.user_id ? "" : "hasn't signed in yet"}
-                </span>
-                <form action={removeChampion}>
-                  <input type="hidden" name="champion_id" value={c.id} />
-                  <input type="hidden" name="team" value={c.team} />
-                  <Button
-                    type="submit"
-                    variant="outline"
-                    size="sm"
-                    className="text-red-700"
-                  >
-                    Remove
-                  </Button>
-                </form>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
-      <form action={action} className="grid gap-3 sm:grid-cols-[1fr_auto]">
+      <form action={action} className="space-y-3">
         <input type="hidden" name="team" value={team} />
-        <input type="hidden" name="person_id" value={personId} />
+        <input type="hidden" name="person_id" value={picked?.id ?? ""} />
 
-        <div className="space-y-1">
-          <label className="text-xs font-medium uppercase tracking-wide text-zinc-500">
-            Add a champion
-          </label>
-          <Select
-            value={personId}
-            onValueChange={(v) => setPersonId(v ?? "")}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue
-                placeholder={
-                  availablePeople.length > 0
-                    ? "Pick a person"
-                    : peopleForTeam.length === 0
-                    ? "No one on this team in the directory"
-                    : "Everyone on this team is already a champion"
-                }
+        <label className="block text-xs font-medium uppercase tracking-wide text-zinc-500">
+          Add a champion
+        </label>
+
+        <div ref={containerRef} className="relative">
+          {picked ? (
+            <div className="flex items-center justify-between gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-1.5">
+              <div className="min-w-0">
+                <p className="truncate text-sm text-zinc-900">
+                  {picked.display_name}
+                </p>
+                <p className="truncate text-xs text-zinc-500">
+                  {[picked.team, picked.email].filter(Boolean).join(" · ")}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPicked(null)}
+                className="inline-flex size-6 items-center justify-center rounded-full text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
+                aria-label="Clear selection"
               >
-                {(v) => {
-                  const p = peopleById.get(v as string);
-                  return p ? `${p.display_name}  ·  ${p.email}` : null;
-                }}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {availablePeople.map((p) => (
-                <SelectItem key={p.id} value={p.id}>
-                  {p.display_name}  ·  {p.email}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+                <X className="size-3.5" />
+              </button>
+            </div>
+          ) : (
+            <Input
+              type="search"
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setOpen(true);
+              }}
+              onFocus={() => setOpen(true)}
+              placeholder={
+                allCandidates.length === 0
+                  ? "Everyone in the directory is already a champion"
+                  : "Search by name, team, or email"
+              }
+              aria-label="Search people"
+            />
+          )}
+
+          {open && !picked && allCandidates.length > 0 && (
+            <div className="absolute left-0 right-0 top-full z-20 mt-1 overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-md">
+              <div className="max-h-60 overflow-y-auto">
+                {matches.length === 0 ? (
+                  <div className="px-3 py-3 text-sm text-zinc-500">
+                    No matches.
+                  </div>
+                ) : (
+                  <ul className="divide-y divide-zinc-100">
+                    {matches.slice(0, 50).map((p) => (
+                      <li key={p.id}>
+                        <button
+                          type="button"
+                          onClick={() => pick(p)}
+                          className={cn(
+                            "flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors hover:bg-zinc-50",
+                          )}
+                        >
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-zinc-900">
+                              {p.display_name}
+                            </span>
+                            <span className="block truncate text-[11px] text-zinc-500">
+                              {[p.team, p.email].filter(Boolean).join(" · ")}
+                            </span>
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              {matches.length > 50 && (
+                <div className="border-t border-zinc-100 bg-zinc-50 px-3 py-1.5 text-[11px] text-zinc-500">
+                  Showing first 50 - keep typing to narrow.
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
-        <Button
-          type="submit"
-          disabled={pending || !team || !personId}
-          className="self-end"
-        >
-          {pending ? "Saving..." : "Add champion"}
+        <Button type="submit" disabled={pending || !team || !picked}>
+          {pending ? "Saving" : "Add champion"}
         </Button>
       </form>
 
       {state.kind === "ok" && (
-        <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
-          Added a champion to <strong>{state.team}</strong>.
-          {state.emailed ? " Email sent." : null}
-          {state.emailNote ? ` ${state.emailNote}` : null}
-        </div>
+        <p className="text-xs text-zinc-500">
+          <span
+            aria-hidden
+            className="mr-1.5 inline-block size-1.5 rounded-full bg-emerald-500 align-middle"
+          />
+          Added a champion to{" "}
+          <strong className="text-zinc-900">{state.team}</strong>
+          {state.emailed ? ". Email sent." : "."}
+        </p>
       )}
       {state.kind === "error" && (
-        <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-900">
+        <p className="text-xs text-red-700">
+          <span
+            aria-hidden
+            className="mr-1.5 inline-block size-1.5 rounded-full bg-red-500 align-middle"
+          />
           {state.message}
-        </div>
+        </p>
       )}
     </div>
   );

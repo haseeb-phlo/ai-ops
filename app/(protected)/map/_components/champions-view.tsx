@@ -86,7 +86,7 @@ export async function ChampionsView() {
                     {c.display_name}
                   </div>
                   <div className="truncate text-xs text-zinc-500">
-                    Champion of {c.team}
+                    AI Champion of {c.team}
                   </div>
                 </div>
               </div>

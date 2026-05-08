@@ -6,7 +6,9 @@ import { findChampionForPerson } from "@/lib/champions";
 import { PageContainer } from "@/components/page-header";
 import { RedirectToast } from "./_components/dashboard/redirect-toast";
 import { ChampionsRibbon } from "./_components/dashboard/champions-ribbon";
-import { NeedsAttention } from "./_components/dashboard/needs-attention";
+import { TrendStrip } from "./_components/dashboard/trend-strip";
+import { TopWins, type Win } from "./_components/dashboard/top-wins";
+import { AllTimeRail } from "./_components/dashboard/all-time-rail";
 import {
   ActivityStream,
   type StreamItem,
@@ -17,9 +19,17 @@ type Confidence = keyof typeof CONFIDENCE_WEIGHT;
 
 type Intervention = {
   id: string;
+  name: string;
   status: "active" | "paused" | "retired" | null;
   attribution_confidence: Confidence | null;
+  adoption_status: "daily" | "weekly" | "occasional" | "abandoned" | null;
   recipient_emails: string[] | null;
+  created_at: string;
+};
+
+type InterventionTeamLink = {
+  intervention_id: string;
+  workflows: { team: string | null } | null;
 };
 
 type Baseline = {
@@ -93,7 +103,9 @@ export default async function Home() {
   ] = await Promise.all([
     supabase
       .from("ai_interventions")
-      .select("id, status, attribution_confidence, recipient_emails")
+      .select(
+        "id, name, status, attribution_confidence, adoption_status, recipient_emails, created_at",
+      )
       .returns<Intervention[]>(),
     supabase
       .from("workflow_baselines")
@@ -134,6 +146,20 @@ export default async function Home() {
     .from("people")
     .select("*", { count: "exact", head: true });
 
+  // Per-intervention team lookup so the Top wins rail can attribute each
+  // win to a team. An intervention can affect multiple workflows on
+  // different teams - use the first linked team's name as the label.
+  const { data: teamLinks } = await supabase
+    .from("intervention_workflows")
+    .select("intervention_id, workflows(team)")
+    .returns<InterventionTeamLink[]>();
+  const teamByInterventionId = new Map<string, string>();
+  for (const link of teamLinks ?? []) {
+    if (link.workflows?.team && !teamByInterventionId.has(link.intervention_id)) {
+      teamByInterventionId.set(link.intervention_id, link.workflows.team);
+    }
+  }
+
   const interventionsList = interventions ?? [];
 
   const baselineSums = new Map<
@@ -167,9 +193,21 @@ export default async function Home() {
   let totalMinutes = 0;
   let totalGbp = 0;
   let totalRevenue = 0;
+  // All-time totals include retired interventions so the historical
+  // "banked" value never drops when something is sunset - retirement
+  // freezes the intervention's last-known savings level on the books.
+  let allTimeMinutes = 0;
+  let allTimeGbp = 0;
+  let allTimeRevenue = 0;
+  let allTimeInterventionCount = 0;
   let activeCount = 0;
+  // Single render = single request; one wall-clock read is fine here.
+  // eslint-disable-next-line react-hooks/purity
+  const renderNow = Date.now();
   // Reach: unique people covered by any active intervention.
   const reachedEmails = new Set<string>();
+  // Per-intervention impact, used to rank Top wins.
+  const winsAccum: Win[] = [];
   for (const iv of interventionsList) {
     if (iv.status === "active") activeCount += 1;
     if (iv.status === "active") {
@@ -178,21 +216,123 @@ export default async function Home() {
         if (email) reachedEmails.add(email);
       }
     }
-    if (iv.status === "retired") continue;
     const w = CONFIDENCE_WEIGHT[iv.attribution_confidence ?? "medium"];
     const baseline =
       baselineSums.get(iv.id) ?? { time: 0, cost: 0, revenue: 0 };
     const lt = latestTime.get(iv.id);
     const lc = latestCost.get(iv.id);
     const lr = latestRevenue.get(iv.id);
-    if (lt?.time_value != null)
-      totalMinutes += (baseline.time - lt.time_value) * w;
-    if (lc?.cost_value != null)
-      totalGbp += (baseline.cost - lc.cost_value) * w;
+    let ivMins = 0;
+    let ivGbp = 0;
+    let ivRev = 0;
+    if (lt?.time_value != null) ivMins = (baseline.time - lt.time_value) * w;
+    if (lc?.cost_value != null) ivGbp = (baseline.cost - lc.cost_value) * w;
     // Revenue is higher-better, so positive = uplift since baseline.
     if (lr?.revenue_value != null)
-      totalRevenue += (lr.revenue_value - baseline.revenue) * w;
+      ivRev = (lr.revenue_value - baseline.revenue) * w;
+
+    // All-time always includes the intervention - weekly rate multiplied
+    // by weeks-since-creation gives a usable cumulative ("approximately
+    // this much has been banked since this intervention launched"). It
+    // overcounts slightly if the rate has grown since launch and undercounts
+    // if it dropped, but for ROI conversations it's the right shape.
+    const weeksSinceCreated = Math.max(
+      0,
+      (renderNow - new Date(iv.created_at).getTime()) / (7 * 86_400_000),
+    );
+    allTimeMinutes += ivMins * weeksSinceCreated;
+    allTimeGbp += ivGbp * weeksSinceCreated;
+    allTimeRevenue += ivRev * weeksSinceCreated;
+    allTimeInterventionCount += 1;
+    if (iv.status === "retired") continue;
+    totalMinutes += ivMins;
+    totalGbp += ivGbp;
+    totalRevenue += ivRev;
+
+    if (iv.status === "active" && (ivMins > 0 || ivGbp > 0 || ivRev > 0)) {
+      winsAccum.push({
+        id: iv.id,
+        name: iv.name,
+        team: teamByInterventionId.get(iv.id) ?? null,
+        weeklyGbp: ivGbp + ivRev,
+        weeklyMinutes: ivMins,
+        recipients: (iv.recipient_emails ?? []).length,
+        adoption: iv.adoption_status,
+      });
+    }
   }
+
+  // Top wins: highest weighted weekly impact first. Combines £ saved +
+  // revenue generated since both flow to the bottom line; minutes saved
+  // is shown as a secondary signal so volunteer-time wins still surface.
+  const topWins = winsAccum
+    .sort((a, b) => {
+      const aScore = a.weeklyGbp + a.weeklyMinutes / 60;
+      const bScore = b.weeklyGbp + b.weeklyMinutes / 60;
+      return bScore - aScore;
+    })
+    .slice(0, 5);
+
+  // Trend buckets: 13 weekly snapshots covering the last 12 weeks. For each
+  // bucket we re-roll the same baseline-vs-latest math but cap the latest
+  // metric at "as of this week-end" so the line shows how cumulative impact
+  // moved over time, not just today's number repeated.
+  function totalsAsOf(asOfIso: string) {
+    let mins = 0;
+    let gbpAccum = 0;
+    let rev = 0;
+    for (const iv of interventionsList) {
+      if (iv.status === "retired") continue;
+      const w = CONFIDENCE_WEIGHT[iv.attribution_confidence ?? "medium"];
+      const baseline =
+        baselineSums.get(iv.id) ?? { time: 0, cost: 0, revenue: 0 };
+      let lt: Metric | undefined;
+      let lc: Metric | undefined;
+      let lr: Metric | undefined;
+      for (const m of metrics ?? []) {
+        if (m.intervention_id !== iv.id) continue;
+        if (m.snapshot_date > asOfIso) continue;
+        if (!lt && m.time_value != null) lt = m;
+        if (!lc && m.cost_value != null) lc = m;
+        if (!lr && m.revenue_value != null) lr = m;
+        if (lt && lc && lr) break;
+      }
+      if (lt?.time_value != null) mins += (baseline.time - lt.time_value) * w;
+      if (lc?.cost_value != null) gbpAccum += (baseline.cost - lc.cost_value) * w;
+      if (lr?.revenue_value != null) rev += (lr.revenue_value - baseline.revenue) * w;
+    }
+    return { minutes: mins, gbp: gbpAccum, revenue: rev };
+  }
+
+  const weekEnds: string[] = (() => {
+    const out: string[] = [];
+    const today = new Date();
+    for (let i = 12; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i * 7);
+      out.push(d.toISOString().slice(0, 10));
+    }
+    return out;
+  })();
+
+  const trendPoints = weekEnds.map((d) => ({ date: d, ...totalsAsOf(d) }));
+  const trendSeries = [
+    {
+      label: "Minutes saved / week",
+      points: trendPoints.map((p) => ({ date: p.date, value: p.minutes })),
+      format: fmtMinutes,
+    },
+    {
+      label: "GBP saved / week",
+      points: trendPoints.map((p) => ({ date: p.date, value: p.gbp })),
+      format: gbp,
+    },
+    {
+      label: "Revenue generated / week",
+      points: trendPoints.map((p) => ({ date: p.date, value: p.revenue })),
+      format: gbp,
+    },
+  ];
 
   // Single chronological stream from the past 7 days.
   const stream: StreamItem[] = [];
@@ -266,19 +406,28 @@ export default async function Home() {
         <Stat label="GBP saved / week" value={gbp(totalGbp)} />
         <Stat label="Revenue generated / week" value={gbp(totalRevenue)} />
         <Stat
-          label="Active interventions"
-          value={activeCount.toLocaleString()}
-        />
-        <Stat
           label="People reached"
           value={reachedCount.toLocaleString()}
           subtitle={reachSubtitle}
         />
+        <Stat
+          label="Active interventions"
+          value={activeCount.toLocaleString()}
+        />
       </section>
 
-      <ChampionsRibbon />
+      <TrendStrip series={trendSeries} />
 
-      <NeedsAttention user={user} champion={champion} />
+      <AllTimeRail
+        minutes={allTimeMinutes}
+        gbpSaved={allTimeGbp}
+        revenue={allTimeRevenue}
+        interventionCount={allTimeInterventionCount}
+      />
+
+      <TopWins wins={topWins} />
+
+      <ChampionsRibbon />
 
       <section className="rounded-lg border border-zinc-200 bg-white">
         <div className="flex items-baseline justify-between border-b border-zinc-100 px-4 py-2.5">
@@ -287,13 +436,20 @@ export default async function Home() {
           </h2>
           <span className="text-xs text-zinc-500">
             {streamTop.length === 0
-              ? "Nothing new"
-              : `Past 7 days · ${streamTop.length} ${streamTop.length === 1 ? "event" : "events"}`}
+              ? "Past 7 days"
+              : `Past 7 days · ${streamTop.length} ${
+                  streamTop.length === 1 ? "event" : "events"
+                }`}
           </span>
         </div>
-        <ActivityStream items={streamTop} />
+        {streamTop.length === 0 ? (
+          <p className="px-4 py-6 text-center text-xs text-zinc-400">
+            Nothing logged in the last week.
+          </p>
+        ) : (
+          <ActivityStream items={streamTop} />
+        )}
       </section>
-
     </PageContainer>
   );
 }

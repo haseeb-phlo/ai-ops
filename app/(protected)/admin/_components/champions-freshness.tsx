@@ -8,6 +8,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { removeChampion } from "../_actions/champions";
 import { relativeTime } from "./format";
 
 type Row = {
@@ -35,12 +37,19 @@ function trafficFor(lastCheckIn: string | null): {
   return { traffic, ageDays: Math.floor(age) };
 }
 
+/**
+ * Admin "all champions" surface: every registered champion, their freshness,
+ * and a Remove button per row. The other half of champion management (adding
+ * a new champion to a team) lives in ChampionsManager above this; together
+ * they're the single source of truth, so remove flows aren't buried behind a
+ * team-select on the team page.
+ */
 export function ChampionsFreshness({ rows }: { rows: Row[] }) {
   return (
     <div className="rounded-lg border border-zinc-200 bg-white">
       <div className="border-b border-zinc-100 px-3 py-2">
         <h2 className="text-sm font-semibold tracking-tight text-zinc-900">
-          Champions freshness
+          All champions
         </h2>
         <p className="text-xs text-zinc-500">
           Green &lt;14d · amber &lt;30d · red &gt;30d since last check-in.
@@ -54,13 +63,14 @@ export function ChampionsFreshness({ rows }: { rows: Row[] }) {
             <TableHead>Champion</TableHead>
             <TableHead>Last check-in</TableHead>
             <TableHead className="text-right">Age</TableHead>
+            <TableHead className="w-24" />
           </TableRow>
         </TableHeader>
         <TableBody>
           {rows.length === 0 ? (
             <TableRow>
               <TableCell
-                colSpan={5}
+                colSpan={6}
                 className="text-center text-xs text-zinc-400"
               >
                 No champions registered yet.
@@ -90,6 +100,20 @@ export function ChampionsFreshness({ rows }: { rows: Row[] }) {
                   </TableCell>
                   <TableCell className="text-right text-xs tabular-nums text-zinc-500">
                     {ageDays == null ? "-" : `${ageDays}d`}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <form action={removeChampion}>
+                      <input type="hidden" name="champion_id" value={r.id} />
+                      <input type="hidden" name="team" value={r.team} />
+                      <Button
+                        type="submit"
+                        variant="outline"
+                        size="sm"
+                        className="text-red-700"
+                      >
+                        Remove
+                      </Button>
+                    </form>
                   </TableCell>
                 </TableRow>
               );
