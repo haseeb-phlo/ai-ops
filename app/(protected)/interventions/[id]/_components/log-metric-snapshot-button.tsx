@@ -51,8 +51,8 @@ export function LogMetricSnapshotButton({
           <DialogHeader>
             <DialogTitle>Log metric snapshot</DialogTitle>
             <DialogDescription>
-              Record where the linked workflows are today. Leave fields blank if
-              you haven&apos;t measured them.
+              Today&apos;s values for each metric. Savings are calculated
+              against the baseline.
             </DialogDescription>
           </DialogHeader>
 
@@ -70,30 +70,23 @@ export function LogMetricSnapshotButton({
               />
             </div>
 
-            <div className="rounded-md bg-zinc-50 px-3 py-2 text-xs text-zinc-600">
-              Enter today&apos;s value for each metric. Savings are computed
-              automatically against the baseline captured when this
-              intervention was logged - don&apos;t enter the savings amount
-              yourself.
-            </div>
-
             <div className="grid grid-cols-2 gap-3">
               <NumField
                 label="Time per week (min)"
                 name="time_value"
-                hint="Lower than baseline = time saved"
+                hint="Lower than baseline saves time"
               />
               <NumField
                 label="Cost per week (£)"
                 name="cost_value"
-                hint="Lower than baseline = cost saved"
+                hint="Lower than baseline saves cost"
               />
               <NumField label="People involved" name="people_value" />
               <NumField label="Errors per week" name="errors_value" />
               <NumField
                 label="Revenue per week (£)"
                 name="revenue_value"
-                hint="Higher than baseline = revenue uplift"
+                hint="Higher than baseline lifts revenue"
               />
             </div>
 
