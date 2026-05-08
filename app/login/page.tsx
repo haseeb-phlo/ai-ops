@@ -197,7 +197,9 @@ export default function LoginPage() {
                   pattern="[0-9]*"
                   autoComplete="one-time-code"
                   placeholder="123456"
-                  maxLength={6}
+                  // Supabase OTP length is configurable (typically 6 or 8).
+                  // Accept up to 8; verifyOtp will reject the wrong length.
+                  maxLength={8}
                   value={code}
                   onChange={(e) => {
                     setCode(e.target.value.replace(/\D/g, ""));
