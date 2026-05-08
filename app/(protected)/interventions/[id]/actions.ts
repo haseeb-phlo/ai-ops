@@ -309,15 +309,18 @@ export async function setInterventionStatus(
 }
 
 /**
- * Hard delete an intervention. Super-admin only. Cascades through the
- * intervention_workflows / workflow_baselines / intervention_metrics
- * tables (FK on delete cascade), and clears any suggestion linkage so
- * shipped suggestions don't dangle.
+ * Hard delete an intervention. Super-admin only. Goes through the
+ * delete_intervention RPC (security definer) because the `authenticated`
+ * role has no GRANT DELETE on public.ai_interventions - a direct REST
+ * DELETE used to return 200 + zero rows affected and the UI looked broken.
  *
- * The select-after-delete is load-bearing: if the RLS DELETE policy is
- * missing or the caller isn't authorised, Postgres returns OK with zero
- * rows affected (no error). Without the .select we couldn't tell apart
- * "deleted" from "silently blocked" and the UI looked broken.
+ * The RPC handles cascading dependents (workflow_baselines /
+ * intervention_metrics / intervention_workflows via FK cascade) and
+ * detaches any suggestion linkage so shipped suggestions don't dangle.
+ *
+ * Returns the deleted id; null means the row wasn't there (e.g. someone
+ * else deleted it first). The action turns that into a soft failure on
+ * the detail page so the user gets visible feedback.
  */
 export async function deleteIntervention(formData: FormData): Promise<void> {
   const { redirect } = await import("next/navigation");
@@ -333,19 +336,11 @@ export async function deleteIntervention(formData: FormData): Promise<void> {
 
   const supabase = await createClient();
 
-  // Detach suggestion links first so we don't leave orphaned shipped rows.
-  await supabase
-    .from("intervention_suggestions")
-    .update({ intervention_id: null, status: "open" })
-    .eq("intervention_id", id);
+  const { data: deletedId, error } = await supabase.rpc("delete_intervention", {
+    p_id: id,
+  });
 
-  const { data: deletedRows, error } = await supabase
-    .from("ai_interventions")
-    .delete()
-    .eq("id", id)
-    .select("id");
-
-  if (error || !deletedRows || deletedRows.length === 0) {
+  if (error || !deletedId) {
     if (error) console.error("deleteIntervention failed", error);
     redirect(`/interventions/${id}?deleteFailed=1`);
   }
