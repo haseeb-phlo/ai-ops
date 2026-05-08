@@ -2,14 +2,22 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { format } from "date-fns";
 import { resolveAvatar } from "@/lib/profile";
 import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export type ResolvedPerson = {
   email: string;
   displayName: string;
   title: string;
   team: string | null;
+  startDate: string | null;
   avatarUrl: string | null;
   isSignedIn: boolean;
   championTeam: string | null;
@@ -94,6 +102,7 @@ export function OrgTreeClient({
 }) {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [query, setQuery] = useState("");
+  const [openPerson, setOpenPerson] = useState<ResolvedPerson | null>(null);
 
   const needle = query.trim().toLowerCase();
 
@@ -161,7 +170,7 @@ export function OrgTreeClient({
         <div className="space-y-12">
           {filteredCeo && (
             <div className="flex justify-center">
-              <BigCard person={filteredCeo} />
+              <BigCard person={filteredCeo} onOpen={setOpenPerson} />
             </div>
           )}
 
@@ -176,6 +185,7 @@ export function OrgTreeClient({
                     size="big"
                     collapsed={collapsed}
                     onToggle={toggle}
+                    onOpen={setOpenPerson}
                   />
                 ))}
               </div>
@@ -197,13 +207,24 @@ export function OrgTreeClient({
                   .slice()
                   .sort((a, b) => a.team.localeCompare(b.team))
                   .map((c) => (
-                    <TeamCluster key={c.team} cluster={c} />
+                    <TeamCluster
+                      key={c.team}
+                      cluster={c}
+                      onOpen={setOpenPerson}
+                    />
                   ))}
               </div>
             </div>
           )}
         </div>
       )}
+
+      <PersonDialog
+        person={openPerson}
+        onOpenChange={(open) => {
+          if (!open) setOpenPerson(null);
+        }}
+      />
     </div>
   );
 }
@@ -213,11 +234,13 @@ function Branch({
   size,
   collapsed,
   onToggle,
+  onOpen,
 }: {
   node: ResolvedNode;
   size: "big" | "small";
   collapsed: Set<string>;
   onToggle: (email: string) => void;
+  onOpen: (person: ResolvedPerson) => void;
 }) {
   const hasChildren = node.directs.length > 0 || node.teamMembers.length > 0;
   const isCollapsed = collapsed.has(node.person.email);
@@ -230,6 +253,7 @@ function Branch({
         canCollapse={hasChildren}
         isCollapsed={isCollapsed}
         onToggle={() => onToggle(node.person.email)}
+        onOpen={onOpen}
       />
 
       {hasChildren && !isCollapsed && (
@@ -244,6 +268,7 @@ function Branch({
                   size="small"
                   collapsed={collapsed}
                   onToggle={onToggle}
+                  onOpen={onOpen}
                 />
               ))}
             </div>
@@ -251,7 +276,7 @@ function Branch({
           {node.teamMembers.length > 0 && (
             <div className="space-y-1.5">
               {node.teamMembers.map((m) => (
-                <Chip key={m.email} person={m} />
+                <Chip key={m.email} person={m} onOpen={onOpen} />
               ))}
             </div>
           )}
@@ -266,67 +291,64 @@ function BigCard({
   canCollapse,
   isCollapsed,
   onToggle,
+  onOpen,
 }: {
   person: ResolvedPerson;
   canCollapse?: boolean;
   isCollapsed?: boolean;
   onToggle?: () => void;
+  onOpen: (person: ResolvedPerson) => void;
 }) {
   const dim = !person.isSignedIn ? "opacity-60" : "";
   const isChamp = !!person.championTeam;
 
-  const inner = (
-    <div
-      className={`relative flex w-44 flex-col items-center gap-2 rounded-lg border border-zinc-200 bg-white p-4 hover:border-zinc-300 ${dim}`}
-    >
-      <span
-        className="relative inline-block shrink-0"
-        style={{ width: 56, height: 56 }}
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => onOpen(person)}
+        className={`relative flex w-44 flex-col items-center gap-2 rounded-lg border border-zinc-200 bg-white p-4 text-left hover:border-zinc-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${dim}`}
+        title={
+          isChamp ? `AI Champion of ${person.championTeam}` : person.displayName
+        }
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={resolveAvatar(person.avatarUrl, person.email)}
-          alt={person.displayName}
-          className={`h-full w-full rounded-full bg-zinc-50 object-cover ring-1 ${
-            isChamp
-              ? "ring-2 ring-amber-400 ring-offset-1 ring-offset-white"
-              : "ring-zinc-200"
-          } ${person.isSignedIn ? "" : "grayscale"}`}
-        />
-        {isChamp && (
-          <span
-            aria-hidden
-            className="absolute -bottom-0.5 -right-0.5 inline-flex h-4 items-center rounded-full bg-amber-400 px-1 font-mono text-[8px] font-semibold leading-none tracking-tight text-white shadow-sm ring-1 ring-white"
-          >
-            AI
-          </span>
-        )}
-      </span>
-      <div className="text-center">
-        <div className="truncate text-sm font-semibold text-zinc-900">
-          {person.displayName}
+        <span
+          className="relative inline-block shrink-0 self-center"
+          style={{ width: 56, height: 56 }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={resolveAvatar(person.avatarUrl, person.email)}
+            alt={person.displayName}
+            className={`h-full w-full rounded-full bg-zinc-50 object-cover ring-1 ${
+              isChamp
+                ? "ring-2 ring-amber-400 ring-offset-1 ring-offset-white"
+                : "ring-zinc-200"
+            } ${person.isSignedIn ? "" : "grayscale"}`}
+          />
+          {isChamp && (
+            <span
+              aria-hidden
+              className="absolute -bottom-0.5 -right-0.5 inline-flex h-4 items-center rounded-full bg-amber-400 px-1 font-mono text-[8px] font-semibold leading-none tracking-tight text-white shadow-sm ring-1 ring-white"
+            >
+              AI
+            </span>
+          )}
+        </span>
+        <div className="w-full text-center">
+          <div className="truncate text-sm font-semibold text-zinc-900">
+            {person.displayName}
+          </div>
+          <div className="line-clamp-2 text-xs text-zinc-500">
+            {person.title}
+          </div>
         </div>
-        <div className="line-clamp-2 text-xs text-zinc-500">
-          {person.title}
-        </div>
-      </div>
+      </button>
       {canCollapse && (
         <CollapseButton isCollapsed={!!isCollapsed} onClick={onToggle!} />
       )}
     </div>
   );
-
-  if (isChamp) {
-    return (
-      <Link
-        href={`/champions/${encodeURIComponent(person.championTeam ?? "")}`}
-        title={`AI Champion of ${person.championTeam}`}
-      >
-        {inner}
-      </Link>
-    );
-  }
-  return inner;
 }
 
 function SmallCard({
@@ -334,67 +356,64 @@ function SmallCard({
   canCollapse,
   isCollapsed,
   onToggle,
+  onOpen,
 }: {
   person: ResolvedPerson;
   canCollapse?: boolean;
   isCollapsed?: boolean;
   onToggle?: () => void;
+  onOpen: (person: ResolvedPerson) => void;
 }) {
   const dim = !person.isSignedIn ? "opacity-60" : "";
   const isChamp = !!person.championTeam;
 
-  const inner = (
-    <div
-      className={`relative flex w-36 flex-col items-center gap-2 rounded-lg border border-zinc-200 bg-white p-3 hover:border-zinc-300 ${dim}`}
-    >
-      <span
-        className="relative inline-block shrink-0"
-        style={{ width: 40, height: 40 }}
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => onOpen(person)}
+        className={`relative flex w-36 flex-col items-center gap-2 rounded-lg border border-zinc-200 bg-white p-3 text-left hover:border-zinc-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${dim}`}
+        title={
+          isChamp ? `AI Champion of ${person.championTeam}` : person.displayName
+        }
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={resolveAvatar(person.avatarUrl, person.email)}
-          alt={person.displayName}
-          className={`h-full w-full rounded-full bg-zinc-50 object-cover ring-1 ${
-            isChamp
-              ? "ring-2 ring-amber-400 ring-offset-1 ring-offset-white"
-              : "ring-zinc-200"
-          } ${person.isSignedIn ? "" : "grayscale"}`}
-        />
-        {isChamp && (
-          <span
-            aria-hidden
-            className="absolute -bottom-0.5 -right-0.5 inline-flex h-3.5 items-center rounded-full bg-amber-400 px-1 font-mono text-[7px] font-semibold leading-none tracking-tight text-white shadow-sm ring-1 ring-white"
-          >
-            AI
-          </span>
-        )}
-      </span>
-      <div className="text-center">
-        <div className="truncate text-xs font-semibold text-zinc-900">
-          {person.displayName}
+        <span
+          className="relative inline-block shrink-0 self-center"
+          style={{ width: 40, height: 40 }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={resolveAvatar(person.avatarUrl, person.email)}
+            alt={person.displayName}
+            className={`h-full w-full rounded-full bg-zinc-50 object-cover ring-1 ${
+              isChamp
+                ? "ring-2 ring-amber-400 ring-offset-1 ring-offset-white"
+                : "ring-zinc-200"
+            } ${person.isSignedIn ? "" : "grayscale"}`}
+          />
+          {isChamp && (
+            <span
+              aria-hidden
+              className="absolute -bottom-0.5 -right-0.5 inline-flex h-3.5 items-center rounded-full bg-amber-400 px-1 font-mono text-[7px] font-semibold leading-none tracking-tight text-white shadow-sm ring-1 ring-white"
+            >
+              AI
+            </span>
+          )}
+        </span>
+        <div className="w-full text-center">
+          <div className="truncate text-xs font-semibold text-zinc-900">
+            {person.displayName}
+          </div>
+          <div className="line-clamp-2 text-[10px] leading-tight text-zinc-500">
+            {person.title}
+          </div>
         </div>
-        <div className="line-clamp-2 text-[10px] leading-tight text-zinc-500">
-          {person.title}
-        </div>
-      </div>
+      </button>
       {canCollapse && (
         <CollapseButton isCollapsed={!!isCollapsed} onClick={onToggle!} />
       )}
     </div>
   );
-
-  if (isChamp) {
-    return (
-      <Link
-        href={`/champions/${encodeURIComponent(person.championTeam ?? "")}`}
-        title={`AI Champion of ${person.championTeam}`}
-      >
-        {inner}
-      </Link>
-    );
-  }
-  return inner;
 }
 
 function CollapseButton({
@@ -423,14 +442,24 @@ function CollapseButton({
   );
 }
 
-function Chip({ person }: { person: ResolvedPerson }) {
+function Chip({
+  person,
+  onOpen,
+}: {
+  person: ResolvedPerson;
+  onOpen: (person: ResolvedPerson) => void;
+}) {
   const dim = !person.isSignedIn ? "opacity-60" : "";
   const isChamp = !!person.championTeam;
 
-  const inner = (
-    <span
-      className={`flex w-44 items-center gap-2 rounded-md border border-zinc-200 bg-white px-2 py-1.5 ${dim}`}
-      title={person.title}
+  return (
+    <button
+      type="button"
+      onClick={() => onOpen(person)}
+      className={`flex w-44 items-center gap-2 rounded-md border border-zinc-200 bg-white px-2 py-1.5 text-left hover:border-zinc-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${dim}`}
+      title={
+        isChamp ? `AI Champion of ${person.championTeam}` : person.title
+      }
     >
       <span
         className="relative inline-block shrink-0"
@@ -450,22 +479,17 @@ function Chip({ person }: { person: ResolvedPerson }) {
       <span className="min-w-0 flex-1 truncate text-xs text-zinc-800">
         {person.displayName}
       </span>
-    </span>
+    </button>
   );
-
-  if (isChamp) {
-    return (
-      <Link
-        href={`/champions/${encodeURIComponent(person.championTeam ?? "")}`}
-      >
-        {inner}
-      </Link>
-    );
-  }
-  return inner;
 }
 
-function TeamCluster({ cluster }: { cluster: OtherTeam }) {
+function TeamCluster({
+  cluster,
+  onOpen,
+}: {
+  cluster: OtherTeam;
+  onOpen: (person: ResolvedPerson) => void;
+}) {
   return (
     <div className="rounded-lg border border-zinc-200 bg-white p-4">
       <div className="mb-3 flex items-baseline justify-between">
@@ -480,10 +504,123 @@ function TeamCluster({ cluster }: { cluster: OtherTeam }) {
       <ul className="space-y-1.5">
         {cluster.members.map((m) => (
           <li key={m.email}>
-            <Chip person={m} />
+            <Chip person={m} onOpen={onOpen} />
           </li>
         ))}
       </ul>
     </div>
+  );
+}
+
+function PersonDialog({
+  person,
+  onOpenChange,
+}: {
+  person: ResolvedPerson | null;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const isChamp = !!person?.championTeam;
+  return (
+    <Dialog open={!!person} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        {person && (
+          <>
+            <DialogHeader>
+              <div className="flex items-center gap-3">
+                <span
+                  className="relative inline-block shrink-0"
+                  style={{ width: 48, height: 48 }}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={resolveAvatar(person.avatarUrl, person.email)}
+                    alt={person.displayName}
+                    className={`h-full w-full rounded-full bg-zinc-50 object-cover ring-1 ${
+                      isChamp
+                        ? "ring-2 ring-amber-400 ring-offset-1 ring-offset-white"
+                        : "ring-zinc-200"
+                    } ${person.isSignedIn ? "" : "grayscale"}`}
+                  />
+                  {isChamp && (
+                    <span
+                      aria-hidden
+                      className="absolute -bottom-0.5 -right-0.5 inline-flex h-4 items-center rounded-full bg-amber-400 px-1 font-mono text-[8px] font-semibold leading-none tracking-tight text-white shadow-sm ring-1 ring-white"
+                    >
+                      AI
+                    </span>
+                  )}
+                </span>
+                <div className="min-w-0">
+                  <DialogTitle className="truncate">
+                    {person.displayName}
+                  </DialogTitle>
+                  <p className="truncate text-xs text-zinc-500">
+                    {person.title || "—"}
+                  </p>
+                </div>
+              </div>
+            </DialogHeader>
+            <dl className="grid grid-cols-[6.5rem_1fr] gap-x-4 gap-y-2 text-sm">
+              <dt className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+                Team
+              </dt>
+              <dd className="text-zinc-900">
+                {person.team ?? <span className="text-zinc-400">-</span>}
+              </dd>
+
+              <dt className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+                Email
+              </dt>
+              <dd className="break-all text-zinc-700">{person.email}</dd>
+
+              <dt className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+                Started
+              </dt>
+              <dd className="text-zinc-700">
+                {person.startDate ? (
+                  format(new Date(person.startDate), "d MMM yyyy")
+                ) : (
+                  <span className="text-zinc-400">-</span>
+                )}
+              </dd>
+
+              <dt className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+                Status
+              </dt>
+              <dd className="text-zinc-700">
+                {person.isSignedIn ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <span
+                      aria-hidden
+                      className="size-1.5 rounded-full bg-emerald-500"
+                    />
+                    Signed in
+                  </span>
+                ) : (
+                  <span className="text-zinc-400">Not signed in yet</span>
+                )}
+              </dd>
+
+              {isChamp && (
+                <>
+                  <dt className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+                    Champion of
+                  </dt>
+                  <dd>
+                    <Link
+                      href={`/champions/${encodeURIComponent(person.championTeam ?? "")}`}
+                      className="text-amber-700 hover:underline"
+                      onClick={() => onOpenChange(false)}
+                    >
+                      {person.championTeam}
+                    </Link>
+                  </dd>
+                </>
+              )}
+            </dl>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }

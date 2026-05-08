@@ -18,6 +18,7 @@ type PersonRow = {
   display_name: string;
   title: string;
   team: string;
+  start_date: string | null;
 };
 
 /**
@@ -37,7 +38,7 @@ export async function OrgView() {
   ] = await Promise.all([
     supabase
       .from("people")
-      .select("email, display_name, title, team")
+      .select("email, display_name, title, team, start_date")
       .order("display_name", { ascending: true })
       .returns<PersonRow[]>(),
     supabase
@@ -77,6 +78,7 @@ export async function OrgView() {
       displayName: row.display_name,
       title: row.title,
       team: row.team || null,
+      startDate: row.start_date,
       avatarUrl: avatarByLowerName.get(lowerName) ?? null,
       isSignedIn: signedInEmails.has(row.email.toLowerCase()),
       championTeam: champ?.team ?? null,
