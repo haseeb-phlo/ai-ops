@@ -189,43 +189,49 @@ export function NewWorkflowDialog({
 
               <div className="grid gap-3 sm:grid-cols-3">
                 <div className="space-y-1.5">
-                  <Label htmlFor="hours_per_week">Hours / week</Label>
-                  <Input
-                    id="hours_per_week"
-                    name="hours_per_week"
-                    type="number"
-                    min="0"
-                    step="0.5"
-                    required
-                    placeholder="0"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="cost_per_week">Cost / week</Label>
-                  <PrefixInput prefix="£">
+                  <Label htmlFor="hours_per_week">Hours</Label>
+                  <SuffixInput suffix="/ wk">
                     <Input
-                      id="cost_per_week"
-                      name="cost_per_week"
+                      id="hours_per_week"
+                      name="hours_per_week"
                       type="number"
                       min="0"
-                      step="0.01"
+                      step="0.5"
                       required
                       placeholder="0"
                     />
+                  </SuffixInput>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="cost_per_week">Cost</Label>
+                  <PrefixInput prefix="£">
+                    <SuffixInput suffix="/ wk">
+                      <Input
+                        id="cost_per_week"
+                        name="cost_per_week"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        required
+                        placeholder="0"
+                      />
+                    </SuffixInput>
                   </PrefixInput>
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="revenue_per_week">Revenue generated / week</Label>
+                  <Label htmlFor="revenue_per_week">Revenue generated</Label>
                   <PrefixInput prefix="£">
-                    <Input
-                      id="revenue_per_week"
-                      name="revenue_per_week"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      required
-                      placeholder="0"
-                    />
+                    <SuffixInput suffix="/ wk">
+                      <Input
+                        id="revenue_per_week"
+                        name="revenue_per_week"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        required
+                        placeholder="0"
+                      />
+                    </SuffixInput>
                   </PrefixInput>
                 </div>
               </div>

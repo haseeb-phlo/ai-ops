@@ -243,13 +243,14 @@ export async function createWorkflow(
     extractedSteps = validated.steps;
   } catch (err) {
     // Don't surface raw SDK errors to the UI - they can leak model names,
-    // request IDs, and provider hints. Log server-side, return a safe blurb.
+    // request IDs, and provider hints. Log server-side and continue: the
+    // workflow row exists, we just couldn't extract steps automatically.
+    // Revalidate the list so it shows up immediately, then redirect to the
+    // detail page where the user can add steps by hand.
     console.error("createWorkflow: step extraction failed", err);
-    return {
-      kind: "error",
-      message:
-        "Workflow saved, but step extraction failed. You can still open the workflow and add steps manually.",
-    };
+    revalidatePath("/workflows");
+    revalidatePath("/map");
+    redirect(`/workflows/${workflow.id}?stepExtractionFailed=1`);
   }
 
   // 3. Insert the extracted steps.
@@ -265,13 +266,17 @@ export async function createWorkflow(
     .insert(stepRows);
 
   if (stepsError) {
-    return {
-      kind: "error",
-      message: `Workflow saved, but couldn't save steps: ${stepsError.message}`,
-    };
+    // Workflow row + extracted steps got out of sync; revalidate so the
+    // list still shows the workflow, and drop the user on its detail page
+    // with a soft warning flag so they can re-add steps manually.
+    console.error("createWorkflow: step insert failed", stepsError);
+    revalidatePath("/workflows");
+    revalidatePath("/map");
+    redirect(`/workflows/${workflow.id}?stepExtractionFailed=1`);
   }
 
   revalidatePath("/workflows");
+  revalidatePath("/map");
   redirect(`/workflows/${workflow.id}`);
 }
 

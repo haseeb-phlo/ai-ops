@@ -14,13 +14,18 @@ import {
 } from "./_components/linked-interventions";
 import { Activity, type ActivityRevision } from "./_components/activity";
 import { ChampionNotesSection } from "@/app/(protected)/_components/champion-notes/notes-section";
+import { DetailHeader } from "@/components/ui/detail-header";
 
 export default async function WorkflowDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ stepExtractionFailed?: string }>;
 }) {
   const { id } = await params;
+  const sp = await searchParams;
+  const stepExtractionFailed = sp.stepExtractionFailed === "1";
   const user = await getSessionUser();
   const supabase = await createClient();
 
@@ -110,26 +115,40 @@ export default async function WorkflowDetailPage({
     })) ?? [];
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-6 px-6 py-8">
-      <HeaderCard
-        workflow={workflow}
-        teams={teams}
-        canEdit={canEdit}
-        canDelete={canDelete}
+    <div className="mx-auto w-full max-w-5xl px-6 py-6">
+      <DetailHeader
+        backHref="/workflows"
+        backLabel="All workflows"
+        title={workflow.name}
       />
-      <MetricsStrip metrics={metrics ?? null} />
-      <ChampionNotesSection
-        targetType="workflow"
-        targetId={workflow.id}
-        relevantTeams={workflow.team ? [workflow.team] : []}
-      />
-      <StepsTable
-        steps={steps ?? []}
-        workflowId={workflow.id}
-        canEdit={canEdit}
-      />
-      <LinkedInterventions interventions={interventions} />
-      <Activity revisions={activity} />
+      <div className="space-y-6">
+        <HeaderCard
+          workflow={workflow}
+          teams={teams}
+          canEdit={canEdit}
+          canDelete={canDelete}
+        />
+        {stepExtractionFailed && (
+          <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+            <strong>Heads up:</strong> the workflow saved, but Claude
+            couldn&apos;t extract steps from your walk-through. Add steps
+            manually below.
+          </p>
+        )}
+        <MetricsStrip metrics={metrics ?? null} />
+        <ChampionNotesSection
+          targetType="workflow"
+          targetId={workflow.id}
+          relevantTeams={workflow.team ? [workflow.team] : []}
+        />
+        <StepsTable
+          steps={steps ?? []}
+          workflowId={workflow.id}
+          canEdit={canEdit}
+        />
+        <LinkedInterventions interventions={interventions} />
+        <Activity revisions={activity} />
+      </div>
     </div>
   );
 }

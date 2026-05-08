@@ -1,6 +1,8 @@
 "use client";
 
 import { useOptimistic, useState, useTransition } from "react";
+import { Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   addStep,
   deleteStep,
@@ -140,10 +142,29 @@ export function StepsTable({
 
   return (
     <section className="space-y-2">
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold tracking-tight text-zinc-900">
-          Steps
-        </h2>
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <div>
+          <h2 className="text-sm font-semibold tracking-tight text-zinc-900">
+            Steps
+          </h2>
+          {canEdit && (
+            <p className="text-xs text-zinc-500">
+              Click any cell to edit. Use the arrows to reorder, the + button
+              below to add a step.
+            </p>
+          )}
+        </div>
+        {canEdit && (
+          <Button
+            type="button"
+            size="sm"
+            onClick={handleAdd}
+            disabled={isPending}
+          >
+            <Plus className="size-3.5" />
+            Add step
+          </Button>
+        )}
         {error && (
           <div
             role="alert"
@@ -279,23 +300,15 @@ export function StepsTable({
                 )}
               </tr>
             ))}
-            {canEdit && (
-              <tr>
-                <td colSpan={6} className="px-3 py-1.5">
-                  <button
-                    type="button"
-                    onClick={handleAdd}
-                    disabled={isPending}
-                    className="text-xs font-medium text-zinc-600 hover:text-zinc-900 disabled:opacity-50"
-                  >
-                    + Add step
-                  </button>
-                </td>
-              </tr>
-            )}
           </tbody>
         </table>
       </div>
+      {canEdit && optimisticSteps.length === 0 && (
+        <p className="text-xs text-zinc-500">
+          No steps logged yet. Click <strong>Add step</strong> above to start
+          documenting how this workflow runs.
+        </p>
+      )}
     </section>
   );
 }
