@@ -282,7 +282,7 @@ export default async function InterventionDetailPage({
             <dl className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm sm:grid-cols-3">
               <div>
                 <dt className="text-xs font-medium uppercase tracking-wide text-zinc-500">
-                  Owner
+                  Logged by
                 </dt>
                 <dd className="text-zinc-900">
                   {ownerLabel ? (
@@ -301,7 +301,7 @@ export default async function InterventionDetailPage({
                 }
               />
               <Field
-                label="Created"
+                label="Logged on"
                 value={format(new Date(intervention.created_at), "d MMM yyyy")}
               />
               <div>

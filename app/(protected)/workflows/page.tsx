@@ -21,8 +21,12 @@ type WorkflowRow = {
   team: string | null;
   frequency_per_week: number | null;
   regulatory: boolean;
+  created_by: string | null;
   workflow_steps: { count: number }[];
 };
+
+type ProfileLite = { user_id: string; display_name: string | null };
+type UserEmailRow = { user_id: string; email: string | null };
 
 const ALL_TEAMS = "all";
 
@@ -43,7 +47,7 @@ export default async function WorkflowsPage(props: {
   let q = supabase
     .from("workflows")
     .select(
-      "id, name, team, frequency_per_week, regulatory, workflow_steps(count)",
+      "id, name, team, frequency_per_week, regulatory, created_by, workflow_steps(count)",
     )
     .is("deleted_at", null)
     .order("name");
@@ -73,7 +77,39 @@ export default async function WorkflowsPage(props: {
     }
   }
 
-  // 3. Team options for the filter dropdown and the new-workflow picker.
+  // 3. Logged-by lookup. Resolve workflow.created_by to a display name via
+  //    profiles, falling back to the auth.users email for users who haven't
+  //    customised their profile yet. Empty for legacy rows where created_by
+  //    is null (seed data).
+  const creatorIds = Array.from(
+    new Set(
+      (workflows ?? [])
+        .map((w) => w.created_by)
+        .filter((v): v is string => !!v),
+    ),
+  );
+  const creatorLabelById = new Map<string, string>();
+  if (creatorIds.length > 0) {
+    const [{ data: profiles }, { data: emails }] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("user_id, display_name")
+        .in("user_id", creatorIds)
+        .returns<ProfileLite[]>(),
+      supabase.rpc("user_emails"),
+    ]);
+    for (const p of profiles ?? []) {
+      const dn = p.display_name?.trim();
+      if (dn) creatorLabelById.set(p.user_id, dn);
+    }
+    const emailRows = (emails ?? []) as UserEmailRow[];
+    for (const e of emailRows) {
+      if (creatorLabelById.has(e.user_id)) continue;
+      if (e.email) creatorLabelById.set(e.user_id, e.email);
+    }
+  }
+
+  // 4. Team options for the filter dropdown and the new-workflow picker.
   //    Unions people.team + workflows.team so every team a person belongs to
   //    is selectable, even if nobody has logged a workflow on it yet.
   const teamOptions = await loadTeamOptions(supabase, user.team);
@@ -143,12 +179,16 @@ export default async function WorkflowsPage(props: {
                 <TableHead className="text-right">Steps</TableHead>
                 <TableHead>Regulatory</TableHead>
                 <TableHead className="text-right">Active interventions</TableHead>
+                <TableHead>Logged by</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {(workflows ?? []).map((wf) => {
                 const stepsCount = wf.workflow_steps?.[0]?.count ?? 0;
                 const activeInterventions = interventionCounts.get(wf.id) ?? 0;
+                const loggedBy = wf.created_by
+                  ? creatorLabelById.get(wf.created_by) ?? null
+                  : null;
 
                 return (
                   <TableRow key={wf.id}>
@@ -178,6 +218,9 @@ export default async function WorkflowsPage(props: {
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
                       {activeInterventions}
+                    </TableCell>
+                    <TableCell className="text-zinc-700">
+                      {loggedBy ?? <span className="text-zinc-400">-</span>}
                     </TableCell>
                   </TableRow>
                 );

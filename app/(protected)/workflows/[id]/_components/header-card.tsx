@@ -1,6 +1,7 @@
 import { championsByDisplayName, championsByTeam } from "@/lib/champions";
 import { PersonName } from "@/components/people/champion-mark";
 import Link from "next/link";
+import { format } from "date-fns";
 import { DeleteWorkflowButton } from "./delete-workflow-button";
 import { EditWorkflowDialog } from "./edit-workflow-dialog";
 
@@ -27,11 +28,15 @@ export async function HeaderCard({
   teams,
   canEdit,
   canDelete,
+  loggedByLabel,
+  createdAt,
 }: {
   workflow: WorkflowHeader;
   teams: string[];
   canEdit: boolean;
   canDelete: boolean;
+  loggedByLabel: string | null;
+  createdAt: string;
 }) {
   const champByName = await championsByDisplayName();
   const champByTeam = await championsByTeam();
@@ -110,6 +115,28 @@ export async function HeaderCard({
                 )}
               </dd>
             </div>
+            <div>
+              <dt className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+                Logged by
+              </dt>
+              <dd className="text-zinc-900">
+                {loggedByLabel ? (
+                  <PersonName
+                    name={loggedByLabel}
+                    champion={
+                      champByName.get(loggedByLabel.trim().toLowerCase()) ??
+                      null
+                    }
+                  />
+                ) : (
+                  <span className="text-zinc-400">-</span>
+                )}
+              </dd>
+            </div>
+            <Field
+              label="Logged on"
+              value={format(new Date(createdAt), "d MMM yyyy")}
+            />
           </dl>
         </div>
 

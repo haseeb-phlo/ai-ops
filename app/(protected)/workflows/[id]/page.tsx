@@ -39,11 +39,13 @@ export default async function WorkflowDetailPage({
     supabase
       .from("workflows")
       .select(
-        "id, name, team, regulatory, frequency, criticality, business_kpi, owner_names, created_by",
+        "id, name, team, regulatory, frequency, criticality, business_kpi, owner_names, created_by, created_at",
       )
       .eq("id", id)
       .is("deleted_at", null)
-      .maybeSingle<WorkflowHeader & { created_by: string | null }>(),
+      .maybeSingle<
+        WorkflowHeader & { created_by: string | null; created_at: string }
+      >(),
     supabase
       .from("workflow_metrics")
       .select(
@@ -79,6 +81,32 @@ export default async function WorkflowDetailPage({
 
   if (!workflow) {
     notFound();
+  }
+
+  // Resolve created_by → display name (profiles), else canonical email
+  // (auth.users via user_emails RPC). Falls back to null for legacy seed
+  // rows that pre-date the created_by column.
+  let loggedByLabel: string | null = null;
+  if (workflow.created_by) {
+    const [{ data: ownerProfile }, { data: emails }] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("display_name")
+        .eq("user_id", workflow.created_by)
+        .maybeSingle<{ display_name: string | null }>(),
+      supabase.rpc("user_emails"),
+    ]);
+    const dn = ownerProfile?.display_name?.trim();
+    if (dn) {
+      loggedByLabel = dn;
+    } else {
+      const emailRows = (emails ?? []) as Array<{
+        user_id: string;
+        email: string | null;
+      }>;
+      const match = emailRows.find((e) => e.user_id === workflow.created_by);
+      if (match?.email) loggedByLabel = match.email;
+    }
   }
 
   const teams = await loadTeamOptions(supabase, workflow.team);
@@ -127,6 +155,8 @@ export default async function WorkflowDetailPage({
           teams={teams}
           canEdit={canEdit}
           canDelete={canDelete}
+          loggedByLabel={loggedByLabel}
+          createdAt={workflow.created_at}
         />
         {stepExtractionFailed && (
           <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">

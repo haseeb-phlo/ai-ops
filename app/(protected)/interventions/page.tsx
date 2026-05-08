@@ -167,8 +167,8 @@ export default async function InterventionsListPage({
                 <TableHead>Type</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Workflows</TableHead>
-                <TableHead>Owner</TableHead>
-                <TableHead>Created</TableHead>
+                <TableHead>Logged by</TableHead>
+                <TableHead>Logged on</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
