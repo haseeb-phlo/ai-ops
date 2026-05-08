@@ -10,11 +10,12 @@ import {
 } from "@/components/people/champion-mark";
 import { ChampionNotesSection } from "@/app/(protected)/_components/champion-notes/notes-section";
 import { Badge } from "@/components/ui/badge";
-import { BackLink } from "@/components/ui/nav-link";
+import { DetailHeader } from "@/components/ui/detail-header";
 import { toTitle } from "@/lib/utils";
 import { LogMetricSnapshotButton } from "./_components/log-metric-snapshot-button";
 import { EditInterventionDialog } from "./_components/edit-intervention-dialog";
 import { StatusButton } from "./_components/status-button";
+import { DeleteInterventionButton } from "./_components/delete-intervention-button";
 
 type InterventionType =
   | "tool"
@@ -36,9 +37,12 @@ type Intervention = {
   description: string | null;
   owner: string | null;
   minutes_saved_per_week: number | null;
+  estimated_gbp_saved_per_week: number | null;
+  estimated_revenue_per_week: number | null;
   attribution_confidence: Confidence | null;
   adoption_status: AdoptionStatus | null;
   satisfaction: number | null;
+  recipient_emails: string[] | null;
   created_by: string | null;
   created_at: string;
 };
@@ -80,10 +84,10 @@ type MetricRow = {
   notes: string | null;
 };
 
-const STATUS_STYLES: Record<Status, string> = {
-  active: "bg-green-50 text-green-800 ring-green-200",
-  paused: "bg-amber-50 text-amber-800 ring-amber-200",
-  retired: "bg-zinc-100 text-zinc-600 ring-zinc-200",
+const STATUS_DOT: Record<Status, string> = {
+  active: "bg-emerald-500",
+  paused: "bg-amber-500",
+  retired: "bg-zinc-300",
 };
 
 export default async function InterventionDetailPage({
@@ -101,11 +105,12 @@ export default async function InterventionDetailPage({
     { data: baselines },
     { data: metrics },
     { data: edits },
+    { data: addressedSuggestions },
   ] = await Promise.all([
     supabase
       .from("ai_interventions")
       .select(
-        "id, name, type, status, description, owner, minutes_saved_per_week, attribution_confidence, adoption_status, satisfaction, created_by, created_at",
+        "id, name, type, status, description, owner, minutes_saved_per_week, estimated_gbp_saved_per_week, estimated_revenue_per_week, attribution_confidence, adoption_status, satisfaction, recipient_emails, created_by, created_at",
       )
       .eq("id", id)
       .maybeSingle<Intervention>(),
@@ -136,11 +141,46 @@ export default async function InterventionDetailPage({
       .order("created_at", { ascending: false })
       .limit(20)
       .returns<EditRow[]>(),
+    supabase
+      .from("intervention_suggestions")
+      .select("id, title, team, created_at, created_by")
+      .eq("intervention_id", id)
+      .order("created_at", { ascending: true })
+      .returns<
+        {
+          id: string;
+          title: string;
+          team: string | null;
+          created_at: string;
+          created_by: string | null;
+        }[]
+      >(),
   ]);
 
   if (!intervention) {
     notFound();
   }
+
+  // People picker source for the edit dialog. Cheap (~one row per
+  // employee); avoids prop-drilling people through the whole page tree.
+  const { data: directoryPeople } = await supabase
+    .from("people")
+    .select("email, display_name, title, team")
+    .order("display_name", { ascending: true })
+    .returns<
+      {
+        email: string;
+        display_name: string;
+        title: string | null;
+        team: string | null;
+      }[]
+    >();
+  const pickerPeople = (directoryPeople ?? []).map((p) => ({
+    email: p.email,
+    displayName: p.display_name,
+    title: p.title,
+    team: p.team,
+  }));
 
   let ownerDisplayName: string | null = null;
   if (intervention.created_by) {
@@ -186,8 +226,13 @@ export default async function InterventionDetailPage({
   const editRows = edits ?? [];
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-6 px-6 py-8">
-      <BackLink href="/interventions">All interventions</BackLink>
+    <div className="mx-auto w-full max-w-5xl px-6 py-6">
+      <DetailHeader
+        backHref="/interventions"
+        backLabel="All interventions"
+        title={intervention.name}
+      />
+      <div className="space-y-6">
 
       {/* Full card */}
       <section className="rounded-lg border border-zinc-200 bg-white p-6">
@@ -203,9 +248,11 @@ export default async function InterventionDetailPage({
                 </Badge>
               )}
               {intervention.status && (
-                <span
-                  className={`rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${STATUS_STYLES[intervention.status]}`}
-                >
+                <span className="inline-flex items-center gap-1.5 text-xs text-zinc-700">
+                  <span
+                    aria-hidden
+                    className={`size-1.5 rounded-full ${STATUS_DOT[intervention.status]}`}
+                  />
                   {toTitle(intervention.status)}
                 </span>
               )}
@@ -269,18 +316,31 @@ export default async function InterventionDetailPage({
                     id: intervention.id,
                     name: intervention.name,
                     type: intervention.type,
+                    status: intervention.status,
                     description: intervention.description,
                     minutes_saved_per_week: intervention.minutes_saved_per_week,
+                    estimated_gbp_saved_per_week:
+                      intervention.estimated_gbp_saved_per_week,
+                    estimated_revenue_per_week:
+                      intervention.estimated_revenue_per_week,
                     attribution_confidence: intervention.attribution_confidence,
                     adoption_status: intervention.adoption_status,
                     satisfaction: intervention.satisfaction,
+                    recipient_emails: intervention.recipient_emails ?? [],
                   }}
+                  people={pickerPeople}
                 />
                 <StatusButton
                   interventionId={intervention.id}
                   status={intervention.status ?? "active"}
                 />
               </>
+            )}
+            {user.role === "super_admin" && (
+              <DeleteInterventionButton
+                interventionId={intervention.id}
+                interventionName={intervention.name}
+              />
             )}
             <LogMetricSnapshotButton interventionId={intervention.id} />
           </div>
@@ -301,6 +361,32 @@ export default async function InterventionDetailPage({
           ),
         )}
       />
+
+      {/* Suggestions this intervention closed out */}
+      {(addressedSuggestions ?? []).length > 0 && (
+        <section className="space-y-2">
+          <h2 className="text-sm font-semibold tracking-tight text-zinc-900">
+            Addresses {addressedSuggestions!.length}{" "}
+            {addressedSuggestions!.length === 1 ? "suggestion" : "suggestions"}
+          </h2>
+          <ul className="divide-y divide-zinc-100 rounded-lg border border-zinc-200 bg-white">
+            {addressedSuggestions!.map((s) => (
+              <li key={s.id} className="px-4 py-3 text-sm">
+                <Link
+                  href={`/suggestions?tab=shipped`}
+                  className="font-medium text-zinc-900 hover:underline"
+                >
+                  {s.title}
+                </Link>
+                <span className="ml-2 text-xs text-zinc-500">
+                  {s.team && <>{s.team} · </>}
+                  {format(new Date(s.created_at), "d MMM yyyy")}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {/* Linked workflows */}
       <section className="space-y-2">
@@ -438,6 +524,7 @@ export default async function InterventionDetailPage({
           )}
         </div>
       </section>
+      </div>
     </div>
   );
 }

@@ -54,10 +54,10 @@ const TYPE_VARIANT: Record<InterventionType, "default" | "secondary" | "outline"
   process_change: "outline",
 };
 
-const STATUS_STYLES: Record<Status, string> = {
-  active: "bg-green-50 text-green-800 ring-green-200",
-  paused: "bg-amber-50 text-amber-800 ring-amber-200",
-  retired: "bg-zinc-100 text-zinc-600 ring-zinc-200",
+const STATUS_DOT: Record<Status, string> = {
+  active: "bg-emerald-500",
+  paused: "bg-amber-500",
+  retired: "bg-zinc-300",
 };
 
 export default async function InterventionsListPage({
@@ -200,9 +200,11 @@ export default async function InterventionsListPage({
                     </TableCell>
                     <TableCell>
                       {row.status ? (
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${STATUS_STYLES[row.status]}`}
-                        >
+                        <span className="inline-flex items-center gap-1.5 text-xs text-zinc-700">
+                          <span
+                            aria-hidden
+                            className={`size-1.5 rounded-full ${STATUS_DOT[row.status]}`}
+                          />
                           {toTitle(row.status)}
                         </span>
                       ) : (

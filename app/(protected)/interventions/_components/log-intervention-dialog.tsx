@@ -269,9 +269,7 @@ export function LogInterventionDialog({
               </div>
               <div className="grid gap-3 sm:grid-cols-3">
                 <div className="space-y-1.5">
-                  <Label htmlFor="minutes_saved_per_week">
-                    Minutes saved
-                  </Label>
+                  <Label htmlFor="minutes_saved_per_week">Minutes saved</Label>
                   <SuffixInput suffix="/ wk">
                     <Input
                       id="minutes_saved_per_week"
@@ -285,35 +283,35 @@ export function LogInterventionDialog({
                   </SuffixInput>
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="estimated_gbp_saved_per_week">
-                    Cost saved
-                  </Label>
+                  <Label htmlFor="estimated_gbp_saved_per_week">Cost saved</Label>
                   <PrefixInput prefix="£">
-                    <Input
-                      id="estimated_gbp_saved_per_week"
-                      name="estimated_gbp_saved_per_week"
-                      type="number"
-                      min={0}
-                      step="0.01"
-                      required
-                      placeholder="0"
-                    />
+                    <SuffixInput suffix="/ wk">
+                      <Input
+                        id="estimated_gbp_saved_per_week"
+                        name="estimated_gbp_saved_per_week"
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        required
+                        placeholder="0"
+                      />
+                    </SuffixInput>
                   </PrefixInput>
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="estimated_revenue_per_week">
-                    Revenue generated
-                  </Label>
+                  <Label htmlFor="estimated_revenue_per_week">Revenue generated</Label>
                   <PrefixInput prefix="£">
-                    <Input
-                      id="estimated_revenue_per_week"
-                      name="estimated_revenue_per_week"
-                      type="number"
-                      min={0}
-                      step="0.01"
-                      required
-                      placeholder="0"
-                    />
+                    <SuffixInput suffix="/ wk">
+                      <Input
+                        id="estimated_revenue_per_week"
+                        name="estimated_revenue_per_week"
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        required
+                        placeholder="0"
+                      />
+                    </SuffixInput>
                   </PrefixInput>
                 </div>
               </div>

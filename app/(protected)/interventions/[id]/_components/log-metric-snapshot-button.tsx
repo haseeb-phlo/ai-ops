@@ -70,12 +70,31 @@ export function LogMetricSnapshotButton({
               />
             </div>
 
+            <div className="rounded-md bg-zinc-50 px-3 py-2 text-xs text-zinc-600">
+              Enter today&apos;s value for each metric. Savings are computed
+              automatically against the baseline captured when this
+              intervention was logged - don&apos;t enter the savings amount
+              yourself.
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
-              <NumField label="Time (min)" name="time_value" />
-              <NumField label="Cost (£)" name="cost_value" />
-              <NumField label="People" name="people_value" />
-              <NumField label="Errors" name="errors_value" />
-              <NumField label="Revenue (£)" name="revenue_value" />
+              <NumField
+                label="Time per week (min)"
+                name="time_value"
+                hint="Lower than baseline = time saved"
+              />
+              <NumField
+                label="Cost per week (£)"
+                name="cost_value"
+                hint="Lower than baseline = cost saved"
+              />
+              <NumField label="People involved" name="people_value" />
+              <NumField label="Errors per week" name="errors_value" />
+              <NumField
+                label="Revenue per week (£)"
+                name="revenue_value"
+                hint="Higher than baseline = revenue uplift"
+              />
             </div>
 
             <div className="space-y-1.5">
@@ -117,11 +136,20 @@ export function LogMetricSnapshotButton({
   );
 }
 
-function NumField({ label, name }: { label: string; name: string }) {
+function NumField({
+  label,
+  name,
+  hint,
+}: {
+  label: string;
+  name: string;
+  hint?: string;
+}) {
   return (
     <div className="space-y-1.5">
       <Label htmlFor={name}>{label}</Label>
       <Input id={name} name={name} type="number" step="any" placeholder="-" />
+      {hint && <p className="text-[11px] text-zinc-500">{hint}</p>}
     </div>
   );
 }

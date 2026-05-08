@@ -116,11 +116,22 @@ const UpdateSchema = z.object({
   id: z.string().uuid(),
   name: z.string().min(1, "Name is required").max(200),
   type: z.enum(INTERVENTION_TYPES, { error: "Pick an intervention type" }),
+  status: z.enum(STATUSES),
   description: z.string().max(500).nullable(),
   minutes_saved_per_week: z
     .number({ error: "Minutes saved must be a number" })
     .min(0, "Minutes saved can't be negative")
     .max(100000)
+    .nullable(),
+  estimated_gbp_saved_per_week: z
+    .number({ error: "GBP saved must be a number" })
+    .min(0, "GBP saved can't be negative")
+    .max(10_000_000)
+    .nullable(),
+  estimated_revenue_per_week: z
+    .number({ error: "Revenue must be a number" })
+    .min(0, "Revenue can't be negative")
+    .max(10_000_000)
     .nullable(),
   attribution_confidence: z.enum(CONFIDENCES),
   adoption_status: z.enum(ADOPTION_STATUSES).nullable(),
@@ -130,6 +141,7 @@ const UpdateSchema = z.object({
     .min(1, "Satisfaction is 1-5")
     .max(5, "Satisfaction is 1-5")
     .nullable(),
+  recipient_emails: z.array(z.string().email().toLowerCase()).max(500),
 });
 
 export type UpdateInterventionState =
@@ -164,16 +176,35 @@ export async function updateIntervention(
     typeof satisfactionRaw === "string" && satisfactionRaw.trim() !== ""
       ? Number(satisfactionRaw)
       : null;
+  const gbpRaw = formData.get("estimated_gbp_saved_per_week");
+  const gbpParsed =
+    typeof gbpRaw === "string" && gbpRaw.trim() !== ""
+      ? Number(gbpRaw)
+      : null;
+  const revenueRaw = formData.get("estimated_revenue_per_week");
+  const revenueParsed =
+    typeof revenueRaw === "string" && revenueRaw.trim() !== ""
+      ? Number(revenueRaw)
+      : null;
+  const recipients = formData
+    .getAll("recipient_emails")
+    .filter(
+      (v): v is string => typeof v === "string" && v.trim().length > 0,
+    );
 
   const parsed = UpdateSchema.safeParse({
     id: formData.get("id"),
     name: formData.get("name"),
     type: formData.get("type"),
+    status: formData.get("status"),
     description,
     minutes_saved_per_week: minutesParsed,
+    estimated_gbp_saved_per_week: gbpParsed,
+    estimated_revenue_per_week: revenueParsed,
     attribution_confidence: formData.get("attribution_confidence"),
     adoption_status: adoption,
     satisfaction,
+    recipient_emails: recipients,
   });
 
   if (!parsed.success) {
@@ -186,7 +217,8 @@ export async function updateIntervention(
   const data = parsed.data;
   const supabase = await createClient();
 
-  const { error } = await supabase.rpc("update_intervention", {
+  // Existing fields go through the audited RPC (writes to intervention_edits).
+  const { error: rpcError } = await supabase.rpc("update_intervention", {
     p_id: data.id,
     p_name: data.name,
     p_type: data.type,
@@ -196,9 +228,31 @@ export async function updateIntervention(
     p_adoption_status: data.adoption_status,
     p_satisfaction: data.satisfaction,
   });
+  if (rpcError) {
+    return {
+      kind: "error",
+      message: `Could not save: ${rpcError.message}`,
+    };
+  }
 
-  if (error) {
-    return { kind: "error", message: `Could not save: ${error.message}` };
+  // Newer fields (status, estimated GBP / revenue, recipients) aren't yet
+  // supported by the audited RPC, so write them directly. They show up on
+  // the dashboard immediately; audit-trail coverage for these can be added
+  // in a follow-up migration that extends update_intervention.
+  const { error: directError } = await supabase
+    .from("ai_interventions")
+    .update({
+      status: data.status,
+      estimated_gbp_saved_per_week: data.estimated_gbp_saved_per_week,
+      estimated_revenue_per_week: data.estimated_revenue_per_week,
+      recipient_emails: data.recipient_emails,
+    })
+    .eq("id", data.id);
+  if (directError) {
+    return {
+      kind: "error",
+      message: `Saved core fields, but could not update extras: ${directError.message}`,
+    };
   }
 
   revalidatePath(`/interventions/${data.id}`);
@@ -252,4 +306,32 @@ export async function setInterventionStatus(
   revalidatePath("/interventions");
   revalidatePath("/");
   return { kind: "success" };
+}
+
+/**
+ * Hard delete an intervention. Super-admin only. Cascades through the
+ * intervention_workflows / workflow_baselines / intervention_metrics
+ * tables (FK on delete cascade), and clears any suggestion linkage so
+ * shipped suggestions don't dangle.
+ */
+export async function deleteIntervention(formData: FormData): Promise<void> {
+  const { redirect } = await import("next/navigation");
+  const gate = await requireWriter();
+  if (!gate.ok) return;
+  if (gate.user.role !== "super_admin") return;
+  const id = formData.get("id");
+  if (typeof id !== "string" || !id) return;
+  const supabase = await createClient();
+
+  // Detach suggestion links first so we don't leave orphaned shipped rows.
+  await supabase
+    .from("intervention_suggestions")
+    .update({ intervention_id: null, status: "open" })
+    .eq("intervention_id", id);
+
+  await supabase.from("ai_interventions").delete().eq("id", id);
+
+  revalidatePath("/interventions");
+  revalidatePath("/");
+  redirect("/interventions");
 }
