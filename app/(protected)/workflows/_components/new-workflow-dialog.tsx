@@ -25,6 +25,7 @@ import {
   PeoplePicker,
   type PickerPerson,
 } from "@/components/ui/people-picker";
+import { TagInput } from "@/components/ui/tag-input";
 import { cn } from "@/lib/utils";
 import { createWorkflow, type CreateWorkflowState } from "../actions";
 import { StepEditor } from "./step-editor";
@@ -41,15 +42,18 @@ export function NewWorkflowDialog({
   teams,
   defaultTeam,
   people,
+  toolSuggestions = [],
 }: {
   teams: string[];
   defaultTeam: string;
   people: PickerPerson[];
+  toolSuggestions?: string[];
 }) {
   const [open, setOpen] = useState(false);
   const [team, setTeam] = useState(defaultTeam);
   const [criticality, setCriticality] = useState("3");
   const [owners, setOwners] = useState<Set<string>>(new Set());
+  const [tools, setTools] = useState<string[]>([]);
   const [stepCount, setStepCount] = useState(0);
 
   const [state, action, pending] = useActionState<CreateWorkflowState, FormData>(
@@ -174,6 +178,25 @@ export function NewWorkflowDialog({
                 selected={owners}
                 onChange={setOwners}
                 inputName="owner_emails"
+              />
+            </div>
+
+            <div className="space-y-3 border-t border-border pt-5">
+              <div className="space-y-1">
+                <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Tools used
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Apps, AI models, or systems people use to run this today.
+                  Optional. Press Enter or comma to add.
+                </p>
+              </div>
+              <TagInput
+                selected={tools}
+                onChange={setTools}
+                suggestions={toolSuggestions}
+                inputName="tools_used"
+                placeholder="e.g. Notion, Claude, Linear"
               />
             </div>
 

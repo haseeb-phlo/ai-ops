@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/table";
 import { PageContainer, PageHeader } from "@/components/page-header";
 import { loadTeamOptions } from "@/lib/teams";
+import { loadToolSuggestions } from "@/lib/tools";
 import { TeamFilter } from "./_components/team-filter";
 import { NewWorkflowDialog } from "./_components/new-workflow-dialog";
 
@@ -140,6 +141,8 @@ export default async function WorkflowsPage(props: {
     team: p.team,
   }));
 
+  const toolSuggestions = await loadToolSuggestions(supabase);
+
   return (
     <PageContainer>
       <PageHeader
@@ -156,6 +159,7 @@ export default async function WorkflowsPage(props: {
               teams={teamOptions}
               defaultTeam={user.team ?? teamOptions[0] ?? ""}
               people={pickerPeople}
+              toolSuggestions={toolSuggestions}
             />
           </>
         }

@@ -8,9 +8,11 @@ import { LogInterventionDialog } from "./log-intervention-dialog";
 export function LogInterventionButton({
   workflows,
   people,
+  toolSuggestions = [],
 }: {
   workflows: { id: string; name: string }[];
   people: PickerPerson[];
+  toolSuggestions?: string[];
 }) {
   const [open, setOpen] = useState(false);
 
@@ -22,6 +24,7 @@ export function LogInterventionButton({
         onOpenChange={setOpen}
         workflows={workflows}
         people={people}
+        toolSuggestions={toolSuggestions}
       />
     </>
   );

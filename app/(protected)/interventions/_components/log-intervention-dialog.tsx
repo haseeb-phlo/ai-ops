@@ -25,6 +25,7 @@ import {
   PeoplePicker,
   type PickerPerson,
 } from "@/components/ui/people-picker";
+import { TagInput } from "@/components/ui/tag-input";
 import { cn } from "@/lib/utils";
 import { logIntervention, type LogInterventionState } from "../actions";
 
@@ -67,11 +68,13 @@ export function LogInterventionDialog({
   onOpenChange,
   workflows,
   people,
+  toolSuggestions = [],
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   workflows: { id: string; name: string }[];
   people: PickerPerson[];
+  toolSuggestions?: string[];
 }) {
   const [state, formAction] = useActionState<LogInterventionState, FormData>(
     logIntervention,
@@ -83,6 +86,7 @@ export function LogInterventionDialog({
   const [adoption, setAdoption] = useState<string>("");
   const [satisfaction, setSatisfaction] = useState<string>("");
   const [recipients, setRecipients] = useState<Set<string>>(new Set());
+  const [tools, setTools] = useState<string[]>([]);
   const [search, setSearch] = useState("");
 
   const handleOpenChange = (next: boolean) => {
@@ -93,6 +97,7 @@ export function LogInterventionDialog({
       setAdoption("");
       setSatisfaction("");
       setRecipients(new Set());
+      setTools([]);
       setSearch("");
     }
     onOpenChange(next);
@@ -255,6 +260,25 @@ export function LogInterventionDialog({
                 selected={recipients}
                 onChange={setRecipients}
                 inputName="recipient_emails"
+              />
+            </div>
+
+            <div className="space-y-3 border-t border-border pt-5">
+              <div className="space-y-1">
+                <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Tools used
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Apps, AI models, or systems this intervention runs on.
+                  Optional. Press Enter or comma to add.
+                </p>
+              </div>
+              <TagInput
+                selected={tools}
+                onChange={setTools}
+                suggestions={toolSuggestions}
+                inputName="tools_used"
+                placeholder="e.g. Claude, Zapier, n8n"
               />
             </div>
 

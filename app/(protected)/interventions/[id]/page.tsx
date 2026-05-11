@@ -43,6 +43,7 @@ type Intervention = {
   adoption_status: AdoptionStatus | null;
   satisfaction: number | null;
   recipient_emails: string[] | null;
+  tools_used: string[] | null;
   created_by: string | null;
   created_at: string;
 };
@@ -114,7 +115,7 @@ export default async function InterventionDetailPage({
     supabase
       .from("ai_interventions")
       .select(
-        "id, name, type, status, description, owner, minutes_saved_per_week, estimated_gbp_saved_per_week, estimated_revenue_per_week, attribution_confidence, adoption_status, satisfaction, recipient_emails, created_by, created_at",
+        "id, name, type, status, description, owner, minutes_saved_per_week, estimated_gbp_saved_per_week, estimated_revenue_per_week, attribution_confidence, adoption_status, satisfaction, recipient_emails, tools_used, created_by, created_at",
       )
       .eq("id", id)
       .maybeSingle<Intervention>(),
@@ -321,6 +322,8 @@ export default async function InterventionDetailPage({
                 </dd>
               </div>
             </dl>
+
+            <ToolsRow tools={intervention.tools_used ?? []} />
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -552,6 +555,32 @@ function Field({ label, value }: { label: string; value: string | null }) {
       </dt>
       <dd className="text-zinc-900">
         {value ?? <span className="text-zinc-400">-</span>}
+      </dd>
+    </div>
+  );
+}
+
+function ToolsRow({ tools }: { tools: string[] }) {
+  return (
+    <div className="space-y-1.5">
+      <dt className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+        Tools used
+      </dt>
+      <dd>
+        {tools.length === 0 ? (
+          <span className="text-sm text-zinc-400">-</span>
+        ) : (
+          <ul className="flex flex-wrap gap-1.5">
+            {tools.map((t) => (
+              <li
+                key={t}
+                className="inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-xs text-zinc-700"
+              >
+                {t}
+              </li>
+            ))}
+          </ul>
+        )}
       </dd>
     </div>
   );

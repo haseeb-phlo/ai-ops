@@ -34,6 +34,12 @@ const FormSchema = z.object({
     .array(z.string().email().toLowerCase())
     .min(1, "Pick at least one person involved in this workflow")
     .max(50, "That's a lot of owners; consider scoping the workflow."),
+  // Free-text tool names entered via the tag input. Optional, deduped by
+  // case-insensitive match server-side so the same tool name converges
+  // across rows without a separate `tools` table.
+  tools_used: z
+    .array(z.string().min(1).max(80))
+    .max(20, "Twenty tools is the cap; trim to the most relevant."),
   steps: z
     .array(
       z.object({
@@ -95,6 +101,11 @@ export async function createWorkflow(
     owner_emails: formData.getAll("owner_emails").filter(
       (v): v is string => typeof v === "string" && v.trim().length > 0,
     ),
+    tools_used: dedupeTools(
+      formData
+        .getAll("tools_used")
+        .filter((v): v is string => typeof v === "string"),
+    ),
     steps: stepInputs,
   });
 
@@ -139,6 +150,7 @@ export async function createWorkflow(
       business_kpi: data.business_kpi ?? null,
       regulatory: data.regulatory_flag,
       owner_names: ownerNames,
+      tools_used: data.tools_used,
       active: true,
       created_by: user.id,
     })
@@ -277,4 +289,21 @@ export async function restoreWorkflow(
   revalidatePath(`/workflows/${workflowId}`);
   revalidatePath("/admin");
   return { kind: "ok" };
+}
+
+// Trim, drop empties, and dedupe by case-insensitive match while keeping
+// the first-seen casing — same rule the autocomplete uses to converge
+// "Claude" / "claude" / "  Claude " into a single tag.
+function dedupeTools(raw: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const r of raw) {
+    const t = r.trim();
+    if (!t) continue;
+    const key = t.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(t);
+  }
+  return out;
 }

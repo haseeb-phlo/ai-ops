@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/table";
 import { PageContainer, PageHeader } from "@/components/page-header";
 import { toTitle } from "@/lib/utils";
+import { loadToolSuggestions } from "@/lib/tools";
 import { Filters } from "./_components/filters";
 import { LogInterventionButton } from "./_components/log-intervention-button";
 
@@ -134,6 +135,8 @@ export default async function InterventionsListPage({
     team: p.team,
   }));
 
+  const toolSuggestions = await loadToolSuggestions(supabase);
+
   return (
     <PageContainer>
       <PageHeader
@@ -143,6 +146,7 @@ export default async function InterventionsListPage({
           <LogInterventionButton
             workflows={workflows ?? []}
             people={pickerPeople}
+            toolSuggestions={toolSuggestions}
           />
         }
       />

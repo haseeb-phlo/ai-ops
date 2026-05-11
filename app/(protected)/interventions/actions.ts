@@ -65,6 +65,11 @@ const FormSchema = z.object({
     .array(z.string().email().toLowerCase())
     .min(1, "Pick at least one person affected by this intervention")
     .max(500, "Recipient list is unusually large; check the picker."),
+  // Free-text tool names from the tag input. Optional; deduped server-side
+  // by case-insensitive match to keep the cross-row list converging.
+  tools_used: z
+    .array(z.string().min(1).max(80))
+    .max(20, "Twenty tools is the cap; trim to the most relevant."),
 });
 
 export type LogInterventionState =
@@ -101,6 +106,11 @@ export async function logIntervention(
     recipient_emails: formData.getAll("recipient_emails").filter(
       (v): v is string => typeof v === "string" && v.trim().length > 0,
     ),
+    tools_used: dedupeTools(
+      formData
+        .getAll("tools_used")
+        .filter((v): v is string => typeof v === "string"),
+    ),
   });
 
   if (!parsed.success) {
@@ -125,6 +135,7 @@ export async function logIntervention(
     p_adoption_status: data.adoption_status ?? null,
     p_satisfaction: data.satisfaction ?? null,
     p_recipient_emails: data.recipient_emails,
+    p_tools_used: data.tools_used,
   });
 
   if (error || !newId) {
@@ -137,4 +148,20 @@ export async function logIntervention(
   revalidatePath("/interventions");
   revalidatePath("/");
   redirect(`/interventions/${newId}`);
+}
+
+// Trim, drop empties, and dedupe by case-insensitive match while keeping
+// the first-seen casing — same rule the workflow action and RPC use.
+function dedupeTools(raw: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const r of raw) {
+    const t = r.trim();
+    if (!t) continue;
+    const key = t.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(t);
+  }
+  return out;
 }
