@@ -125,7 +125,7 @@ export function LogInterventionDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="gap-0 p-0 sm:max-w-2xl">
         <DialogHeader className="gap-2 px-6 pt-5 pb-5">
-          <DialogTitle>Log new intervention</DialogTitle>
+          <DialogTitle>Log new initiative</DialogTitle>
           <DialogDescription>
             A tool, prompt, training session, or process change you&apos;ve
             shipped. We snapshot each affected workflow&apos;s current numbers
@@ -251,7 +251,7 @@ export function LogInterventionDialog({
                   People affected
                 </h3>
                 <p className="text-xs text-muted-foreground">
-                  Who has this intervention reached? Pick at least one person.
+                  Who has this initiative reached? Pick at least one person.
                   Drives per-person adoption tracking and reach metrics.
                 </p>
               </div>
@@ -269,7 +269,7 @@ export function LogInterventionDialog({
                   Tools used
                 </h3>
                 <p className="text-xs text-muted-foreground">
-                  Apps, AI models, or systems this intervention runs on.
+                  Apps, AI models, or systems this initiative runs on.
                   Optional. Press Enter or comma to add.
                 </p>
               </div>
@@ -476,7 +476,7 @@ function SubmitButton({ disabled }: { disabled: boolean }) {
   const { pending } = useFormStatus();
   return (
     <Button type="submit" disabled={disabled || pending}>
-      {pending ? "Logging…" : "Log intervention"}
+      {pending ? "Logging…" : "Log initiative"}
     </Button>
   );
 }

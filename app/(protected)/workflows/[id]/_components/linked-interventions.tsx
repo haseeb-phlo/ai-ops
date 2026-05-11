@@ -20,12 +20,12 @@ export function LinkedInterventions({
   return (
     <section className="space-y-2">
       <h2 className="text-sm font-semibold tracking-tight text-zinc-900">
-        Linked interventions
+        Linked initiatives
       </h2>
       <div className="rounded-lg border border-zinc-200 bg-white">
         {interventions.length === 0 ? (
           <div className="px-4 py-6 text-center text-sm text-zinc-400">
-            No interventions linked yet.
+            No initiatives linked yet.
           </div>
         ) : (
           <ul className="divide-y divide-zinc-100">

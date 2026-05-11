@@ -140,7 +140,7 @@ export default async function InterventionsListPage({
   return (
     <PageContainer>
       <PageHeader
-        title="AI interventions"
+        title="Initiatives"
         description="Tools, prompts, training, automations, and process changes shipped against workflows."
         actions={
           <LogInterventionButton
@@ -161,7 +161,7 @@ export default async function InterventionsListPage({
       <div className="rounded-lg border border-zinc-200 bg-white">
         {rows.length === 0 ? (
           <div className="px-4 py-10 text-center text-sm text-muted-foreground">
-            No interventions{typeFilter || statusFilter ? " for this filter" : " logged yet"}.
+            No initiatives{typeFilter || statusFilter ? " for this filter" : " logged yet"}.
           </div>
         ) : (
           <Table>

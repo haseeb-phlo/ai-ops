@@ -77,7 +77,7 @@ const HEAT_OPTIONS = [
   { value: "revenue", label: "Revenue per run", unit: "£", direction: "higher" },
   {
     value: "interventions",
-    label: "Active AI interventions",
+    label: "Active initiatives",
     unit: "",
     direction: "higher",
   },
@@ -729,7 +729,7 @@ function Legend({
         <ul className="space-y-1">
           <LegendRow
             swatch={<Swatch fill="#16a34a" ring="#9333ea" size={9} />}
-            label="Has active intervention"
+            label="Has active initiative"
           />
           <LegendRow
             swatch={
@@ -1335,7 +1335,7 @@ function TeamDetail({ teamName, data }: { teamName: string; data: GalaxyData }) 
       <p>{workflows.length} workflows</p>
       <p>
         {workflows.reduce((acc, w) => acc + w.activeInterventions, 0)} active
-        interventions
+        initiatives
       </p>
     </div>
   );

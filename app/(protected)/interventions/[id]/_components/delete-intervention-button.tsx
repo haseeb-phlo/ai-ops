@@ -80,7 +80,7 @@ export function DeleteInterventionButton({
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Delete intervention?</DialogTitle>
+            <DialogTitle>Delete initiative?</DialogTitle>
             <DialogDescription>
               This permanently removes <strong>{interventionName}</strong>{" "}
               along with its baselines, snapshots, and workflow links. Any
@@ -89,7 +89,7 @@ export function DeleteInterventionButton({
             </DialogDescription>
           </DialogHeader>
           <p className="text-sm text-zinc-600">
-            To pause or hide an intervention without losing its history, set
+            To pause or hide an initiative without losing its history, set
             its status to <strong>Retired</strong> instead.
           </p>
           {error && (

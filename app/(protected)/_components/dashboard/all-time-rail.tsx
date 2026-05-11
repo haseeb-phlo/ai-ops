@@ -33,7 +33,7 @@ export function AllTimeRail({
         </h2>
         <span className="text-xs text-zinc-500 tabular-nums">
           across {interventionCount}{" "}
-          {interventionCount === 1 ? "intervention" : "interventions"} (incl.
+          {interventionCount === 1 ? "initiative" : "initiatives"} (incl.
           retired)
         </span>
       </div>

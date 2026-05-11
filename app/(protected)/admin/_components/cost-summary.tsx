@@ -26,7 +26,7 @@ export function CostSummary({ cost }: Props) {
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
         <CostCard title="By vendor" buckets={cost.byVendor} months={months} />
         <CostCard
-          title="By intervention type"
+          title="By initiative type"
           buckets={cost.byType}
           months={months}
         />

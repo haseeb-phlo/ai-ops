@@ -16,7 +16,7 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: "Phlo AI Ops",
-  description: "Phlo's internal register of recurring workflows and AI interventions.",
+  description: "Phlo's internal register of recurring workflows and initiatives.",
 };
 
 export default function RootLayout({

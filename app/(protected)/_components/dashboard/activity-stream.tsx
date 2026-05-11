@@ -51,7 +51,7 @@ export function ActivityStream({ items }: { items: StreamItem[] }) {
                 </Link>
               }
               meta={[
-                "New intervention",
+                "New initiative",
                 it.status ? `status: ${it.status}` : null,
               ]
                 .filter(Boolean)

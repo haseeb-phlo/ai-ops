@@ -411,7 +411,7 @@ export default async function Home() {
           subtitle={reachSubtitle}
         />
         <Stat
-          label="Active interventions"
+          label="Active initiatives"
           value={activeCount.toLocaleString()}
         />
       </section>

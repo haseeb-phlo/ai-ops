@@ -33,7 +33,7 @@ export function AuditLog({ rows }: { rows: Row[] }) {
           Audit log
         </h2>
         <p className="text-xs text-zinc-500">
-          Last 100 edits across workflows, steps, and intervention status
+          Last 100 edits across workflows, steps, and initiative status
           changes.
         </p>
       </div>

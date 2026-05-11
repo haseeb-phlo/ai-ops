@@ -26,21 +26,21 @@ const COPY: Record<
 > = {
   active: {
     button: "Retire",
-    title: "Retire this intervention?",
+    title: "Retire this initiative?",
     body: "It stops counting toward live dashboard totals, but stays on the record so historical comparisons remain honest. You can reactivate it later.",
     confirm: "Retire",
     nextStatus: "retired",
   },
   paused: {
     button: "Retire",
-    title: "Retire this intervention?",
+    title: "Retire this initiative?",
     body: "It stops counting toward live dashboard totals, but stays on the record. You can reactivate it later.",
     confirm: "Retire",
     nextStatus: "retired",
   },
   retired: {
     button: "Reactivate",
-    title: "Reactivate this intervention?",
+    title: "Reactivate this initiative?",
     body: "It will count toward live dashboard totals again from now on. Past snapshots are unchanged.",
     confirm: "Reactivate",
     nextStatus: "active",

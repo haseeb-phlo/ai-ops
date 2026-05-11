@@ -246,7 +246,7 @@ export async function linkSuggestionsToIntervention(
   if (gate.user.role !== "super_admin") {
     return {
       kind: "error",
-      message: "Only super-admins can link suggestions to interventions.",
+      message: "Only super-admins can link suggestions to initiatives.",
     };
   }
   const ids = formData.getAll("suggestion_ids").filter(
