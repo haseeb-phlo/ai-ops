@@ -15,18 +15,30 @@ type Status =
   | { kind: "verifying" }
   | { kind: "error"; message: string };
 
-function friendlySignInError(
-  slug: string | null,
-  hashDescription: string | undefined,
-): string {
+function friendlySignInError({
+  slug,
+  errorCode,
+  errorDescription,
+}: {
+  slug: string | null;
+  errorCode: string | null;
+  errorDescription: string | undefined;
+}): string {
   if (slug === "domain_blocked") {
-    return "Sign-in is restricted to @wearephlo.com email addresses.";
+    return `Sign-in is restricted to @${ALLOWED_EMAIL_DOMAIN} email addresses.`;
   }
-  const expiredHash = hashDescription?.toLowerCase().includes("expired");
-  if (slug === "link_invalid" || expiredHash) {
-    return "That sign-in code has expired or was already used. Request a fresh one below.";
+  const description = errorDescription?.toLowerCase() ?? "";
+  // `otp_expired` is Supabase's canonical code for an expired magic-link
+  // / OTP. The description text is a fallback for older SDK versions and
+  // adjacent failure modes ("Email link is invalid or has expired").
+  const isExpired =
+    errorCode === "otp_expired" ||
+    description.includes("expired") ||
+    description.includes("invalid");
+  if (slug === "link_invalid" || isExpired) {
+    return "Your sign-in link has expired. Enter your email below to send a fresh one.";
   }
-  return "We couldn't sign you in with that code. Request a fresh one below.";
+  return "We couldn't sign you in with that link. Enter your email below to try again.";
 }
 
 // Map raw Supabase auth errors to a small, user-friendly set. Never echo
@@ -57,30 +69,38 @@ export default function LoginPage() {
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const [linkError, setLinkError] = useState<string | null>(null);
 
-  // Surface sign-in errors from two sources:
-  //   1) ?error=<slug> in the query string — set by /auth/callback when
-  //      exchangeCodeForSession fails (expired/consumed/cross-browser).
-  //   2) #error_description=... in the hash fragment — set by Supabase's
-  //      /verify endpoint itself when the OTP is already invalid before
-  //      it reaches our callback. The server can't read the fragment, so
-  //      we read it on the client.
-  // We map both to a small set of friendly messages — never echo raw
-  // error strings, which can leak SDK internals and confuse the user.
+  // Surface sign-in errors from two carriers:
+  //   1) Query string — set by /auth/callback when exchangeCodeForSession
+  //      fails, AND by Supabase's own /verify endpoint, which on failure
+  //      duplicates the error params into both query and hash.
+  //   2) Hash fragment — also written by Supabase's /verify endpoint. The
+  //      server can't read it, so we parse it on the client.
+  // Read from both because the carrier varies by SDK version, redirect
+  // chain (proxy.ts → /login can preserve query but may drop the hash if
+  // the Location header carries its own fragment), and even browser. We
+  // map both to a small set of friendly messages — never echo raw error
+  // strings, which can leak SDK internals and confuse the user.
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const querySlug = new URLSearchParams(window.location.search).get("error");
-    const hashDescription = new URLSearchParams(
-      window.location.hash.replace(/^#/, ""),
-    )
-      .get("error_description")
-      ?.replace(/\+/g, " ");
+    const query = new URLSearchParams(window.location.search);
+    const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
 
-    if (!querySlug && !hashDescription) return;
+    const slug = query.get("error");
+    // Prefer the hash copy when both are present — Supabase's /verify
+    // endpoint writes it there first; the query copy only exists because
+    // some redirect targets surface it for server-side handlers.
+    const errorCode = hash.get("error_code") ?? query.get("error_code");
+    const errorDescription =
+      hash.get("error_description") ?? query.get("error_description") ?? undefined;
 
-    const message = friendlySignInError(querySlug, hashDescription);
+    if (!slug && !errorCode && !errorDescription) return;
+
+    const message = friendlySignInError({ slug, errorCode, errorDescription });
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLinkError(message);
+    // Scrub both query and hash so a refresh doesn't re-trigger the
+    // banner and the address bar isn't full of scary auth params.
     history.replaceState(null, "", window.location.pathname);
   }, []);
 
