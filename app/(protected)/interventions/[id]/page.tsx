@@ -321,9 +321,15 @@ export default async function InterventionDetailPage({
                   <SatisfactionChip score={intervention.satisfaction} />
                 </dd>
               </div>
+              <div className="col-span-2 sm:col-span-3">
+                <dt className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+                  Tools used
+                </dt>
+                <dd className="mt-1">
+                  <ToolList tools={intervention.tools_used ?? []} />
+                </dd>
+              </div>
             </dl>
-
-            <ToolsRow tools={intervention.tools_used ?? []} />
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -560,29 +566,20 @@ function Field({ label, value }: { label: string; value: string | null }) {
   );
 }
 
-function ToolsRow({ tools }: { tools: string[] }) {
+function ToolList({ tools }: { tools: string[] }) {
+  if (tools.length === 0) {
+    return <span className="text-zinc-400">-</span>;
+  }
   return (
-    <div className="space-y-1.5">
-      <dt className="text-xs font-medium uppercase tracking-wide text-zinc-500">
-        Tools used
-      </dt>
-      <dd>
-        {tools.length === 0 ? (
-          <span className="text-sm text-zinc-400">-</span>
-        ) : (
-          <ul className="flex flex-wrap gap-1.5">
-            {tools.map((t) => (
-              <li
-                key={t}
-                className="inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-xs text-zinc-700"
-              >
-                {t}
-              </li>
-            ))}
-          </ul>
-        )}
-      </dd>
-    </div>
+    <ul className="flex flex-wrap gap-1.5">
+      {tools.map((t) => (
+        <li key={t}>
+          <Badge variant="outline" className="font-normal">
+            {t}
+          </Badge>
+        </li>
+      ))}
+    </ul>
   );
 }
 
