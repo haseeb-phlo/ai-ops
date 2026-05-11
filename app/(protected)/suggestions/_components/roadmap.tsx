@@ -28,7 +28,7 @@ const LANES: Lane[] = [
   {
     key: "shipped",
     title: "Shipped",
-    hint: "Linked initiative closed the suggestion.",
+    hint: "Linked AI initiative closed the suggestion.",
   },
 ];
 

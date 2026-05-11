@@ -147,7 +147,7 @@ export function EditInterventionDialog({
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent className="gap-0 p-0 sm:max-w-2xl">
           <DialogHeader className="gap-2 px-6 pt-5 pb-5">
-            <DialogTitle>Edit initiative</DialogTitle>
+            <DialogTitle>Edit AI initiative</DialogTitle>
             <DialogDescription>
               Every change is recorded in the audit trail below. Linked
               workflows and baselines aren&apos;t editable - re-log if those

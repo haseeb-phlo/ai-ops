@@ -25,7 +25,7 @@ const ADOPTION_STATUSES = [
 
 const FormSchema = z.object({
   name: z.string().min(1, "Name is required").max(200),
-  type: z.enum(INTERVENTION_TYPES, { error: "Pick an initiative type" }),
+  type: z.enum(INTERVENTION_TYPES, { error: "Pick an AI initiative type" }),
   workflow_ids: z
     .array(z.string().uuid())
     .min(1, "Select at least one affected workflow"),
@@ -63,7 +63,7 @@ const FormSchema = z.object({
   // by adding the team's members explicitly.
   recipient_emails: z
     .array(z.string().email().toLowerCase())
-    .min(1, "Pick at least one person affected by this initiative")
+    .min(1, "Pick at least one person affected by this AI initiative")
     .max(500, "Recipient list is unusually large; check the picker."),
   // Free-text tool names from the tag input. Optional; deduped server-side
   // by case-insensitive match to keep the cross-row list converging.
@@ -141,7 +141,7 @@ export async function logIntervention(
   if (error || !newId) {
     return {
       kind: "error",
-      message: `Could not log initiative: ${error?.message ?? "unknown error"}`,
+      message: `Could not log AI initiative: ${error?.message ?? "unknown error"}`,
     };
   }
 

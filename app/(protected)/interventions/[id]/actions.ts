@@ -115,7 +115,7 @@ export async function logMetricSnapshot(
 const UpdateSchema = z.object({
   id: z.string().uuid(),
   name: z.string().min(1, "Name is required").max(200),
-  type: z.enum(INTERVENTION_TYPES, { error: "Pick an initiative type" }),
+  type: z.enum(INTERVENTION_TYPES, { error: "Pick an AI initiative type" }),
   status: z.enum(STATUSES),
   description: z.string().max(500).nullable(),
   minutes_saved_per_week: z
@@ -339,7 +339,7 @@ export async function deleteIntervention(
     return {
       kind: "error",
       reason: "permission",
-      message: "Only super_admin can delete an initiative.",
+      message: "Only super_admin can delete an AI initiative.",
     };
   }
 

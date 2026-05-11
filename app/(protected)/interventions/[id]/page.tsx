@@ -234,7 +234,7 @@ export default async function InterventionDetailPage({
     <div className="mx-auto w-full max-w-5xl px-6 py-6">
       <DetailHeader
         backHref="/interventions"
-        backLabel="All initiatives"
+        backLabel="All AI initiatives"
         title={intervention.name}
       />
       <div className="space-y-6">
@@ -245,8 +245,8 @@ export default async function InterventionDetailPage({
           className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800"
         >
           {deleteFailed === "permission"
-            ? "Only super-admins can delete an initiative."
-            : "Could not delete this initiative. The database delete policy may not be applied yet — apply supabase/ai_interventions_delete_policy_migration.sql in the Supabase SQL editor and try again."}
+            ? "Only super-admins can delete an AI initiative."
+            : "Could not delete this AI initiative. The database delete policy may not be applied yet — apply supabase/ai_interventions_delete_policy_migration.sql in the Supabase SQL editor and try again."}
         </p>
       )}
 

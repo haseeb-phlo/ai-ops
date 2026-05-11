@@ -46,7 +46,7 @@ export function SubmitSuggestionDialog({
       <DialogTrigger render={<Button>Suggest something</Button>} />
       <DialogContent className="gap-0 p-0 sm:max-w-lg">
         <DialogHeader className="gap-2 px-6 pt-5 pb-5">
-          <DialogTitle>Suggest an initiative</DialogTitle>
+          <DialogTitle>Suggest an AI initiative</DialogTitle>
           <DialogDescription>
             Pitch an idea. Champions triage; super-admins decide what gets
             built.

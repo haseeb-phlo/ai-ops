@@ -268,7 +268,7 @@ export default async function ChampionTeamPage({
                   n.target_type === "workflow"
                     ? workflowNameById.get(n.target_id) ?? "(unknown workflow)"
                     : interventionNameById.get(n.target_id) ??
-                      "(unknown initiative)";
+                      "(unknown AI initiative)";
                 const targetHref =
                   n.target_type === "workflow"
                     ? `/workflows/${n.target_id}`

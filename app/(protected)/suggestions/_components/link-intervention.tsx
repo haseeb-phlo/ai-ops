@@ -63,7 +63,7 @@ export function LinkInterventionDialog({
         <DialogHeader className="gap-2 px-6 pt-5 pb-5">
           <DialogTitle>Mark as shipped</DialogTitle>
           <DialogDescription>
-            Link this suggestion to the initiative that addressed it. Both
+            Link this suggestion to the AI initiative that addressed it. Both
             sides become navigable from each other.
           </DialogDescription>
         </DialogHeader>
@@ -76,7 +76,7 @@ export function LinkInterventionDialog({
           <div className="flex-1 space-y-3 overflow-y-auto border-t border-border px-6 py-5">
             <div className="space-y-1.5">
               <label className="text-xs font-medium uppercase tracking-wide text-zinc-500">
-                Initiative
+                AI Initiative
               </label>
               <input
                 type="hidden"
@@ -88,7 +88,7 @@ export function LinkInterventionDialog({
                 onValueChange={(v) => setInterventionId(v ?? "")}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Pick an initiative" />
+                  <SelectValue placeholder="Pick an AI initiative" />
                 </SelectTrigger>
                 <SelectContent>
                   {interventions.map((iv) => (

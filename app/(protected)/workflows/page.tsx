@@ -186,7 +186,7 @@ export default async function WorkflowsPage(props: {
                 <TableHead className="text-right">Frequency / wk</TableHead>
                 <TableHead className="text-right">Steps</TableHead>
                 <TableHead>Regulatory</TableHead>
-                <TableHead className="text-right">Active initiatives</TableHead>
+                <TableHead className="text-right">Active AI initiatives</TableHead>
                 <TableHead>Logged by</TableHead>
               </TableRow>
             </TableHeader>
