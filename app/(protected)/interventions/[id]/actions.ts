@@ -115,7 +115,9 @@ export async function logMetricSnapshot(
 const UpdateSchema = z.object({
   id: z.string().uuid(),
   name: z.string().min(1, "Name is required").max(200),
-  type: z.enum(INTERVENTION_TYPES, { error: "Pick an AI initiative type" }),
+  types: z
+    .array(z.enum(INTERVENTION_TYPES))
+    .min(1, "Pick at least one AI initiative type"),
   status: z.enum(STATUSES),
   description: z.string().max(500).nullable(),
   minutes_saved_per_week: z
@@ -195,7 +197,16 @@ export async function updateIntervention(
   const parsed = UpdateSchema.safeParse({
     id: formData.get("id"),
     name: formData.get("name"),
-    type: formData.get("type"),
+    types: Array.from(
+      new Set(
+        formData
+          .getAll("types")
+          .filter(
+            (v): v is string =>
+              typeof v === "string" && v.trim().length > 0,
+          ),
+      ),
+    ),
     status: formData.get("status"),
     description,
     minutes_saved_per_week: minutesParsed,
@@ -221,7 +232,7 @@ export async function updateIntervention(
   const { error: rpcError } = await supabase.rpc("update_intervention", {
     p_id: data.id,
     p_name: data.name,
-    p_type: data.type,
+    p_types: data.types,
     p_description: data.description,
     p_minutes_saved_per_week: data.minutes_saved_per_week,
     p_attribution_confidence: data.attribution_confidence,

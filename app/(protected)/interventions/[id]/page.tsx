@@ -32,7 +32,7 @@ type AdoptionStatus = "daily" | "weekly" | "occasional" | "abandoned";
 type Intervention = {
   id: string;
   name: string;
-  type: InterventionType | null;
+  types: InterventionType[] | null;
   status: Status | null;
   description: string | null;
   owner: string | null;
@@ -115,7 +115,7 @@ export default async function InterventionDetailPage({
     supabase
       .from("ai_interventions")
       .select(
-        "id, name, type, status, description, owner, minutes_saved_per_week, estimated_gbp_saved_per_week, estimated_revenue_per_week, attribution_confidence, adoption_status, satisfaction, recipient_emails, tools_used, created_by, created_at",
+        "id, name, types, status, description, owner, minutes_saved_per_week, estimated_gbp_saved_per_week, estimated_revenue_per_week, attribution_confidence, adoption_status, satisfaction, recipient_emails, tools_used, created_by, created_at",
       )
       .eq("id", id)
       .maybeSingle<Intervention>(),
@@ -258,11 +258,11 @@ export default async function InterventionDetailPage({
               <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
                 {intervention.name}
               </h1>
-              {intervention.type && (
-                <Badge variant="secondary">
-                  {toTitle(intervention.type)}
+              {(intervention.types ?? []).map((t) => (
+                <Badge key={t} variant="secondary">
+                  {toTitle(t)}
                 </Badge>
-              )}
+              ))}
               {intervention.status && (
                 <span className="inline-flex items-center gap-1.5 text-xs text-zinc-700">
                   <span
@@ -339,7 +339,7 @@ export default async function InterventionDetailPage({
                   intervention={{
                     id: intervention.id,
                     name: intervention.name,
-                    type: intervention.type,
+                    types: intervention.types ?? [],
                     status: intervention.status,
                     description: intervention.description,
                     minutes_saved_per_week: intervention.minutes_saved_per_week,

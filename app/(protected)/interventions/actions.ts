@@ -25,7 +25,9 @@ const ADOPTION_STATUSES = [
 
 const FormSchema = z.object({
   name: z.string().min(1, "Name is required").max(200),
-  type: z.enum(INTERVENTION_TYPES, { error: "Pick an AI initiative type" }),
+  types: z
+    .array(z.enum(INTERVENTION_TYPES))
+    .min(1, "Pick at least one AI initiative type"),
   workflow_ids: z
     .array(z.string().uuid())
     .min(1, "Select at least one affected workflow"),
@@ -92,7 +94,16 @@ export async function logIntervention(
 
   const parsed = FormSchema.safeParse({
     name: formData.get("name"),
-    type: formData.get("type"),
+    types: Array.from(
+      new Set(
+        formData
+          .getAll("types")
+          .filter(
+            (v): v is string =>
+              typeof v === "string" && v.trim().length > 0,
+          ),
+      ),
+    ),
     workflow_ids: formData.getAll("workflow_ids"),
     description: (formData.get("description") as string) || "",
     minutes_saved_per_week: numericField("minutes_saved_per_week"),
@@ -125,7 +136,7 @@ export async function logIntervention(
 
   const { data: newId, error } = await supabase.rpc("log_intervention", {
     p_name: data.name,
-    p_type: data.type,
+    p_types: data.types,
     p_workflow_ids: data.workflow_ids,
     p_description: data.description ?? null,
     p_minutes_saved_per_week: data.minutes_saved_per_week ?? null,

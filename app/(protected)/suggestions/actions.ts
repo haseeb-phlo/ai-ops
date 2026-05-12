@@ -380,16 +380,16 @@ export async function createSuggestionComment(
 }
 
 export async function deleteSuggestionComment(formData: FormData): Promise<void> {
-  const user = await getSessionUser();
+  // Gate on a real session — getSessionUser redirects to /login if absent.
+  // Author-or-super authorization is enforced by RLS on the delete itself.
+  await getSessionUser();
   const id = formData.get("comment_id");
   const suggestionId = formData.get("suggestion_id");
   if (typeof id !== "string" || typeof suggestionId !== "string") return;
   const supabase = await createClient();
-  // RLS already enforces author-or-super, this is just the call.
   await supabase
     .from("intervention_suggestion_comments")
     .delete()
     .eq("id", id);
-  void user;
   revalidatePath(`/suggestions/${suggestionId}`);
 }

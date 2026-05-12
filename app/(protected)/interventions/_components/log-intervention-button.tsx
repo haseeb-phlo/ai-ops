@@ -18,7 +18,7 @@ export function LogInterventionButton({
 
   return (
     <>
-      <Button onClick={() => setOpen(true)}>Log AI initiative</Button>
+      <Button onClick={() => setOpen(true)}>Log AI Initiative</Button>
       <LogInterventionDialog
         open={open}
         onOpenChange={setOpen}

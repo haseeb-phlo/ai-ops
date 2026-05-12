@@ -24,6 +24,7 @@ import {
   PeoplePicker,
   type PickerPerson,
 } from "@/components/ui/people-picker";
+import { cn } from "@/lib/utils";
 import { updateIntervention } from "../actions";
 
 const TYPES = [
@@ -34,10 +35,6 @@ const TYPES = [
   { value: "automation", label: "Automation" },
   { value: "process_change", label: "Process change" },
 ] as const;
-
-const TYPE_LABEL: Record<string, string> = Object.fromEntries(
-  TYPES.map((t) => [t.value, t.label]),
-);
 
 const STATUS_LABEL: Record<string, string> = {
   active: "Active",
@@ -78,7 +75,7 @@ export function EditInterventionDialog({
   intervention: {
     id: string;
     name: string;
-    type: InterventionType | null;
+    types: InterventionType[];
     status: Status | null;
     description: string | null;
     minutes_saved_per_week: number | null;
@@ -95,7 +92,9 @@ export function EditInterventionDialog({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const [type, setType] = useState<string>(intervention.type ?? "");
+  const [types, setTypes] = useState<Set<string>>(
+    new Set(intervention.types ?? []),
+  );
   const [status, setStatus] = useState<string>(intervention.status ?? "active");
   const [confidence, setConfidence] = useState<string>(
     intervention.attribution_confidence ?? "medium",
@@ -111,7 +110,7 @@ export function EditInterventionDialog({
   );
 
   const reset = () => {
-    setType(intervention.type ?? "");
+    setTypes(new Set(intervention.types ?? []));
     setStatus(intervention.status ?? "active");
     setConfidence(intervention.attribution_confidence ?? "medium");
     setAdoption(intervention.adoption_status ?? "");
@@ -120,6 +119,15 @@ export function EditInterventionDialog({
     );
     setRecipients(new Set(intervention.recipient_emails ?? []));
     setErrorMessage(null);
+  };
+
+  const toggleType = (value: string) => {
+    setTypes((prev) => {
+      const next = new Set(prev);
+      if (next.has(value)) next.delete(value);
+      else next.add(value);
+      return next;
+    });
   };
 
   const handleOpenChange = (next: boolean) => {
@@ -171,23 +179,42 @@ export function EditInterventionDialog({
                   />
                 </div>
 
-                <div className="space-y-1.5">
-                  <Label htmlFor="type">Type</Label>
-                  <input type="hidden" name="type" value={type} />
-                  <Select value={type} onValueChange={(v) => setType(v ?? "")}>
-                    <SelectTrigger id="type" className="w-full">
-                      <SelectValue placeholder="Pick one">
-                        {(v) => (v ? TYPE_LABEL[v as string] ?? "" : null)}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {TYPES.map((t) => (
-                        <SelectItem key={t.value} value={t.value}>
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label>Type</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Pick at least one. Choose more than one if the initiative
+                    spans buckets.
+                  </p>
+                  <div
+                    role="group"
+                    aria-label="Initiative type"
+                    className="flex flex-wrap gap-1.5"
+                  >
+                    {TYPES.map((t) => {
+                      const checked = types.has(t.value);
+                      return (
+                        <label
+                          key={t.value}
+                          className={cn(
+                            "inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1 text-sm transition-colors",
+                            checked
+                              ? "border-zinc-900 bg-zinc-900 text-white"
+                              : "border-zinc-200 bg-white text-zinc-700 hover:bg-muted/40",
+                          )}
+                        >
+                          <input
+                            type="checkbox"
+                            name="types"
+                            value={t.value}
+                            checked={checked}
+                            onChange={() => toggleType(t.value)}
+                            className="sr-only"
+                          />
                           {t.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                        </label>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 <div className="space-y-1.5">
@@ -444,7 +471,7 @@ export function EditInterventionDialog({
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isPending || type === ""}>
+              <Button type="submit" disabled={isPending || types.size === 0}>
                 {isPending ? "Saving" : "Save changes"}
               </Button>
             </DialogFooter>

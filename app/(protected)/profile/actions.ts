@@ -13,8 +13,16 @@ const ProfileSchema = z.object({
     .max(2000)
     .optional()
     .refine(
-      (v) => !v || /^https?:\/\//i.test(v),
-      "Avatar URL must start with http:// or https://",
+      (v) => {
+        if (!v) return true;
+        try {
+          const u = new URL(v);
+          return u.protocol === "http:" || u.protocol === "https:";
+        } catch {
+          return false;
+        }
+      },
+      "Avatar URL must be a valid http:// or https:// link",
     ),
   title: z.string().trim().min(1, "Job title is required").max(100),
   team: z.string().trim().min(1, "Team is required").max(100),

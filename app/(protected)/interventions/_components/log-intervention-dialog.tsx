@@ -38,10 +38,6 @@ const TYPES = [
   { value: "process_change", label: "Process change" },
 ] as const;
 
-const TYPE_LABEL: Record<string, string> = Object.fromEntries(
-  TYPES.map((t) => [t.value, t.label]),
-);
-
 const CONFIDENCE_LABEL: Record<string, string> = {
   high: "High - clean before/after, isolated change",
   medium: "Medium - confounded by other changes",
@@ -81,7 +77,7 @@ export function LogInterventionDialog({
     { kind: "idle" },
   );
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [type, setType] = useState<string>("");
+  const [types, setTypes] = useState<Set<string>>(new Set());
   const [confidence, setConfidence] = useState<string>("high");
   const [adoption, setAdoption] = useState<string>("");
   const [satisfaction, setSatisfaction] = useState<string>("");
@@ -92,7 +88,7 @@ export function LogInterventionDialog({
   const handleOpenChange = (next: boolean) => {
     if (!next) {
       setSelected(new Set());
-      setType("");
+      setTypes(new Set());
       setConfidence("high");
       setAdoption("");
       setSatisfaction("");
@@ -101,6 +97,15 @@ export function LogInterventionDialog({
       setSearch("");
     }
     onOpenChange(next);
+  };
+
+  const toggleType = (value: string) => {
+    setTypes((prev) => {
+      const next = new Set(prev);
+      if (next.has(value)) next.delete(value);
+      else next.add(value);
+      return next;
+    });
   };
 
   const toggle = (id: string) => {
@@ -117,7 +122,7 @@ export function LogInterventionDialog({
   );
 
   const isComplete =
-    type !== "" &&
+    types.size > 0 &&
     selected.size > 0 &&
     recipients.size > 0;
 
@@ -148,22 +153,41 @@ export function LogInterventionDialog({
               </div>
 
               <div className="space-y-1.5 sm:col-span-2">
-                <Label htmlFor="type">Type</Label>
-                <input type="hidden" name="type" value={type} required />
-                <Select value={type} onValueChange={(v) => setType(v ?? "")}>
-                  <SelectTrigger id="type" className="w-full">
-                    <SelectValue placeholder="Pick one">
-                      {(v) => (v ? TYPE_LABEL[v as string] ?? "" : null)}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TYPES.map((t) => (
-                      <SelectItem key={t.value} value={t.value}>
+                <Label>Type</Label>
+                <p className="text-xs text-muted-foreground">
+                  Pick at least one. Choose more than one if the initiative
+                  spans buckets (e.g. a tool plus a training session).
+                </p>
+                <div
+                  role="group"
+                  aria-label="Initiative type"
+                  className="flex flex-wrap gap-1.5"
+                >
+                  {TYPES.map((t) => {
+                    const checked = types.has(t.value);
+                    return (
+                      <label
+                        key={t.value}
+                        className={cn(
+                          "inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1 text-sm transition-colors",
+                          checked
+                            ? "border-zinc-900 bg-zinc-900 text-white"
+                            : "border-zinc-200 bg-white text-zinc-700 hover:bg-muted/40",
+                        )}
+                      >
+                        <input
+                          type="checkbox"
+                          name="types"
+                          value={t.value}
+                          checked={checked}
+                          onChange={() => toggleType(t.value)}
+                          className="sr-only"
+                        />
                         {t.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
 
               <div className="space-y-1.5 sm:col-span-2">
@@ -476,7 +500,7 @@ function SubmitButton({ disabled }: { disabled: boolean }) {
   const { pending } = useFormStatus();
   return (
     <Button type="submit" disabled={disabled || pending}>
-      {pending ? "Logging…" : "Log AI initiative"}
+      {pending ? "Logging…" : "Log AI Initiative"}
     </Button>
   );
 }

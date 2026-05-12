@@ -34,7 +34,7 @@ type Status = (typeof STATUSES)[number];
 type InterventionRow = {
   id: string;
   name: string;
-  type: InterventionType | null;
+  types: InterventionType[] | null;
   status: Status | null;
   owner: string | null;
   created_by: string | null;
@@ -83,11 +83,12 @@ export default async function InterventionsListPage({
   let interventionsQuery = supabase
     .from("ai_interventions")
     .select(
-      "id, name, type, status, owner, created_by, created_at, intervention_workflows(workflows(id, name))",
+      "id, name, types, status, owner, created_by, created_at, intervention_workflows(workflows(id, name))",
     )
     .order("created_at", { ascending: false });
 
-  if (typeFilter) interventionsQuery = interventionsQuery.eq("type", typeFilter);
+  if (typeFilter)
+    interventionsQuery = interventionsQuery.contains("types", [typeFilter]);
   if (statusFilter) interventionsQuery = interventionsQuery.eq("status", statusFilter);
 
   const [
@@ -194,10 +195,14 @@ export default async function InterventionsListPage({
                       </Link>
                     </TableCell>
                     <TableCell>
-                      {row.type ? (
-                        <Badge variant={TYPE_VARIANT[row.type]}>
-                          {toTitle(row.type)}
-                        </Badge>
+                      {row.types && row.types.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {row.types.map((t) => (
+                            <Badge key={t} variant={TYPE_VARIANT[t]}>
+                              {toTitle(t)}
+                            </Badge>
+                          ))}
+                        </div>
                       ) : (
                         <span className="text-zinc-400">-</span>
                       )}

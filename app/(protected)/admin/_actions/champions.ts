@@ -133,8 +133,10 @@ export async function removeChampion(formData: FormData): Promise<void> {
   if (team) revalidatePath(`/champions/${team}`);
 
   // Profile-page Remove asks to be sent back to the directory because the
-  // page lookup would 404 if this was the team's only champion.
-  if (redirectTo) {
+  // page lookup would 404 if this was the team's only champion. Only honour
+  // same-origin relative paths — Server Actions accept arbitrary FormData,
+  // so an unvalidated redirect target is a CSRF-shaped open-redirect.
+  if (redirectTo && redirectTo.startsWith("/") && !redirectTo.startsWith("//")) {
     redirect(redirectTo);
   }
 }

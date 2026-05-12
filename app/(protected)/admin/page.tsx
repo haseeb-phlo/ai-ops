@@ -26,7 +26,7 @@ type InterventionType =
 type Intervention = {
   id: string;
   name: string;
-  type: InterventionType | null;
+  types: InterventionType[] | null;
   status: "active" | "paused" | "retired" | null;
   owner: string | null;
   vendor: string | null;
@@ -125,7 +125,7 @@ export default async function AdminPage() {
   ] = await Promise.all([
     supabase
       .from("ai_interventions")
-      .select("id, name, type, status, owner, vendor, created_at")
+      .select("id, name, types, status, owner, vendor, created_at")
       .order("created_at", { ascending: false })
       .returns<Intervention[]>(),
     supabase
@@ -212,7 +212,7 @@ export default async function AdminPage() {
     interventionsList.map((iv) => [
       iv.id,
       {
-        type: iv.type,
+        types: iv.types ?? [],
         vendor: iv.vendor,
         teams:
           linksByIntervention
@@ -222,6 +222,10 @@ export default async function AdminPage() {
     ]),
   );
   const byVendor = new Map<string, Map<string, number>>();
+  // Tag-style attribution: an initiative tagged with multiple types
+  // contributes its cost to each bucket. By-type totals can sum above the
+  // grand total when multi-tagged initiatives exist - expected for
+  // filter/rollup views.
   const byType = new Map<string, Map<string, number>>();
   const byTeam = new Map<string, Map<string, number>>();
   for (const m of costMetrics ?? []) {
@@ -231,15 +235,17 @@ export default async function AdminPage() {
     const month = monthKey(m.snapshot_date);
     const cost = m.cost_value;
     const vendor = meta.vendor ?? "(unspecified)";
-    const type = meta.type ?? "(untyped)";
+    const types = meta.types.length > 0 ? meta.types : ["(untyped)"];
 
     const vMap = byVendor.get(vendor) ?? new Map<string, number>();
     vMap.set(month, (vMap.get(month) ?? 0) + cost);
     byVendor.set(vendor, vMap);
 
-    const tMap = byType.get(type) ?? new Map<string, number>();
-    tMap.set(month, (tMap.get(month) ?? 0) + cost);
-    byType.set(type, tMap);
+    for (const type of types) {
+      const tMap = byType.get(type) ?? new Map<string, number>();
+      tMap.set(month, (tMap.get(month) ?? 0) + cost);
+      byType.set(type, tMap);
+    }
 
     if (meta.teams.length === 0) {
       const teMap = byTeam.get("(no team)") ?? new Map<string, number>();

@@ -273,6 +273,16 @@ export default async function Home() {
     })
     .slice(0, 5);
 
+  // Pre-bucket metrics by intervention so each trend point doesn't re-scan
+  // the full metrics array. Source query orders by snapshot_date desc, so
+  // each per-intervention slice is already newest-first.
+  const metricsByIntervention = new Map<string, Metric[]>();
+  for (const m of metrics ?? []) {
+    const arr = metricsByIntervention.get(m.intervention_id);
+    if (arr) arr.push(m);
+    else metricsByIntervention.set(m.intervention_id, [m]);
+  }
+
   // Trend buckets: 13 weekly snapshots covering the last 12 weeks. For each
   // bucket we re-roll the same baseline-vs-latest math but cap the latest
   // metric at "as of this week-end" so the line shows how cumulative impact
@@ -286,11 +296,12 @@ export default async function Home() {
       const w = CONFIDENCE_WEIGHT[iv.attribution_confidence ?? "medium"];
       const baseline =
         baselineSums.get(iv.id) ?? { time: 0, cost: 0, revenue: 0 };
+      const ivMetrics = metricsByIntervention.get(iv.id);
+      if (!ivMetrics) continue;
       let lt: Metric | undefined;
       let lc: Metric | undefined;
       let lr: Metric | undefined;
-      for (const m of metrics ?? []) {
-        if (m.intervention_id !== iv.id) continue;
+      for (const m of ivMetrics) {
         if (m.snapshot_date > asOfIso) continue;
         if (!lt && m.time_value != null) lt = m;
         if (!lc && m.cost_value != null) lc = m;
