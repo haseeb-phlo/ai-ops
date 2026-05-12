@@ -108,7 +108,35 @@ export default async function WorkflowsPage(props: {
     }
   }
 
-  // 3. Logged-by lookup. Resolve workflow.created_by → display name via
+  // 3. Load the directory once and use it for both the Logged-by lookup
+  //    and the New Workflow people picker below. Keying by lowercased email
+  //    sidesteps any case drift between the directory seed and auth.users.
+  const { data: directoryPeople } = await supabase
+    .from("people")
+    .select("email, display_name, title, team")
+    .order("display_name", { ascending: true })
+    .returns<
+      {
+        email: string;
+        display_name: string;
+        title: string | null;
+        team: string | null;
+      }[]
+    >();
+  const peopleByEmail = new Map<string, string>();
+  for (const row of directoryPeople ?? []) {
+    if (row.email && row.display_name) {
+      peopleByEmail.set(row.email.trim().toLowerCase(), row.display_name);
+    }
+  }
+  const pickerPeople = (directoryPeople ?? []).map((p) => ({
+    email: p.email,
+    displayName: p.display_name,
+    title: p.title,
+    team: p.team,
+  }));
+
+  // 4. Logged-by lookup. Resolve workflow.created_by → display name via
   //    resolveDisplayName: prefer profiles.display_name unless it's still the
   //    email-local default, else the people directory's canonical name, else
   //    the raw email. Empty for legacy rows where created_by is null.
@@ -137,24 +165,11 @@ export default async function WorkflowsPage(props: {
     const emailById = new Map<string, string | null>();
     for (const e of emailRows) emailById.set(e.user_id, e.email);
 
-    const creatorEmails = creatorIds
-      .map((id) => emailById.get(id) ?? null)
-      .filter((e): e is string => !!e);
-    const peopleByEmail = new Map<string, string>();
-    if (creatorEmails.length > 0) {
-      const { data: peopleRows } = await supabase
-        .from("people")
-        .select("email, display_name")
-        .in("email", creatorEmails)
-        .returns<{ email: string; display_name: string }[]>();
-      for (const row of peopleRows ?? []) {
-        peopleByEmail.set(row.email.toLowerCase(), row.display_name);
-      }
-    }
-
     for (const id of creatorIds) {
       const email = emailById.get(id) ?? null;
-      const peopleName = email ? peopleByEmail.get(email.toLowerCase()) ?? null : null;
+      const peopleName = email
+        ? peopleByEmail.get(email.trim().toLowerCase()) ?? null
+        : null;
       const label = resolveDisplayName(
         profileById.get(id),
         peopleName,
@@ -164,32 +179,10 @@ export default async function WorkflowsPage(props: {
     }
   }
 
-  // 4. Team options for the filter dropdown and the new-workflow picker.
+  // 5. Team options for the filter dropdown and the new-workflow picker.
   //    Unions people.team + workflows.team so every team a person belongs to
   //    is selectable, even if nobody has logged a workflow on it yet.
   const teamOptions = await loadTeamOptions(supabase, user.team);
-
-  // 4. Directory snapshot for the New Workflow people picker. Sourcing from
-  //    public.people keeps owners canonical (vs free-text "Alice K") so the
-  //    galaxy / champion lookups can resolve them later.
-  const { data: directoryPeople } = await supabase
-    .from("people")
-    .select("email, display_name, title, team")
-    .order("display_name", { ascending: true })
-    .returns<
-      {
-        email: string;
-        display_name: string;
-        title: string | null;
-        team: string | null;
-      }[]
-    >();
-  const pickerPeople = (directoryPeople ?? []).map((p) => ({
-    email: p.email,
-    displayName: p.display_name,
-    title: p.title,
-    team: p.team,
-  }));
 
   const toolSuggestions = await loadToolSuggestions(supabase);
 

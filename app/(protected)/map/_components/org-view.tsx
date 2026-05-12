@@ -34,6 +34,7 @@ export async function OrgView() {
     { data: people },
     { data: profiles },
     signedInRpc,
+    userEmailsRpc,
     champByName,
   ] = await Promise.all([
     supabase
@@ -43,9 +44,10 @@ export async function OrgView() {
       .returns<PersonRow[]>(),
     supabase
       .from("profiles")
-      .select("display_name, avatar_url")
-      .returns<{ display_name: string | null; avatar_url: string | null }[]>(),
+      .select("user_id, avatar_url")
+      .returns<{ user_id: string; avatar_url: string | null }[]>(),
     supabase.rpc("signed_in_emails"),
+    supabase.rpc("user_emails"),
     championsByDisplayName(),
   ]);
 
@@ -54,14 +56,26 @@ export async function OrgView() {
     peopleRows.map((p) => [p.email.toLowerCase(), p]),
   );
 
-  const avatarByLowerName = new Map<string, string | null>();
+  // Resolve avatars by email → user_id → profiles.avatar_url. Keying by
+  // display_name (the old approach) silently dropped avatars for any user
+  // whose profile.display_name diverged from people.display_name - e.g.
+  // anyone still on the email-local default "neal.archbold" while the
+  // directory has "Neal Archbold".
+  const userIdByEmail = new Map<string, string>();
+  const userEmailsRows = (userEmailsRpc.data ?? []) as Array<{
+    user_id: string;
+    email: string | null;
+  }>;
+  for (const row of userEmailsRows) {
+    if (row.email) userIdByEmail.set(row.email.toLowerCase(), row.user_id);
+  }
+  const avatarByUserId = new Map<string, string | null>();
   for (const pr of profiles ?? []) {
-    if (pr.display_name) {
-      avatarByLowerName.set(
-        pr.display_name.trim().toLowerCase(),
-        pr.avatar_url,
-      );
-    }
+    avatarByUserId.set(pr.user_id, pr.avatar_url);
+  }
+  function avatarFor(email: string): string | null {
+    const uid = userIdByEmail.get(email.toLowerCase());
+    return uid ? avatarByUserId.get(uid) ?? null : null;
   }
 
   const signedInEmails = new Set<string>(
@@ -79,7 +93,7 @@ export async function OrgView() {
       title: row.title,
       team: row.team || null,
       startDate: row.start_date,
-      avatarUrl: avatarByLowerName.get(lowerName) ?? null,
+      avatarUrl: avatarFor(row.email),
       isSignedIn: signedInEmails.has(row.email.toLowerCase()),
       championTeam: champ?.team ?? null,
     };
