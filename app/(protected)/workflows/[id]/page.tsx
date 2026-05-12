@@ -3,7 +3,7 @@ import { getSessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { loadTeamOptions } from "@/lib/teams";
 import { resolveDisplayName } from "@/lib/profile";
-import { canUserEditWorkflow } from "./actions";
+import { canUserEditWorkflow } from "./permissions";
 import { HeaderCard, type WorkflowHeader } from "./_components/header-card";
 import {
   MetricsStrip,
