@@ -46,15 +46,6 @@ type WorkflowOption = { id: string; name: string };
 
 type ProfileLite = { user_id: string; display_name: string | null };
 
-const TYPE_VARIANT: Record<InterventionType, "default" | "secondary" | "outline"> = {
-  tool: "default",
-  training: "secondary",
-  prompt: "secondary",
-  agent: "default",
-  automation: "default",
-  process_change: "outline",
-};
-
 const STATUS_DOT: Record<Status, string> = {
   active: "bg-emerald-500",
   paused: "bg-amber-500",
@@ -198,7 +189,7 @@ export default async function InterventionsListPage({
                       {row.types && row.types.length > 0 ? (
                         <div className="flex flex-wrap gap-1">
                           {row.types.map((t) => (
-                            <Badge key={t} variant={TYPE_VARIANT[t]}>
+                            <Badge key={t} variant="secondary">
                               {toTitle(t)}
                             </Badge>
                           ))}

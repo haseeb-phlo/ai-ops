@@ -196,10 +196,10 @@ export function EditInterventionDialog({
                         <label
                           key={t.value}
                           className={cn(
-                            "inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1 text-sm transition-colors",
+                            "inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1 text-sm transition-colors focus-within:ring-2 focus-within:ring-ring/50",
                             checked
-                              ? "border-zinc-900 bg-zinc-900 text-white"
-                              : "border-zinc-200 bg-white text-zinc-700 hover:bg-muted/40",
+                              ? "border-foreground bg-foreground text-background"
+                              : "border-border bg-background text-foreground hover:bg-muted",
                           )}
                         >
                           <input

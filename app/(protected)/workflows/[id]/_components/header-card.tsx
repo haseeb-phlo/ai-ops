@@ -91,10 +91,10 @@ export async function HeaderCard({
               </dd>
             </div>
             <Field
-              label="Frequency"
+              label="Frequency / wk"
               value={
                 workflow.frequency_per_week != null
-                  ? `${formatNumber(workflow.frequency_per_week)} / wk`
+                  ? formatNumber(workflow.frequency_per_week)
                   : null
               }
             />
