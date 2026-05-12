@@ -35,7 +35,7 @@ export async function ChampionsRibbon() {
   // eslint-disable-next-line react-hooks/purity
   const now = Date.now();
   function ringClass(lastCheckIn: string | null): string {
-    if (!lastCheckIn) return "ring-zinc-300";
+    if (!lastCheckIn) return "ring-muted-foreground/40";
     const age = (now - new Date(lastCheckIn).getTime()) / 86_400_000;
     if (age < 14) return "ring-emerald-400";
     if (age < 30) return "ring-amber-400";
@@ -43,9 +43,9 @@ export async function ChampionsRibbon() {
   }
 
   return (
-    <section className="rounded-lg border border-zinc-200 bg-white p-5">
+    <section className="rounded-lg border border-border bg-background p-5">
       <div className="mb-4 flex items-baseline justify-between">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           AI Champions
         </h2>
         <ForwardLink href="/map?view=champions" className="text-xs">
@@ -75,9 +75,9 @@ export async function ChampionsRibbon() {
                 <img
                   src={src}
                   alt={c.display_name}
-                  className={`size-8 rounded-full bg-zinc-50 object-cover ring-2 ring-offset-1 ring-offset-white ${ring}`}
+                  className={`size-8 rounded-full bg-muted/40 object-cover ring-2 ring-offset-1 ring-offset-white ${ring}`}
                 />
-                <span className="text-sm text-zinc-600 group-hover:text-zinc-900 group-hover:underline">
+                <span className="text-sm text-muted-foreground group-hover:text-foreground group-hover:underline">
                   {c.team}
                 </span>
               </Link>

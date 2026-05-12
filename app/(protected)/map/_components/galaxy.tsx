@@ -508,13 +508,13 @@ export function Galaxy({ data }: { data: GalaxyData }) {
   return (
     <div className="flex flex-col flex-1">
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-3 border-b bg-zinc-50 px-6 py-2 text-xs">
+      <div className="flex flex-wrap items-center gap-3 border-b bg-muted/40 px-6 py-2 text-xs">
         <label className="flex items-center gap-2">
-          <span className="text-zinc-500">Colour by</span>
+          <span className="text-muted-foreground">Colour by</span>
           <select
             value={heat}
             onChange={(e) => setHeat(e.target.value as Heat)}
-            className="h-7 rounded-md border border-zinc-300 bg-white px-2"
+            className="h-7 rounded-md border border-input bg-background px-2"
           >
             {HEAT_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
@@ -525,11 +525,11 @@ export function Galaxy({ data }: { data: GalaxyData }) {
         </label>
 
         <label className="flex items-center gap-2">
-          <span className="text-zinc-500">Team</span>
+          <span className="text-muted-foreground">Team</span>
           <select
             value={teamFilter}
             onChange={(e) => setTeamFilter(e.target.value)}
-            className="h-7 rounded-md border border-zinc-300 bg-white px-2"
+            className="h-7 rounded-md border border-input bg-background px-2"
           >
             <option value="all">All teams</option>
             {data.teams.map((t) => (
@@ -540,13 +540,13 @@ export function Galaxy({ data }: { data: GalaxyData }) {
           </select>
         </label>
 
-        <span className="ml-auto text-zinc-400">
+        <span className="ml-auto text-muted-foreground">
           Drag to pan · Click a node to focus
         </span>
       </div>
 
       {/* Canvas */}
-      <div ref={containerRef} className="relative flex-1 overflow-hidden bg-white">
+      <div ref={containerRef} className="relative flex-1 overflow-hidden bg-background">
         <canvas
           ref={canvasRef}
           style={{
@@ -562,7 +562,7 @@ export function Galaxy({ data }: { data: GalaxyData }) {
         <div
           role="group"
           aria-label="Zoom"
-          className="absolute bottom-4 right-4 flex flex-col overflow-hidden rounded-lg border border-zinc-200 bg-white/95 shadow-sm backdrop-blur"
+          className="absolute bottom-4 right-4 flex flex-col overflow-hidden rounded-lg border border-border bg-background/95 shadow-sm backdrop-blur"
         >
           <ZoomButton
             label="Zoom in"
@@ -573,7 +573,7 @@ export function Galaxy({ data }: { data: GalaxyData }) {
           >
             +
           </ZoomButton>
-          <span aria-hidden className="h-px bg-zinc-200" />
+          <span aria-hidden className="h-px bg-muted" />
           <ZoomButton
             label="Zoom out"
             onClick={() => {
@@ -583,7 +583,7 @@ export function Galaxy({ data }: { data: GalaxyData }) {
           >
             −
           </ZoomButton>
-          <span aria-hidden className="h-px bg-zinc-200" />
+          <span aria-hidden className="h-px bg-muted" />
           <ZoomButton
             label="Fit to screen"
             onClick={() => {
@@ -617,9 +617,9 @@ export function Galaxy({ data }: { data: GalaxyData }) {
         {/* Empty state */}
         {data.workflows.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="rounded-lg border border-zinc-200 bg-white p-6 text-center text-sm text-zinc-700 shadow-sm max-w-sm">
+            <div className="rounded-lg border border-border bg-background p-6 text-center text-sm text-foreground shadow-sm max-w-sm">
               <p className="font-medium">The galaxy is empty.</p>
-              <p className="mt-1 text-zinc-500">
+              <p className="mt-1 text-muted-foreground">
                 Apply <code>supabase/seed.sql</code> in the Supabase SQL Editor
                 or add a workflow at <code>/workflows</code>.
               </p>
@@ -666,13 +666,13 @@ function Legend({
       : "linear-gradient(to right, rgb(220,38,38), rgb(217,119,6), rgb(22,163,74))";
 
   return (
-    <div className="absolute right-4 top-4 w-[240px] rounded-lg border border-zinc-200 bg-white/90 text-xs text-zinc-700 shadow-sm backdrop-blur">
+    <div className="absolute right-4 top-4 w-[240px] rounded-lg border border-border bg-background/90 text-xs text-foreground shadow-sm backdrop-blur">
       <LegendSection title={heatLabel}>
         <div
           className="h-1.5 w-full rounded-full"
           style={{ background: gradient }}
         />
-        <div className="mt-1.5 flex justify-between text-[10px] tabular-nums text-zinc-500">
+        <div className="mt-1.5 flex justify-between text-[10px] tabular-nums text-muted-foreground">
           <span>{goodLabel}</span>
           <span>{badLabel}</span>
         </div>
@@ -682,7 +682,7 @@ function Legend({
         <ul className="space-y-1">
           <LegendRow
             swatch={
-              <span className="inline-block size-2 rounded-full ring-1 ring-zinc-700/70" />
+              <span className="inline-block size-2 rounded-full ring-1 ring-foreground/70" />
             }
             label={`Fresh (≤${FRESH_DAYS}d)`}
           />
@@ -696,7 +696,7 @@ function Legend({
             label={`Stale (${FRESH_DAYS}-${STALE_DAYS}d)`}
           />
           <LegendRow
-            swatch={<span className="inline-block size-2 rounded-full bg-zinc-300" />}
+            swatch={<span className="inline-block size-2 rounded-full bg-muted-foreground/60" />}
             label="No measurement"
           />
         </ul>
@@ -729,7 +729,7 @@ function Legend({
         <ul className="space-y-1">
           <LegendRow
             swatch={<Swatch fill="#16a34a" ring="#9333ea" size={9} />}
-            label="Has active AI initiative"
+            label="Has active AI initiatives"
           />
           <LegendRow
             swatch={
@@ -757,10 +757,10 @@ function LegendSection({
       className={
         last
           ? "px-3 py-2.5"
-          : "border-b border-zinc-100 px-3 py-2.5"
+          : "border-b border-border px-3 py-2.5"
       }
     >
-      <p className="text-[10px] font-medium uppercase tracking-wide text-zinc-500">
+      <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
         {title}
       </p>
       <div className="mt-1.5">{children}</div>
@@ -1051,7 +1051,7 @@ function ZoomButton({
       aria-label={label}
       title={label}
       onClick={onClick}
-      className="flex size-8 items-center justify-center text-base leading-none text-zinc-700 hover:bg-zinc-100"
+      className="flex size-8 items-center justify-center text-base leading-none text-foreground hover:bg-muted"
     >
       {children}
     </button>
@@ -1301,10 +1301,10 @@ function DetailCard({
   onClose: () => void;
 }) {
   return (
-    <div className="absolute bottom-4 left-4 max-w-xs rounded-lg border border-zinc-200 bg-white p-4 text-sm text-zinc-900 shadow-md">
+    <div className="absolute bottom-4 left-4 max-w-xs rounded-lg border border-border bg-background p-4 text-sm text-foreground shadow-md">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <p className="text-xs uppercase tracking-wide text-zinc-500">
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">
             {node.kind}
           </p>
           <p className="mt-0.5 font-semibold">{node.label}</p>
@@ -1312,7 +1312,7 @@ function DetailCard({
         <button
           type="button"
           onClick={onClose}
-          className="text-xs text-zinc-500 hover:text-zinc-900"
+          className="text-xs text-muted-foreground hover:text-foreground"
           aria-label="Close"
         >
           ✕
@@ -1346,14 +1346,14 @@ function PersonDetail({ node, data }: { node: Node; data: GalaxyData }) {
   return (
     <div className="mt-2 space-y-1 text-xs">
       {typeof node.meta.title === "string" && node.meta.title && (
-        <p className="text-zinc-700">{node.meta.title}</p>
+        <p className="text-foreground">{node.meta.title}</p>
       )}
-      <p className="text-zinc-500">
+      <p className="text-muted-foreground">
         {node.team ? `Team: ${node.team}` : "No team"}
       </p>
       <p>{ownedWorkflows.length} workflows owned</p>
       {ownedWorkflows.slice(0, 5).map((w) => (
-        <p key={w.id} className="truncate text-zinc-700">
+        <p key={w.id} className="truncate text-foreground">
           · {w.name}
         </p>
       ))}
@@ -1365,7 +1365,7 @@ function WorkflowDetail({ node }: { node: Node }) {
   const m = node.meta;
   return (
     <div className="mt-2 space-y-1 text-xs">
-      <p className="text-zinc-500">
+      <p className="text-muted-foreground">
         Team: {(m.team as string | null) ?? "-"}
       </p>
       <p>Frequency / wk: {(m.frequencyPerWeek as number) ?? 0}</p>

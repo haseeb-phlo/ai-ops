@@ -36,12 +36,12 @@ type Props = {
 export function RegulatoryRegister({ steps, events, unresolvedCount }: Props) {
   return (
     <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1fr_400px]">
-      <div className="rounded-lg border border-zinc-200 bg-white">
-        <div className="border-b border-zinc-100 px-3 py-2">
-          <h2 className="text-sm font-semibold tracking-tight text-zinc-900">
+      <div className="rounded-lg border border-border bg-background">
+        <div className="border-b border-border px-3 py-2">
+          <h2 className="text-sm font-semibold tracking-tight text-foreground">
             Red-flag steps
           </h2>
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-muted-foreground">
             Workflow steps with regulatory_flag = red. {steps.length} total.
           </p>
         </div>
@@ -58,27 +58,26 @@ export function RegulatoryRegister({ steps, events, unresolvedCount }: Props) {
               <TableRow>
                 <TableCell
                   colSpan={3}
-                  className="text-center text-xs text-zinc-400"
+                  className="text-center text-xs text-muted-foreground"
                 >
-                  No red-flag steps. Either nothing is flagged yet or this is the
-                  cleanest day in months.
+                  No flagged steps yet.
                 </TableCell>
               </TableRow>
             ) : (
               steps.map((s) => (
                 <TableRow key={s.id}>
-                  <TableCell className="font-medium text-zinc-900">
+                  <TableCell className="font-medium text-foreground">
                     {s.title}
                   </TableCell>
                   <TableCell>
                     <Link
                       href={`/workflows/${s.workflowId}`}
-                      className="text-xs text-zinc-600 hover:underline"
+                      className="text-xs text-muted-foreground hover:underline"
                     >
                       {s.workflowName}
                     </Link>
                   </TableCell>
-                  <TableCell className="text-xs text-zinc-600">
+                  <TableCell className="text-xs text-muted-foreground">
                     {s.team ?? "-"}
                   </TableCell>
                 </TableRow>
@@ -88,18 +87,18 @@ export function RegulatoryRegister({ steps, events, unresolvedCount }: Props) {
         </Table>
       </div>
 
-      <div className="rounded-lg border border-zinc-200 bg-white">
-        <div className="border-b border-zinc-100 px-3 py-2">
-          <h2 className="text-sm font-semibold tracking-tight text-zinc-900">
+      <div className="rounded-lg border border-border bg-background">
+        <div className="border-b border-border px-3 py-2">
+          <h2 className="text-sm font-semibold tracking-tight text-foreground">
             Regulatory events
           </h2>
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-muted-foreground">
             {unresolvedCount} unresolved · {events.length} total
           </p>
         </div>
-        <ol className="max-h-96 divide-y divide-zinc-100 overflow-y-auto">
+        <ol className="max-h-96 divide-y divide-border overflow-y-auto">
           {events.length === 0 ? (
-            <li className="px-3 py-6 text-center text-xs text-zinc-400">
+            <li className="px-3 py-6 text-center text-xs text-muted-foreground">
               No events recorded.
             </li>
           ) : (
@@ -116,8 +115,8 @@ export function RegulatoryRegister({ steps, events, unresolvedCount }: Props) {
                     }`}
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-zinc-900">{e.summary}</p>
-                    <p className="text-zinc-500">
+                    <p className="truncate text-foreground">{e.summary}</p>
+                    <p className="text-muted-foreground">
                       {e.resolved_at
                         ? `resolved ${relativeTime(e.resolved_at)}`
                         : `open · raised ${relativeTime(e.created_at)}`}

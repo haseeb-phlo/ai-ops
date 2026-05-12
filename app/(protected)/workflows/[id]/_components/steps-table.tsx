@@ -144,11 +144,11 @@ export function StepsTable({
     <section className="space-y-2">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <div>
-          <h2 className="text-sm font-semibold tracking-tight text-zinc-900">
+          <h2 className="text-sm font-semibold tracking-tight text-foreground">
             Steps
           </h2>
           {canEdit && (
-            <p className="text-xs text-zinc-500">
+            <p className="text-xs text-muted-foreground">
               Click any cell to edit. Use the arrows to reorder, the + button
               below to add a step.
             </p>
@@ -175,9 +175,9 @@ export function StepsTable({
         )}
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-zinc-200 bg-white">
+      <div className="overflow-hidden rounded-lg border border-border bg-background">
         <table className="w-full text-sm">
-          <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500">
+          <thead className="bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
               <th className="w-12 px-3 py-2 text-left font-medium">#</th>
               <th className="px-3 py-2 text-left font-medium">Title</th>
@@ -189,20 +189,20 @@ export function StepsTable({
               )}
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100">
+          <tbody className="divide-y divide-border">
             {optimisticSteps.length === 0 && (
               <tr>
                 <td
                   colSpan={canEdit ? 6 : 5}
-                  className="px-3 py-6 text-center text-zinc-400"
+                  className="px-3 py-6 text-center text-muted-foreground"
                 >
                   No steps yet.
                 </td>
               </tr>
             )}
             {optimisticSteps.map((step, idx) => (
-              <tr key={step.id} className="hover:bg-zinc-50/50">
-                <td className="px-3 py-2 text-zinc-500 tabular-nums">
+              <tr key={step.id} className="hover:bg-muted/40/50">
+                <td className="px-3 py-2 text-muted-foreground tabular-nums">
                   {step.position}
                 </td>
                 <Cell
@@ -263,7 +263,7 @@ export function StepsTable({
                         <button
                           type="button"
                           onClick={() => setPendingDelete(null)}
-                          className="rounded border border-zinc-200 px-2 py-0.5 text-[11px] text-zinc-600 hover:bg-zinc-50"
+                          className="rounded border border-border px-2 py-0.5 text-[11px] text-muted-foreground hover:bg-muted/40"
                         >
                           Cancel
                         </button>
@@ -304,7 +304,7 @@ export function StepsTable({
         </table>
       </div>
       {canEdit && optimisticSteps.length === 0 && (
-        <p className="text-xs text-zinc-500">
+        <p className="text-xs text-muted-foreground">
           No steps logged yet. Click <strong>Add step</strong> above to start
           documenting how this workflow runs.
         </p>
@@ -331,7 +331,7 @@ function ActionButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`inline-flex h-6 w-6 items-center justify-center rounded text-zinc-500 hover:bg-zinc-100 disabled:opacity-30 disabled:hover:bg-transparent ${className}`}
+      className={`inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-muted disabled:opacity-30 disabled:hover:bg-transparent ${className}`}
       {...rest}
     >
       {children}
@@ -396,7 +396,7 @@ function Cell({
 
   const empty = display === "";
   const baseClass = `px-3 py-2 ${alignClass} ${
-    empty ? "text-zinc-400" : "text-zinc-900"
+    empty ? "text-muted-foreground" : "text-foreground"
   } ${canEdit ? "cursor-pointer" : ""}`;
 
   return (
@@ -408,7 +408,7 @@ function Cell({
       title={canEdit ? "Click to edit" : undefined}
     >
       {empty ? "-" : display}
-      {!empty && suffix ? <span className="ml-1 text-zinc-400">{suffix}</span> : null}
+      {!empty && suffix ? <span className="ml-1 text-muted-foreground">{suffix}</span> : null}
     </td>
   );
 }

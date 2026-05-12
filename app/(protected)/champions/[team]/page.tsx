@@ -13,8 +13,16 @@ import { CheckInButton } from "./_components/check-in-button";
 type SponsoredWorkflow = {
   id: string;
   name: string;
-  criticality: string | null;
+  criticality_score: number | null;
   regulatory: boolean;
+};
+
+const CRITICALITY_LABEL: Record<number, string> = {
+  1: "Trivial",
+  2: "Low",
+  3: "Medium",
+  4: "High",
+  5: "Critical",
 };
 
 type SponsoredIntervention = {
@@ -71,7 +79,7 @@ export default async function ChampionTeamPage({
       : Promise.resolve({ data: [] as ProfileRow[] }),
     supabase
       .from("workflows")
-      .select("id, name, criticality, regulatory")
+      .select("id, name, criticality_score, regulatory")
       .eq("team", team)
       .is("deleted_at", null)
       .order("name", { ascending: true })
@@ -124,7 +132,7 @@ export default async function ChampionTeamPage({
       />
 
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
           {team}
         </h1>
       </header>
@@ -134,22 +142,22 @@ export default async function ChampionTeamPage({
           through notes rather than a static profile. */}
       {champions.some((c) => c.user_id === user.id) &&
         (notes ?? []).length === 0 && (
-          <p className="rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-600">
+          <p className="rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
             You&apos;re the AI Champion of <strong>{team}</strong>. Leave
-            champion notes on workflows and interventions, and check in
+            champion notes on workflows and AI initiatives, and check in
             regularly.
           </p>
         )}
 
       {champions.length === 0 ? (
-        <section className="rounded-lg border border-dashed border-zinc-200 bg-white px-6 py-12 text-center text-sm text-muted-foreground">
+        <section className="rounded-lg border border-dashed border-border bg-background px-6 py-12 text-center text-sm text-muted-foreground">
           No champion has been assigned to <strong>{team}</strong> yet.
           {isSuper ? (
             <>
               {" "}Assign one from the{" "}
               <Link
                 href="/admin"
-                className="font-medium text-zinc-700 underline"
+                className="font-medium text-foreground underline"
               >
                 Champions tab in /admin
               </Link>
@@ -160,7 +168,7 @@ export default async function ChampionTeamPage({
               {" "}A super-admin can assign one from{" "}
               <Link
                 href="/admin"
-                className="font-medium text-zinc-700 underline"
+                className="font-medium text-foreground underline"
               >
                 /admin
               </Link>
@@ -184,16 +192,16 @@ export default async function ChampionTeamPage({
       )}
 
       <section className="space-y-2">
-        <h2 className="text-sm font-semibold tracking-tight text-zinc-900">
+        <h2 className="text-sm font-semibold tracking-tight text-foreground">
           Sponsored workflows
         </h2>
-        <div className="rounded-lg border border-zinc-200 bg-white">
+        <div className="rounded-lg border border-border bg-background">
           {(workflows ?? []).length === 0 ? (
-            <div className="px-4 py-6 text-center text-sm text-zinc-400">
+            <div className="px-4 py-6 text-center text-sm text-muted-foreground">
               No workflows on this team yet.
             </div>
           ) : (
-            <ul className="divide-y divide-zinc-100">
+            <ul className="divide-y divide-border">
               {(workflows ?? []).map((w) => (
                 <li
                   key={w.id}
@@ -201,7 +209,7 @@ export default async function ChampionTeamPage({
                 >
                   <Link
                     href={`/workflows/${w.id}`}
-                    className="font-medium text-zinc-900 hover:underline"
+                    className="font-medium text-foreground hover:underline"
                   >
                     {w.name}
                   </Link>
@@ -209,8 +217,10 @@ export default async function ChampionTeamPage({
                     {w.regulatory && (
                       <Badge variant="outline">Regulatory</Badge>
                     )}
-                    {w.criticality && (
-                      <Badge variant="secondary">{w.criticality}</Badge>
+                    {w.criticality_score != null && (
+                      <Badge variant="secondary">
+                        {CRITICALITY_LABEL[w.criticality_score] ?? "—"}
+                      </Badge>
                     )}
                   </div>
                 </li>
@@ -221,16 +231,16 @@ export default async function ChampionTeamPage({
       </section>
 
       <section className="space-y-2">
-        <h2 className="text-sm font-semibold tracking-tight text-zinc-900">
-          Interventions on this team
+        <h2 className="text-sm font-semibold tracking-tight text-foreground">
+          AI initiatives on this team
         </h2>
-        <div className="rounded-lg border border-zinc-200 bg-white">
+        <div className="rounded-lg border border-border bg-background">
           {sponsoredInterventions.length === 0 ? (
-            <div className="px-4 py-6 text-center text-sm text-zinc-400">
-              No interventions linked to this team yet.
+            <div className="px-4 py-6 text-center text-sm text-muted-foreground">
+              No AI initiatives linked to this team yet.
             </div>
           ) : (
-            <ul className="divide-y divide-zinc-100">
+            <ul className="divide-y divide-border">
               {sponsoredInterventions.map((iv) => (
                 <li
                   key={iv.id}
@@ -238,7 +248,7 @@ export default async function ChampionTeamPage({
                 >
                   <Link
                     href={`/interventions/${iv.id}`}
-                    className="font-medium text-zinc-900 hover:underline"
+                    className="font-medium text-foreground hover:underline"
                   >
                     {iv.name}
                   </Link>
@@ -253,16 +263,16 @@ export default async function ChampionTeamPage({
       </section>
 
       <section className="space-y-2">
-        <h2 className="text-sm font-semibold tracking-tight text-zinc-900">
+        <h2 className="text-sm font-semibold tracking-tight text-foreground">
           Recent notes left
         </h2>
-        <div className="rounded-lg border border-zinc-200 bg-white">
+        <div className="rounded-lg border border-border bg-background">
           {(notes ?? []).length === 0 ? (
-            <div className="px-4 py-6 text-center text-sm text-zinc-400">
+            <div className="px-4 py-6 text-center text-sm text-muted-foreground">
               No notes left yet.
             </div>
           ) : (
-            <ul className="divide-y divide-zinc-100">
+            <ul className="divide-y divide-border">
               {(notes ?? []).map((n) => {
                 const targetName =
                   n.target_type === "workflow"
@@ -277,14 +287,14 @@ export default async function ChampionTeamPage({
                   <li key={n.id} className="px-4 py-3 text-sm">
                     <Link
                       href={targetHref}
-                      className="font-medium text-zinc-900 hover:underline"
+                      className="font-medium text-foreground hover:underline"
                     >
                       {targetName}
                     </Link>
-                    <span className="ml-2 text-xs text-zinc-400">
+                    <span className="ml-2 text-xs text-muted-foreground">
                       {format(new Date(n.updated_at), "d MMM yyyy")}
                     </span>
-                    <p className="mt-1 text-zinc-700">
+                    <p className="mt-1 text-foreground">
                       <TextWithMentions text={n.body} />
                     </p>
                   </li>
@@ -318,7 +328,7 @@ function ChampionCard({
   const avatarSrc = resolveAvatar(profile?.avatar_url ?? null, seed);
 
   return (
-    <section className="rounded-lg border border-zinc-200 bg-white p-6 space-y-5">
+    <section className="rounded-lg border border-border bg-background p-6 space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex items-start gap-4">
           <span
@@ -329,7 +339,7 @@ function ChampionCard({
             <img
               src={avatarSrc}
               alt={champion.display_name}
-              className="h-full w-full rounded-full bg-zinc-50 object-cover ring-2 ring-amber-400 ring-offset-1 ring-offset-white"
+              className="h-full w-full rounded-full bg-muted/40 object-cover ring-2 ring-amber-400 ring-offset-1 ring-offset-white"
             />
             <span
               aria-hidden
@@ -339,14 +349,14 @@ function ChampionCard({
             </span>
           </span>
           <div>
-            <h2 className="text-lg font-semibold tracking-tight text-zinc-900">
+            <h2 className="text-lg font-semibold tracking-tight text-foreground">
               {champion.display_name}
             </h2>
-            <p className="text-sm text-zinc-500">
+            <p className="text-sm text-muted-foreground">
               {profile?.title ?? "AI Champion"}
               {champion.user_id ? "" : "  ·  hasn't signed in yet"}
             </p>
-            <p className="mt-1 text-xs text-zinc-400">
+            <p className="mt-1 text-xs text-muted-foreground">
               {champion.last_check_in
                 ? `Last check-in ${formatDistanceToNow(new Date(champion.last_check_in), { addSuffix: true })}`
                 : "No check-ins recorded yet."}

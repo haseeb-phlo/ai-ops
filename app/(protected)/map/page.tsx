@@ -97,10 +97,10 @@ export default async function MapPage({
   if (view === "directory") {
     return (
       <div className="flex flex-1 flex-col">
-        <div className="border-b bg-white px-6 py-5">
+        <div className="border-b bg-background px-6 py-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
+              <h1 className="text-2xl font-semibold tracking-tight text-foreground">
                 People
               </h1>
               <p className="mt-1 text-sm text-muted-foreground">
@@ -124,10 +124,10 @@ export default async function MapPage({
   if (view === "champions") {
     return (
       <div className="flex flex-1 flex-col">
-        <div className="border-b bg-white px-6 py-5">
+        <div className="border-b bg-background px-6 py-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
+              <h1 className="text-2xl font-semibold tracking-tight text-foreground">
                 People
               </h1>
               <p className="mt-1 text-sm text-muted-foreground">
@@ -413,10 +413,10 @@ export default async function MapPage({
 
   return (
     <div className="flex flex-1 flex-col">
-      <div className="border-b bg-white px-6 py-5">
+      <div className="border-b bg-background px-6 py-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
+            <h1 className="text-2xl font-semibold tracking-tight text-foreground">
               People
             </h1>
             <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
@@ -424,7 +424,7 @@ export default async function MapPage({
                 Teams orbit Phlo, people orbit their team, workflows orbit
                 their owners.
               </span>
-              <span className="inline-flex items-center gap-1.5 text-zinc-500">
+              <span className="inline-flex items-center gap-1.5 text-muted-foreground">
                 <span
                   aria-hidden
                   className="inline-flex h-3.5 items-center rounded-full bg-amber-400 px-1 font-mono text-[7px] font-semibold leading-none tracking-tight text-white"

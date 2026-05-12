@@ -31,8 +31,8 @@ export function VoteButton({
       className={cn(
         "inline-flex flex-col items-center justify-center rounded-md border px-2 py-1 text-xs transition-colors disabled:opacity-50",
         voted
-          ? "border-zinc-900 bg-zinc-900 text-white"
-          : "border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300 hover:bg-zinc-50",
+          ? "border-foreground bg-foreground text-background"
+          : "border-border bg-background text-foreground hover:border-input hover:bg-muted/40",
       )}
     >
       <ChevronUp className="size-3.5" />

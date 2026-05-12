@@ -65,7 +65,7 @@ export function ViewAsSwitcher({
 
   return (
     <div className="flex items-center gap-2 text-xs">
-      <span className="text-zinc-500">View as</span>
+      <span className="text-muted-foreground">View as</span>
       <Select
         value={role}
         onValueChange={handleRoleChange}

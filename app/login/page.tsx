@@ -177,27 +177,27 @@ export default function LoginPage() {
           <div className="flex items-center gap-2.5">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/phlo-mark.svg" alt="Phlo" className="h-7 w-auto" />
-            <span aria-hidden className="h-5 w-px bg-zinc-300" />
-            <span className="text-sm font-medium tracking-tight text-zinc-600">
+            <span aria-hidden className="h-5 w-px bg-muted-foreground/60" />
+            <span className="text-sm font-medium tracking-tight text-muted-foreground">
               AI Ops
             </span>
           </div>
-          <p className="mt-3 text-xs text-zinc-500">
+          <p className="mt-3 text-xs text-muted-foreground">
             Phlo&apos;s internal register of recurring workflows and AI
             interventions.
           </p>
         </header>
 
-        <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
+        <div className="rounded-xl border border-border bg-background p-6 shadow-sm">
           <div className="space-y-1">
-            <h1 className="text-lg font-semibold tracking-tight text-zinc-900">
+            <h1 className="text-lg font-semibold tracking-tight text-foreground">
               {awaitingCode ? "Check your email" : "Sign in"}
             </h1>
-            <p className="text-sm text-zinc-500">
+            <p className="text-sm text-muted-foreground">
               {awaitingCode ? (
                 <>
                   We sent a 6-digit code to{" "}
-                  <strong className="text-zinc-900">{email}</strong>. Paste it
+                  <strong className="text-foreground">{email}</strong>. Paste it
                   below to sign in.
                 </>
               ) : (
@@ -270,7 +270,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={handleResend}
-                className="block w-full text-center text-xs text-zinc-500 hover:text-zinc-700"
+                className="block w-full text-center text-xs text-muted-foreground hover:text-foreground"
               >
                 Use a different email
               </button>
@@ -297,7 +297,7 @@ export default function LoginPage() {
           )}
         </div>
 
-        <p className="mt-6 text-center text-xs text-zinc-400">
+        <p className="mt-6 text-center text-xs text-muted-foreground">
           Trouble signing in? Ping a super-admin in Slack.
         </p>
       </div>

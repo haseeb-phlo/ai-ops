@@ -20,19 +20,19 @@ type Row = {
 };
 
 const KIND_DOT: Record<Row["kind"], string> = {
-  workflow: "bg-zinc-400",
+  workflow: "bg-muted-foreground",
   step: "bg-amber-500",
   intervention: "bg-blue-500",
 };
 
 export function AuditLog({ rows }: { rows: Row[] }) {
   return (
-    <div className="rounded-lg border border-zinc-200 bg-white">
-      <div className="border-b border-zinc-100 px-3 py-2">
-        <h2 className="text-sm font-semibold tracking-tight text-zinc-900">
+    <div className="rounded-lg border border-border bg-background">
+      <div className="border-b border-border px-3 py-2">
+        <h2 className="text-sm font-semibold tracking-tight text-foreground">
           Audit log
         </h2>
-        <p className="text-xs text-zinc-500">
+        <p className="text-xs text-muted-foreground">
           Last 100 edits across workflows, steps, and AI initiative status
           changes.
         </p>
@@ -53,7 +53,7 @@ export function AuditLog({ rows }: { rows: Row[] }) {
             <TableRow>
               <TableCell
                 colSpan={6}
-                className="text-center text-xs text-zinc-400"
+                className="text-center text-xs text-muted-foreground"
               >
                 No changes recorded.
               </TableCell>
@@ -62,14 +62,14 @@ export function AuditLog({ rows }: { rows: Row[] }) {
             rows.map((r) => (
               <TableRow key={r.id}>
                 <TableCell
-                  className="whitespace-nowrap text-xs text-zinc-500"
+                  className="whitespace-nowrap text-xs text-muted-foreground"
                   title={new Date(r.when).toLocaleString()}
                 >
                   {relativeTime(r.when)}
                 </TableCell>
-                <TableCell className="text-xs text-zinc-700">{r.who}</TableCell>
+                <TableCell className="text-xs text-foreground">{r.who}</TableCell>
                 <TableCell>
-                  <span className="inline-flex items-center gap-1.5 text-xs text-zinc-700">
+                  <span className="inline-flex items-center gap-1.5 text-xs text-foreground">
                     <span
                       aria-hidden
                       className={`size-1.5 rounded-full ${KIND_DOT[r.kind]}`}
@@ -77,16 +77,16 @@ export function AuditLog({ rows }: { rows: Row[] }) {
                     {r.kind}
                   </span>
                 </TableCell>
-                <TableCell className="text-xs font-medium text-zinc-900">
+                <TableCell className="text-xs font-medium text-foreground">
                   {r.target}
                 </TableCell>
-                <TableCell className="text-xs text-zinc-600">
+                <TableCell className="text-xs text-muted-foreground">
                   {r.field}
                 </TableCell>
-                <TableCell className="text-xs text-zinc-600">
-                  <span className="text-zinc-400">{trim(r.oldValue)}</span>
-                  <span className="px-1 text-zinc-300">→</span>
-                  <span className="text-zinc-900">{trim(r.newValue)}</span>
+                <TableCell className="text-xs text-muted-foreground">
+                  <span className="text-muted-foreground">{trim(r.oldValue)}</span>
+                  <span className="px-1 text-muted-foreground/60">→</span>
+                  <span className="text-foreground">{trim(r.newValue)}</span>
                 </TableCell>
               </TableRow>
             ))

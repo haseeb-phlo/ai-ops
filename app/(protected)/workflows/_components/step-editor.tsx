@@ -197,10 +197,10 @@ export function StepEditor({
               className={cn(
                 "group flex items-start gap-2 rounded-md border p-2 transition-colors",
                 isPlaceholder
-                  ? "border-dashed border-zinc-200 bg-zinc-50/40"
-                  : "border-zinc-200 bg-white hover:border-zinc-300",
+                  ? "border-dashed border-border bg-muted/40/40"
+                  : "border-border bg-background hover:border-input",
                 dragKey === step.key && "opacity-40",
-                dragOverKey === step.key && "border-zinc-900",
+                dragOverKey === step.key && "border-foreground",
               )}
             >
               <span
@@ -245,7 +245,7 @@ export function StepEditor({
                     placeholder="Optional description"
                     rows={1}
                     maxLength={2000}
-                    className="min-h-0 resize-none border-0 bg-transparent px-0 py-0 text-xs text-zinc-600 shadow-none focus-visible:ring-0 md:text-xs"
+                    className="min-h-0 resize-none border-0 bg-transparent px-0 py-0 text-xs text-muted-foreground shadow-none focus-visible:ring-0 md:text-xs"
                   />
                 )}
               </div>
@@ -256,7 +256,7 @@ export function StepEditor({
                     type="button"
                     aria-label="Remove step"
                     onClick={() => removeStep(step.key)}
-                    className="rounded p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-zinc-100 hover:text-foreground group-hover:opacity-100"
+                    className="rounded p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-muted hover:text-foreground group-hover:opacity-100"
                   >
                     <X className="size-3.5" />
                   </button>

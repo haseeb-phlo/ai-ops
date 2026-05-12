@@ -142,7 +142,7 @@ function NumField({
     <div className="space-y-1.5">
       <Label htmlFor={name}>{label}</Label>
       <Input id={name} name={name} type="number" step="any" placeholder="-" />
-      {hint && <p className="text-[11px] text-zinc-500">{hint}</p>}
+      {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
     </div>
   );
 }

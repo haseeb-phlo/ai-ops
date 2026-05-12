@@ -24,9 +24,9 @@ export function CommentRow({
   return (
     <li className="px-4 py-3 text-sm">
       <div className="flex items-baseline justify-between gap-2">
-        <p className="font-medium text-zinc-900">{authorName}</p>
+        <p className="font-medium text-foreground">{authorName}</p>
         <div className="flex items-center gap-3">
-          <span className="text-xs text-zinc-400 tabular-nums">
+          <span className="text-xs text-muted-foreground tabular-nums">
             {format(new Date(createdAt), "d MMM yyyy")}
           </span>
           {canDelete && (
@@ -34,7 +34,7 @@ export function CommentRow({
               type="button"
               size="xs"
               variant="ghost"
-              className="text-zinc-400 hover:text-red-700"
+              className="text-muted-foreground hover:text-red-700"
               disabled={pending}
               onClick={() =>
                 startTransition(async () => {
@@ -50,7 +50,7 @@ export function CommentRow({
           )}
         </div>
       </div>
-      <p className="mt-1 whitespace-pre-wrap text-zinc-700">{body}</p>
+      <p className="mt-1 whitespace-pre-wrap text-foreground">{body}</p>
     </li>
   );
 }

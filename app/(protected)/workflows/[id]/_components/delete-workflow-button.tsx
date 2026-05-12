@@ -68,9 +68,9 @@ export function DeleteWorkflowButton({
           </DialogHeader>
 
           <div className="space-y-2 text-sm">
-            <p className="text-zinc-700">
+            <p className="text-foreground">
               Type{" "}
-              <span className="rounded bg-zinc-100 px-1 font-medium text-zinc-900">
+              <span className="rounded bg-muted px-1 font-medium text-foreground">
                 {workflowName}
               </span>{" "}
               to confirm.
@@ -108,7 +108,7 @@ export function DeleteWorkflowButton({
               disabled={!canConfirm || isPending}
               className="bg-red-600 text-white hover:bg-red-700"
             >
-              {isPending ? "Deleting..." : "Delete workflow"}
+              {isPending ? "Deleting…" : "Delete workflow"}
             </Button>
           </DialogFooter>
         </DialogContent>

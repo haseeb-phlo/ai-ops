@@ -30,7 +30,7 @@ export function SuggestionTabs({ active }: { active: Tab }) {
     return `/suggestions?${next.toString()}`;
   }
   return (
-    <div className="inline-flex rounded-lg border border-zinc-200 bg-white p-0.5 text-sm">
+    <div className="inline-flex rounded-lg border border-border bg-background p-0.5 text-sm">
       {TABS.map((t) => (
         <Link
           key={t.value}
@@ -38,8 +38,8 @@ export function SuggestionTabs({ active }: { active: Tab }) {
           className={cn(
             "rounded-md px-3 py-1 transition-colors",
             active === t.value
-              ? "bg-zinc-900 text-white"
-              : "text-zinc-600 hover:bg-zinc-100",
+              ? "bg-foreground text-background"
+              : "text-muted-foreground hover:bg-muted",
           )}
         >
           {t.label}

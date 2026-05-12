@@ -26,8 +26,8 @@ export function MetricsStrip({ metrics }: { metrics: WorkflowMetrics }) {
   const tiles: TileSpec[] = [
     {
       key: "time",
-      label: "Time",
-      unit: "min",
+      label: "Time (min)",
+      unit: "",
       direction: "lower-better",
       baseline: metrics?.time_baseline ?? null,
       current: metrics?.time_current ?? null,
@@ -80,11 +80,11 @@ function Tile({ tile }: { tile: TileSpec }) {
 
   if (!hasData) {
     return (
-      <div className="rounded-lg border border-zinc-200 bg-white p-4">
-        <div className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+      <div className="rounded-lg border border-border bg-background p-4">
+        <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           {tile.label}
         </div>
-        <div className="mt-2 text-sm text-zinc-400">No data yet</div>
+        <div className="mt-2 text-sm text-muted-foreground">No data yet</div>
       </div>
     );
   }
@@ -99,7 +99,7 @@ function Tile({ tile }: { tile: TileSpec }) {
       ? (delta / Math.abs(tile.baseline)) * 100
       : null;
 
-  let deltaColor = "text-zinc-500";
+  let deltaColor = "text-muted-foreground";
   if (delta != null && delta !== 0) {
     const isImprovement =
       tile.direction === "lower-better" ? delta < 0 : delta > 0;
@@ -109,15 +109,15 @@ function Tile({ tile }: { tile: TileSpec }) {
   const arrow = delta == null || delta === 0 ? "" : delta > 0 ? "▲" : "▼";
 
   return (
-    <div className="rounded-lg border border-zinc-200 bg-white p-4">
-      <div className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+    <div className="rounded-lg border border-border bg-background p-4">
+      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
         {tile.label}
       </div>
-      <div className="mt-1 text-2xl font-semibold tabular-nums text-zinc-900">
+      <div className="mt-1 text-2xl font-semibold tabular-nums text-foreground">
         {format(tile.current, tile.unit)}
       </div>
       <div className="mt-1 flex items-baseline gap-2 text-xs">
-        <span className="text-zinc-400">
+        <span className="text-muted-foreground">
           baseline {format(tile.baseline, tile.unit)}
         </span>
         {delta != null && (

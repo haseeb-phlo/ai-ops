@@ -75,7 +75,7 @@ export function LinkInterventionDialog({
           />
           <div className="flex-1 space-y-3 overflow-y-auto border-t border-border px-6 py-5">
             <div className="space-y-1.5">
-              <label className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+              <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 AI Initiative
               </label>
               <input

@@ -12,17 +12,26 @@ export type WorkflowHeader = {
   team: string | null;
   regulatory: boolean;
   frequency_per_week: number | null;
-  criticality: "low" | "medium" | "high" | "critical" | null;
+  criticality_score: number | null;
   business_kpi: string | null;
   owner_names: string[];
   tools_used: string[] | null;
 };
 
-const CRITICALITY_STYLES: Record<string, string> = {
-  low: "bg-zinc-100 text-zinc-700 ring-zinc-200",
-  medium: "bg-amber-50 text-amber-800 ring-amber-200",
-  high: "bg-orange-50 text-orange-800 ring-orange-200",
-  critical: "bg-red-50 text-red-800 ring-red-200",
+const CRITICALITY_LABEL: Record<number, string> = {
+  1: "Trivial",
+  2: "Low",
+  3: "Medium",
+  4: "High",
+  5: "Critical",
+};
+
+const CRITICALITY_CLASSNAME: Record<number, string> = {
+  1: "bg-muted text-foreground border-border",
+  2: "bg-muted text-foreground border-border",
+  3: "bg-amber-50 text-amber-800 border-amber-200",
+  4: "bg-orange-50 text-orange-800 border-orange-200",
+  5: "bg-red-50 text-red-800 border-red-200",
 };
 
 export async function HeaderCard({
@@ -32,6 +41,7 @@ export async function HeaderCard({
   canDelete,
   loggedByLabel,
   createdAt,
+  hoursPerWeek,
 }: {
   workflow: WorkflowHeader;
   teams: string[];
@@ -39,40 +49,39 @@ export async function HeaderCard({
   canDelete: boolean;
   loggedByLabel: string | null;
   createdAt: string;
+  hoursPerWeek: number | null;
 }) {
   const champByName = await championsByDisplayName();
   const champByTeam = await championsByTeam();
   const teamChampion = workflow.team ? champByTeam.get(workflow.team) : null;
   return (
-    <section className="rounded-lg border border-zinc-200 bg-white p-6">
+    <section className="rounded-lg border border-border bg-background p-6">
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
+            <h1 className="text-2xl font-semibold tracking-tight text-foreground">
               {workflow.name}
             </h1>
             {workflow.regulatory && (
-              <span className="rounded-full bg-purple-50 px-2 py-0.5 text-xs font-medium text-purple-800 ring-1 ring-inset ring-purple-200">
+              <Badge className="border-purple-200 bg-purple-50 text-purple-800">
                 Regulatory
-              </span>
+              </Badge>
             )}
-            {workflow.criticality && (
-              <span
-                className={`rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${
-                  CRITICALITY_STYLES[workflow.criticality]
-                }`}
+            {workflow.criticality_score != null && (
+              <Badge
+                className={CRITICALITY_CLASSNAME[workflow.criticality_score]}
               >
-                {workflow.criticality}
-              </span>
+                {CRITICALITY_LABEL[workflow.criticality_score] ?? "—"}
+              </Badge>
             )}
           </div>
 
           <dl className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm sm:grid-cols-4">
             <div>
-              <dt className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+              <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 Team
               </dt>
-              <dd className="text-zinc-900">
+              <dd className="text-foreground">
                 {workflow.team ? (
                   teamChampion ? (
                     <Link
@@ -86,7 +95,7 @@ export async function HeaderCard({
                     workflow.team
                   )
                 ) : (
-                  <span className="text-zinc-400">-</span>
+                  <span className="text-muted-foreground">-</span>
                 )}
               </dd>
             </div>
@@ -98,14 +107,18 @@ export async function HeaderCard({
                   : null
               }
             />
+            <Field
+              label="Hours / wk"
+              value={hoursPerWeek != null ? formatNumber(hoursPerWeek) : null}
+            />
             <Field label="Business KPI" value={workflow.business_kpi} />
             <div>
-              <dt className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+              <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 Owners
               </dt>
-              <dd className="text-zinc-900">
+              <dd className="text-foreground">
                 {workflow.owner_names.length === 0 ? (
-                  <span className="text-zinc-400">-</span>
+                  <span className="text-muted-foreground">-</span>
                 ) : (
                   <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
                     {workflow.owner_names.map((n, i) => {
@@ -115,7 +128,7 @@ export async function HeaderCard({
                         <span key={`${n}-${i}`} className="inline-flex">
                           <PersonName name={n} champion={champ} />
                           {i < workflow.owner_names.length - 1 && (
-                            <span className="text-zinc-300">,</span>
+                            <span className="text-muted-foreground/60">,</span>
                           )}
                         </span>
                       );
@@ -125,10 +138,10 @@ export async function HeaderCard({
               </dd>
             </div>
             <div>
-              <dt className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+              <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 Logged by
               </dt>
-              <dd className="text-zinc-900">
+              <dd className="text-foreground">
                 {loggedByLabel ? (
                   <PersonName
                     name={loggedByLabel}
@@ -138,7 +151,7 @@ export async function HeaderCard({
                     }
                   />
                 ) : (
-                  <span className="text-zinc-400">-</span>
+                  <span className="text-muted-foreground">-</span>
                 )}
               </dd>
             </div>
@@ -147,7 +160,7 @@ export async function HeaderCard({
               value={format(new Date(createdAt), "d MMM yyyy")}
             />
             <div className="col-span-2 sm:col-span-4">
-              <dt className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+              <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 Tools used
               </dt>
               <dd className="mt-1">
@@ -159,7 +172,11 @@ export async function HeaderCard({
 
         <div className="flex shrink-0 flex-wrap gap-2">
           {canEdit && (
-            <EditWorkflowDialog workflow={workflow} teams={teams} />
+            <EditWorkflowDialog
+              workflow={workflow}
+              teams={teams}
+              hoursPerWeek={hoursPerWeek}
+            />
           )}
           {canDelete && (
             <DeleteWorkflowButton
@@ -180,17 +197,17 @@ function formatNumber(n: number): string {
 function Field({ label, value }: { label: string; value: string | null }) {
   return (
     <div>
-      <dt className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+      <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
         {label}
       </dt>
-      <dd className="text-zinc-900">{value ?? <span className="text-zinc-400">-</span>}</dd>
+      <dd className="text-foreground">{value ?? <span className="text-muted-foreground">-</span>}</dd>
     </div>
   );
 }
 
 function ToolList({ tools }: { tools: string[] }) {
   if (tools.length === 0) {
-    return <span className="text-zinc-400">-</span>;
+    return <span className="text-muted-foreground">-</span>;
   }
   return (
     <ul className="flex flex-wrap gap-1.5">

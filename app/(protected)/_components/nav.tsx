@@ -29,8 +29,8 @@ export function Nav({ canSeeAdmin }: { canSeeAdmin: boolean }) {
           className={cn(
             "rounded-md px-2.5 py-1 transition-colors",
             isActive(item.href)
-              ? "bg-zinc-100 font-medium text-zinc-900"
-              : "text-zinc-600 hover:text-zinc-900",
+              ? "bg-muted font-medium text-foreground"
+              : "text-muted-foreground hover:text-foreground",
           )}
         >
           {item.label}
@@ -42,8 +42,8 @@ export function Nav({ canSeeAdmin }: { canSeeAdmin: boolean }) {
           className={cn(
             "rounded-md px-2.5 py-1 transition-colors",
             isActive("/admin")
-              ? "bg-zinc-100 font-medium text-zinc-900"
-              : "text-zinc-600 hover:text-zinc-900",
+              ? "bg-muted font-medium text-foreground"
+              : "text-muted-foreground hover:text-foreground",
           )}
         >
           Admin

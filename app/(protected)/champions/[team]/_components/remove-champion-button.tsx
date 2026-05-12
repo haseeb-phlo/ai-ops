@@ -49,7 +49,7 @@ export function RemoveChampionButton({
       onClick={onClick}
       disabled={pending}
     >
-      {pending ? "Removing..." : "Remove"}
+      {pending ? "Removing…" : "Remove"}
     </Button>
   );
 }

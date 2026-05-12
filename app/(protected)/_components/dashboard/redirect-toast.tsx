@@ -67,7 +67,7 @@ export function RedirectToast() {
   return (
     <div
       role="status"
-      className="fixed top-4 right-4 z-50 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 shadow-md"
+      className="fixed top-4 right-4 z-50 rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground shadow-md"
     >
       {message}
     </div>

@@ -17,7 +17,7 @@ export function CheckInButton({ team }: { team: string }) {
         })
       }
     >
-      {pending ? "Recording..." : "Check in now"}
+      {pending ? "Checking in…" : "Check in now"}
     </Button>
   );
 }

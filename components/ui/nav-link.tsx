@@ -24,7 +24,7 @@ export function BackLink({
     <Link
       href={href}
       className={cn(
-        "group inline-flex items-center gap-1.5 text-sm text-zinc-500 transition-colors hover:text-zinc-900",
+        "group inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground",
         className,
       )}
     >
@@ -51,7 +51,7 @@ export function ForwardLink({
     <Link
       href={href}
       className={cn(
-        "group inline-flex items-center gap-1.5 text-sm font-medium text-zinc-700 transition-colors hover:text-zinc-900",
+        "group inline-flex items-center gap-1.5 text-sm font-medium text-foreground transition-colors hover:text-foreground",
         className,
       )}
     >

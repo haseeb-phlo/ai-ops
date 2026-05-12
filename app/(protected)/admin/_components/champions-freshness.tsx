@@ -46,12 +46,12 @@ function trafficFor(lastCheckIn: string | null): {
  */
 export function ChampionsFreshness({ rows }: { rows: Row[] }) {
   return (
-    <div className="rounded-lg border border-zinc-200 bg-white">
-      <div className="border-b border-zinc-100 px-3 py-2">
-        <h2 className="text-sm font-semibold tracking-tight text-zinc-900">
+    <div className="rounded-lg border border-border bg-background">
+      <div className="border-b border-border px-3 py-2">
+        <h2 className="text-sm font-semibold tracking-tight text-foreground">
           All champions
         </h2>
-        <p className="text-xs text-zinc-500">
+        <p className="text-xs text-muted-foreground">
           Green &lt;14d · amber &lt;30d · red &gt;30d since last check-in.
         </p>
       </div>
@@ -71,7 +71,7 @@ export function ChampionsFreshness({ rows }: { rows: Row[] }) {
             <TableRow>
               <TableCell
                 colSpan={6}
-                className="text-center text-xs text-zinc-400"
+                className="text-center text-xs text-muted-foreground"
               >
                 No champions registered yet.
               </TableCell>
@@ -87,18 +87,18 @@ export function ChampionsFreshness({ rows }: { rows: Row[] }) {
                       aria-label={traffic}
                     />
                   </TableCell>
-                  <TableCell className="text-xs font-medium text-zinc-900">
+                  <TableCell className="text-xs font-medium text-foreground">
                     {r.team}
                   </TableCell>
-                  <TableCell className="text-xs text-zinc-700">
+                  <TableCell className="text-xs text-foreground">
                     {r.displayName}
                   </TableCell>
-                  <TableCell className="text-xs text-zinc-500">
+                  <TableCell className="text-xs text-muted-foreground">
                     {r.lastCheckIn
                       ? relativeTime(r.lastCheckIn)
                       : "never checked in"}
                   </TableCell>
-                  <TableCell className="text-right text-xs tabular-nums text-zinc-500">
+                  <TableCell className="text-right text-xs tabular-nums text-muted-foreground">
                     {ageDays == null ? "-" : `${ageDays}d`}
                   </TableCell>
                   <TableCell className="text-right">

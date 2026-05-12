@@ -27,7 +27,7 @@ export function ViewToggle({ active }: { active: ViewMode }) {
   }
 
   return (
-    <div className="inline-flex rounded-lg border border-zinc-200 bg-white p-0.5 text-xs">
+    <div className="inline-flex rounded-lg border border-border bg-background p-0.5 text-xs">
       <button
         type="button"
         disabled={pending}
@@ -35,8 +35,8 @@ export function ViewToggle({ active }: { active: ViewMode }) {
         className={cn(
           "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 transition-colors",
           active === "list"
-            ? "bg-zinc-900 text-white"
-            : "text-zinc-600 hover:bg-zinc-100",
+            ? "bg-foreground text-background"
+            : "text-muted-foreground hover:bg-muted",
         )}
       >
         <List className="size-3" />
@@ -49,8 +49,8 @@ export function ViewToggle({ active }: { active: ViewMode }) {
         className={cn(
           "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 transition-colors",
           active === "board"
-            ? "bg-zinc-900 text-white"
-            : "text-zinc-600 hover:bg-zinc-100",
+            ? "bg-foreground text-background"
+            : "text-muted-foreground hover:bg-muted",
         )}
       >
         <LayoutGrid className="size-3" />

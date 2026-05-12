@@ -56,8 +56,8 @@ export function StatusActions({
 
   if (showDecline) {
     return (
-      <div className="space-y-2 rounded-md border border-zinc-200 bg-zinc-50 p-3">
-        <p className="text-xs font-medium text-zinc-700">
+      <div className="space-y-2 rounded-md border border-border bg-muted/40 p-3">
+        <p className="text-xs font-medium text-foreground">
           Reason for declining (visible to everyone)
         </p>
         <Textarea

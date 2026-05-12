@@ -24,15 +24,15 @@ export function DetailHeader({
   return (
     <div
       className={cn(
-        "sticky top-0 z-30 -mx-6 mb-6 flex items-center gap-2 border-b border-zinc-200 bg-white/95 px-6 py-2.5 backdrop-blur",
+        "sticky top-0 z-30 -mx-6 mb-6 flex items-center gap-2 border-b border-border bg-background/95 px-6 py-2.5 backdrop-blur",
         className,
       )}
     >
       <BackLink href={backHref}>{backLabel}</BackLink>
       {title && (
         <>
-          <span aria-hidden className="text-zinc-300">/</span>
-          <p className="min-w-0 truncate text-sm text-zinc-500">{title}</p>
+          <span aria-hidden className="text-muted-foreground/60">/</span>
+          <p className="min-w-0 truncate text-sm text-muted-foreground">{title}</p>
         </>
       )}
     </div>

@@ -120,7 +120,7 @@ export function InviteButton({ teams }: { teams: string[] }) {
                 Close
               </Button>
               <Button type="submit" disabled={pending || team === ""}>
-                {pending ? "Sending..." : "Send invite"}
+                {pending ? "Sending…" : "Send invite"}
               </Button>
             </DialogFooter>
           </form>

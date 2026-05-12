@@ -73,30 +73,30 @@ export async function ChampionNotesSection({
   return (
     <section className="space-y-3">
       <div className="flex items-baseline justify-between gap-2">
-        <h2 className="text-sm font-semibold tracking-tight text-zinc-900">
+        <h2 className="text-sm font-semibold tracking-tight text-foreground">
           Champion notes
         </h2>
-        <p className="text-xs text-zinc-400">
+        <p className="text-xs text-muted-foreground">
           Editorial guidance from the AI champion of each affected team.
         </p>
       </div>
 
-      <ul className="divide-y divide-zinc-100 rounded-lg border border-zinc-200 bg-white">
+      <ul className="divide-y divide-border rounded-lg border border-border bg-background">
         {readOnlyNotes.map((n) => (
           <li key={n.id} className="px-4 py-3 text-sm">
             <div className="mb-1 flex items-baseline justify-between gap-2 text-xs">
               <Link
                 href={`/champions/${encodeURIComponent(n.team)}`}
-                className="font-medium text-zinc-900 hover:underline"
+                className="font-medium text-foreground hover:underline"
               >
                 {byTeam.get(n.team)?.display_name ?? n.team}
               </Link>
-              <span className="text-zinc-500">
+              <span className="text-muted-foreground">
                 {format(new Date(n.updated_at), "d MMM yyyy")} ·{" "}
-                <span className="text-zinc-400">{n.team}</span>
+                <span className="text-muted-foreground">{n.team}</span>
               </span>
             </div>
-            <p className="text-zinc-700">
+            <p className="text-foreground">
               <TextWithMentions text={n.body} />
             </p>
           </li>
@@ -106,11 +106,11 @@ export async function ChampionNotesSection({
           const existing = noteByTeam.get(team);
           return (
             <li key={`editor-${team}`} className="space-y-2 px-4 py-3">
-              <div className="text-xs text-zinc-500">
+              <div className="text-xs text-muted-foreground">
                 You champion{" "}
                 <Link
                   href={`/champions/${encodeURIComponent(team)}`}
-                  className="font-medium text-zinc-900 hover:underline"
+                  className="font-medium text-foreground hover:underline"
                 >
                   {team}
                 </Link>

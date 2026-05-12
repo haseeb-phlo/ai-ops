@@ -26,12 +26,12 @@ export function AllTimeRail({
 }) {
   if (interventionCount === 0) return null;
   return (
-    <section className="rounded-lg border border-zinc-200 bg-white p-4">
+    <section className="rounded-lg border border-border bg-background p-4">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <h2 className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+        <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           All time, since launch
         </h2>
-        <span className="text-xs text-zinc-500 tabular-nums">
+        <span className="text-xs text-muted-foreground tabular-nums">
           across {interventionCount}{" "}
           {interventionCount === 1 ? "AI initiative" : "AI initiatives"} (incl.
           retired)
@@ -49,10 +49,10 @@ export function AllTimeRail({
 function Tile({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-[11px] uppercase tracking-wide text-zinc-400">
+      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
         {label}
       </p>
-      <p className="mt-0.5 text-lg font-semibold tabular-nums text-zinc-900">
+      <p className="mt-0.5 text-lg font-semibold tabular-nums text-foreground">
         {value}
       </p>
     </div>

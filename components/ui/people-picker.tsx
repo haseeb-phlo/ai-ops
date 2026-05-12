@@ -126,12 +126,12 @@ export function PeoplePicker({
               <button
                 type="button"
                 onClick={() => remove(p.email)}
-                className="group inline-flex max-w-full items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 py-0.5 pl-2.5 pr-1 text-xs text-zinc-700 transition-colors hover:border-zinc-300 hover:bg-zinc-100"
+                className="group inline-flex max-w-full items-center gap-1 rounded-full border border-border bg-muted/40 py-0.5 pl-2.5 pr-1 text-xs text-foreground transition-colors hover:border-input hover:bg-muted"
                 aria-label={`Remove ${p.displayName}`}
                 title={p.email}
               >
                 <span className="truncate">{p.displayName}</span>
-                <span className="flex size-4 items-center justify-center rounded-full text-zinc-400 group-hover:text-zinc-700">
+                <span className="flex size-4 items-center justify-center rounded-full text-muted-foreground group-hover:text-foreground">
                   <X className="size-3" />
                 </span>
               </button>
@@ -177,12 +177,12 @@ export function PeoplePicker({
                           className={cn(
                             "flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors",
                             checked
-                              ? "bg-muted/60 text-zinc-500"
+                              ? "bg-muted/60 text-muted-foreground"
                               : "hover:bg-muted/40",
                           )}
                         >
                           <span className="min-w-0 flex-1">
-                            <span className="block truncate text-zinc-900">
+                            <span className="block truncate text-foreground">
                               {p.displayName}
                             </span>
                             <span className="block truncate text-[11px] text-muted-foreground">
@@ -201,7 +201,7 @@ export function PeoplePicker({
             </div>
             <div className="flex items-center justify-between border-t border-border bg-muted/40 px-3 py-1.5 text-[11px] text-muted-foreground">
               <span>{selected.size} selected</span>
-              <span>Tap to {selected.size > 0 ? "add or remove" : "add"}</span>
+              <span>Click to {selected.size > 0 ? "add or remove" : "add"}</span>
             </div>
           </div>
         )}

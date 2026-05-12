@@ -180,7 +180,7 @@ export default async function SuggestionsPage({
     <PageContainer>
       <PageHeader
         title="Suggestions"
-        description="The upstream pipeline of AI ideas. Anyone can submit; the team's AI Champion triages; super-admins commit to building."
+        description="Submit ideas, triage them, and promote the winners to AI initiatives."
         actions={<SubmitSuggestionDialog workflows={workflowsList} />}
       />
 
@@ -233,8 +233,8 @@ function ActiveList({
 }) {
   if (rows.length === 0) {
     return (
-      <p className="rounded-lg border border-dashed border-zinc-200 bg-white px-6 py-12 text-center text-sm text-zinc-500">
-        Nothing here yet.
+      <p className="rounded-lg border border-dashed border-border bg-background px-6 py-12 text-center text-sm text-muted-foreground">
+        No suggestions yet.
       </p>
     );
   }

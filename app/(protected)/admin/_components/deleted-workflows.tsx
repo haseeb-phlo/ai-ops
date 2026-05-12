@@ -44,14 +44,14 @@ export function DeletedWorkflows({ rows }: { rows: DeletedWorkflowRow[] }) {
 
   if (rows.length === 0) {
     return (
-      <div className="rounded-lg border border-zinc-200 bg-white px-4 py-10 text-center text-sm text-muted-foreground">
+      <div className="rounded-lg border border-border bg-background px-4 py-10 text-center text-sm text-muted-foreground">
         No deleted workflows.
       </div>
     );
   }
 
   return (
-    <div className="rounded-lg border border-zinc-200 bg-white">
+    <div className="rounded-lg border border-border bg-background">
       <Table>
         <TableHeader>
           <TableRow>
@@ -65,18 +65,18 @@ export function DeletedWorkflows({ rows }: { rows: DeletedWorkflowRow[] }) {
         <TableBody>
           {rows.map((row) => (
             <TableRow key={row.id}>
-              <TableCell className="font-medium text-zinc-900">
+              <TableCell className="font-medium text-foreground">
                 {row.name}
               </TableCell>
-              <TableCell className="text-zinc-700">
-                {row.team ?? <span className="text-zinc-400">-</span>}
+              <TableCell className="text-foreground">
+                {row.team ?? <span className="text-muted-foreground">-</span>}
               </TableCell>
-              <TableCell className="text-zinc-500">
+              <TableCell className="text-muted-foreground">
                 {format(new Date(row.deleted_at), "d MMM yyyy, HH:mm")}
               </TableCell>
-              <TableCell className="text-zinc-500">
+              <TableCell className="text-muted-foreground">
                 {row.deleted_by_email ?? (
-                  <span className="text-zinc-400">-</span>
+                  <span className="text-muted-foreground">-</span>
                 )}
               </TableCell>
               <TableCell className="text-right">
@@ -87,7 +87,7 @@ export function DeletedWorkflows({ rows }: { rows: DeletedWorkflowRow[] }) {
                     onClick={() => handleRestore(row.id)}
                     disabled={pendingId === row.id}
                   >
-                    {pendingId === row.id ? "Restoring..." : "Restore"}
+                    {pendingId === row.id ? "Restoring…" : "Restore"}
                   </Button>
                   {errors[row.id] && (
                     <span className="text-xs text-red-700">

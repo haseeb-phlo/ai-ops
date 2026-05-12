@@ -196,7 +196,7 @@ export default async function WorkflowsPage(props: {
         </p>
       )}
 
-      <div className="rounded-lg border border-zinc-200 bg-white">
+      <div className="rounded-lg border border-border bg-background">
         {(workflows ?? []).length === 0 && !error ? (
           <div className="px-4 py-10 text-center text-sm text-muted-foreground">
             No workflows
@@ -226,7 +226,7 @@ export default async function WorkflowsPage(props: {
 
                 return (
                   <TableRow key={wf.id}>
-                    <TableCell className="font-medium text-zinc-900">
+                    <TableCell className="font-medium text-foreground">
                       <Link
                         href={`/workflows/${wf.id}`}
                         className="hover:underline"
@@ -234,11 +234,15 @@ export default async function WorkflowsPage(props: {
                         {wf.name}
                       </Link>
                     </TableCell>
-                    <TableCell className="text-zinc-700">
-                      {wf.team ?? <span className="text-zinc-400">-</span>}
+                    <TableCell className="text-foreground">
+                      {wf.team ?? <span className="text-muted-foreground">-</span>}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {wf.frequency_per_week ?? 0}
+                      {wf.frequency_per_week != null
+                        ? wf.frequency_per_week.toLocaleString(undefined, {
+                            maximumFractionDigits: 1,
+                          })
+                        : 0}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
                       {stepsCount}
@@ -249,14 +253,14 @@ export default async function WorkflowsPage(props: {
                           maximumFractionDigits: 1,
                         })
                       ) : (
-                        <span className="text-zinc-400">-</span>
+                        <span className="text-muted-foreground">-</span>
                       )}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
                       {activeInterventions}
                     </TableCell>
-                    <TableCell className="text-zinc-700">
-                      {loggedBy ?? <span className="text-zinc-400">-</span>}
+                    <TableCell className="text-foreground">
+                      {loggedBy ?? <span className="text-muted-foreground">-</span>}
                     </TableCell>
                   </TableRow>
                 );

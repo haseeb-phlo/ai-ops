@@ -103,11 +103,11 @@ export function TagInput({
               <button
                 type="button"
                 onClick={() => remove(tag)}
-                className="group inline-flex max-w-full items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 py-0.5 pl-2.5 pr-1 text-xs text-zinc-700 transition-colors hover:border-zinc-300 hover:bg-zinc-100"
+                className="group inline-flex max-w-full items-center gap-1 rounded-full border border-border bg-muted/40 py-0.5 pl-2.5 pr-1 text-xs text-foreground transition-colors hover:border-input hover:bg-muted"
                 aria-label={`Remove ${tag}`}
               >
                 <span className="truncate">{tag}</span>
-                <span className="flex size-4 items-center justify-center rounded-full text-zinc-400 group-hover:text-zinc-700">
+                <span className="flex size-4 items-center justify-center rounded-full text-muted-foreground group-hover:text-foreground">
                   <X className="size-3" />
                 </span>
               </button>
@@ -143,7 +143,7 @@ export function TagInput({
                       "flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors hover:bg-muted/40",
                     )}
                   >
-                    <span className="min-w-0 flex-1 truncate text-zinc-900">
+                    <span className="min-w-0 flex-1 truncate text-foreground">
                       {s}
                     </span>
                     <span className="shrink-0 text-[11px] text-muted-foreground">
@@ -163,7 +163,7 @@ export function TagInput({
                       onClick={() => add(query)}
                       className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors hover:bg-muted/40"
                     >
-                      <span className="min-w-0 flex-1 truncate text-zinc-900">
+                      <span className="min-w-0 flex-1 truncate text-foreground">
                         Add &ldquo;{query.trim()}&rdquo;
                       </span>
                       <span className="shrink-0 text-[11px] text-muted-foreground">

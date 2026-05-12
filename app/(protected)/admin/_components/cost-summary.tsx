@@ -19,7 +19,7 @@ export function CostSummary({ cost }: Props) {
 
   return (
     <div className="space-y-3">
-      <p className="text-xs text-zinc-500">
+      <p className="text-xs text-muted-foreground">
         Includes failed and retired interventions. We&apos;d rather see honest
         spend than flatter the active ones.
       </p>
@@ -55,23 +55,23 @@ function CostCard({
 }) {
   const grandTotal = buckets.reduce((s, b) => s + b.total, 0);
   return (
-    <div className="rounded-lg border border-zinc-200 bg-white">
-      <div className="flex items-center justify-between border-b border-zinc-100 px-3 py-2">
-        <h2 className="text-sm font-semibold tracking-tight text-zinc-900">
+    <div className="rounded-lg border border-border bg-background">
+      <div className="flex items-center justify-between border-b border-border px-3 py-2">
+        <h2 className="text-sm font-semibold tracking-tight text-foreground">
           {title}
         </h2>
-        <span className="text-xs tabular-nums text-zinc-500">
+        <span className="text-xs tabular-nums text-muted-foreground">
           {gbp(grandTotal)}
         </span>
       </div>
       {buckets.length === 0 ? (
-        <p className="px-3 py-6 text-center text-xs text-zinc-400">
+        <p className="px-3 py-6 text-center text-xs text-muted-foreground">
           No cost snapshots logged.
         </p>
       ) : (
         <table className="w-full text-xs">
           <thead>
-            <tr className="border-b border-zinc-100 text-left text-[10px] uppercase tracking-wide text-zinc-500">
+            <tr className="border-b border-border text-left text-[10px] uppercase tracking-wide text-muted-foreground">
               <th className="px-3 py-1.5 font-medium">Bucket</th>
               {months.map((m) => (
                 <th key={m} className="px-2 py-1.5 text-right font-medium">
@@ -81,23 +81,23 @@ function CostCard({
               <th className="px-3 py-1.5 text-right font-medium">Total</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100">
+          <tbody className="divide-y divide-border">
             {buckets.map((b) => {
               const monthMap = new Map(b.rows.map((r) => [r.month, r.spend]));
               return (
                 <tr key={b.key}>
-                  <td className="truncate px-3 py-1.5 font-medium text-zinc-900">
+                  <td className="truncate px-3 py-1.5 font-medium text-foreground">
                     {b.key}
                   </td>
                   {months.map((m) => (
                     <td
                       key={m}
-                      className="px-2 py-1.5 text-right tabular-nums text-zinc-600"
+                      className="px-2 py-1.5 text-right tabular-nums text-muted-foreground"
                     >
                       {monthMap.has(m) ? gbp(monthMap.get(m)!) : "-"}
                     </td>
                   ))}
-                  <td className="px-3 py-1.5 text-right tabular-nums font-semibold text-zinc-900">
+                  <td className="px-3 py-1.5 text-right tabular-nums font-semibold text-foreground">
                     {gbp(b.total)}
                   </td>
                 </tr>

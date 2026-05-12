@@ -49,18 +49,18 @@ const CONFIDENCE_LABEL: Record<string, string> = {
 };
 
 const ADOPTION_LABEL: Record<string, string> = {
-  daily: "Daily - used every day",
-  weekly: "Weekly - used a few times a week",
-  occasional: "Occasional - used now and then",
-  abandoned: "Abandoned - nobody's using it",
+  daily: "Daily — used every day",
+  weekly: "Weekly — a few times a week",
+  occasional: "Occasional — now and then",
+  abandoned: "Not in use",
 };
 
 const SATISFACTION_LABEL: Record<string, string> = {
-  "1": "1 - Hate it",
-  "2": "2 - Don't like it",
-  "3": "3 - Neutral",
-  "4": "4 - Like it",
-  "5": "5 - Love it",
+  "1": "1 — Very dissatisfied",
+  "2": "2 — Dissatisfied",
+  "3": "3 — Neutral",
+  "4": "4 — Satisfied",
+  "5": "5 — Very satisfied",
 };
 
 type InterventionType = (typeof TYPES)[number]["value"];
@@ -157,9 +157,8 @@ export function EditInterventionDialog({
           <DialogHeader className="gap-2 px-6 pt-5 pb-5">
             <DialogTitle>Edit AI initiative</DialogTitle>
             <DialogDescription>
-              Every change is recorded in the audit trail below. Linked
-              workflows and baselines aren&apos;t editable - re-log if those
-              need changing.
+              Linked workflows and baselines are fixed at log time. Re-log to
+              change them.
             </DialogDescription>
           </DialogHeader>
 
@@ -182,8 +181,7 @@ export function EditInterventionDialog({
                 <div className="space-y-1.5 sm:col-span-2">
                   <Label>Type</Label>
                   <p className="text-xs text-muted-foreground">
-                    Pick at least one. Choose more than one if the initiative
-                    spans buckets.
+                    Pick one or more.
                   </p>
                   <div
                     role="group"
@@ -472,7 +470,7 @@ export function EditInterventionDialog({
                 Cancel
               </Button>
               <Button type="submit" disabled={isPending || types.size === 0}>
-                {isPending ? "Saving" : "Save changes"}
+                {isPending ? "Saving…" : "Save changes"}
               </Button>
             </DialogFooter>
           </form>

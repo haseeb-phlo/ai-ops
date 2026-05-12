@@ -131,23 +131,23 @@ export function RoadmapBoard({
             className={cn(
               "rounded-lg border p-3 transition-colors",
               isDropTarget
-                ? "border-zinc-400 bg-zinc-100"
-                : "border-zinc-200 bg-zinc-50/40",
+                ? "border-input bg-muted"
+                : "border-border bg-muted/40/40",
             )}
           >
             <div className="mb-3 flex items-baseline justify-between gap-2 px-1">
               <div>
-                <h3 className="text-sm font-semibold tracking-tight text-zinc-900">
+                <h3 className="text-sm font-semibold tracking-tight text-foreground">
                   {lane.title}
                 </h3>
-                <p className="text-xs text-zinc-500">{lane.hint}</p>
+                <p className="text-xs text-muted-foreground">{lane.hint}</p>
               </div>
-              <span className="font-mono text-[11px] tabular-nums text-zinc-500">
+              <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
                 {items.length}
               </span>
             </div>
             {items.length === 0 ? (
-              <p className="rounded-md border border-dashed border-zinc-200 bg-white px-3 py-6 text-center text-xs text-zinc-400">
+              <p className="rounded-md border border-dashed border-border bg-background px-3 py-6 text-center text-xs text-muted-foreground">
                 {canMove ? "Drop a suggestion here." : "Nothing here."}
               </p>
             ) : (
@@ -164,28 +164,28 @@ export function RoadmapBoard({
                     }}
                     onDragEnd={() => setDraggingId(null)}
                     className={cn(
-                      "rounded-md border border-zinc-200 bg-white transition-opacity",
+                      "rounded-md border border-border bg-background transition-opacity",
                       canMove && "cursor-grab active:cursor-grabbing",
                       draggingId === s.id && "opacity-40",
                     )}
                   >
                     <Link
                       href={`/suggestions/${s.id}`}
-                      className="block p-3 hover:bg-zinc-50/60"
+                      className="block p-3 hover:bg-muted/40/60"
                     >
-                      <p className="text-sm font-medium text-zinc-900">
+                      <p className="text-sm font-medium text-foreground">
                         {s.title}
                       </p>
-                      <p className="mt-0.5 line-clamp-2 text-xs text-zinc-500">
+                      <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
                         {s.body}
                       </p>
-                      <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-zinc-500">
+                      <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
                         {s.team && <span>{s.team}</span>}
                         {s.team && s.workflow_name && (
                           <span aria-hidden>·</span>
                         )}
                         {s.workflow_id && s.workflow_name && (
-                          <span className="hover:text-zinc-700">
+                          <span className="hover:text-foreground">
                             {s.workflow_name}
                           </span>
                         )}

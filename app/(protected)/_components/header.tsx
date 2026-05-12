@@ -28,7 +28,7 @@ export async function Header({
 
   return (
     <>
-      <header className="flex h-14 items-center justify-between border-b border-zinc-200 bg-white px-6">
+      <header className="flex h-14 items-center justify-between border-b border-border bg-background px-6">
         <div className="flex items-center gap-8">
           <Link
             href="/"
@@ -41,8 +41,8 @@ export async function Header({
               alt="Phlo"
               className="h-5 w-auto"
             />
-            <span aria-hidden className="h-4 w-px bg-zinc-300" />
-            <span className="text-sm font-medium tracking-tight text-zinc-600">
+            <span aria-hidden className="h-4 w-px bg-muted-foreground/60" />
+            <span className="text-sm font-medium tracking-tight text-muted-foreground">
               AI Ops
             </span>
           </Link>
@@ -50,19 +50,19 @@ export async function Header({
         </div>
 
         <div className="flex items-center gap-3 text-sm">
-          <div className="flex items-center gap-2 text-zinc-600">
-            <span className="font-medium text-zinc-900">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <span className="font-medium text-foreground">
               {user.displayName}
             </span>
             {user.team && (
               <>
-                <span className="text-zinc-300">·</span>
+                <span className="text-muted-foreground/60">·</span>
                 <span>{user.team}</span>
               </>
             )}
             {user.role === "super_admin" && (
               <span
-                className="ml-1 rounded border border-zinc-200 px-1.5 py-0.5 text-[10px] font-medium tracking-tight text-zinc-500"
+                className="ml-1 rounded border border-border px-1.5 py-0.5 text-[10px] font-medium tracking-tight text-muted-foreground"
                 title="You have super-admin access"
               >
                 Super admin
@@ -82,7 +82,7 @@ export async function Header({
             <Link
               href="/profile"
               aria-label="Edit profile"
-              className="block size-8 overflow-hidden rounded-full ring-1 ring-zinc-200 hover:ring-zinc-400"
+              className="block size-8 overflow-hidden rounded-full ring-1 ring-border hover:ring-ring"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -96,7 +96,7 @@ export async function Header({
           <form action="/auth/signout" method="post">
             <button
               type="submit"
-              className="rounded-md border border-zinc-300 px-2.5 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+              className="rounded-md border border-input px-2.5 py-1 text-xs font-medium text-foreground hover:bg-muted/40"
             >
               Sign out
             </button>

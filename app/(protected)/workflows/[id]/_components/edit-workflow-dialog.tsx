@@ -20,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 import {
   updateWorkflow,
   type UpdateWorkflowState,
@@ -31,32 +32,34 @@ type Workflow = {
   team: string | null;
   regulatory: boolean;
   frequency_per_week: number | null;
-  criticality: "low" | "medium" | "high" | "critical" | null;
+  criticality_score: number | null;
   business_kpi: string | null;
   owner_names: string[];
 };
 
-const CRITICALITIES: Workflow["criticality"][] = [
-  "low",
-  "medium",
-  "high",
-  "critical",
-];
+const CRITICALITY_OPTIONS = [
+  { value: "1", label: "Trivial" },
+  { value: "2", label: "Low" },
+  { value: "3", label: "Medium" },
+  { value: "4", label: "High" },
+  { value: "5", label: "Critical" },
+] as const;
 
 const TEAM_NONE = "__none__";
-const CRIT_NONE = "__none__";
 
 export function EditWorkflowDialog({
   workflow,
   teams,
+  hoursPerWeek,
 }: {
   workflow: Workflow;
   teams: string[];
+  hoursPerWeek: number | null;
 }) {
   const [open, setOpen] = useState(false);
   const [team, setTeam] = useState<string>(workflow.team ?? TEAM_NONE);
   const [criticality, setCriticality] = useState<string>(
-    workflow.criticality ?? CRIT_NONE,
+    workflow.criticality_score != null ? String(workflow.criticality_score) : "3",
   );
   const [regulatory, setRegulatory] = useState(workflow.regulatory);
   const [state, setState] = useState<UpdateWorkflowState>({ kind: "idle" });
@@ -75,7 +78,11 @@ export function EditWorkflowDialog({
   function handleOpenChange(next: boolean) {
     if (next) {
       setTeam(workflow.team ?? TEAM_NONE);
-      setCriticality(workflow.criticality ?? CRIT_NONE);
+      setCriticality(
+        workflow.criticality_score != null
+          ? String(workflow.criticality_score)
+          : "3",
+      );
       setRegulatory(workflow.regulatory);
     }
     setOpen(next);
@@ -100,8 +107,7 @@ export function EditWorkflowDialog({
         <DialogHeader>
           <DialogTitle>Edit workflow</DialogTitle>
           <DialogDescription>
-            Updates are recorded in the audit log. Steps are edited in the table
-            below.
+            Updates are recorded in the audit log.
           </DialogDescription>
         </DialogHeader>
 
@@ -158,28 +164,54 @@ export function EditWorkflowDialog({
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="criticality">Criticality</Label>
+              <Label htmlFor="hours_per_week">Hours per week</Label>
+              <Input
+                id="hours_per_week"
+                name="hours_per_week"
+                type="number"
+                min="0"
+                max="168"
+                step="0.25"
+                defaultValue={hoursPerWeek != null ? String(hoursPerWeek) : ""}
+                placeholder="e.g. 2"
+              />
+            </div>
+
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label>Criticality</Label>
               <input
                 type="hidden"
-                name="criticality"
-                value={criticality === CRIT_NONE ? "" : criticality}
-              />
-              <Select
+                name="criticality_score"
                 value={criticality}
-                onValueChange={(v) => setCriticality(v ?? CRIT_NONE)}
-              >
-                <SelectTrigger id="criticality">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={CRIT_NONE}>Unset</SelectItem>
-                  {CRITICALITIES.map((c) => (
-                    <SelectItem key={c!} value={c!}>
-                      {c!.charAt(0).toUpperCase() + c!.slice(1)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              />
+              <div className="flex w-full rounded-lg border border-border bg-background p-0.5">
+                {CRITICALITY_OPTIONS.map((o) => {
+                  const active = criticality === o.value;
+                  return (
+                    <button
+                      key={o.value}
+                      type="button"
+                      onClick={() => setCriticality(o.value)}
+                      className={cn(
+                        "flex-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors",
+                        active
+                          ? "bg-foreground text-background"
+                          : "text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "mr-1 font-mono text-[10px]",
+                          active ? "opacity-60" : "opacity-50",
+                        )}
+                      >
+                        {o.value}
+                      </span>
+                      {o.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             <div className="space-y-1.5">
@@ -201,7 +233,7 @@ export function EditWorkflowDialog({
                 defaultValue={workflow.owner_names.join(", ")}
                 placeholder="Comma-separated, e.g. Aisha Khan, Marcus Lee"
               />
-              <p className="text-xs text-zinc-500">
+              <p className="text-xs text-muted-foreground">
                 Plain text names, separated by commas.
               </p>
             </div>
@@ -213,7 +245,7 @@ export function EditWorkflowDialog({
                 type="checkbox"
                 checked={regulatory}
                 onChange={(e) => setRegulatory(e.target.checked)}
-                className="h-4 w-4 rounded border-zinc-300"
+                className="h-4 w-4 rounded border-input"
               />
               <Label htmlFor="regulatory" className="font-normal">
                 This workflow has regulatory implications
@@ -222,8 +254,7 @@ export function EditWorkflowDialog({
 
             {workflow.regulatory && !regulatory && (
               <p className="rounded-md bg-amber-50 p-2 text-xs text-amber-900 sm:col-span-2">
-                You&apos;re removing the regulatory flag. Make sure that&apos;s
-                intentional - regulatory_events are still tracked separately.
+                You&apos;re removing the regulatory flag.
               </p>
             )}
           </div>

@@ -149,12 +149,12 @@ export function OrgTreeClient({
           className="w-full max-w-md sm:w-80"
         />
         {isSearching && (
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-muted-foreground">
             Showing matches for &ldquo;{query}&rdquo;.{" "}
             <button
               type="button"
               onClick={() => setQuery("")}
-              className="text-zinc-700 underline-offset-2 hover:underline"
+              className="text-foreground underline-offset-2 hover:underline"
             >
               Clear
             </button>
@@ -163,7 +163,7 @@ export function OrgTreeClient({
       </div>
 
       {showEmpty ? (
-        <p className="rounded-lg border border-dashed border-zinc-200 bg-white px-6 py-12 text-center text-sm text-zinc-500">
+        <p className="rounded-lg border border-dashed border-border bg-background px-6 py-12 text-center text-sm text-muted-foreground">
           No people match &ldquo;{query}&rdquo;.
         </p>
       ) : (
@@ -193,12 +193,12 @@ export function OrgTreeClient({
           )}
 
           {filteredOther.length > 0 && (
-            <div className="space-y-4 border-t border-zinc-200 pt-8">
+            <div className="space-y-4 border-t border-border pt-8">
               <div>
-                <h2 className="text-sm font-semibold tracking-tight text-zinc-900">
+                <h2 className="text-sm font-semibold tracking-tight text-foreground">
                   Other teams
                 </h2>
-                <p className="text-xs text-zinc-500">
+                <p className="text-xs text-muted-foreground">
                   Teams not assigned to a named leader in the tree above.
                 </p>
               </div>
@@ -258,7 +258,7 @@ function Branch({
 
       {hasChildren && !isCollapsed && (
         <>
-          <div className="h-3 w-px bg-zinc-300" aria-hidden />
+          <div className="h-3 w-px bg-muted-foreground/60" aria-hidden />
           {node.directs.length > 0 && (
             <div className="flex shrink-0 items-start gap-x-4">
               {node.directs.map((d) => (
@@ -307,7 +307,7 @@ function BigCard({
       <button
         type="button"
         onClick={() => onOpen(person)}
-        className={`relative flex w-44 flex-col items-center gap-2 rounded-lg border border-zinc-200 bg-white p-4 text-left hover:border-zinc-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${dim}`}
+        className={`relative flex w-44 flex-col items-center gap-2 rounded-lg border border-border bg-background p-4 text-left hover:border-input focus:outline-none focus-visible:ring-2 focus-visible:ring-ring ${dim}`}
         title={
           isChamp ? `AI Champion of ${person.championTeam}` : person.displayName
         }
@@ -320,10 +320,10 @@ function BigCard({
           <img
             src={resolveAvatar(person.avatarUrl, person.email)}
             alt={person.displayName}
-            className={`h-full w-full rounded-full bg-zinc-50 object-cover ring-1 ${
+            className={`h-full w-full rounded-full bg-muted/40 object-cover ring-1 ${
               isChamp
                 ? "ring-2 ring-amber-400 ring-offset-1 ring-offset-white"
-                : "ring-zinc-200"
+                : "ring-border"
             } ${person.isSignedIn ? "" : "grayscale"}`}
           />
           {isChamp && (
@@ -336,10 +336,10 @@ function BigCard({
           )}
         </span>
         <div className="w-full text-center">
-          <div className="truncate text-sm font-semibold text-zinc-900">
+          <div className="truncate text-sm font-semibold text-foreground">
             {person.displayName}
           </div>
-          <div className="line-clamp-2 text-xs text-zinc-500">
+          <div className="line-clamp-2 text-xs text-muted-foreground">
             {person.title}
           </div>
         </div>
@@ -372,7 +372,7 @@ function SmallCard({
       <button
         type="button"
         onClick={() => onOpen(person)}
-        className={`relative flex w-36 flex-col items-center gap-2 rounded-lg border border-zinc-200 bg-white p-3 text-left hover:border-zinc-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${dim}`}
+        className={`relative flex w-36 flex-col items-center gap-2 rounded-lg border border-border bg-background p-3 text-left hover:border-input focus:outline-none focus-visible:ring-2 focus-visible:ring-ring ${dim}`}
         title={
           isChamp ? `AI Champion of ${person.championTeam}` : person.displayName
         }
@@ -385,10 +385,10 @@ function SmallCard({
           <img
             src={resolveAvatar(person.avatarUrl, person.email)}
             alt={person.displayName}
-            className={`h-full w-full rounded-full bg-zinc-50 object-cover ring-1 ${
+            className={`h-full w-full rounded-full bg-muted/40 object-cover ring-1 ${
               isChamp
                 ? "ring-2 ring-amber-400 ring-offset-1 ring-offset-white"
-                : "ring-zinc-200"
+                : "ring-border"
             } ${person.isSignedIn ? "" : "grayscale"}`}
           />
           {isChamp && (
@@ -401,10 +401,10 @@ function SmallCard({
           )}
         </span>
         <div className="w-full text-center">
-          <div className="truncate text-xs font-semibold text-zinc-900">
+          <div className="truncate text-xs font-semibold text-foreground">
             {person.displayName}
           </div>
-          <div className="line-clamp-2 text-[10px] leading-tight text-zinc-500">
+          <div className="line-clamp-2 text-[10px] leading-tight text-muted-foreground">
             {person.title}
           </div>
         </div>
@@ -433,7 +433,7 @@ function CollapseButton({
       }}
       aria-label={isCollapsed ? COLLAPSED_LABEL : EXPANDED_LABEL}
       title={isCollapsed ? COLLAPSED_LABEL : EXPANDED_LABEL}
-      className="absolute -bottom-3 left-1/2 inline-flex size-6 -translate-x-1/2 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-500 shadow-sm hover:text-zinc-900"
+      className="absolute -bottom-3 left-1/2 inline-flex size-6 -translate-x-1/2 items-center justify-center rounded-full border border-border bg-background text-muted-foreground shadow-sm hover:text-foreground"
     >
       <span aria-hidden className="text-xs leading-none">
         {isCollapsed ? "+" : "–"}
@@ -456,7 +456,7 @@ function Chip({
     <button
       type="button"
       onClick={() => onOpen(person)}
-      className={`flex w-44 items-center gap-2 rounded-md border border-zinc-200 bg-white px-2 py-1.5 text-left hover:border-zinc-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${dim}`}
+      className={`flex w-44 items-center gap-2 rounded-md border border-border bg-background px-2 py-1.5 text-left hover:border-input focus:outline-none focus-visible:ring-2 focus-visible:ring-ring ${dim}`}
       title={
         isChamp ? `AI Champion of ${person.championTeam}` : person.title
       }
@@ -469,14 +469,14 @@ function Chip({
         <img
           src={resolveAvatar(person.avatarUrl, person.email)}
           alt={person.displayName}
-          className={`h-full w-full rounded-full bg-zinc-50 object-cover ring-1 ${
+          className={`h-full w-full rounded-full bg-muted/40 object-cover ring-1 ${
             isChamp
               ? "ring-2 ring-amber-400 ring-offset-1 ring-offset-white"
-              : "ring-zinc-200"
+              : "ring-border"
           } ${person.isSignedIn ? "" : "grayscale"}`}
         />
       </span>
-      <span className="min-w-0 flex-1 truncate text-xs text-zinc-800">
+      <span className="min-w-0 flex-1 truncate text-xs text-foreground">
         {person.displayName}
       </span>
     </button>
@@ -491,12 +491,12 @@ function TeamCluster({
   onOpen: (person: ResolvedPerson) => void;
 }) {
   return (
-    <div className="rounded-lg border border-zinc-200 bg-white p-4">
+    <div className="rounded-lg border border-border bg-background p-4">
       <div className="mb-3 flex items-baseline justify-between">
-        <h3 className="text-sm font-semibold tracking-tight text-zinc-900">
+        <h3 className="text-sm font-semibold tracking-tight text-foreground">
           {cluster.team}
         </h3>
-        <span className="text-xs text-zinc-500">
+        <span className="text-xs text-muted-foreground">
           {cluster.members.length}{" "}
           {cluster.members.length === 1 ? "person" : "people"}
         </span>
@@ -535,10 +535,10 @@ function PersonDialog({
                   <img
                     src={resolveAvatar(person.avatarUrl, person.email)}
                     alt={person.displayName}
-                    className={`h-full w-full rounded-full bg-zinc-50 object-cover ring-1 ${
+                    className={`h-full w-full rounded-full bg-muted/40 object-cover ring-1 ${
                       isChamp
                         ? "ring-2 ring-amber-400 ring-offset-1 ring-offset-white"
-                        : "ring-zinc-200"
+                        : "ring-border"
                     } ${person.isSignedIn ? "" : "grayscale"}`}
                   />
                   {isChamp && (
@@ -554,40 +554,40 @@ function PersonDialog({
                   <DialogTitle className="truncate">
                     {person.displayName}
                   </DialogTitle>
-                  <p className="truncate text-xs text-zinc-500">
+                  <p className="truncate text-xs text-muted-foreground">
                     {person.title || "—"}
                   </p>
                 </div>
               </div>
             </DialogHeader>
             <dl className="grid grid-cols-[6.5rem_1fr] gap-x-4 gap-y-2 text-sm">
-              <dt className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+              <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 Team
               </dt>
-              <dd className="text-zinc-900">
-                {person.team ?? <span className="text-zinc-400">-</span>}
+              <dd className="text-foreground">
+                {person.team ?? <span className="text-muted-foreground">-</span>}
               </dd>
 
-              <dt className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+              <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 Email
               </dt>
-              <dd className="break-all text-zinc-700">{person.email}</dd>
+              <dd className="break-all text-foreground">{person.email}</dd>
 
-              <dt className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+              <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 Started
               </dt>
-              <dd className="text-zinc-700">
+              <dd className="text-foreground">
                 {person.startDate ? (
                   format(new Date(person.startDate), "d MMM yyyy")
                 ) : (
-                  <span className="text-zinc-400">-</span>
+                  <span className="text-muted-foreground">-</span>
                 )}
               </dd>
 
-              <dt className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+              <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 Status
               </dt>
-              <dd className="text-zinc-700">
+              <dd className="text-foreground">
                 {person.isSignedIn ? (
                   <span className="inline-flex items-center gap-1.5">
                     <span
@@ -597,13 +597,13 @@ function PersonDialog({
                     Signed in
                   </span>
                 ) : (
-                  <span className="text-zinc-400">Not signed in yet</span>
+                  <span className="text-muted-foreground">Not signed in yet</span>
                 )}
               </dd>
 
               {isChamp && (
                 <>
-                  <dt className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+                  <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                     Champion of
                   </dt>
                   <dd>

@@ -25,18 +25,25 @@ export type StreamItem =
       at: string;
       target_type: "workflow" | "intervention";
       target_id: string;
+    }
+  | {
+      kind: "workflow";
+      id: string;
+      name: string;
+      team: string | null;
+      at: string;
     };
 
 export function ActivityStream({ items }: { items: StreamItem[] }) {
   if (items.length === 0) {
     return (
-      <p className="px-4 py-6 text-center text-xs text-zinc-400">
+      <p className="px-4 py-6 text-center text-xs text-muted-foreground">
         Quiet week. Nothing new logged.
       </p>
     );
   }
   return (
-    <ul className="divide-y divide-zinc-100">
+    <ul className="divide-y divide-border">
       {items.map((it) => (
         <li key={`${it.kind}:${it.id}`} className="px-4 py-3 text-sm">
           {it.kind === "intervention" && (
@@ -45,7 +52,7 @@ export function ActivityStream({ items }: { items: StreamItem[] }) {
               title={
                 <Link
                   href={`/interventions/${it.id}`}
-                  className="font-medium text-zinc-900 hover:underline"
+                  className="font-medium text-foreground hover:underline"
                 >
                   {it.name}
                 </Link>
@@ -66,17 +73,34 @@ export function ActivityStream({ items }: { items: StreamItem[] }) {
                 it.workflowId ? (
                   <Link
                     href={`/workflows/${it.workflowId}`}
-                    className="font-medium text-zinc-900 hover:underline"
+                    className="font-medium text-foreground hover:underline"
                   >
                     {it.summary}
                   </Link>
                 ) : (
-                  <span className="font-medium text-zinc-900">
+                  <span className="font-medium text-foreground">
                     {it.summary}
                   </span>
                 )
               }
               meta="Regulatory event"
+              at={it.at}
+            />
+          )}
+          {it.kind === "workflow" && (
+            <Row
+              icon={<Glyph kind="workflow" />}
+              title={
+                <Link
+                  href={`/workflows/${it.id}`}
+                  className="font-medium text-foreground hover:underline"
+                >
+                  {it.name}
+                </Link>
+              }
+              meta={["New workflow", it.team ? `team: ${it.team}` : null]
+                .filter(Boolean)
+                .join(" · ")}
               at={it.at}
             />
           )}
@@ -90,7 +114,7 @@ export function ActivityStream({ items }: { items: StreamItem[] }) {
                       ? `/workflows/${it.target_id}`
                       : `/interventions/${it.target_id}`
                   }
-                  className="font-medium text-zinc-900 hover:underline"
+                  className="font-medium text-foreground hover:underline"
                 >
                   {it.team} champion note
                 </Link>
@@ -122,21 +146,28 @@ function Row({
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           {title}
-          <span className="shrink-0 text-xs text-zinc-400 tabular-nums">
+          <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
             {format(new Date(at), "d MMM")}
           </span>
         </div>
-        <p className="mt-0.5 line-clamp-2 text-xs text-zinc-500">{meta}</p>
+        <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{meta}</p>
       </div>
     </div>
   );
 }
 
-function Glyph({ kind }: { kind: "intervention" | "note" }) {
+function Glyph({ kind }: { kind: "intervention" | "note" | "workflow" }) {
   if (kind === "intervention") {
     return (
       <span className="flex size-5 items-center justify-center rounded-full bg-blue-100 text-[10px] font-semibold text-blue-700">
         +
+      </span>
+    );
+  }
+  if (kind === "workflow") {
+    return (
+      <span className="flex size-5 items-center justify-center rounded-full bg-emerald-100 text-[10px] font-semibold text-emerald-700">
+        W
       </span>
     );
   }

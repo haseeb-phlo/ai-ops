@@ -113,18 +113,36 @@ async function loadCanEdit(workflowId: string) {
   const supabase = await createClient();
   const { data: workflow } = await supabase
     .from("workflows")
-    .select("team")
+    .select("team, created_by, owner_names")
     .eq("id", workflowId)
-    .maybeSingle();
+    .maybeSingle<{
+      team: string | null;
+      created_by: string | null;
+      owner_names: string[] | null;
+    }>();
   if (!workflow) {
     return { ok: false as const, error: "Workflow not found." };
   }
-  const canEdit =
-    user.role === "super_admin" || user.team === workflow.team;
-  if (!canEdit) {
+  if (!canUserEditWorkflow(user, workflow)) {
     return { ok: false as const, error: "You don't have permission." };
   }
   return { ok: true as const, supabase };
+}
+
+// Edit rights: super admin, the person who logged it, or anyone whose
+// display name is listed in owner_names. Name match is trimmed and
+// case-insensitive so directory quirks don't lock out the actual owner.
+export function canUserEditWorkflow(
+  user: { id: string; role: string; displayName: string },
+  workflow: { created_by: string | null; owner_names: string[] | null },
+): boolean {
+  if (user.role === "super_admin") return true;
+  if (workflow.created_by && workflow.created_by === user.id) return true;
+  const me = user.displayName.trim().toLowerCase();
+  if (!me) return false;
+  return (workflow.owner_names ?? []).some(
+    (n) => n.trim().toLowerCase() === me,
+  );
 }
 
 export async function addStep(
@@ -236,8 +254,6 @@ export async function moveStep(
   return { ok: true };
 }
 
-const CRITICALITIES = ["low", "medium", "high", "critical"] as const;
-
 const UpdateWorkflowSchema = z.object({
   name: z.string().min(1, "Name is required").max(200),
   team: z.string().max(120).nullable(),
@@ -247,9 +263,19 @@ const UpdateWorkflowSchema = z.object({
     .min(0, "Frequency can't be negative")
     .max(1000)
     .nullable(),
-  criticality: z.enum(CRITICALITIES).nullable(),
+  criticality_score: z
+    .number({ error: "Criticality must be a number" })
+    .int()
+    .min(1)
+    .max(5)
+    .nullable(),
   business_kpi: z.string().max(500).nullable(),
   owner_names: z.array(z.string().min(1)).max(20),
+  hours_per_week: z
+    .number({ error: "Hours must be a number" })
+    .min(0, "Hours can't be negative")
+    .max(168, "More hours per week than exist isn't possible")
+    .nullable(),
 });
 
 export type UpdateWorkflowState =
@@ -271,22 +297,29 @@ export async function updateWorkflow(
   const frequencyValue: number | null =
     rawFrequency === "" ? null : Number(rawFrequency);
   const rawCriticality =
-    (formData.get("criticality") as string | null)?.trim() || null;
+    (formData.get("criticality_score") as string | null)?.trim() || "";
+  const criticalityValue: number | null =
+    rawCriticality === "" ? null : Number(rawCriticality);
   const rawKpi =
     (formData.get("business_kpi") as string | null)?.trim() || null;
   const rawOwners = ((formData.get("owner_names") as string | null) ?? "")
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
+  const rawHours =
+    (formData.get("hours_per_week") as string | null)?.trim() || "";
+  const hoursValue: number | null =
+    rawHours === "" ? null : Number(rawHours);
 
   const parsed = UpdateWorkflowSchema.safeParse({
     name: (formData.get("name") as string | null)?.trim() ?? "",
     team: rawTeam,
     regulatory: formData.get("regulatory") === "on",
     frequency_per_week: frequencyValue,
-    criticality: rawCriticality,
+    criticality_score: criticalityValue,
     business_kpi: rawKpi,
     owner_names: rawOwners,
+    hours_per_week: hoursValue,
   });
 
   if (!parsed.success) {
@@ -301,7 +334,7 @@ export async function updateWorkflow(
   const { data: current, error: curErr } = await gate.supabase
     .from("workflows")
     .select(
-      "id, name, team, regulatory, frequency_per_week, criticality, business_kpi, owner_names",
+      "id, name, team, regulatory, frequency_per_week, criticality_score, business_kpi, owner_names",
     )
     .eq("id", workflowId)
     .maybeSingle();
@@ -309,6 +342,19 @@ export async function updateWorkflow(
   if (curErr || !current) {
     return { kind: "error", message: "Workflow not found." };
   }
+
+  // Hours/wk lives on workflow_metrics.time_baseline (in minutes). Load
+  // the current value so the diff/revision log skips no-op writes.
+  const { data: currentMetrics } = await gate.supabase
+    .from("workflow_metrics")
+    .select("time_baseline")
+    .eq("workflow_id", workflowId)
+    .maybeSingle<{ time_baseline: number | null }>();
+
+  const currentHours: number | null =
+    currentMetrics?.time_baseline != null
+      ? currentMetrics.time_baseline / 60
+      : null;
 
   // Diff each field. Skip writes if nothing changed; record one revision row
   // per changed field so /admin's audit log lists them individually.
@@ -344,13 +390,21 @@ export async function updateWorkflow(
       current.frequency_per_week,
       next.frequency_per_week,
     );
-  if ((current.criticality ?? null) !== next.criticality)
-    record("criticality", current.criticality, next.criticality);
+  if ((current.criticality_score ?? null) !== next.criticality_score)
+    record(
+      "criticality_score",
+      current.criticality_score,
+      next.criticality_score,
+    );
   if ((current.business_kpi ?? null) !== next.business_kpi)
     record("business_kpi", current.business_kpi, next.business_kpi);
   const currentOwners = (current.owner_names as string[] | null) ?? [];
   if (currentOwners.join("|") !== next.owner_names.join("|"))
     record("owner_names", currentOwners.join(", "), next.owner_names.join(", "));
+  const hoursChanged = currentHours !== next.hours_per_week;
+  if (hoursChanged) {
+    record("hours_per_week", currentHours, next.hours_per_week);
+  }
 
   if (revisions.length === 0) {
     return { kind: "success" };
@@ -370,7 +424,7 @@ export async function updateWorkflow(
       team: next.team,
       regulatory: next.regulatory,
       frequency_per_week: next.frequency_per_week,
-      criticality: next.criticality,
+      criticality_score: next.criticality_score,
       business_kpi: next.business_kpi,
       owner_names: next.owner_names,
       updated_at: new Date().toISOString(),
@@ -381,7 +435,33 @@ export async function updateWorkflow(
     return { kind: "error", message: `Could not save: ${updErr.message}` };
   }
 
+  // Hours/wk → workflow_metrics.time_baseline (minutes). Update only when
+  // the value actually changed; upsert so workflows missing a metrics row
+  // (legacy seeds) get one on first edit.
+  if (hoursChanged) {
+    const minutes =
+      next.hours_per_week == null ? null : next.hours_per_week * 60;
+    const { error: metricsErr } = await gate.supabase
+      .from("workflow_metrics")
+      .upsert(
+        {
+          workflow_id: workflowId,
+          time_baseline: minutes,
+          time_current: minutes,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "workflow_id" },
+      );
+    if (metricsErr) {
+      return {
+        kind: "error",
+        message: `Could not save hours/week: ${metricsErr.message}`,
+      };
+    }
+  }
+
   revalidatePath(`/workflows/${workflowId}`);
   revalidatePath("/workflows");
+  revalidatePath("/");
   return { kind: "success" };
 }

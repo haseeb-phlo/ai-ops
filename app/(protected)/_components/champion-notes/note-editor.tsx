@@ -30,7 +30,7 @@ export function NoteEditor({
   if (!editing && initialBody) {
     return (
       <div className="space-y-2">
-        <div className="rounded-md bg-zinc-50 px-3 py-2 text-sm text-zinc-800">
+        <div className="rounded-md bg-muted/40 px-3 py-2 text-sm text-foreground">
           {initialBody}
         </div>
         <div className="flex items-center gap-2">
@@ -76,7 +76,7 @@ export function NoteEditor({
 
       <div className="flex items-center gap-2">
         <Button type="submit" size="sm" disabled={pending}>
-          {pending ? "Saving..." : initialBody ? "Save" : "Post note"}
+          {pending ? "Saving…" : initialBody ? "Save" : "Post note"}
         </Button>
         {initialBody && (
           <Button

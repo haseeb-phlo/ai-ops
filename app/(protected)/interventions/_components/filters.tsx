@@ -34,12 +34,12 @@ export function Filters({
   return (
     <div className="flex flex-wrap items-center gap-3 text-sm">
       <label className="flex items-center gap-2">
-        <span className="text-zinc-600">Type</span>
+        <span className="text-muted-foreground">Type</span>
         <select
           value={type ?? ""}
           onChange={(e) => updateParam("type", e.target.value)}
           disabled={isPending}
-          className="h-8 rounded-lg border border-zinc-200 bg-white px-2 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+          className="h-8 rounded-lg border border-border bg-background px-2 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
         >
           <option value="">All</option>
           {types.map((t) => (
@@ -51,12 +51,12 @@ export function Filters({
       </label>
 
       <label className="flex items-center gap-2">
-        <span className="text-zinc-600">Status</span>
+        <span className="text-muted-foreground">Status</span>
         <select
           value={status ?? ""}
           onChange={(e) => updateParam("status", e.target.value)}
           disabled={isPending}
-          className="h-8 rounded-lg border border-zinc-200 bg-white px-2 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+          className="h-8 rounded-lg border border-border bg-background px-2 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
         >
           <option value="">All</option>
           {statuses.map((s) => (
@@ -74,7 +74,7 @@ export function Filters({
             startTransition(() => router.push(pathname));
           }}
           disabled={isPending}
-          className="text-xs text-zinc-500 underline-offset-2 hover:underline"
+          className="text-xs text-muted-foreground underline-offset-2 hover:underline"
         >
           Clear
         </button>

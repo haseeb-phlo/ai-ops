@@ -21,14 +21,16 @@ const COPY: Record<
     title: string;
     body: string;
     confirm: string;
+    pending: string;
     nextStatus: Status;
   }
 > = {
   active: {
     button: "Retire",
     title: "Retire this AI initiative?",
-    body: "It stops counting toward live dashboard totals, but stays on the record so historical comparisons remain honest. You can reactivate it later.",
+    body: "It stops counting toward live dashboard totals, but stays on the record. You can reactivate it later.",
     confirm: "Retire",
+    pending: "Retiring…",
     nextStatus: "retired",
   },
   paused: {
@@ -36,6 +38,7 @@ const COPY: Record<
     title: "Retire this AI initiative?",
     body: "It stops counting toward live dashboard totals, but stays on the record. You can reactivate it later.",
     confirm: "Retire",
+    pending: "Retiring…",
     nextStatus: "retired",
   },
   retired: {
@@ -43,6 +46,7 @@ const COPY: Record<
     title: "Reactivate this AI initiative?",
     body: "It will count toward live dashboard totals again from now on. Past snapshots are unchanged.",
     confirm: "Reactivate",
+    pending: "Reactivating…",
     nextStatus: "active",
   },
 };
@@ -110,7 +114,7 @@ export function StatusButton({
               Cancel
             </Button>
             <Button onClick={handleConfirm} disabled={isPending}>
-              {isPending ? "Working…" : copy.confirm}
+              {isPending ? copy.pending : copy.confirm}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -42,10 +42,10 @@ export function PersonAvatar({
         src={src}
         alt={name}
         className={cn(
-          "h-full w-full rounded-full bg-zinc-50 object-cover ring-1",
+          "h-full w-full rounded-full bg-muted/40 object-cover ring-1",
           champion
             ? "ring-2 ring-amber-400 ring-offset-1 ring-offset-white"
-            : "ring-zinc-200",
+            : "ring-border",
         )}
       />
       {champion && (
@@ -97,7 +97,7 @@ export function PersonName({
         title={`AI Champion · ${champion.team}`}
         className={cn(
           "inline-flex items-center gap-1",
-          muted ? "text-zinc-700" : "font-medium text-zinc-900",
+          muted ? "text-foreground" : "font-medium text-foreground",
           "hover:underline",
           className,
         )}

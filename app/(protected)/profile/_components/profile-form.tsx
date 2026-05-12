@@ -117,9 +117,9 @@ export function ProfileForm({
         <img
           src={avatarUrl || defaultAvatarUrl(userId)}
           alt={defaultDisplayName}
-          className="size-20 rounded-full ring-1 ring-zinc-200 object-cover bg-zinc-50"
+          className="size-20 rounded-full ring-1 ring-border object-cover bg-muted/40"
         />
-        <p className="text-sm font-medium text-zinc-700">{email}</p>
+        <p className="text-sm font-medium text-foreground">{email}</p>
       </div>
 
       <div className="space-y-2">
@@ -205,7 +205,7 @@ export function ProfileForm({
           <button
             type="button"
             onClick={useDefaultAvatar}
-            className="text-xs text-zinc-600 underline-offset-2 hover:underline"
+            className="text-xs text-muted-foreground underline-offset-2 hover:underline"
           >
             Use generated avatar instead
           </button>

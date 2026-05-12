@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { loadTeamOptions } from "@/lib/teams";
+import { canUserEditWorkflow } from "./actions";
 import { HeaderCard, type WorkflowHeader } from "./_components/header-card";
 import {
   MetricsStrip,
@@ -39,7 +40,7 @@ export default async function WorkflowDetailPage({
     supabase
       .from("workflows")
       .select(
-        "id, name, team, regulatory, frequency_per_week, criticality, business_kpi, owner_names, tools_used, created_by, created_at",
+        "id, name, team, regulatory, frequency_per_week, criticality_score, business_kpi, owner_names, tools_used, created_by, created_at",
       )
       .eq("id", id)
       .is("deleted_at", null)
@@ -111,8 +112,10 @@ export default async function WorkflowDetailPage({
 
   const teams = await loadTeamOptions(supabase, workflow.team);
 
-  const canEdit =
-    user.role === "super_admin" || user.team === workflow.team;
+  const canEdit = canUserEditWorkflow(user, {
+    created_by: workflow.created_by,
+    owner_names: workflow.owner_names,
+  });
 
   let canDelete =
     user.role === "super_admin" || workflow.created_by === user.id;
@@ -157,6 +160,9 @@ export default async function WorkflowDetailPage({
           canDelete={canDelete}
           loggedByLabel={loggedByLabel}
           createdAt={workflow.created_at}
+          hoursPerWeek={
+            metrics?.time_baseline != null ? metrics.time_baseline / 60 : null
+          }
         />
         {stepExtractionFailed && (
           <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">

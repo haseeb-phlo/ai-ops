@@ -417,7 +417,7 @@ export default async function AdminPage() {
         title="Admin"
         description="Cross-company controls. Company stats and rankings live on the home dashboard for everyone."
         actions={
-          <div className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5">
+          <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-2.5 py-1.5">
             <ViewAsSwitcher
               role={user.role}
               team={user.team}
@@ -453,7 +453,7 @@ export default async function AdminPage() {
             <Logins />
             <AuditLog rows={auditTop100} />
             <section className="space-y-2">
-              <h2 className="text-sm font-semibold tracking-tight text-zinc-900">
+              <h2 className="text-sm font-semibold tracking-tight text-foreground">
                 Deleted workflows
               </h2>
               <DeletedWorkflows rows={deletedWorkflowRows} />

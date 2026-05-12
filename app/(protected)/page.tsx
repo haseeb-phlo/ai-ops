@@ -71,6 +71,13 @@ type RecentNote = {
   target_id: string;
 };
 
+type RecentWorkflow = {
+  id: string;
+  name: string;
+  team: string | null;
+  created_at: string;
+};
+
 function gbp(v: number): string {
   const sign = v < 0 ? "-" : "";
   return `${sign}£${Math.abs(v).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
@@ -100,6 +107,7 @@ export default async function Home() {
     { data: recentInterventions },
     { data: regEvents },
     { data: recentNotes },
+    { data: recentWorkflows },
   ] = await Promise.all([
     supabase
       .from("ai_interventions")
@@ -139,6 +147,14 @@ export default async function Home() {
       .order("updated_at", { ascending: false })
       .limit(8)
       .returns<RecentNote[]>(),
+    supabase
+      .from("workflows")
+      .select("id, name, team, created_at")
+      .is("deleted_at", null)
+      .gte("created_at", since)
+      .order("created_at", { ascending: false })
+      .limit(8)
+      .returns<RecentWorkflow[]>(),
   ]);
 
   // Headcount drives the Reach metric's "X% of company" subtitle.
@@ -377,6 +393,15 @@ export default async function Home() {
       target_id: n.target_id,
     });
   }
+  for (const w of recentWorkflows ?? []) {
+    stream.push({
+      kind: "workflow",
+      id: w.id,
+      name: w.name,
+      team: w.team,
+      at: w.created_at,
+    });
+  }
   stream.sort((a, b) => b.at.localeCompare(a.at));
   const streamTop = stream.slice(0, 10);
 
@@ -397,11 +422,11 @@ export default async function Home() {
       </Suspense>
 
       <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
           Hi {firstName} <span aria-hidden>👋</span>
         </h1>
         {champion ? (
-          <p className="text-sm text-zinc-500">
+          <p className="text-sm text-muted-foreground">
             <Link
               href={`/champions/${encodeURIComponent(champion.team)}`}
               className="text-amber-700 hover:underline"
@@ -440,12 +465,12 @@ export default async function Home() {
 
       <ChampionsRibbon />
 
-      <section className="rounded-lg border border-zinc-200 bg-white">
-        <div className="flex items-baseline justify-between border-b border-zinc-100 px-4 py-2.5">
-          <h2 className="text-sm font-semibold tracking-tight text-zinc-900">
+      <section className="rounded-lg border border-border bg-background">
+        <div className="flex items-baseline justify-between border-b border-border px-4 py-2.5">
+          <h2 className="text-sm font-semibold tracking-tight text-foreground">
             Recent activity
           </h2>
-          <span className="text-xs text-zinc-500">
+          <span className="text-xs text-muted-foreground">
             {streamTop.length === 0
               ? "Past 7 days"
               : `Past 7 days · ${streamTop.length} ${
@@ -454,7 +479,7 @@ export default async function Home() {
           </span>
         </div>
         {streamTop.length === 0 ? (
-          <p className="px-4 py-6 text-center text-xs text-zinc-400">
+          <p className="px-4 py-6 text-center text-xs text-muted-foreground">
             Nothing logged in the last week.
           </p>
         ) : (
@@ -475,15 +500,15 @@ function Stat({
   subtitle?: string;
 }) {
   return (
-    <div className="rounded-lg border border-zinc-200 bg-white p-4">
-      <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+    <div className="rounded-lg border border-border bg-background p-4">
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
         {label}
       </p>
-      <p className="mt-1 text-2xl font-semibold tabular-nums text-zinc-900">
+      <p className="mt-1 text-2xl font-semibold tabular-nums text-foreground">
         {value}
       </p>
       {subtitle && (
-        <p className="mt-0.5 text-xs text-zinc-500 tabular-nums">{subtitle}</p>
+        <p className="mt-0.5 text-xs text-muted-foreground tabular-nums">{subtitle}</p>
       )}
     </div>
   );

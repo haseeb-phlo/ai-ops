@@ -49,7 +49,7 @@ type ProfileLite = { user_id: string; display_name: string | null };
 const STATUS_DOT: Record<Status, string> = {
   active: "bg-emerald-500",
   paused: "bg-amber-500",
-  retired: "bg-zinc-300",
+  retired: "bg-muted-foreground/60",
 };
 
 export default async function InterventionsListPage({
@@ -150,7 +150,7 @@ export default async function InterventionsListPage({
         statuses={[...STATUSES]}
       />
 
-      <div className="rounded-lg border border-zinc-200 bg-white">
+      <div className="rounded-lg border border-border bg-background">
         {rows.length === 0 ? (
           <div className="px-4 py-10 text-center text-sm text-muted-foreground">
             No AI initiatives{typeFilter || statusFilter ? " for this filter" : " logged yet"}.
@@ -177,7 +177,7 @@ export default async function InterventionsListPage({
                   row.owner;
                 return (
                   <TableRow key={row.id}>
-                    <TableCell className="font-medium text-zinc-900">
+                    <TableCell className="font-medium text-foreground">
                       <Link
                         href={`/interventions/${row.id}`}
                         className="hover:underline"
@@ -195,12 +195,12 @@ export default async function InterventionsListPage({
                           ))}
                         </div>
                       ) : (
-                        <span className="text-zinc-400">-</span>
+                        <span className="text-muted-foreground">-</span>
                       )}
                     </TableCell>
                     <TableCell>
                       {row.status ? (
-                        <span className="inline-flex items-center gap-1.5 text-xs text-zinc-700">
+                        <span className="inline-flex items-center gap-1.5 text-xs text-foreground">
                           <span
                             aria-hidden
                             className={`size-1.5 rounded-full ${STATUS_DOT[row.status]}`}
@@ -208,16 +208,16 @@ export default async function InterventionsListPage({
                           {toTitle(row.status)}
                         </span>
                       ) : (
-                        <span className="text-zinc-400">-</span>
+                        <span className="text-muted-foreground">-</span>
                       )}
                     </TableCell>
-                    <TableCell className="tabular-nums text-zinc-700">
+                    <TableCell className="tabular-nums text-foreground">
                       {linkedCount}
                     </TableCell>
-                    <TableCell className="text-zinc-700">
-                      {ownerName ?? <span className="text-zinc-400">-</span>}
+                    <TableCell className="text-foreground">
+                      {ownerName ?? <span className="text-muted-foreground">-</span>}
                     </TableCell>
-                    <TableCell className="text-zinc-500">
+                    <TableCell className="text-muted-foreground">
                       {format(new Date(row.created_at), "d MMM yyyy")}
                     </TableCell>
                   </TableRow>

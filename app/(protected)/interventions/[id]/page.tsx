@@ -88,7 +88,7 @@ type MetricRow = {
 const STATUS_DOT: Record<Status, string> = {
   active: "bg-emerald-500",
   paused: "bg-amber-500",
-  retired: "bg-zinc-300",
+  retired: "bg-muted-foreground/60",
 };
 
 export default async function InterventionDetailPage({
@@ -251,11 +251,11 @@ export default async function InterventionDetailPage({
       )}
 
       {/* Full card */}
-      <section className="rounded-lg border border-zinc-200 bg-white p-6">
+      <section className="rounded-lg border border-border bg-background p-6">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
+              <h1 className="text-2xl font-semibold tracking-tight text-foreground">
                 {intervention.name}
               </h1>
               {(intervention.types ?? []).map((t) => (
@@ -264,7 +264,7 @@ export default async function InterventionDetailPage({
                 </Badge>
               ))}
               {intervention.status && (
-                <span className="inline-flex items-center gap-1.5 text-xs text-zinc-700">
+                <span className="inline-flex items-center gap-1.5 text-xs text-foreground">
                   <span
                     aria-hidden
                     className={`size-1.5 rounded-full ${STATUS_DOT[intervention.status]}`}
@@ -275,21 +275,21 @@ export default async function InterventionDetailPage({
             </div>
 
             {intervention.description && (
-              <p className="text-sm text-zinc-600">
+              <p className="text-sm text-muted-foreground">
                 <TextWithMentions text={intervention.description} />
               </p>
             )}
 
             <dl className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm sm:grid-cols-3">
               <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+                <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   Logged by
                 </dt>
-                <dd className="text-zinc-900">
+                <dd className="text-foreground">
                   {ownerLabel ? (
                     <PersonName name={ownerLabel} champion={ownerChampion} />
                   ) : (
-                    <span className="text-zinc-400">-</span>
+                    <span className="text-muted-foreground">-</span>
                   )}
                 </dd>
               </div>
@@ -306,7 +306,7 @@ export default async function InterventionDetailPage({
                 value={format(new Date(intervention.created_at), "d MMM yyyy")}
               />
               <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+                <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   Adoption
                 </dt>
                 <dd>
@@ -314,7 +314,7 @@ export default async function InterventionDetailPage({
                 </dd>
               </div>
               <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+                <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   Satisfaction
                 </dt>
                 <dd>
@@ -322,7 +322,7 @@ export default async function InterventionDetailPage({
                 </dd>
               </div>
               <div className="col-span-2 sm:col-span-3">
-                <dt className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+                <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   Tools used
                 </dt>
                 <dd className="mt-1">
@@ -389,20 +389,20 @@ export default async function InterventionDetailPage({
       {/* Suggestions this intervention closed out */}
       {(addressedSuggestions ?? []).length > 0 && (
         <section className="space-y-2">
-          <h2 className="text-sm font-semibold tracking-tight text-zinc-900">
+          <h2 className="text-sm font-semibold tracking-tight text-foreground">
             Addresses {addressedSuggestions!.length}{" "}
             {addressedSuggestions!.length === 1 ? "suggestion" : "suggestions"}
           </h2>
-          <ul className="divide-y divide-zinc-100 rounded-lg border border-zinc-200 bg-white">
+          <ul className="divide-y divide-border rounded-lg border border-border bg-background">
             {addressedSuggestions!.map((s) => (
               <li key={s.id} className="px-4 py-3 text-sm">
                 <Link
                   href={`/suggestions?tab=shipped`}
-                  className="font-medium text-zinc-900 hover:underline"
+                  className="font-medium text-foreground hover:underline"
                 >
                   {s.title}
                 </Link>
-                <span className="ml-2 text-xs text-zinc-500">
+                <span className="ml-2 text-xs text-muted-foreground">
                   {s.team && <>{s.team} · </>}
                   {format(new Date(s.created_at), "d MMM yyyy")}
                 </span>
@@ -414,16 +414,16 @@ export default async function InterventionDetailPage({
 
       {/* Linked workflows */}
       <section className="space-y-2">
-        <h2 className="text-sm font-semibold tracking-tight text-zinc-900">
+        <h2 className="text-sm font-semibold tracking-tight text-foreground">
           Linked workflows
         </h2>
-        <div className="rounded-lg border border-zinc-200 bg-white">
+        <div className="rounded-lg border border-border bg-background">
           {linkedWorkflows.length === 0 ? (
-            <div className="px-4 py-6 text-center text-sm text-zinc-400">
+            <div className="px-4 py-6 text-center text-sm text-muted-foreground">
               No linked workflows.
             </div>
           ) : (
-            <ul className="divide-y divide-zinc-100">
+            <ul className="divide-y divide-border">
               {linkedWorkflows.map((w) => {
                 const b = baselineById.get(w.id);
                 return (
@@ -434,14 +434,14 @@ export default async function InterventionDetailPage({
                     <div className="min-w-0">
                       <Link
                         href={`/workflows/${w.id}`}
-                        className="font-medium text-zinc-900 hover:underline"
+                        className="font-medium text-foreground hover:underline"
                       >
                         {w.name}
                       </Link>
                       {w.team && (
                         <Link
                           href={`/champions/${encodeURIComponent(w.team)}`}
-                          className="ml-2 text-xs text-zinc-500 hover:text-amber-700 hover:underline"
+                          className="ml-2 text-xs text-muted-foreground hover:text-amber-700 hover:underline"
                           title={`AI Champion of ${w.team}`}
                         >
                           {w.team}
@@ -449,7 +449,7 @@ export default async function InterventionDetailPage({
                       )}
                     </div>
                     {b && (
-                      <div className="flex flex-wrap gap-3 text-xs text-zinc-500">
+                      <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
                         <BaselineChip label="time" value={b.time_value} unit="min" />
                         <BaselineChip label="cost" value={b.cost_value} unit="£" />
                         <BaselineChip label="people" value={b.people_value} />
@@ -467,23 +467,23 @@ export default async function InterventionDetailPage({
 
       {/* Metrics timeline */}
       <section className="space-y-2">
-        <h2 className="text-sm font-semibold tracking-tight text-zinc-900">
+        <h2 className="text-sm font-semibold tracking-tight text-foreground">
           Metrics timeline
         </h2>
-        <div className="rounded-lg border border-zinc-200 bg-white">
+        <div className="rounded-lg border border-border bg-background">
           {metricRows.length === 0 ? (
-            <div className="px-4 py-6 text-center text-sm text-zinc-400">
+            <div className="px-4 py-6 text-center text-sm text-muted-foreground">
               No snapshots yet.
             </div>
           ) : (
-            <ul className="divide-y divide-zinc-100">
+            <ul className="divide-y divide-border">
               {metricRows.map((m) => (
                 <li key={m.id} className="px-4 py-3">
                   <div className="flex items-baseline justify-between gap-2">
-                    <span className="font-medium text-zinc-900 tabular-nums">
+                    <span className="font-medium text-foreground tabular-nums">
                       {format(new Date(m.snapshot_date), "d MMM yyyy")}
                     </span>
-                    <div className="flex flex-wrap gap-3 text-xs text-zinc-500">
+                    <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
                       <BaselineChip label="time" value={m.time_value} unit="min" />
                       <BaselineChip label="cost" value={m.cost_value} unit="£" />
                       <BaselineChip label="people" value={m.people_value} />
@@ -492,7 +492,7 @@ export default async function InterventionDetailPage({
                     </div>
                   </div>
                   {m.notes && (
-                    <p className="mt-1 text-sm text-zinc-600">
+                    <p className="mt-1 text-sm text-muted-foreground">
                       <TextWithMentions text={m.notes} />
                     </p>
                   )}
@@ -505,40 +505,40 @@ export default async function InterventionDetailPage({
 
       {/* Audit trail */}
       <section className="space-y-2">
-        <h2 className="text-sm font-semibold tracking-tight text-zinc-900">
+        <h2 className="text-sm font-semibold tracking-tight text-foreground">
           Edit history
         </h2>
-        <div className="rounded-lg border border-zinc-200 bg-white">
+        <div className="rounded-lg border border-border bg-background">
           {editRows.length === 0 ? (
-            <div className="px-4 py-6 text-center text-sm text-zinc-400">
+            <div className="px-4 py-6 text-center text-sm text-muted-foreground">
               No edits yet.
             </div>
           ) : (
-            <ul className="divide-y divide-zinc-100">
+            <ul className="divide-y divide-border">
               {editRows.map((e) => (
                 <li key={e.id} className="px-4 py-3 text-sm">
                   <div className="flex items-baseline justify-between gap-2">
-                    <span className="text-zinc-900">
+                    <span className="text-foreground">
                       <span className="font-medium">
                         {e.actor_email ?? "Unknown"}
                       </span>{" "}
-                      <span className="text-zinc-500">
+                      <span className="text-muted-foreground">
                         {e.action === "status_change"
                           ? "changed status"
                           : `edited ${e.field?.replaceAll("_", " ")}`}
                       </span>
                     </span>
-                    <span className="text-xs text-zinc-400 tabular-nums">
+                    <span className="text-xs text-muted-foreground tabular-nums">
                       {format(new Date(e.created_at), "d MMM yyyy, HH:mm")}
                     </span>
                   </div>
-                  <p className="mt-1 text-xs text-zinc-500">
-                    <span className="text-zinc-400">from</span>{" "}
-                    <span className="text-zinc-700">
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    <span className="text-muted-foreground">from</span>{" "}
+                    <span className="text-foreground">
                       {e.old_value ?? "-"}
                     </span>{" "}
-                    <span className="text-zinc-400">to</span>{" "}
-                    <span className="text-zinc-700">
+                    <span className="text-muted-foreground">to</span>{" "}
+                    <span className="text-foreground">
                       {e.new_value ?? "-"}
                     </span>
                   </p>
@@ -556,11 +556,11 @@ export default async function InterventionDetailPage({
 function Field({ label, value }: { label: string; value: string | null }) {
   return (
     <div>
-      <dt className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+      <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
         {label}
       </dt>
-      <dd className="text-zinc-900">
-        {value ?? <span className="text-zinc-400">-</span>}
+      <dd className="text-foreground">
+        {value ?? <span className="text-muted-foreground">-</span>}
       </dd>
     </div>
   );
@@ -568,7 +568,7 @@ function Field({ label, value }: { label: string; value: string | null }) {
 
 function ToolList({ tools }: { tools: string[] }) {
   if (tools.length === 0) {
-    return <span className="text-zinc-400">-</span>;
+    return <span className="text-muted-foreground">-</span>;
   }
   return (
     <ul className="flex flex-wrap gap-1.5">
@@ -598,9 +598,9 @@ const ADOPTION_LABEL: Record<AdoptionStatus, string> = {
 };
 
 function AdoptionChip({ status }: { status: AdoptionStatus | null }) {
-  if (!status) return <span className="text-zinc-400">-</span>;
+  if (!status) return <span className="text-muted-foreground">-</span>;
   return (
-    <span className="inline-flex items-center gap-1.5 text-zinc-900">
+    <span className="inline-flex items-center gap-1.5 text-foreground">
       <span
         aria-hidden
         className={`size-1.5 rounded-full ${ADOPTION_DOT[status]}`}
@@ -611,15 +611,15 @@ function AdoptionChip({ status }: { status: AdoptionStatus | null }) {
 }
 
 function SatisfactionChip({ score }: { score: number | null }) {
-  if (score == null) return <span className="text-zinc-400">-</span>;
+  if (score == null) return <span className="text-muted-foreground">-</span>;
   return (
     <span
-      className="inline-flex items-baseline gap-0.5 text-zinc-900 tabular-nums"
+      className="inline-flex items-baseline gap-0.5 text-foreground tabular-nums"
       aria-label={`Satisfaction ${score} of 5`}
       title={`${score} of 5`}
     >
       <span className="font-medium">{score}</span>
-      <span className="text-xs text-zinc-400">/ 5</span>
+      <span className="text-xs text-muted-foreground">/ 5</span>
     </span>
   );
 }
@@ -636,8 +636,8 @@ function BaselineChip({
   if (value == null) {
     return (
       <span className="tabular-nums">
-        <span className="text-zinc-400">{label}</span>{" "}
-        <span className="text-zinc-300">-</span>
+        <span className="text-muted-foreground">{label}</span>{" "}
+        <span className="text-muted-foreground/60">-</span>
       </span>
     );
   }
@@ -647,8 +647,8 @@ function BaselineChip({
   const text = unit === "£" ? `£${formatted}` : unit ? `${formatted} ${unit}` : formatted;
   return (
     <span className="tabular-nums">
-      <span className="text-zinc-400">{label}</span>{" "}
-      <span className="text-zinc-700">{text}</span>
+      <span className="text-muted-foreground">{label}</span>{" "}
+      <span className="text-foreground">{text}</span>
     </span>
   );
 }

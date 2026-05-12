@@ -211,11 +211,13 @@ export async function createWorkflow(
     console.error("createWorkflow: step insert failed", stepsError);
     revalidatePath("/workflows");
     revalidatePath("/map");
+    revalidatePath("/");
     redirect(`/workflows/${workflow.id}?stepExtractionFailed=1`);
   }
 
   revalidatePath("/workflows");
   revalidatePath("/map");
+  revalidatePath("/");
   redirect(`/workflows/${workflow.id}`);
 }
 

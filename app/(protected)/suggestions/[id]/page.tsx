@@ -22,7 +22,7 @@ type Status =
   | "shipped";
 
 const STATUS_DOT: Record<Status, string> = {
-  open: "bg-zinc-400",
+  open: "bg-muted-foreground",
   under_review: "bg-amber-500",
   accepted: "bg-blue-500",
   in_progress: "bg-blue-600",
@@ -160,10 +160,10 @@ export default async function SuggestionDetailPage({
 
       <header className="space-y-3">
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-2">
-          <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
             {suggestion.title}
           </h1>
-          <span className="inline-flex items-center gap-1.5 text-sm text-zinc-700">
+          <span className="inline-flex items-center gap-1.5 text-sm text-foreground">
             <span
               aria-hidden
               className={`size-1.5 rounded-full ${STATUS_DOT[suggestion.status]}`}
@@ -171,7 +171,7 @@ export default async function SuggestionDetailPage({
             {STATUS_LABEL[suggestion.status]}
           </span>
         </div>
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-zinc-500">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
           {submittedBy && <span>by {submittedBy}</span>}
           {suggestion.team && (
             <>
@@ -184,7 +184,7 @@ export default async function SuggestionDetailPage({
               <span aria-hidden>·</span>
               <Link
                 href={`/workflows/${suggestion.workflow_id}`}
-                className="hover:text-zinc-900 hover:underline"
+                className="hover:text-foreground hover:underline"
               >
                 {workflowName}
               </Link>
@@ -197,7 +197,7 @@ export default async function SuggestionDetailPage({
         </div>
       </header>
 
-      <section className="rounded-lg border border-zinc-200 bg-white p-6">
+      <section className="rounded-lg border border-border bg-background p-6">
         <div className="flex items-start gap-4">
           <VoteButton
             suggestionId={suggestion.id}
@@ -205,13 +205,13 @@ export default async function SuggestionDetailPage({
             voted={voted}
           />
           <div className="min-w-0 flex-1 space-y-4">
-            <p className="whitespace-pre-wrap text-sm text-zinc-800">
+            <p className="whitespace-pre-wrap text-sm text-foreground">
               {suggestion.body}
             </p>
 
             {suggestion.status === "declined" && suggestion.decline_reason && (
-              <p className="rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-700">
-                <span className="font-medium text-zinc-900">Declined:</span>{" "}
+              <p className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-foreground">
+                <span className="font-medium text-foreground">Declined:</span>{" "}
                 {suggestion.decline_reason}
               </p>
             )}
@@ -230,7 +230,7 @@ export default async function SuggestionDetailPage({
             )}
 
             {(canTriage || canCommit) && suggestion.status !== "shipped" && (
-              <div className="flex flex-wrap items-center gap-2 border-t border-zinc-100 pt-4">
+              <div className="flex flex-wrap items-center gap-2 border-t border-border pt-4">
                 <StatusActions
                   suggestionId={suggestion.id}
                   status={suggestion.status}
@@ -258,16 +258,16 @@ export default async function SuggestionDetailPage({
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-sm font-semibold tracking-tight text-zinc-900">
+        <h2 className="text-sm font-semibold tracking-tight text-foreground">
           Comments
         </h2>
-        <div className="rounded-lg border border-zinc-200 bg-white">
+        <div className="rounded-lg border border-border bg-background">
           {(comments ?? []).length === 0 ? (
-            <p className="px-4 py-6 text-center text-xs text-zinc-400">
+            <p className="px-4 py-6 text-center text-xs text-muted-foreground">
               No comments yet.
             </p>
           ) : (
-            <ul className="divide-y divide-zinc-100">
+            <ul className="divide-y divide-border">
               {(comments ?? []).map((c) => {
                 const authorName = c.created_by
                   ? profileNameByUserId.get(c.created_by) ?? "Someone"

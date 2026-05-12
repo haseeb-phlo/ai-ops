@@ -24,11 +24,11 @@ type PersonRow = {
 const DAY = 86_400_000;
 
 function freshnessDot(lastSignIn: string | null, now: number): string {
-  if (!lastSignIn) return "bg-zinc-300";
+  if (!lastSignIn) return "bg-muted-foreground/60";
   const age = (now - new Date(lastSignIn).getTime()) / DAY;
   if (age < 7) return "bg-emerald-500";
   if (age < 30) return "bg-amber-500";
-  return "bg-zinc-400";
+  return "bg-muted-foreground";
 }
 
 /**
@@ -71,12 +71,12 @@ export async function Logins() {
   }).length;
 
   return (
-    <div className="rounded-lg border border-zinc-200 bg-white">
-      <div className="border-b border-zinc-100 px-3 py-2">
-        <h2 className="text-sm font-semibold tracking-tight text-zinc-900">
+    <div className="rounded-lg border border-border bg-background">
+      <div className="border-b border-border px-3 py-2">
+        <h2 className="text-sm font-semibold tracking-tight text-foreground">
           Sign-ins
         </h2>
-        <p className="text-xs text-zinc-500 tabular-nums">
+        <p className="text-xs text-muted-foreground tabular-nums">
           {everSignedIn} of {all.length} have signed in. {last7d} active in the
           last 7 days.
         </p>
@@ -97,7 +97,7 @@ export async function Logins() {
             <TableRow>
               <TableCell
                 colSpan={6}
-                className="text-center text-xs text-zinc-400"
+                className="text-center text-xs text-muted-foreground"
               >
                 No users found.
               </TableCell>
@@ -113,17 +113,17 @@ export async function Logins() {
                       aria-hidden
                     />
                   </TableCell>
-                  <TableCell className="text-xs font-medium text-zinc-900">
-                    {person?.display_name ?? <span className="text-zinc-400">-</span>}
+                  <TableCell className="text-xs font-medium text-foreground">
+                    {person?.display_name ?? <span className="text-muted-foreground">-</span>}
                   </TableCell>
-                  <TableCell className="text-xs text-zinc-700">
-                    {person?.team ?? <span className="text-zinc-400">-</span>}
+                  <TableCell className="text-xs text-foreground">
+                    {person?.team ?? <span className="text-muted-foreground">-</span>}
                   </TableCell>
-                  <TableCell className="text-xs text-zinc-500">
+                  <TableCell className="text-xs text-muted-foreground">
                     {r.email}
                   </TableCell>
                   <TableCell
-                    className="text-xs text-zinc-500 tabular-nums"
+                    className="text-xs text-muted-foreground tabular-nums"
                     title={
                       r.last_sign_in_at
                         ? new Date(r.last_sign_in_at).toLocaleString()
@@ -136,7 +136,7 @@ export async function Logins() {
                         })
                       : "never"}
                   </TableCell>
-                  <TableCell className="text-right text-xs text-zinc-500 tabular-nums">
+                  <TableCell className="text-right text-xs text-muted-foreground tabular-nums">
                     {r.created_at
                       ? format(new Date(r.created_at), "d MMM yyyy")
                       : "-"}

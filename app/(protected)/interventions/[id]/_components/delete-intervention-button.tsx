@@ -88,9 +88,9 @@ export function DeleteInterventionButton({
               open.
             </DialogDescription>
           </DialogHeader>
-          <p className="text-sm text-zinc-600">
-            To pause or hide an AI initiative without losing its history, set
-            its status to <strong>Retired</strong> instead.
+          <p className="text-sm text-muted-foreground">
+            To keep the history, set the status to <strong>Retired</strong>{" "}
+            instead.
           </p>
           {error && (
             <p
@@ -115,7 +115,7 @@ export function DeleteInterventionButton({
               disabled={isPending}
               className="bg-red-700 text-white hover:bg-red-800"
             >
-              {isPending ? "Deleting..." : "Delete permanently"}
+              {isPending ? "Deleting…" : "Delete permanently"}
             </Button>
           </DialogFooter>
         </DialogContent>

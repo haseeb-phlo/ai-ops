@@ -47,13 +47,13 @@ function TrendCard({ series }: { series: Series }) {
   const cumulative = points.reduce((sum, p) => sum + p.value, 0);
 
   return (
-    <div className="rounded-lg border border-zinc-200 bg-white p-4">
-      <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+    <div className="rounded-lg border border-border bg-background p-4">
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
         {label}
       </p>
       <Sparkline points={points} className="mt-2 h-20 w-full" />
       <div className="mt-2 flex items-baseline justify-between">
-        <span className="text-sm tabular-nums text-zinc-700">
+        <span className="text-sm tabular-nums text-foreground">
           {format(last)}
         </span>
         <span
@@ -62,7 +62,7 @@ function TrendCard({ series }: { series: Series }) {
               ? "text-emerald-600"
               : deltaIsDown
                 ? "text-red-600"
-                : "text-zinc-400"
+                : "text-muted-foreground"
           }`}
         >
           {deltaIsUp ? "+" : ""}
@@ -73,9 +73,9 @@ function TrendCard({ series }: { series: Series }) {
           vs 90d ago
         </span>
       </div>
-      <p className="mt-2 border-t border-zinc-100 pt-2 text-xs text-zinc-500 tabular-nums">
-        <span className="text-zinc-400">12-week cumulative · </span>
-        <span className="font-medium text-zinc-700">{format(cumulative)}</span>
+      <p className="mt-2 border-t border-border pt-2 text-xs text-muted-foreground tabular-nums">
+        <span className="text-muted-foreground">12-week cumulative · </span>
+        <span className="font-medium text-foreground">{format(cumulative)}</span>
       </p>
     </div>
   );

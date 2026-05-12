@@ -154,7 +154,7 @@ export function NewWorkflowDialog({
                   id="regulatory_flag"
                   name="regulatory_flag"
                   type="checkbox"
-                  className="size-4 rounded border-zinc-300"
+                  className="size-4 rounded border-input"
                 />
                 <Label htmlFor="regulatory_flag" className="font-normal">
                   This workflow has regulatory implications

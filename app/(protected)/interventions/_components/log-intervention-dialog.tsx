@@ -45,18 +45,18 @@ const CONFIDENCE_LABEL: Record<string, string> = {
 };
 
 const ADOPTION_LABEL: Record<string, string> = {
-  daily: "Daily - used every day",
-  weekly: "Weekly - used a few times a week",
-  occasional: "Occasional - used now and then",
-  abandoned: "Abandoned - nobody's using it",
+  daily: "Daily — used every day",
+  weekly: "Weekly — a few times a week",
+  occasional: "Occasional — now and then",
+  abandoned: "Not in use",
 };
 
 const SATISFACTION_LABEL: Record<string, string> = {
-  "1": "1 - Hate it",
-  "2": "2 - Don't like it",
-  "3": "3 - Neutral",
-  "4": "4 - Like it",
-  "5": "5 - Love it",
+  "1": "1 — Very dissatisfied",
+  "2": "2 — Dissatisfied",
+  "3": "3 — Neutral",
+  "4": "4 — Satisfied",
+  "5": "5 — Very satisfied",
 };
 
 export function LogInterventionDialog({
@@ -155,8 +155,7 @@ export function LogInterventionDialog({
               <div className="space-y-1.5 sm:col-span-2">
                 <Label>Type</Label>
                 <p className="text-xs text-muted-foreground">
-                  Pick at least one. Choose more than one if the initiative
-                  spans buckets (e.g. a tool plus a training session).
+                  Pick one or more.
                 </p>
                 <div
                   role="group"
@@ -253,7 +252,7 @@ export function LogInterventionDialog({
                                 value={w.id}
                                 checked={checked}
                                 onChange={() => toggle(w.id)}
-                                className="size-4 rounded border-zinc-300"
+                                className="size-4 rounded border-input"
                               />
                               <span className="truncate">{w.name}</span>
                             </label>
