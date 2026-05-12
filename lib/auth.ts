@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isAllowedEmail } from "@/lib/auth-domain";
-import { resolveAvatar } from "@/lib/profile";
+import { resolveAvatar, resolveDisplayName } from "@/lib/profile";
 
 export type RoleGrant = {
   role: string;
@@ -93,7 +93,7 @@ export const getSessionUser = cache(async (): Promise<SessionUser> => {
     redirect("/login?error=domain_blocked");
   }
 
-  const [grantRes, profileRes] = await Promise.all([
+  const [grantRes, profileRes, peopleRes] = await Promise.all([
     supabase
       .from("role_grants")
       .select("role, team")
@@ -104,6 +104,11 @@ export const getSessionUser = cache(async (): Promise<SessionUser> => {
       .select("display_name, avatar_url, title")
       .eq("user_id", user.id)
       .maybeSingle<Profile>(),
+    supabase
+      .from("people")
+      .select("display_name")
+      .ilike("email", user.email)
+      .maybeSingle<{ display_name: string | null }>(),
   ]);
 
   if (grantRes.error) {
@@ -115,8 +120,11 @@ export const getSessionUser = cache(async (): Promise<SessionUser> => {
 
   const grant = grantRes.data;
   const profile = profileRes.data;
-  const fallbackName = user.email.split("@")[0];
-  const displayName = profile?.display_name?.trim() || fallbackName;
+  const displayName = resolveDisplayName(
+    profile?.display_name,
+    peopleRes.data?.display_name,
+    user.email,
+  );
 
   const realRole = grant?.role ?? "member";
   const realTeam = grant?.team ?? null;

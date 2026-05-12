@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { loadTeamOptions } from "@/lib/teams";
+import { resolveDisplayName } from "@/lib/profile";
 import { canUserEditWorkflow } from "./actions";
 import { HeaderCard, type WorkflowHeader } from "./_components/header-card";
 import {
@@ -84,9 +85,11 @@ export default async function WorkflowDetailPage({
     notFound();
   }
 
-  // Resolve created_by → display name (profiles), else canonical email
-  // (auth.users via user_emails RPC). Falls back to null for legacy seed
-  // rows that pre-date the created_by column.
+  // Resolve created_by → display name. Three sources, in priority:
+  // - profiles.display_name (user-set), unless still on the email-local default
+  // - people.display_name (canonical org directory)
+  // - email (last-resort)
+  // Falls back to null for legacy rows where created_by is unset.
   let loggedByLabel: string | null = null;
   if (workflow.created_by) {
     const [{ data: ownerProfile }, { data: emails }] = await Promise.all([
@@ -97,17 +100,27 @@ export default async function WorkflowDetailPage({
         .maybeSingle<{ display_name: string | null }>(),
       supabase.rpc("user_emails"),
     ]);
-    const dn = ownerProfile?.display_name?.trim();
-    if (dn) {
-      loggedByLabel = dn;
-    } else {
-      const emailRows = (emails ?? []) as Array<{
-        user_id: string;
-        email: string | null;
-      }>;
-      const match = emailRows.find((e) => e.user_id === workflow.created_by);
-      if (match?.email) loggedByLabel = match.email;
+    const emailRows = (emails ?? []) as Array<{
+      user_id: string;
+      email: string | null;
+    }>;
+    const creatorEmail =
+      emailRows.find((e) => e.user_id === workflow.created_by)?.email ?? null;
+    let peopleName: string | null = null;
+    if (creatorEmail) {
+      const { data: peopleRow } = await supabase
+        .from("people")
+        .select("display_name")
+        .ilike("email", creatorEmail)
+        .maybeSingle<{ display_name: string | null }>();
+      peopleName = peopleRow?.display_name ?? null;
     }
+    const resolved = resolveDisplayName(
+      ownerProfile?.display_name,
+      peopleName,
+      creatorEmail,
+    );
+    loggedByLabel = resolved || null;
   }
 
   const teams = await loadTeamOptions(supabase, workflow.team);
