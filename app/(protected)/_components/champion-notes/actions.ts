@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { getSessionUser } from "@/lib/auth";
+import { requireWriter } from "@/lib/auth";
 import { isChampionOfTeam } from "@/lib/champions";
 import { createClient } from "@/lib/supabase/server";
 
@@ -22,7 +22,9 @@ export async function upsertChampionNote(
   _prev: ChampionNoteState,
   formData: FormData,
 ): Promise<ChampionNoteState> {
-  const user = await getSessionUser();
+  const gate = await requireWriter();
+  if (!gate.ok) return { kind: "error", message: gate.error };
+  const user = gate.user;
 
   const parsed = UpsertSchema.safeParse({
     target_type: formData.get("target_type"),
@@ -68,11 +70,14 @@ export async function upsertChampionNote(
       : `/interventions/${parsed.data.target_id}`;
   revalidatePath(path);
   revalidatePath(`/champions/${parsed.data.team}`);
+  revalidatePath("/");
   return { kind: "ok" };
 }
 
 export async function deleteChampionNote(formData: FormData): Promise<void> {
-  const user = await getSessionUser();
+  const gate = await requireWriter();
+  if (!gate.ok) return;
+  const user = gate.user;
   const id = (formData.get("id") as string | null)?.trim();
   if (!id) return;
 
@@ -100,4 +105,5 @@ export async function deleteChampionNote(formData: FormData): Promise<void> {
       : `/interventions/${existing.target_id}`;
   revalidatePath(path);
   revalidatePath(`/champions/${existing.team}`);
+  revalidatePath("/");
 }

@@ -130,7 +130,8 @@ export default async function AdminPage() {
       .returns<Intervention[]>(),
     supabase
       .from("intervention_workflows")
-      .select("intervention_id, workflows(id, name, team)")
+      .select("intervention_id, workflows!inner(id, name, team)")
+      .is("workflows.deleted_at", null)
       .returns<LinkRow[]>(),
     supabase
       .from("intervention_metrics")

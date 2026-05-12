@@ -88,6 +88,7 @@ export default async function ChampionTeamPage({
       .from("intervention_workflows")
       .select("intervention_id, workflows!inner(team)")
       .eq("workflows.team", team)
+      .is("workflows.deleted_at", null)
       .returns<{ intervention_id: string }[]>(),
     supabase
       .from("champion_notes")

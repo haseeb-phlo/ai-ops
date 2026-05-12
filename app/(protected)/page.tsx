@@ -165,9 +165,12 @@ export default async function Home() {
   // Per-intervention team lookup so the Top wins rail can attribute each
   // win to a team. An intervention can affect multiple workflows on
   // different teams - use the first linked team's name as the label.
+  // Soft-deleted workflows are excluded so retired-workflow teams don't
+  // linger on the wins rail.
   const { data: teamLinks } = await supabase
     .from("intervention_workflows")
-    .select("intervention_id, workflows(team)")
+    .select("intervention_id, workflows!inner(team)")
+    .is("workflows.deleted_at", null)
     .returns<InterventionTeamLink[]>();
   const teamByInterventionId = new Map<string, string>();
   for (const link of teamLinks ?? []) {
