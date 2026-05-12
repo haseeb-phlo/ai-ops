@@ -64,6 +64,24 @@ Treat `proxy.ts` as the single global gate. Pages do not need to re-check auth f
 - `app/auth/callback/route.ts` — exchanges the OTP `code` for a session via `exchangeCodeForSession`, then redirects to `?next=` or `/`.
 - `app/auth/signout/route.ts` — POST handler used by the header's sign-out form.
 
+### Mutation conventions
+
+Server Actions that mutate state follow four conventions consistently. Breaking them produces silent bugs (wrong user attribution, stale dashboards, missing audit rows).
+
+1. **`requireWriter()` at the top.** Every mutating Server Action starts with `const gate = await requireWriter(); if (!gate.ok) return { kind: "error", message: gate.error };`. This rejects writes while a super_admin is impersonating another role via the view-as cookie — without it, "test as a member" silently writes through at the DB layer because `auth.uid()` is unchanged.
+
+2. **`role` vs `realRole` on `SessionUser`.** `getSessionUser()` returns *effective* `role`/`team` (what the user is currently viewing as) and *actual* `realRole`/`realTeam` (their underlying grant). UI gating uses `role`; mutation guards must use `realRole` — `requireWriter()` does this for you.
+
+3. **`revalidatePath` for every reader.** After a write, call `revalidatePath` on every route that displays the touched data — including the dashboard (`/`) if the change should show up in "Recent activity". Forgetting this is the most common "data didn't update" bug (workflow create needs `/workflows`, `/map`, and `/`).
+
+4. **Audit rows before the table update.** Workflow/step mutations insert into `workflow_revisions` / `step_revisions` *before* updating the underlying row, so the admin audit log at `/admin` never shows a write that has no revision. One revision row per changed field; skip writes when nothing diffed.
+
+Per-resource edit permission helpers (e.g. `canUserEditWorkflow` in `app/(protected)/workflows/[id]/actions.ts`) are exported so the page can compute `canEdit` once and the action can re-verify on submit.
+
+### Soft delete
+
+Workflows use `deleted_at` + `deleted_by` columns; reads filter `.is("deleted_at", null)`. The `/admin` page lists deleted rows and offers restore. Don't `DELETE FROM` — soft delete preserves the audit trail and lets champions/admins undo mistakes.
+
 ### Database schema
 
 `supabase/` holds the SQL source of truth: `schema.sql`, `workflows.sql`, and `*_migration.sql` files. Schema changes go here — there is no separate ORM or migration tool. When adding a column or table, update the relevant `.sql` file and apply it to your Supabase project.
