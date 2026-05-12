@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import {
   updateWorkflow,
   type UpdateWorkflowState,
@@ -184,34 +184,15 @@ export function EditWorkflowDialog({
                 name="criticality_score"
                 value={criticality}
               />
-              <div className="flex w-full rounded-lg border border-border bg-background p-0.5">
-                {CRITICALITY_OPTIONS.map((o) => {
-                  const active = criticality === o.value;
-                  return (
-                    <button
-                      key={o.value}
-                      type="button"
-                      onClick={() => setCriticality(o.value)}
-                      className={cn(
-                        "flex-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors",
-                        active
-                          ? "bg-foreground text-background"
-                          : "text-muted-foreground hover:text-foreground",
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          "mr-1 font-mono text-[10px]",
-                          active ? "opacity-60" : "opacity-50",
-                        )}
-                      >
-                        {o.value}
-                      </span>
-                      {o.label}
-                    </button>
-                  );
-                })}
-              </div>
+              <SegmentedControl
+                value={criticality}
+                onChange={setCriticality}
+                options={CRITICALITY_OPTIONS.map((c) => ({
+                  value: c.value,
+                  label: c.label,
+                  suffix: c.value,
+                }))}
+              />
             </div>
 
             <div className="space-y-1.5">

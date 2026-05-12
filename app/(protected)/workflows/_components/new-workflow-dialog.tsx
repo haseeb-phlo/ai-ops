@@ -26,7 +26,7 @@ import {
   type PickerPerson,
 } from "@/components/ui/people-picker";
 import { TagInput } from "@/components/ui/tag-input";
-import { cn } from "@/lib/utils";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import { createWorkflow, type CreateWorkflowState } from "../actions";
 import { StepEditor } from "./step-editor";
 
@@ -302,49 +302,6 @@ export function NewWorkflowDialog({
         </form>
       </DialogContent>
     </Dialog>
-  );
-}
-
-function SegmentedControl({
-  value,
-  options,
-  onChange,
-}: {
-  value: string;
-  options: { value: string; label: string; suffix?: string }[];
-  onChange: (v: string) => void;
-}) {
-  return (
-    <div className="flex w-full rounded-lg border border-border bg-background p-0.5">
-      {options.map((o) => {
-        const active = value === o.value;
-        return (
-          <button
-            key={o.value}
-            type="button"
-            onClick={() => onChange(o.value)}
-            className={cn(
-              "flex-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors",
-              active
-                ? "bg-foreground text-background"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {o.suffix && (
-              <span
-                className={cn(
-                  "mr-1 font-mono text-[10px]",
-                  active ? "opacity-60" : "opacity-50",
-                )}
-              >
-                {o.suffix}
-              </span>
-            )}
-            {o.label}
-          </button>
-        );
-      })}
-    </div>
   );
 }
 
