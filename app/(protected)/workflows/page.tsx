@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getSessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { resolveDisplayName } from "@/lib/profile";
 import {
   Table,
   TableBody,
@@ -107,10 +108,10 @@ export default async function WorkflowsPage(props: {
     }
   }
 
-  // 3. Logged-by lookup. Resolve workflow.created_by to a display name via
-  //    profiles, falling back to the auth.users email for users who haven't
-  //    customised their profile yet. Empty for legacy rows where created_by
-  //    is null (seed data).
+  // 3. Logged-by lookup. Resolve workflow.created_by → display name via
+  //    resolveDisplayName: prefer profiles.display_name unless it's still the
+  //    email-local default, else the people directory's canonical name, else
+  //    the raw email. Empty for legacy rows where created_by is null.
   const creatorIds = Array.from(
     new Set(
       (workflows ?? [])
@@ -128,14 +129,38 @@ export default async function WorkflowsPage(props: {
         .returns<ProfileLite[]>(),
       supabase.rpc("user_emails"),
     ]);
+    const profileById = new Map<string, string | null>();
     for (const p of profiles ?? []) {
-      const dn = p.display_name?.trim();
-      if (dn) creatorLabelById.set(p.user_id, dn);
+      profileById.set(p.user_id, p.display_name);
     }
     const emailRows = (emails ?? []) as UserEmailRow[];
-    for (const e of emailRows) {
-      if (creatorLabelById.has(e.user_id)) continue;
-      if (e.email) creatorLabelById.set(e.user_id, e.email);
+    const emailById = new Map<string, string | null>();
+    for (const e of emailRows) emailById.set(e.user_id, e.email);
+
+    const creatorEmails = creatorIds
+      .map((id) => emailById.get(id) ?? null)
+      .filter((e): e is string => !!e);
+    const peopleByEmail = new Map<string, string>();
+    if (creatorEmails.length > 0) {
+      const { data: peopleRows } = await supabase
+        .from("people")
+        .select("email, display_name")
+        .in("email", creatorEmails)
+        .returns<{ email: string; display_name: string }[]>();
+      for (const row of peopleRows ?? []) {
+        peopleByEmail.set(row.email.toLowerCase(), row.display_name);
+      }
+    }
+
+    for (const id of creatorIds) {
+      const email = emailById.get(id) ?? null;
+      const peopleName = email ? peopleByEmail.get(email.toLowerCase()) ?? null : null;
+      const label = resolveDisplayName(
+        profileById.get(id),
+        peopleName,
+        email,
+      );
+      if (label) creatorLabelById.set(id, label);
     }
   }
 
