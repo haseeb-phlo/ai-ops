@@ -242,7 +242,11 @@ const UpdateWorkflowSchema = z.object({
   name: z.string().min(1, "Name is required").max(200),
   team: z.string().max(120).nullable(),
   regulatory: z.boolean(),
-  frequency: z.string().max(120).nullable(),
+  frequency_per_week: z
+    .number({ error: "Frequency must be a number" })
+    .min(0, "Frequency can't be negative")
+    .max(1000)
+    .nullable(),
   criticality: z.enum(CRITICALITIES).nullable(),
   business_kpi: z.string().max(500).nullable(),
   owner_names: z.array(z.string().min(1)).max(20),
@@ -263,7 +267,9 @@ export async function updateWorkflow(
 
   const rawTeam = (formData.get("team") as string | null)?.trim() || null;
   const rawFrequency =
-    (formData.get("frequency") as string | null)?.trim() || null;
+    (formData.get("frequency_per_week") as string | null)?.trim() || "";
+  const frequencyValue: number | null =
+    rawFrequency === "" ? null : Number(rawFrequency);
   const rawCriticality =
     (formData.get("criticality") as string | null)?.trim() || null;
   const rawKpi =
@@ -277,7 +283,7 @@ export async function updateWorkflow(
     name: (formData.get("name") as string | null)?.trim() ?? "",
     team: rawTeam,
     regulatory: formData.get("regulatory") === "on",
-    frequency: rawFrequency,
+    frequency_per_week: frequencyValue,
     criticality: rawCriticality,
     business_kpi: rawKpi,
     owner_names: rawOwners,
@@ -295,7 +301,7 @@ export async function updateWorkflow(
   const { data: current, error: curErr } = await gate.supabase
     .from("workflows")
     .select(
-      "id, name, team, regulatory, frequency, criticality, business_kpi, owner_names",
+      "id, name, team, regulatory, frequency_per_week, criticality, business_kpi, owner_names",
     )
     .eq("id", workflowId)
     .maybeSingle();
@@ -332,8 +338,12 @@ export async function updateWorkflow(
     record("team", current.team, next.team);
   if (Boolean(current.regulatory) !== next.regulatory)
     record("regulatory", current.regulatory, next.regulatory);
-  if ((current.frequency ?? null) !== next.frequency)
-    record("frequency", current.frequency, next.frequency);
+  if ((current.frequency_per_week ?? null) !== next.frequency_per_week)
+    record(
+      "frequency_per_week",
+      current.frequency_per_week,
+      next.frequency_per_week,
+    );
   if ((current.criticality ?? null) !== next.criticality)
     record("criticality", current.criticality, next.criticality);
   if ((current.business_kpi ?? null) !== next.business_kpi)
@@ -359,7 +369,7 @@ export async function updateWorkflow(
       name: next.name,
       team: next.team,
       regulatory: next.regulatory,
-      frequency: next.frequency,
+      frequency_per_week: next.frequency_per_week,
       criticality: next.criticality,
       business_kpi: next.business_kpi,
       owner_names: next.owner_names,

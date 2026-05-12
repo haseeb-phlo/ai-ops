@@ -30,7 +30,7 @@ type Workflow = {
   name: string;
   team: string | null;
   regulatory: boolean;
-  frequency: string | null;
+  frequency_per_week: number | null;
   criticality: "low" | "medium" | "high" | "critical" | null;
   business_kpi: string | null;
   owner_names: string[];
@@ -141,13 +141,19 @@ export function EditWorkflowDialog({
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="frequency">Frequency</Label>
+              <Label htmlFor="frequency_per_week">Frequency per week</Label>
               <Input
-                id="frequency"
-                name="frequency"
-                defaultValue={workflow.frequency ?? ""}
-                placeholder="e.g. weekly, daily, ad-hoc"
-                maxLength={120}
+                id="frequency_per_week"
+                name="frequency_per_week"
+                type="number"
+                min="0"
+                step="0.5"
+                defaultValue={
+                  workflow.frequency_per_week != null
+                    ? String(workflow.frequency_per_week)
+                    : ""
+                }
+                placeholder="e.g. 5"
               />
             </div>
 

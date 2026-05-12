@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { getSessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -21,9 +20,14 @@ type WorkflowRow = {
   name: string;
   team: string | null;
   frequency_per_week: number | null;
-  regulatory: boolean;
   created_by: string | null;
   workflow_steps: { count: number }[];
+};
+
+type WorkflowMetricRow = {
+  workflow_id: string;
+  time_baseline: number | null;
+  time_current: number | null;
 };
 
 type ProfileLite = { user_id: string; display_name: string | null };
@@ -52,7 +56,7 @@ export default async function WorkflowsPage(props: {
   let q = supabase
     .from("workflows")
     .select(
-      "id, name, team, frequency_per_week, regulatory, created_by, workflow_steps(count)",
+      "id, name, team, frequency_per_week, created_by, workflow_steps(count)",
     )
     .is("deleted_at", null)
     .order("name");
@@ -64,21 +68,42 @@ export default async function WorkflowsPage(props: {
   const { data: workflows, error } = await q.returns<WorkflowRow[]>();
 
   // 2. Build {workflow_id -> active intervention count} via the join table.
+  //    And fetch the baseline metrics in the same round trip pass so the
+  //    table can show Total hours alongside Frequency without a second
+  //    request per row.
   const workflowIds = (workflows ?? []).map((w) => w.id);
   const interventionCounts = new Map<string, number>();
+  const hoursByWorkflow = new Map<string, number>();
 
   if (workflowIds.length > 0) {
-    const { data: joinRows } = await supabase
-      .from("intervention_workflows")
-      .select("workflow_id, ai_interventions!inner(status)")
-      .in("workflow_id", workflowIds)
-      .eq("ai_interventions.status", "active");
+    const [{ data: joinRows }, { data: metricRows }] = await Promise.all([
+      supabase
+        .from("intervention_workflows")
+        .select("workflow_id, ai_interventions!inner(status)")
+        .in("workflow_id", workflowIds)
+        .eq("ai_interventions.status", "active"),
+      supabase
+        .from("workflow_metrics")
+        .select("workflow_id, time_baseline, time_current")
+        .in("workflow_id", workflowIds)
+        .returns<WorkflowMetricRow[]>(),
+    ]);
 
     for (const r of joinRows ?? []) {
       interventionCounts.set(
         r.workflow_id,
         (interventionCounts.get(r.workflow_id) ?? 0) + 1,
       );
+    }
+
+    // time_* is stored in minutes; the table shows hours. Prefer the
+    // current reading over the baseline so post-snapshot improvements
+    // show up here.
+    for (const m of metricRows ?? []) {
+      const minutes = m.time_current ?? m.time_baseline;
+      if (minutes != null) {
+        hoursByWorkflow.set(m.workflow_id, minutes / 60);
+      }
     }
   }
 
@@ -185,7 +210,7 @@ export default async function WorkflowsPage(props: {
                 <TableHead>Team</TableHead>
                 <TableHead className="text-right">Frequency / wk</TableHead>
                 <TableHead className="text-right">Steps</TableHead>
-                <TableHead>Regulatory</TableHead>
+                <TableHead className="text-right">Total hours / wk</TableHead>
                 <TableHead className="text-right">Active AI initiatives</TableHead>
                 <TableHead>Logged by</TableHead>
               </TableRow>
@@ -194,6 +219,7 @@ export default async function WorkflowsPage(props: {
               {(workflows ?? []).map((wf) => {
                 const stepsCount = wf.workflow_steps?.[0]?.count ?? 0;
                 const activeInterventions = interventionCounts.get(wf.id) ?? 0;
+                const totalHours = hoursByWorkflow.get(wf.id) ?? null;
                 const loggedBy = wf.created_by
                   ? creatorLabelById.get(wf.created_by) ?? null
                   : null;
@@ -217,9 +243,11 @@ export default async function WorkflowsPage(props: {
                     <TableCell className="text-right tabular-nums">
                       {stepsCount}
                     </TableCell>
-                    <TableCell>
-                      {wf.regulatory ? (
-                        <Badge variant="destructive">Regulatory</Badge>
+                    <TableCell className="text-right tabular-nums">
+                      {totalHours != null ? (
+                        totalHours.toLocaleString(undefined, {
+                          maximumFractionDigits: 1,
+                        })
                       ) : (
                         <span className="text-zinc-400">-</span>
                       )}

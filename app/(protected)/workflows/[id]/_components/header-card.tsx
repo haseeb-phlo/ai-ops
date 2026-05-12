@@ -11,7 +11,7 @@ export type WorkflowHeader = {
   name: string;
   team: string | null;
   regulatory: boolean;
-  frequency: string | null;
+  frequency_per_week: number | null;
   criticality: "low" | "medium" | "high" | "critical" | null;
   business_kpi: string | null;
   owner_names: string[];
@@ -90,7 +90,14 @@ export async function HeaderCard({
                 )}
               </dd>
             </div>
-            <Field label="Frequency" value={workflow.frequency} />
+            <Field
+              label="Frequency"
+              value={
+                workflow.frequency_per_week != null
+                  ? `${formatNumber(workflow.frequency_per_week)} / wk`
+                  : null
+              }
+            />
             <Field label="Business KPI" value={workflow.business_kpi} />
             <div>
               <dt className="text-xs font-medium uppercase tracking-wide text-zinc-500">
@@ -164,6 +171,10 @@ export async function HeaderCard({
       </div>
     </section>
   );
+}
+
+function formatNumber(n: number): string {
+  return n.toLocaleString(undefined, { maximumFractionDigits: 2 });
 }
 
 function Field({ label, value }: { label: string; value: string | null }) {
