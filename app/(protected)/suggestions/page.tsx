@@ -1,6 +1,7 @@
 import { getSessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { championsByTeam } from "@/lib/champions";
+import { resolveDisplayName } from "@/lib/profile";
 import { PageContainer, PageHeader } from "@/components/page-header";
 import { SubmitSuggestionDialog } from "./_components/submit-dialog";
 import { SuggestionTabs, type Tab } from "./_components/tabs";
@@ -60,6 +61,8 @@ export default async function SuggestionsPage({
     { data: interventions },
     { data: profileRows },
     { data: voteRows },
+    { data: peopleRows },
+    { data: emailRows },
     byTeam,
   ] = await Promise.all([
     supabase
@@ -88,6 +91,11 @@ export default async function SuggestionsPage({
       .from("intervention_suggestion_votes")
       .select("suggestion_id, user_id")
       .returns<{ suggestion_id: string; user_id: string }[]>(),
+    supabase
+      .from("people")
+      .select("email, display_name")
+      .returns<{ email: string; display_name: string }[]>(),
+    supabase.rpc("user_emails"),
     championsByTeam(),
   ]);
 
@@ -102,11 +110,27 @@ export default async function SuggestionsPage({
     interventionsList.map((i) => [i.id, i.name]),
   );
 
-  const profileNameByUserId = new Map<string, string>();
+  const profileNameByUserId = new Map<string, string | null>();
   for (const p of profileRows ?? []) {
-    if (p.display_name?.trim()) {
-      profileNameByUserId.set(p.user_id, p.display_name.trim());
+    profileNameByUserId.set(p.user_id, p.display_name);
+  }
+  const peopleNameByEmail = new Map<string, string>();
+  for (const p of peopleRows ?? []) {
+    if (p.email && p.display_name) {
+      peopleNameByEmail.set(p.email.trim().toLowerCase(), p.display_name);
     }
+  }
+  const emailByUserId = new Map<string, string | null>();
+  for (const r of (emailRows ?? []) as { user_id: string; email: string | null }[]) {
+    emailByUserId.set(r.user_id, r.email);
+  }
+  function nameFor(userId: string | null): string | null {
+    if (!userId) return null;
+    const email = emailByUserId.get(userId) ?? null;
+    const peopleName = email
+      ? peopleNameByEmail.get(email.trim().toLowerCase()) ?? null
+      : null;
+    return resolveDisplayName(profileNameByUserId.get(userId), peopleName, email) || null;
   }
 
   const votesBySuggestion = new Map<string, number>();
@@ -138,9 +162,7 @@ export default async function SuggestionsPage({
         ? interventionNameById.get(s.intervention_id) ?? null
         : null,
       created_at: s.created_at,
-      submitted_by: s.created_by
-        ? profileNameByUserId.get(s.created_by) ?? null
-        : null,
+      submitted_by: nameFor(s.created_by),
       voteCount: votesBySuggestion.get(s.id) ?? 0,
       voted: votedSet.has(s.id),
     };
