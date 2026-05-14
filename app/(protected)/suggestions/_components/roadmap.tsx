@@ -50,10 +50,9 @@ export type RoadmapInitiative = {
  * round-trip; if the server rejects, the optimistic state reverts when the
  * page next revalidates.
  *
- * Active AI initiatives are surfaced as read-only cards inside the In
- * progress lane (a logged initiative IS in-progress work, regardless of
- * whether anyone wired up a matching suggestion). They render with a
- * distinct emerald border and are not draggable.
+ * Active AI initiatives also surface in the In progress lane so logged
+ * work shows up even without a matching suggestion. They share the card
+ * shape and are marked only by a small emerald accent dot; not draggable.
  */
 export function RoadmapBoard({
   groups: serverGroups,
@@ -171,27 +170,26 @@ export function RoadmapBoard({
                 {initiatives.map((iv) => (
                   <li
                     key={`initiative:${iv.id}`}
-                    className={cn(
-                      "rounded-md border border-emerald-300 bg-emerald-50/60",
-                    )}
+                    className="rounded-md border border-border bg-background"
                   >
                     <Link
                       href={`/interventions/${iv.id}`}
-                      className="block p-3 hover:bg-emerald-50"
+                      className="flex items-start gap-2.5 p-3 hover:bg-muted/40/60"
                     >
-                      <div className="flex items-baseline justify-between gap-2">
-                        <p className="text-sm font-medium text-emerald-900">
+                      <span
+                        aria-hidden
+                        className="mt-1.5 size-1.5 shrink-0 rounded-full bg-emerald-500"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-foreground">
                           {iv.name}
                         </p>
-                        <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-wide text-emerald-800">
-                          AI initiative
-                        </span>
+                        {iv.team && (
+                          <p className="mt-0.5 text-[11px] text-muted-foreground">
+                            {iv.team}
+                          </p>
+                        )}
                       </div>
-                      {iv.team && (
-                        <p className="mt-0.5 text-[11px] text-emerald-800/80">
-                          {iv.team}
-                        </p>
-                      )}
                     </Link>
                   </li>
                 ))}
