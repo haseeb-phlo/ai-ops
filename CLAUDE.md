@@ -24,6 +24,8 @@ Env vars (see `../.example_env` — the example file lives one directory **above
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
 - `ANTHROPIC_API_KEY`
+- `RESEND_API_KEY` — optional in dev; when unset, `lib/resend.ts` exports `null` and sends no-op.
+- `EMAIL_FROM` — optional; defaults to the Resend test domain.
 
 Path alias: `@/*` → repository root (e.g. `@/lib/supabase/server`).
 
@@ -39,6 +41,10 @@ This Next.js version replaces `middleware.ts` with **`proxy.ts`** at the repo ro
 
 Treat `proxy.ts` as the single global gate. Pages do not need to re-check auth for "is the user logged in" — by the time a request reaches a page, it is.
 
+### Email-domain allowlist
+
+`lib/auth-domain.ts` pins auth to a single domain (`@wearephlo.com`) via `isAllowedEmail`. It's enforced in three layers — the proxy, the `/auth/callback` route, and `getSessionUser` — and the file is intentionally dependency-free so it can be imported from any execution context (Edge proxy, RSC, Server Action, client). When changing the allowed domain, update this one constant.
+
 ### Three Supabase clients, one per execution context
 
 `lib/supabase/` has three factories — pick the one matching where you're calling from:
@@ -52,8 +58,17 @@ Treat `proxy.ts` as the single global gate. Pages do not need to re-check auth f
 `lib/auth.ts:getSessionUser` is the canonical "who is the current user" function for server-rendered code. It:
 
 - Calls `supabase.auth.getUser()` and redirects to `/login` if absent (defense in depth on top of the proxy).
-- Joins against the `role_grants` table (`role`, `team` columns, keyed by `user_id`) and returns a `SessionUser` with defaults `role: "member"`, `team: null`.
+- In parallel, loads `role_grants` (role/team), `profiles` (display_name/avatar/title), and the `people` directory row matched by email — display name resolution prefers profile → people → email-local-part via `resolveDisplayName`.
+- Applies the view-as cookie (see below) to produce *effective* `role`/`team` while keeping the underlying `realRole`/`realTeam` and an `isImpersonating` flag.
 - Is wrapped in React's `cache()` so layout + page + header in one render share a single DB hit.
+
+### View-as impersonation
+
+Super admins can preview the app as another role without leaving their session. `lib/view-as.ts` exposes `setViewAs(role, team)` / `clearViewAs()` Server Actions that read/write the `view_as` cookie (`VIEW_AS_COOKIE` in `lib/auth.ts`), gated on `realRole === "super_admin"`. `getSessionUser` reads the cookie and, *only* when the underlying grant is super_admin, overrides `role`/`team` and sets `isImpersonating: true`.
+
+Two critical implications:
+- **DB-layer privileges don't change.** `auth.uid()` is still the super_admin, so RLS allows writes the impersonated role couldn't perform. This is why `requireWriter()` (in `lib/auth.ts`) blocks every mutating action while `isImpersonating` is true.
+- **UI reads use `role`; mutation guards use `realRole`.** Reverse them and you either leak admin chrome to impersonated views or silently allow forbidden writes.
 
 ### Route layout
 
@@ -89,6 +104,10 @@ Workflows use `deleted_at` + `deleted_by` columns; reads filter `.is("deleted_at
 ### Anthropic / Claude
 
 `lib/anthropic.ts` is `server-only` and exports the configured client plus `CLAUDE_MODEL`. Import the constant rather than hardcoding model strings so the model can be bumped in one place.
+
+### Transactional email (Resend)
+
+`lib/resend.ts` is `server-only` and exports `resend` — a `Resend` client *or* `null` when `RESEND_API_KEY` is unset (dev environments boot without it). Callers must null-check before sending; do not throw on missing key. Templates live in `lib/emails/` as plain TS functions returning subject/html/text. `EMAIL_FROM` controls the From address; defaults to the Resend test domain so unconfigured dev environments don't crash.
 
 ### Styling and UI primitives
 
