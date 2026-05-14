@@ -510,6 +510,7 @@ export async function createSuggestionComment(
   }
 
   revalidatePath(`/suggestions/${parsed.data.suggestion_id}`);
+  revalidatePath("/");
   return { kind: "ok" };
 }
 
@@ -610,7 +611,7 @@ async function notifyCommentThread(args: {
 }
 
 export async function deleteSuggestionComment(formData: FormData): Promise<void> {
-  // Gate on a real session — getSessionUser redirects to /login if absent.
+  // Gate on a real session - getSessionUser redirects to /login if absent.
   // Author-or-super authorization is enforced by RLS on the delete itself.
   await getSessionUser();
   const id = formData.get("comment_id");
@@ -622,4 +623,5 @@ export async function deleteSuggestionComment(formData: FormData): Promise<void>
     .delete()
     .eq("id", id);
   revalidatePath(`/suggestions/${suggestionId}`);
+  revalidatePath("/");
 }

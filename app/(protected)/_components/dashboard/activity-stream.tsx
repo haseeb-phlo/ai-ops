@@ -41,6 +41,15 @@ export type StreamItem =
       team: string | null;
       submittedBy: string | null;
       at: string;
+    }
+  | {
+      kind: "suggestion-comment";
+      id: string;
+      suggestionId: string;
+      suggestionTitle: string;
+      body: string;
+      commenter: string | null;
+      at: string;
     };
 
 export function ActivityStream({ items }: { items: StreamItem[] }) {
@@ -134,6 +143,28 @@ export function ActivityStream({ items }: { items: StreamItem[] }) {
               at={it.at}
             />
           )}
+          {it.kind === "suggestion-comment" && (
+            <Row
+              icon={<Glyph kind="suggestion-comment" />}
+              title={
+                <Link
+                  href={`/suggestions/${it.suggestionId}`}
+                  className="font-medium text-foreground hover:underline"
+                >
+                  {it.suggestionTitle}
+                </Link>
+              }
+              meta={[
+                it.commenter
+                  ? `Comment by ${it.commenter}`
+                  : "New comment",
+                truncate(it.body, 120),
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+              at={it.at}
+            />
+          )}
           {it.kind === "note" && (
             <Row
               icon={<Glyph kind="note" />}
@@ -189,7 +220,12 @@ function Row({
 function Glyph({
   kind,
 }: {
-  kind: "intervention" | "note" | "workflow" | "suggestion";
+  kind:
+    | "intervention"
+    | "note"
+    | "workflow"
+    | "suggestion"
+    | "suggestion-comment";
 }) {
   if (kind === "intervention") {
     return (
@@ -209,6 +245,13 @@ function Glyph({
     return (
       <span className="flex size-5 items-center justify-center rounded-full bg-violet-100 text-[10px] font-semibold text-violet-700">
         S
+      </span>
+    );
+  }
+  if (kind === "suggestion-comment") {
+    return (
+      <span className="flex size-5 items-center justify-center rounded-full bg-sky-100 text-[10px] font-semibold text-sky-700">
+        C
       </span>
     );
   }
