@@ -1,10 +1,23 @@
 "use server";
 
+import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionUser, requireWriter } from "@/lib/auth";
+import { resolveDisplayName } from "@/lib/profile";
+import { sendSuggestionSubmittedEmail } from "@/lib/emails/suggestion-submitted";
+import { sendSuggestionStatusChangedEmail } from "@/lib/emails/suggestion-status-changed";
+
+const REVIEWER_EMAIL = "haseeb.hamid@wearephlo.com";
+
+async function appUrl(): Promise<string> {
+  const hdrs = await headers();
+  const host = hdrs.get("x-forwarded-host") ?? hdrs.get("host");
+  const proto = hdrs.get("x-forwarded-proto") ?? "https";
+  return host ? `${proto}://${host}` : "http://localhost:3000";
+}
 
 const STATUSES = [
   "open",
@@ -71,6 +84,26 @@ export async function createSuggestion(
       message: `Could not save suggestion: ${error?.message ?? "unknown"}`,
     };
   }
+
+  // Notify the reviewer. Failures are logged but don't roll back the
+  // suggestion - the in-app surface is still the source of truth.
+  try {
+    const result = await sendSuggestionSubmittedEmail({
+      to: REVIEWER_EMAIL,
+      suggestionId: data.id,
+      title: parsed.data.title,
+      body: parsed.data.body,
+      submittedByName: user.displayName,
+      team: user.team ?? null,
+      appUrl: await appUrl(),
+    });
+    if ("ok" in result && !result.ok) {
+      console.warn("[suggestion-submitted] email failed:", result.message);
+    }
+  } catch (err) {
+    console.warn("[suggestion-submitted] email threw:", err);
+  }
+
   revalidatePath("/suggestions");
   return { kind: "ok", suggestionId: data.id };
 }
@@ -136,9 +169,14 @@ export async function setSuggestionStatus(
 
   const { data: row } = await supabase
     .from("intervention_suggestions")
-    .select("team, status")
+    .select("team, status, title, created_by")
     .eq("id", parsed.data.suggestion_id)
-    .maybeSingle<{ team: string | null; status: Status }>();
+    .maybeSingle<{
+      team: string | null;
+      status: Status;
+      title: string;
+      created_by: string | null;
+    }>();
   if (!row) {
     return { kind: "error", message: "Suggestion not found." };
   }
@@ -188,8 +226,88 @@ export async function setSuggestionStatus(
   if (error) {
     return { kind: "error", message: error.message };
   }
+
+  // Notify the suggestion's author when the decision matches one of the
+  // three triage transitions (under_review / accepted / declined) AND the
+  // status is actually changing - re-clicking the current status shouldn't
+  // re-email. Email failures are logged but don't roll back the change.
+  const notifyStatuses: Status[] = ["under_review", "accepted", "declined"];
+  if (
+    row.created_by &&
+    notifyStatuses.includes(target) &&
+    row.status !== target
+  ) {
+    try {
+      await notifyAuthorOfStatusChange({
+        authorUserId: row.created_by,
+        suggestionId: parsed.data.suggestion_id,
+        title: row.title,
+        status: target as "under_review" | "accepted" | "declined",
+        declineReason:
+          target === "declined" ? parsed.data.decline_reason ?? null : null,
+        decidedByName: user.displayName,
+      });
+    } catch (err) {
+      console.warn("[suggestion-status-changed] email threw:", err);
+    }
+  }
+
   revalidatePath("/suggestions");
   return { kind: "ok" };
+}
+
+async function notifyAuthorOfStatusChange(args: {
+  authorUserId: string;
+  suggestionId: string;
+  title: string;
+  status: "under_review" | "accepted" | "declined";
+  declineReason: string | null;
+  decidedByName: string;
+}): Promise<void> {
+  const supabase = await createClient();
+  const [{ data: emailRows }, { data: profile }, { data: peopleByEmailRows }] =
+    await Promise.all([
+      supabase.rpc("user_emails"),
+      supabase
+        .from("profiles")
+        .select("display_name")
+        .eq("user_id", args.authorUserId)
+        .maybeSingle<{ display_name: string | null }>(),
+      supabase
+        .from("people")
+        .select("email, display_name")
+        .returns<{ email: string; display_name: string }[]>(),
+    ]);
+
+  const authorEmail =
+    ((emailRows ?? []) as { user_id: string; email: string | null }[]).find(
+      (r) => r.user_id === args.authorUserId,
+    )?.email ?? null;
+  if (!authorEmail) return;
+
+  const peopleName =
+    (peopleByEmailRows ?? []).find(
+      (p) => p.email.trim().toLowerCase() === authorEmail.trim().toLowerCase(),
+    )?.display_name ?? null;
+  const recipientName = resolveDisplayName(
+    profile?.display_name,
+    peopleName,
+    authorEmail,
+  );
+
+  const result = await sendSuggestionStatusChangedEmail({
+    to: authorEmail,
+    recipientName,
+    suggestionId: args.suggestionId,
+    title: args.title,
+    status: args.status,
+    declineReason: args.declineReason,
+    decidedByName: args.decidedByName,
+    appUrl: await appUrl(),
+  });
+  if ("ok" in result && !result.ok) {
+    console.warn("[suggestion-status-changed] email failed:", result.message);
+  }
 }
 
 const EditSchema = z.object({
