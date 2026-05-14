@@ -26,6 +26,9 @@ type Intervention = {
   adoption_status: "daily" | "weekly" | "occasional" | "abandoned" | null;
   recipient_emails: string[] | null;
   created_at: string;
+  minutes_saved_per_week: number | null;
+  estimated_gbp_saved_per_week: number | null;
+  estimated_revenue_per_week: number | null;
 };
 
 type InterventionTeamLink = {
@@ -126,7 +129,7 @@ export default async function Home() {
     supabase
       .from("ai_interventions")
       .select(
-        "id, name, status, attribution_confidence, adoption_status, recipient_emails, created_at",
+        "id, name, status, attribution_confidence, adoption_status, recipient_emails, created_at, minutes_saved_per_week, estimated_gbp_saved_per_week, estimated_revenue_per_week",
       )
       .returns<Intervention[]>(),
     supabase
@@ -271,14 +274,24 @@ export default async function Home() {
     const lt = latestTime.get(iv.id);
     const lc = latestCost.get(iv.id);
     const lr = latestRevenue.get(iv.id);
-    let ivMins = 0;
-    let ivGbp = 0;
-    let ivRev = 0;
-    if (lt?.time_value != null) ivMins = (baseline.time - lt.time_value) * w;
-    if (lc?.cost_value != null) ivGbp = (baseline.cost - lc.cost_value) * w;
-    // Revenue is higher-better, so positive = uplift since baseline.
-    if (lr?.revenue_value != null)
-      ivRev = (lr.revenue_value - baseline.revenue) * w;
+
+    // Per-week impact: prefer the metric-vs-baseline delta once a snapshot
+    // has been logged; until then fall back to the at-log estimate so a
+    // freshly entered or edited initiative banks against its projected
+    // weekly run-rate immediately. Revenue is higher-better, so positive
+    // = uplift since baseline.
+    const ivMins =
+      lt?.time_value != null
+        ? (baseline.time - lt.time_value) * w
+        : (iv.minutes_saved_per_week ?? 0) * w;
+    const ivGbp =
+      lc?.cost_value != null
+        ? (baseline.cost - lc.cost_value) * w
+        : (iv.estimated_gbp_saved_per_week ?? 0) * w;
+    const ivRev =
+      lr?.revenue_value != null
+        ? (lr.revenue_value - baseline.revenue) * w
+        : (iv.estimated_revenue_per_week ?? 0) * w;
 
     // All-time always includes the intervention - weekly rate multiplied
     // by weeks-since-creation gives a usable cumulative ("approximately
