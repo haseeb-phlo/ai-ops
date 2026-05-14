@@ -34,6 +34,12 @@ const LANES: Lane[] = [
 
 type Groups = Record<LaneKey, SuggestionRow[]>;
 
+export type RoadmapInitiative = {
+  id: string;
+  name: string;
+  team: string | null;
+};
+
 /**
  * Trello-style three-column roadmap. Lane membership is computed from the
  * suggestion's `status` (after the in_progress migration: status alone
@@ -43,13 +49,20 @@ type Groups = Record<LaneKey, SuggestionRow[]>;
  * useOptimistic so the card reaches its destination before the server
  * round-trip; if the server rejects, the optimistic state reverts when the
  * page next revalidates.
+ *
+ * Active AI initiatives are surfaced as read-only cards inside the In
+ * progress lane (a logged initiative IS in-progress work, regardless of
+ * whether anyone wired up a matching suggestion). They render with a
+ * distinct emerald border and are not draggable.
  */
 export function RoadmapBoard({
   groups: serverGroups,
   canMove,
+  inProgressInitiatives = [],
 }: {
   groups: Groups;
   canMove: boolean;
+  inProgressInitiatives?: RoadmapInitiative[];
 }) {
   const [, startTransition] = useTransition();
   const [groups, applyOptimistic] = useOptimistic(
@@ -97,7 +110,10 @@ export function RoadmapBoard({
     <section className="grid grid-cols-1 gap-4 lg:grid-cols-3">
       {LANES.map((lane) => {
         const items = groups[lane.key];
+        const initiatives =
+          lane.key === "in_progress" ? inProgressInitiatives : [];
         const isDropTarget = dropTarget === lane.key;
+        const totalCount = items.length + initiatives.length;
         return (
           <div
             key={lane.key}
@@ -143,15 +159,42 @@ export function RoadmapBoard({
                 <p className="text-xs text-muted-foreground">{lane.hint}</p>
               </div>
               <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
-                {items.length}
+                {totalCount}
               </span>
             </div>
-            {items.length === 0 ? (
+            {totalCount === 0 ? (
               <p className="rounded-md border border-dashed border-border bg-background px-3 py-6 text-center text-xs text-muted-foreground">
                 {canMove ? "Drop a suggestion here." : "Nothing here."}
               </p>
             ) : (
               <ul className="space-y-2">
+                {initiatives.map((iv) => (
+                  <li
+                    key={`initiative:${iv.id}`}
+                    className={cn(
+                      "rounded-md border border-emerald-300 bg-emerald-50/60",
+                    )}
+                  >
+                    <Link
+                      href={`/interventions/${iv.id}`}
+                      className="block p-3 hover:bg-emerald-50"
+                    >
+                      <div className="flex items-baseline justify-between gap-2">
+                        <p className="text-sm font-medium text-emerald-900">
+                          {iv.name}
+                        </p>
+                        <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-wide text-emerald-800">
+                          AI initiative
+                        </span>
+                      </div>
+                      {iv.team && (
+                        <p className="mt-0.5 text-[11px] text-emerald-800/80">
+                          {iv.team}
+                        </p>
+                      )}
+                    </Link>
+                  </li>
+                ))}
                 {items.map((s) => (
                   <li
                     key={s.id}

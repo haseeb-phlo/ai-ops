@@ -221,7 +221,15 @@ export default async function SuggestionsPage({
       )}
       {tab === "roadmap" &&
         (view === "board" ? (
-          <RoadmapBoard groups={roadmapGroups} canMove={isSuper} />
+          <RoadmapBoard
+            groups={roadmapGroups}
+            canMove={isSuper}
+            inProgressInitiatives={activeInterventions.map((i) => ({
+              id: i.id,
+              name: i.name,
+              team: null,
+            }))}
+          />
         ) : (
           <ActiveList
             rows={roadmapList}
