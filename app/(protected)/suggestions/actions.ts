@@ -9,6 +9,7 @@ import { getSessionUser, requireWriter } from "@/lib/auth";
 import { resolveDisplayName } from "@/lib/profile";
 import { sendSuggestionSubmittedEmail } from "@/lib/emails/suggestion-submitted";
 import { sendSuggestionStatusChangedEmail } from "@/lib/emails/suggestion-status-changed";
+import { sendSuggestionCommentEmail } from "@/lib/emails/suggestion-comment";
 
 const REVIEWER_EMAIL = "haseeb.hamid@wearephlo.com";
 
@@ -493,8 +494,119 @@ export async function createSuggestionComment(
       created_by: user.id,
     });
   if (error) return { kind: "error", message: error.message };
+
+  // Fan out: notify the suggestion's author + every prior commenter,
+  // minus the person who just commented (no self-pings). Failures log
+  // but don't fail the comment - in-app remains the source of truth.
+  try {
+    await notifyCommentThread({
+      suggestionId: parsed.data.suggestion_id,
+      commentBody: parsed.data.body,
+      commenterUserId: user.id,
+      commenterName: user.displayName,
+    });
+  } catch (err) {
+    console.warn("[suggestion-comment] notify thread threw:", err);
+  }
+
   revalidatePath(`/suggestions/${parsed.data.suggestion_id}`);
   return { kind: "ok" };
+}
+
+async function notifyCommentThread(args: {
+  suggestionId: string;
+  commentBody: string;
+  commenterUserId: string;
+  commenterName: string;
+}): Promise<void> {
+  const supabase = await createClient();
+  const [
+    { data: suggestion },
+    { data: priorComments },
+    { data: emailRows },
+    { data: profileRows },
+    { data: peopleRows },
+  ] = await Promise.all([
+    supabase
+      .from("intervention_suggestions")
+      .select("id, title, created_by")
+      .eq("id", args.suggestionId)
+      .maybeSingle<{ id: string; title: string; created_by: string | null }>(),
+    supabase
+      .from("intervention_suggestion_comments")
+      .select("created_by")
+      .eq("suggestion_id", args.suggestionId)
+      .returns<{ created_by: string | null }[]>(),
+    supabase.rpc("user_emails"),
+    supabase
+      .from("profiles")
+      .select("user_id, display_name")
+      .returns<{ user_id: string; display_name: string | null }[]>(),
+    supabase
+      .from("people")
+      .select("email, display_name")
+      .returns<{ email: string; display_name: string }[]>(),
+  ]);
+
+  if (!suggestion) return;
+
+  // Build the recipient set: suggestion author + all prior commenters,
+  // minus the current commenter. Deduplicate by user_id.
+  const recipientIds = new Set<string>();
+  if (suggestion.created_by && suggestion.created_by !== args.commenterUserId) {
+    recipientIds.add(suggestion.created_by);
+  }
+  for (const c of priorComments ?? []) {
+    if (c.created_by && c.created_by !== args.commenterUserId) {
+      recipientIds.add(c.created_by);
+    }
+  }
+  if (recipientIds.size === 0) return;
+
+  const emailByUserId = new Map<string, string>();
+  for (const r of (emailRows ?? []) as { user_id: string; email: string | null }[]) {
+    if (r.email) emailByUserId.set(r.user_id, r.email);
+  }
+  const profileByUserId = new Map<string, string | null>();
+  for (const p of profileRows ?? []) {
+    profileByUserId.set(p.user_id, p.display_name);
+  }
+  const peopleByEmail = new Map<string, string>();
+  for (const p of peopleRows ?? []) {
+    if (p.email && p.display_name) {
+      peopleByEmail.set(p.email.trim().toLowerCase(), p.display_name);
+    }
+  }
+
+  const url = await appUrl();
+  await Promise.all(
+    Array.from(recipientIds).map(async (recipientId) => {
+      const email = emailByUserId.get(recipientId);
+      if (!email) return;
+      const peopleName =
+        peopleByEmail.get(email.trim().toLowerCase()) ?? null;
+      const displayName = resolveDisplayName(
+        profileByUserId.get(recipientId),
+        peopleName,
+        email,
+      );
+      const result = await sendSuggestionCommentEmail({
+        recipient: { email, displayName },
+        suggestionId: args.suggestionId,
+        suggestionTitle: suggestion.title,
+        commentBody: args.commentBody,
+        commenterName: args.commenterName,
+        isAuthor: recipientId === suggestion.created_by,
+        appUrl: url,
+      });
+      if ("ok" in result && !result.ok) {
+        console.warn(
+          `[suggestion-comment] email to ${email} failed:`,
+          result.message,
+        );
+      }
+    }),
+  );
 }
 
 export async function deleteSuggestionComment(formData: FormData): Promise<void> {
