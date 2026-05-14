@@ -38,7 +38,7 @@ export function RedirectToast() {
         mutated = true;
       }
     }
-    // The hash is browser-only — Supabase duplicates the error params
+    // The hash is browser-only - Supabase duplicates the error params
     // there, so strip it too. Touch history directly so we don't push a
     // navigation entry just to scrub.
     const hasAuthHash =

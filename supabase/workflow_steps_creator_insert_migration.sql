@@ -6,7 +6,7 @@
 -- user create a workflow row (check: created_by = auth.uid()). That left a
 -- hole in the "create workflow" Server Action: the workflow row inserts,
 -- then the matching workflow_steps inserts fail RLS for any user who isn't
--- on the chosen team (and isn't a super_admin) — including users with no
+-- on the chosen team (and isn't a super_admin) - including users with no
 -- role_grants row at all. Result: workflow saves with zero steps.
 --
 -- This adds the creator predicate so the same user who just inserted the

@@ -555,7 +555,7 @@ function PersonDialog({
                     {person.displayName}
                   </DialogTitle>
                   <p className="truncate text-xs text-muted-foreground">
-                    {person.title || "—"}
+                    {person.title || "-"}
                   </p>
                 </div>
               </div>

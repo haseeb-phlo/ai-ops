@@ -45,18 +45,18 @@ const CONFIDENCE_LABEL: Record<string, string> = {
 };
 
 const ADOPTION_LABEL: Record<string, string> = {
-  daily: "Daily — used every day",
-  weekly: "Weekly — a few times a week",
-  occasional: "Occasional — now and then",
+  daily: "Daily - used every day",
+  weekly: "Weekly - a few times a week",
+  occasional: "Occasional - now and then",
   abandoned: "Not in use",
 };
 
 const SATISFACTION_LABEL: Record<string, string> = {
-  "1": "1 — Very dissatisfied",
-  "2": "2 — Dissatisfied",
-  "3": "3 — Neutral",
-  "4": "4 — Satisfied",
-  "5": "5 — Very satisfied",
+  "1": "1 - Very dissatisfied",
+  "2": "2 - Dissatisfied",
+  "3": "3 - Neutral",
+  "4": "4 - Satisfied",
+  "5": "5 - Very satisfied",
 };
 
 export function LogInterventionDialog({

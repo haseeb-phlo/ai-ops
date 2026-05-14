@@ -220,7 +220,7 @@ export default async function ChampionTeamPage({
                     )}
                     {w.criticality_score != null && (
                       <Badge variant="secondary">
-                        {CRITICALITY_LABEL[w.criticality_score] ?? "—"}
+                        {CRITICALITY_LABEL[w.criticality_score] ?? "-"}
                       </Badge>
                     )}
                   </div>

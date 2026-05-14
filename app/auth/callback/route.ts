@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
-  // Don't echo Supabase's raw error string into the URL — collapse all
+  // Don't echo Supabase's raw error string into the URL - collapse all
   // exchange failures (expired, scanner-consumed, cross-browser PKCE
   // mismatch, etc.) into one user-facing slug. The login page maps it
   // to a friendly message and prompts for a fresh code.

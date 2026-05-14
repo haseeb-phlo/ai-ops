@@ -49,7 +49,7 @@ export async function updateSession(request: NextRequest) {
   if (user && !isAllowedEmail(user.email)) {
     await supabase.auth.signOut(); // clears auth cookies via setAll above
     if (isAuthRoute) {
-      // Already on /login or /auth — let the page render with cleared cookies.
+      // Already on /login or /auth - let the page render with cleared cookies.
       return response;
     }
     const url = request.nextUrl.clone();

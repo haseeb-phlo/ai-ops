@@ -294,7 +294,7 @@ export async function restoreWorkflow(
 }
 
 // Trim, drop empties, and dedupe by case-insensitive match while keeping
-// the first-seen casing — same rule the autocomplete uses to converge
+// the first-seen casing - same rule the autocomplete uses to converge
 // "Claude" / "claude" / "  Claude " into a single tag.
 function dedupeTools(raw: string[]): string[] {
   const seen = new Set<string>();
