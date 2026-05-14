@@ -212,6 +212,7 @@ export function RoadmapBoard({
                   >
                     <Link
                       href={`/suggestions/${s.id}`}
+                      draggable={false}
                       className="block p-3 hover:bg-muted/40/60"
                     >
                       <p className="text-sm font-medium text-foreground">
