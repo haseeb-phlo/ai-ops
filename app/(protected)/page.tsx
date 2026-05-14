@@ -15,14 +15,13 @@ import {
   type StreamItem,
 } from "./_components/dashboard/activity-stream";
 
-const CONFIDENCE_WEIGHT = { high: 1.0, medium: 0.7, low: 0.4 } as const;
-type Confidence = keyof typeof CONFIDENCE_WEIGHT;
-
+// Attribution confidence is no longer applied to dashboard math - it stays
+// on each AI initiative as an editorial signal for reviewers, but the
+// headline tiles, trend strip, and Top Wins all sum the raw run-rate.
 type Intervention = {
   id: string;
   name: string;
   status: "active" | "paused" | "retired" | null;
-  attribution_confidence: Confidence | null;
   adoption_status: "daily" | "weekly" | "occasional" | "abandoned" | null;
   recipient_emails: string[] | null;
   created_at: string;
@@ -139,7 +138,7 @@ export default async function Home() {
     supabase
       .from("ai_interventions")
       .select(
-        "id, name, status, attribution_confidence, adoption_status, recipient_emails, created_at, minutes_saved_per_week, estimated_gbp_saved_per_week, estimated_revenue_per_week",
+        "id, name, status, adoption_status, recipient_emails, created_at, minutes_saved_per_week, estimated_gbp_saved_per_week, estimated_revenue_per_week",
       )
       .returns<Intervention[]>(),
     supabase
@@ -287,7 +286,6 @@ export default async function Home() {
         if (email) reachedEmails.add(email);
       }
     }
-    const w = CONFIDENCE_WEIGHT[iv.attribution_confidence ?? "medium"];
     const baseline =
       baselineSums.get(iv.id) ?? { time: 0, cost: 0, revenue: 0 };
     const lt = latestTime.get(iv.id);
@@ -298,39 +296,27 @@ export default async function Home() {
     // has been logged; until then fall back to the at-log estimate so a
     // freshly entered or edited initiative banks against its projected
     // weekly run-rate immediately. Revenue is higher-better, so positive
-    // = uplift since baseline.
+    // = uplift since baseline. No confidence weighting - the raw number is
+    // what we report.
     const ivMins =
-      lt?.time_value != null
-        ? (baseline.time - lt.time_value) * w
-        : (iv.minutes_saved_per_week ?? 0) * w;
-    const ivGbp =
-      lc?.cost_value != null
-        ? (baseline.cost - lc.cost_value) * w
-        : (iv.estimated_gbp_saved_per_week ?? 0) * w;
-    const ivRev =
-      lr?.revenue_value != null
-        ? (lr.revenue_value - baseline.revenue) * w
-        : (iv.estimated_revenue_per_week ?? 0) * w;
-
-    // All-time, since launch: step up in whole weeks so a freshly logged
-    // 60 min/wk initiative immediately reads 60 min in week 1, 120 in
-    // week 2, 180 in week 3, etc. Uses the raw stated rate (not the
-    // confidence-weighted ivMins) so the displayed totals match the
-    // numbers entered at log time - confidence weighting belongs on the
-    // "what we're confident is accruing right now" weekly tiles, not on
-    // the cumulative projection.
-    const rawMinsPerWeek =
       lt?.time_value != null
         ? baseline.time - lt.time_value
         : iv.minutes_saved_per_week ?? 0;
-    const rawGbpPerWeek =
+    const ivGbp =
       lc?.cost_value != null
         ? baseline.cost - lc.cost_value
         : iv.estimated_gbp_saved_per_week ?? 0;
-    const rawRevPerWeek =
+    const ivRev =
       lr?.revenue_value != null
         ? lr.revenue_value - baseline.revenue
         : iv.estimated_revenue_per_week ?? 0;
+
+    // All-time projection multiplies the per-week run-rate by weeks since
+    // the initiative was logged. Step up in whole weeks so a freshly
+    // logged 60 min/wk initiative reads 60 min in week 1, 120 in week 2.
+    const rawMinsPerWeek = ivMins;
+    const rawGbpPerWeek = ivGbp;
+    const rawRevPerWeek = ivRev;
     const weeksElapsed = Math.max(
       0,
       (renderNow - new Date(iv.created_at).getTime()) / (7 * 86_400_000),
@@ -389,7 +375,6 @@ export default async function Home() {
     let rev = 0;
     for (const iv of interventionsList) {
       if (iv.status === "retired") continue;
-      const w = CONFIDENCE_WEIGHT[iv.attribution_confidence ?? "medium"];
       const baseline =
         baselineSums.get(iv.id) ?? { time: 0, cost: 0, revenue: 0 };
       const ivMetrics = metricsByIntervention.get(iv.id);
@@ -404,9 +389,9 @@ export default async function Home() {
         if (!lr && m.revenue_value != null) lr = m;
         if (lt && lc && lr) break;
       }
-      if (lt?.time_value != null) mins += (baseline.time - lt.time_value) * w;
-      if (lc?.cost_value != null) gbpAccum += (baseline.cost - lc.cost_value) * w;
-      if (lr?.revenue_value != null) rev += (lr.revenue_value - baseline.revenue) * w;
+      if (lt?.time_value != null) mins += baseline.time - lt.time_value;
+      if (lc?.cost_value != null) gbpAccum += baseline.cost - lc.cost_value;
+      if (lr?.revenue_value != null) rev += lr.revenue_value - baseline.revenue;
     }
     return { minutes: mins, gbp: gbpAccum, revenue: rev };
   }

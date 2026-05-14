@@ -36,6 +36,10 @@ type Intervention = {
   status: Status | null;
   description: string | null;
   owner: string | null;
+  uses_per_week: number | null;
+  minutes_saved_per_use: number | null;
+  cost_saved_per_use: number | null;
+  revenue_per_use: number | null;
   minutes_saved_per_week: number | null;
   estimated_gbp_saved_per_week: number | null;
   estimated_revenue_per_week: number | null;
@@ -61,7 +65,19 @@ type EditRow = {
 type ChampionRow = { team: string };
 
 type LinkedWorkflow = {
-  workflows: { id: string; name: string; team: string | null } | null;
+  workflows: {
+    id: string;
+    name: string;
+    team: string | null;
+    frequency_per_week: number | null;
+  } | null;
+};
+
+type WorkflowMetricRow = {
+  workflow_id: string;
+  time_baseline: number | null;
+  cost_baseline: number | null;
+  revenue_baseline: number | null;
 };
 
 type Baseline = {
@@ -115,13 +131,13 @@ export default async function InterventionDetailPage({
     supabase
       .from("ai_interventions")
       .select(
-        "id, name, types, status, description, owner, minutes_saved_per_week, estimated_gbp_saved_per_week, estimated_revenue_per_week, attribution_confidence, adoption_status, satisfaction, recipient_emails, tools_used, created_by, created_at",
+        "id, name, types, status, description, owner, uses_per_week, minutes_saved_per_use, cost_saved_per_use, revenue_per_use, minutes_saved_per_week, estimated_gbp_saved_per_week, estimated_revenue_per_week, attribution_confidence, adoption_status, satisfaction, recipient_emails, tools_used, created_by, created_at",
       )
       .eq("id", id)
       .maybeSingle<Intervention>(),
     supabase
       .from("intervention_workflows")
-      .select("workflows(id, name, team)")
+      .select("workflows(id, name, team, frequency_per_week)")
       .eq("intervention_id", id)
       .returns<LinkedWorkflow[]>(),
     supabase
@@ -224,6 +240,32 @@ export default async function InterventionDetailPage({
     .map((row) => row.workflows)
     .filter((w): w is NonNullable<LinkedWorkflow["workflows"]> => w !== null);
 
+  // Pull baseline per-week metrics for the linked workflows so the edit
+  // dialog can show per-run context next to the per-use inputs.
+  const linkedWorkflowIds = linkedWorkflows.map((w) => w.id);
+  let workflowMetricsByWorkflowId = new Map<string, WorkflowMetricRow>();
+  if (linkedWorkflowIds.length > 0) {
+    const { data: workflowMetrics } = await supabase
+      .from("workflow_metrics")
+      .select("workflow_id, time_baseline, cost_baseline, revenue_baseline")
+      .in("workflow_id", linkedWorkflowIds)
+      .returns<WorkflowMetricRow[]>();
+    workflowMetricsByWorkflowId = new Map(
+      (workflowMetrics ?? []).map((m) => [m.workflow_id, m]),
+    );
+  }
+  const linkedWorkflowsForEdit = linkedWorkflows.map((w) => {
+    const m = workflowMetricsByWorkflowId.get(w.id);
+    return {
+      id: w.id,
+      name: w.name,
+      frequency_per_week: w.frequency_per_week,
+      hours_per_week: m?.time_baseline != null ? m.time_baseline / 60 : null,
+      cost_per_week: m?.cost_baseline ?? null,
+      revenue_per_week: m?.revenue_baseline ?? null,
+    };
+  });
+
   const baselineById = new Map(
     (baselines ?? []).map((b) => [b.workflow_id, b]),
   );
@@ -294,14 +336,6 @@ export default async function InterventionDetailPage({
                 </dd>
               </div>
               <Field
-                label="Estimated mins / week"
-                value={
-                  intervention.minutes_saved_per_week != null
-                    ? intervention.minutes_saved_per_week.toLocaleString()
-                    : null
-                }
-              />
-              <Field
                 label="Logged on"
                 value={format(new Date(intervention.created_at), "d MMM yyyy")}
               />
@@ -330,6 +364,13 @@ export default async function InterventionDetailPage({
                 </dd>
               </div>
             </dl>
+
+            <ImpactBreakdown
+              usesPerWeek={intervention.uses_per_week}
+              minutesPerUse={intervention.minutes_saved_per_use}
+              costPerUse={intervention.cost_saved_per_use}
+              revenuePerUse={intervention.revenue_per_use}
+            />
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -342,17 +383,17 @@ export default async function InterventionDetailPage({
                     types: intervention.types ?? [],
                     status: intervention.status,
                     description: intervention.description,
-                    minutes_saved_per_week: intervention.minutes_saved_per_week,
-                    estimated_gbp_saved_per_week:
-                      intervention.estimated_gbp_saved_per_week,
-                    estimated_revenue_per_week:
-                      intervention.estimated_revenue_per_week,
+                    uses_per_week: intervention.uses_per_week,
+                    minutes_saved_per_use: intervention.minutes_saved_per_use,
+                    cost_saved_per_use: intervention.cost_saved_per_use,
+                    revenue_per_use: intervention.revenue_per_use,
                     attribution_confidence: intervention.attribution_confidence,
                     adoption_status: intervention.adoption_status,
                     satisfaction: intervention.satisfaction,
                     recipient_emails: intervention.recipient_emails ?? [],
                   }}
                   people={pickerPeople}
+                  linkedWorkflows={linkedWorkflowsForEdit}
                 />
                 <StatusButton
                   interventionId={intervention.id}
@@ -549,6 +590,95 @@ export default async function InterventionDetailPage({
         </div>
       </section>
       </div>
+    </div>
+  );
+}
+
+function ImpactBreakdown({
+  usesPerWeek,
+  minutesPerUse,
+  costPerUse,
+  revenuePerUse,
+}: {
+  usesPerWeek: number | null;
+  minutesPerUse: number | null;
+  costPerUse: number | null;
+  revenuePerUse: number | null;
+}) {
+  const uses = usesPerWeek ?? 0;
+  if (
+    usesPerWeek == null &&
+    minutesPerUse == null &&
+    costPerUse == null &&
+    revenuePerUse == null
+  ) {
+    return null;
+  }
+  const fmt = (n: number | null) =>
+    n == null
+      ? "-"
+      : n.toLocaleString(undefined, { maximumFractionDigits: 2 });
+  const weeklyMinutes = (minutesPerUse ?? 0) * uses;
+  const weeklyCost = (costPerUse ?? 0) * uses;
+  const weeklyRevenue = (revenuePerUse ?? 0) * uses;
+  return (
+    <div className="mt-4 rounded-lg border border-border bg-muted/30 p-4">
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        Impact per run × times per week
+      </p>
+      <p className="mt-1 text-xs text-muted-foreground">
+        How the weekly total on the dashboard is computed for this initiative.
+      </p>
+      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <BreakdownLine
+          perUse={`${fmt(minutesPerUse)} min`}
+          uses={`${fmt(usesPerWeek)}`}
+          weekly={`${fmt(weeklyMinutes)} min / wk`}
+        />
+        <BreakdownLine
+          perUse={`£${fmt(costPerUse)}`}
+          uses={`${fmt(usesPerWeek)}`}
+          weekly={`£${fmt(weeklyCost)} / wk`}
+          label="cost saved"
+        />
+        <BreakdownLine
+          perUse={`£${fmt(revenuePerUse)}`}
+          uses={`${fmt(usesPerWeek)}`}
+          weekly={`£${fmt(weeklyRevenue)} / wk`}
+          label="revenue"
+        />
+      </div>
+    </div>
+  );
+}
+
+function BreakdownLine({
+  perUse,
+  uses,
+  weekly,
+  label,
+}: {
+  perUse: string;
+  uses: string;
+  weekly: string;
+  label?: string;
+}) {
+  return (
+    <div className="space-y-0.5">
+      {label && (
+        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+          {label}
+        </p>
+      )}
+      <p className="font-mono text-xs text-muted-foreground tabular-nums">
+        <span className="text-foreground">{perUse}</span>
+        <span className="text-muted-foreground"> / run × </span>
+        <span className="text-foreground">{uses}</span>
+        <span className="text-muted-foreground"> runs / wk</span>
+      </p>
+      <p className="text-sm font-semibold tabular-nums text-foreground">
+        = {weekly}
+      </p>
     </div>
   );
 }

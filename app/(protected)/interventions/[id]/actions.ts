@@ -120,21 +120,22 @@ const UpdateSchema = z.object({
     .min(1, "Pick at least one AI initiative type"),
   status: z.enum(STATUSES),
   description: z.string().max(500).nullable(),
-  minutes_saved_per_week: z
-    .number({ error: "Minutes saved must be a number" })
+  uses_per_week: z
+    .number({ error: "Times per week is required" })
+    .min(0, "Times per week can't be negative")
+    .max(10000),
+  minutes_saved_per_use: z
+    .number({ error: "Minutes saved per use is required" })
     .min(0, "Minutes saved can't be negative")
-    .max(100000)
-    .nullable(),
-  estimated_gbp_saved_per_week: z
-    .number({ error: "GBP saved must be a number" })
-    .min(0, "GBP saved can't be negative")
-    .max(10_000_000)
-    .nullable(),
-  estimated_revenue_per_week: z
-    .number({ error: "Revenue must be a number" })
+    .max(100000),
+  cost_saved_per_use: z
+    .number({ error: "Cost saved per use is required" })
+    .min(0, "Cost saved can't be negative")
+    .max(10_000_000),
+  revenue_per_use: z
+    .number({ error: "Revenue per use is required" })
     .min(0, "Revenue can't be negative")
-    .max(10_000_000)
-    .nullable(),
+    .max(10_000_000),
   attribution_confidence: z.enum(CONFIDENCES),
   adoption_status: z.enum(ADOPTION_STATUSES).nullable(),
   satisfaction: z
@@ -158,11 +159,12 @@ export async function updateIntervention(
   const gate = await requireWriter();
   if (!gate.ok) return { kind: "error", message: gate.error };
 
-  const minutesRaw = formData.get("minutes_saved_per_week");
-  const minutesParsed =
-    typeof minutesRaw === "string" && minutesRaw.trim() !== ""
-      ? Number(minutesRaw)
-      : null;
+  const numericField = (key: string): number | undefined => {
+    const raw = formData.get(key);
+    return typeof raw === "string" && raw.trim() !== ""
+      ? Number(raw)
+      : undefined;
+  };
   const descriptionRaw = formData.get("description");
   const description =
     typeof descriptionRaw === "string" && descriptionRaw.trim() !== ""
@@ -177,16 +179,6 @@ export async function updateIntervention(
   const satisfaction =
     typeof satisfactionRaw === "string" && satisfactionRaw.trim() !== ""
       ? Number(satisfactionRaw)
-      : null;
-  const gbpRaw = formData.get("estimated_gbp_saved_per_week");
-  const gbpParsed =
-    typeof gbpRaw === "string" && gbpRaw.trim() !== ""
-      ? Number(gbpRaw)
-      : null;
-  const revenueRaw = formData.get("estimated_revenue_per_week");
-  const revenueParsed =
-    typeof revenueRaw === "string" && revenueRaw.trim() !== ""
-      ? Number(revenueRaw)
       : null;
   const recipients = formData
     .getAll("recipient_emails")
@@ -209,9 +201,10 @@ export async function updateIntervention(
     ),
     status: formData.get("status"),
     description,
-    minutes_saved_per_week: minutesParsed,
-    estimated_gbp_saved_per_week: gbpParsed,
-    estimated_revenue_per_week: revenueParsed,
+    uses_per_week: numericField("uses_per_week"),
+    minutes_saved_per_use: numericField("minutes_saved_per_use"),
+    cost_saved_per_use: numericField("cost_saved_per_use"),
+    revenue_per_use: numericField("revenue_per_use"),
     attribution_confidence: formData.get("attribution_confidence"),
     adoption_status: adoption,
     satisfaction,
@@ -228,13 +221,18 @@ export async function updateIntervention(
   const data = parsed.data;
   const supabase = await createClient();
 
-  // Existing fields go through the audited RPC (writes to intervention_edits).
+  // Audited fields (including the per-use shape) go through the RPC, which
+  // computes and writes the derived per-week columns and a per-field row
+  // into intervention_edits.
   const { error: rpcError } = await supabase.rpc("update_intervention", {
     p_id: data.id,
     p_name: data.name,
     p_types: data.types,
     p_description: data.description,
-    p_minutes_saved_per_week: data.minutes_saved_per_week,
+    p_uses_per_week: data.uses_per_week,
+    p_minutes_saved_per_use: data.minutes_saved_per_use,
+    p_cost_saved_per_use: data.cost_saved_per_use,
+    p_revenue_per_use: data.revenue_per_use,
     p_attribution_confidence: data.attribution_confidence,
     p_adoption_status: data.adoption_status,
     p_satisfaction: data.satisfaction,
@@ -246,16 +244,13 @@ export async function updateIntervention(
     };
   }
 
-  // Newer fields (status, estimated GBP / revenue, recipients) aren't yet
-  // supported by the audited RPC, so write them directly. They show up on
-  // the dashboard immediately; audit-trail coverage for these can be added
-  // in a follow-up migration that extends update_intervention.
+  // Status + recipients aren't audited by the RPC yet, so write them
+  // directly. Same pattern as before; audit coverage can be added in a
+  // follow-up migration that extends update_intervention.
   const { error: directError } = await supabase
     .from("ai_interventions")
     .update({
       status: data.status,
-      estimated_gbp_saved_per_week: data.estimated_gbp_saved_per_week,
-      estimated_revenue_per_week: data.estimated_revenue_per_week,
       recipient_emails: data.recipient_emails,
     })
     .eq("id", data.id);

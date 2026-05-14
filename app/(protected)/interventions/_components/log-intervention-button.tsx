@@ -3,14 +3,17 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { PickerPerson } from "@/components/ui/people-picker";
-import { LogInterventionDialog } from "./log-intervention-dialog";
+import {
+  LogInterventionDialog,
+  type WorkflowForLog,
+} from "./log-intervention-dialog";
 
 export function LogInterventionButton({
   workflows,
   people,
   toolSuggestions = [],
 }: {
-  workflows: { id: string; name: string }[];
+  workflows: WorkflowForLog[];
   people: PickerPerson[];
   toolSuggestions?: string[];
 }) {

@@ -35,16 +35,22 @@ const FormSchema = z.object({
     .string()
     .min(3, "Description is required")
     .max(500),
-  minutes_saved_per_week: z
-    .number({ error: "Minutes saved is required" })
+  // Mandatory: how often the initiative runs. Together with the per-use
+  // fields it drives the per-week display value.
+  uses_per_week: z
+    .number({ error: "Times per week is required" })
+    .min(0, "Times per week can't be negative")
+    .max(10000, "That's a lot of runs - check the value"),
+  minutes_saved_per_use: z
+    .number({ error: "Minutes saved per use is required" })
     .min(0, "Minutes saved can't be negative")
     .max(100000),
-  estimated_gbp_saved_per_week: z
-    .number({ error: "GBP saved is required" })
-    .min(0, "GBP saved can't be negative")
+  cost_saved_per_use: z
+    .number({ error: "Cost saved per use is required" })
+    .min(0, "Cost saved can't be negative")
     .max(10_000_000),
-  estimated_revenue_per_week: z
-    .number({ error: "Revenue is required" })
+  revenue_per_use: z
+    .number({ error: "Revenue per use is required" })
     .min(0, "Revenue can't be negative")
     .max(10_000_000),
   attribution_confidence: z.enum(CONFIDENCES).default("medium"),
@@ -106,9 +112,10 @@ export async function logIntervention(
     ),
     workflow_ids: formData.getAll("workflow_ids"),
     description: (formData.get("description") as string) || "",
-    minutes_saved_per_week: numericField("minutes_saved_per_week"),
-    estimated_gbp_saved_per_week: numericField("estimated_gbp_saved_per_week"),
-    estimated_revenue_per_week: numericField("estimated_revenue_per_week"),
+    uses_per_week: numericField("uses_per_week"),
+    minutes_saved_per_use: numericField("minutes_saved_per_use"),
+    cost_saved_per_use: numericField("cost_saved_per_use"),
+    revenue_per_use: numericField("revenue_per_use"),
     attribution_confidence:
       (formData.get("attribution_confidence") as string) || "medium",
     adoption_status:
@@ -138,11 +145,12 @@ export async function logIntervention(
     p_name: data.name,
     p_types: data.types,
     p_workflow_ids: data.workflow_ids,
+    p_uses_per_week: data.uses_per_week,
+    p_minutes_saved_per_use: data.minutes_saved_per_use,
+    p_cost_saved_per_use: data.cost_saved_per_use,
+    p_revenue_per_use: data.revenue_per_use,
     p_description: data.description ?? null,
-    p_minutes_saved_per_week: data.minutes_saved_per_week ?? null,
     p_attribution_confidence: data.attribution_confidence,
-    p_estimated_gbp_saved_per_week: data.estimated_gbp_saved_per_week ?? null,
-    p_estimated_revenue_per_week: data.estimated_revenue_per_week ?? null,
     p_adoption_status: data.adoption_status ?? null,
     p_satisfaction: data.satisfaction ?? null,
     p_recipient_emails: data.recipient_emails,

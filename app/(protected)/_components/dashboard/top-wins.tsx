@@ -33,9 +33,9 @@ function fmtMinutes(v: number): string {
 }
 
 /**
- * Top 5 wins on the home dashboard. Ranks active interventions by weighted
- * weekly £ saved + revenue generated, falling back to minutes saved when
- * the financial signal is zero. Designed for leadership ROI conversations -
+ * Top 5 wins on the home dashboard. Ranks active interventions by weekly
+ * £ saved + revenue generated, falling back to minutes saved when the
+ * financial signal is zero. Designed for leadership ROI conversations -
  * "which AI bets are paying off most" answered in five lines.
  *
  * Hidden when there's nothing to rank (no interventions yet, or all zero
@@ -51,7 +51,7 @@ export function TopWins({ wins }: { wins: Win[] }) {
           Top wins
         </h2>
         <span className="text-xs text-muted-foreground">
-          Ranked by weighted weekly impact
+          Ranked by weekly impact
         </span>
       </div>
       <ol className="divide-y divide-border">

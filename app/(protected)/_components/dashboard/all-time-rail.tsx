@@ -7,11 +7,10 @@ function fmtMinutes(v: number): string {
 }
 
 /**
- * "Banked since launch" rail. Each value is the cumulative total since the
- * first intervention was logged - weekly run-rate × weeks-active per
- * intervention, summed across the whole portfolio (retired included). So
- * the headline weekly tiles answer "what's accruing right now?" while this
- * rail answers "how much has been banked, total, ever?".
+ * "Projected since logged" rail. Each value is each initiative's weekly
+ * run-rate multiplied by the number of weeks elapsed since it was logged,
+ * summed across the portfolio (retired included). It's a model, not a
+ * measurement - the headline weekly tiles are the live read-out.
  */
 export function AllTimeRail({
   minutes,
@@ -29,18 +28,18 @@ export function AllTimeRail({
     <section className="rounded-lg border border-border bg-background p-4">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          All time, since launch
+          Projected since logged
         </h2>
         <span className="text-xs text-muted-foreground tabular-nums">
-          across {interventionCount}{" "}
+          weekly run-rate × weeks elapsed, across {interventionCount}{" "}
           {interventionCount === 1 ? "AI initiative" : "AI initiatives"} (incl.
           retired)
         </span>
       </div>
       <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Tile label="Total time saved" value={fmtMinutes(minutes)} />
-        <Tile label="Total cost saved" value={gbp(gbpSaved)} />
-        <Tile label="Total revenue generated" value={gbp(revenue)} />
+        <Tile label="Projected time saved" value={fmtMinutes(minutes)} />
+        <Tile label="Projected cost saved" value={gbp(gbpSaved)} />
+        <Tile label="Projected revenue" value={gbp(revenue)} />
       </div>
     </section>
   );

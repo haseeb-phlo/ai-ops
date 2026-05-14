@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import {
   Dialog,
   DialogContent,
@@ -68,9 +68,19 @@ type Status = "active" | "paused" | "retired";
 type Confidence = "high" | "medium" | "low";
 type AdoptionStatus = "daily" | "weekly" | "occasional" | "abandoned";
 
+export type LinkedWorkflowContext = {
+  id: string;
+  name: string;
+  frequency_per_week: number | null;
+  hours_per_week: number | null;
+  cost_per_week: number | null;
+  revenue_per_week: number | null;
+};
+
 export function EditInterventionDialog({
   intervention,
   people,
+  linkedWorkflows = [],
 }: {
   intervention: {
     id: string;
@@ -78,15 +88,17 @@ export function EditInterventionDialog({
     types: InterventionType[];
     status: Status | null;
     description: string | null;
-    minutes_saved_per_week: number | null;
-    estimated_gbp_saved_per_week: number | null;
-    estimated_revenue_per_week: number | null;
+    uses_per_week: number | null;
+    minutes_saved_per_use: number | null;
+    cost_saved_per_use: number | null;
+    revenue_per_use: number | null;
     attribution_confidence: Confidence | null;
     adoption_status: AdoptionStatus | null;
     satisfaction: number | null;
     recipient_emails: string[];
   };
   people: PickerPerson[];
+  linkedWorkflows?: LinkedWorkflowContext[];
 }) {
   const [open, setOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -109,6 +121,25 @@ export function EditInterventionDialog({
     new Set(intervention.recipient_emails ?? []),
   );
 
+  const [usesPerWeek, setUsesPerWeek] = useState<string>(
+    intervention.uses_per_week != null ? String(intervention.uses_per_week) : "",
+  );
+  const [minutesPerUse, setMinutesPerUse] = useState<string>(
+    intervention.minutes_saved_per_use != null
+      ? String(intervention.minutes_saved_per_use)
+      : "",
+  );
+  const [costPerUse, setCostPerUse] = useState<string>(
+    intervention.cost_saved_per_use != null
+      ? String(intervention.cost_saved_per_use)
+      : "",
+  );
+  const [revenuePerUse, setRevenuePerUse] = useState<string>(
+    intervention.revenue_per_use != null
+      ? String(intervention.revenue_per_use)
+      : "",
+  );
+
   const reset = () => {
     setTypes(new Set(intervention.types ?? []));
     setStatus(intervention.status ?? "active");
@@ -118,6 +149,24 @@ export function EditInterventionDialog({
       intervention.satisfaction != null ? String(intervention.satisfaction) : "",
     );
     setRecipients(new Set(intervention.recipient_emails ?? []));
+    setUsesPerWeek(
+      intervention.uses_per_week != null ? String(intervention.uses_per_week) : "",
+    );
+    setMinutesPerUse(
+      intervention.minutes_saved_per_use != null
+        ? String(intervention.minutes_saved_per_use)
+        : "",
+    );
+    setCostPerUse(
+      intervention.cost_saved_per_use != null
+        ? String(intervention.cost_saved_per_use)
+        : "",
+    );
+    setRevenuePerUse(
+      intervention.revenue_per_use != null
+        ? String(intervention.revenue_per_use)
+        : "",
+    );
     setErrorMessage(null);
   };
 
@@ -135,6 +184,32 @@ export function EditInterventionDialog({
     setOpen(next);
   };
 
+  // Only show per-run baseline context when there's exactly one linked
+  // workflow with a usable frequency. Linked workflows are immutable
+  // post-creation so this never changes mid-edit.
+  const singleLinkedWorkflow = useMemo<LinkedWorkflowContext | null>(() => {
+    return linkedWorkflows.length === 1 ? linkedWorkflows[0] : null;
+  }, [linkedWorkflows]);
+
+  const perRunBaseline = useMemo(() => {
+    if (!singleLinkedWorkflow) return null;
+    const freq = singleLinkedWorkflow.frequency_per_week;
+    if (freq == null || freq <= 0) return null;
+    const hours = singleLinkedWorkflow.hours_per_week ?? 0;
+    const cost = singleLinkedWorkflow.cost_per_week ?? 0;
+    const revenue = singleLinkedWorkflow.revenue_per_week ?? 0;
+    return {
+      minutes: (hours * 60) / freq,
+      cost: cost / freq,
+      revenue: revenue / freq,
+    };
+  }, [singleLinkedWorkflow]);
+
+  const uses = toNum(usesPerWeek);
+  const weeklyMinutes = uses != null ? uses * (toNum(minutesPerUse) ?? 0) : null;
+  const weeklyCost = uses != null ? uses * (toNum(costPerUse) ?? 0) : null;
+  const weeklyRevenue = uses != null ? uses * (toNum(revenuePerUse) ?? 0) : null;
+
   const handleSubmit = (formData: FormData) => {
     startTransition(async () => {
       const result = await updateIntervention({ kind: "idle" }, formData);
@@ -146,6 +221,13 @@ export function EditInterventionDialog({
       }
     });
   };
+
+  const isComplete =
+    types.size > 0 &&
+    toNum(usesPerWeek) != null &&
+    toNum(minutesPerUse) != null &&
+    toNum(costPerUse) != null &&
+    toNum(revenuePerUse) != null;
 
   return (
     <>
@@ -250,10 +332,6 @@ export function EditInterventionDialog({
                 </div>
               </div>
 
-              {/* Order matches the Log Intervention dialog: identity →
-                  people affected → impact estimate → adoption. Affected
-                  workflows aren't shown here because they're immutable
-                  post-creation. */}
               <div className="space-y-3 border-t border-border pt-5">
                 <div className="space-y-1">
                   <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -275,74 +353,177 @@ export function EditInterventionDialog({
               <div className="space-y-3 border-t border-border pt-5">
                 <div className="space-y-1">
                   <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    Impact estimate
+                    Impact per run × times per week
                   </h3>
                   <p className="text-xs text-muted-foreground">
-                    Best guess per week. Snapshots refine over time.
+                    What does one run save, and how often does it run? The
+                    weekly total is computed below.
                   </p>
                 </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="uses_per_week">
+                    How many times per week does this AI initiative run?
+                  </Label>
+                  <SuffixInput suffix="/ wk">
+                    <Input
+                      id="uses_per_week"
+                      name="uses_per_week"
+                      type="number"
+                      min={0}
+                      step="0.5"
+                      required
+                      value={usesPerWeek}
+                      onChange={(e) => setUsesPerWeek(e.target.value)}
+                      placeholder="0"
+                    />
+                  </SuffixInput>
+                  {singleLinkedWorkflow?.frequency_per_week != null && (
+                    <p className="text-xs text-muted-foreground">
+                      Linked workflow{" "}
+                      <span className="font-medium text-foreground">
+                        {singleLinkedWorkflow.name}
+                      </span>{" "}
+                      runs{" "}
+                      {formatNumber(singleLinkedWorkflow.frequency_per_week)} /
+                      wk.
+                    </p>
+                  )}
+                </div>
+
                 <div className="grid gap-3 sm:grid-cols-3">
                   <div className="space-y-1.5">
-                    <Label htmlFor="minutes_saved_per_week">Minutes saved</Label>
-                    <SuffixInput suffix="/ wk">
+                    <Label htmlFor="minutes_saved_per_use">
+                      Minutes saved each run
+                    </Label>
+                    <SuffixInput suffix="/ run">
                       <Input
-                        id="minutes_saved_per_week"
-                        name="minutes_saved_per_week"
+                        id="minutes_saved_per_use"
+                        name="minutes_saved_per_use"
                         type="number"
                         min={0}
                         step={1}
-                        defaultValue={
-                          intervention.minutes_saved_per_week != null
-                            ? String(intervention.minutes_saved_per_week)
-                            : ""
-                        }
+                        required
+                        value={minutesPerUse}
+                        onChange={(e) => setMinutesPerUse(e.target.value)}
                         placeholder="0"
                       />
                     </SuffixInput>
+                    <WeeklyReadout
+                      perUse={toNum(minutesPerUse)}
+                      uses={uses}
+                      suffix="min / wk"
+                    />
+                    {perRunBaseline && (
+                      <p className="text-[11px] text-muted-foreground">
+                        Workflow baseline:{" "}
+                        <span className="text-foreground tabular-nums">
+                          ~{formatNumber(perRunBaseline.minutes)} min
+                        </span>{" "}
+                        per run.
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="estimated_gbp_saved_per_week">Cost saved</Label>
+                    <Label htmlFor="cost_saved_per_use">
+                      Cost saved each run
+                    </Label>
                     <PrefixInput prefix="£">
-                      <SuffixInput suffix="/ wk">
+                      <SuffixInput suffix="/ run">
                         <Input
-                          id="estimated_gbp_saved_per_week"
-                          name="estimated_gbp_saved_per_week"
+                          id="cost_saved_per_use"
+                          name="cost_saved_per_use"
                           type="number"
                           min={0}
                           step="0.01"
-                          defaultValue={
-                            intervention.estimated_gbp_saved_per_week != null
-                              ? String(
-                                  intervention.estimated_gbp_saved_per_week,
-                                )
-                              : ""
-                          }
+                          required
+                          value={costPerUse}
+                          onChange={(e) => setCostPerUse(e.target.value)}
                           placeholder="0"
                         />
                       </SuffixInput>
                     </PrefixInput>
+                    <WeeklyReadout
+                      perUse={toNum(costPerUse)}
+                      uses={uses}
+                      suffix="/ wk"
+                      isCurrency
+                    />
+                    {perRunBaseline && (
+                      <p className="text-[11px] text-muted-foreground">
+                        Workflow baseline:{" "}
+                        <span className="text-foreground tabular-nums">
+                          ~£{formatNumber(perRunBaseline.cost)}
+                        </span>{" "}
+                        per run.
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="estimated_revenue_per_week">Revenue generated</Label>
+                    <Label htmlFor="revenue_per_use">Revenue each run</Label>
                     <PrefixInput prefix="£">
-                      <SuffixInput suffix="/ wk">
+                      <SuffixInput suffix="/ run">
                         <Input
-                          id="estimated_revenue_per_week"
-                          name="estimated_revenue_per_week"
+                          id="revenue_per_use"
+                          name="revenue_per_use"
                           type="number"
                           min={0}
                           step="0.01"
-                          defaultValue={
-                            intervention.estimated_revenue_per_week != null
-                              ? String(intervention.estimated_revenue_per_week)
-                              : ""
-                          }
+                          required
+                          value={revenuePerUse}
+                          onChange={(e) => setRevenuePerUse(e.target.value)}
                           placeholder="0"
                         />
                       </SuffixInput>
                     </PrefixInput>
+                    <WeeklyReadout
+                      perUse={toNum(revenuePerUse)}
+                      uses={uses}
+                      suffix="/ wk"
+                      isCurrency
+                    />
+                    {perRunBaseline && (
+                      <p className="text-[11px] text-muted-foreground">
+                        Workflow baseline:{" "}
+                        <span className="text-foreground tabular-nums">
+                          ~£{formatNumber(perRunBaseline.revenue)}
+                        </span>{" "}
+                        per run.
+                      </p>
+                    )}
                   </div>
                 </div>
+
+                {weeklyMinutes != null &&
+                  weeklyCost != null &&
+                  weeklyRevenue != null &&
+                  uses != null &&
+                  uses > 0 &&
+                  (weeklyMinutes > 0 ||
+                    weeklyCost > 0 ||
+                    weeklyRevenue > 0) && (
+                    <div className="rounded-md border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+                      Weekly total ={" "}
+                      <span className="text-foreground tabular-nums">
+                        {formatNumber(weeklyMinutes)} min
+                      </span>
+                      {", "}
+                      <span className="text-foreground tabular-nums">
+                        £{formatNumber(weeklyCost)}
+                      </span>
+                      {" saved"}
+                      {weeklyRevenue > 0 && (
+                        <>
+                          {", "}
+                          <span className="text-foreground tabular-nums">
+                            £{formatNumber(weeklyRevenue)}
+                          </span>{" "}
+                          revenue
+                        </>
+                      )}
+                      .
+                    </div>
+                  )}
 
                 <div className="space-y-1.5">
                   <Label htmlFor="attribution_confidence">
@@ -375,6 +556,10 @@ export function EditInterventionDialog({
                       <SelectItem value="low">{CONFIDENCE_LABEL.low}</SelectItem>
                     </SelectContent>
                   </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Editorial signal for reviewers. Doesn&apos;t change the
+                    dashboard math.
+                  </p>
                 </div>
               </div>
 
@@ -469,7 +654,7 @@ export function EditInterventionDialog({
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isPending || types.size === 0}>
+              <Button type="submit" disabled={isPending || !isComplete}>
                 {isPending ? "Saving…" : "Save changes"}
               </Button>
             </DialogFooter>
@@ -478,6 +663,49 @@ export function EditInterventionDialog({
       </Dialog>
     </>
   );
+}
+
+function WeeklyReadout({
+  perUse,
+  uses,
+  suffix,
+  isCurrency = false,
+}: {
+  perUse: number | null;
+  uses: number | null;
+  suffix: string;
+  isCurrency?: boolean;
+}) {
+  if (perUse == null || uses == null) {
+    return (
+      <p className="text-[11px] text-muted-foreground">
+        = enter both values to see weekly total
+      </p>
+    );
+  }
+  const weekly = perUse * uses;
+  const display = isCurrency
+    ? `£${formatNumber(weekly)}`
+    : formatNumber(weekly);
+  return (
+    <p className="text-[11px] text-muted-foreground">
+      ={" "}
+      <span className="font-medium text-foreground tabular-nums">
+        {display}
+      </span>{" "}
+      {suffix}
+    </p>
+  );
+}
+
+function toNum(raw: string): number | null {
+  if (raw.trim() === "") return null;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
+}
+
+function formatNumber(n: number): string {
+  return n.toLocaleString(undefined, { maximumFractionDigits: 2 });
 }
 
 function PrefixInput({
