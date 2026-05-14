@@ -42,7 +42,18 @@ type InterventionRow = {
   intervention_workflows: { workflows: { id: string; name: string } | null }[];
 };
 
-type WorkflowOption = { id: string; name: string };
+type WorkflowOption = {
+  id: string;
+  name: string;
+  frequency_per_week: number | null;
+};
+
+type WorkflowMetricRow = {
+  workflow_id: string;
+  time_baseline: number | null;
+  cost_baseline: number | null;
+  revenue_baseline: number | null;
+};
 
 type ProfileLite = { user_id: string; display_name: string | null };
 
@@ -85,16 +96,21 @@ export default async function InterventionsListPage({
   const [
     { data: interventions },
     { data: workflows },
+    { data: workflowMetrics },
     { data: profiles },
     { data: directoryPeople },
   ] = await Promise.all([
     interventionsQuery.returns<InterventionRow[]>(),
     supabase
       .from("workflows")
-      .select("id, name")
+      .select("id, name, frequency_per_week")
       .is("deleted_at", null)
       .order("name", { ascending: true })
       .returns<WorkflowOption[]>(),
+    supabase
+      .from("workflow_metrics")
+      .select("workflow_id, time_baseline, cost_baseline, revenue_baseline")
+      .returns<WorkflowMetricRow[]>(),
     supabase
       .from("profiles")
       .select("user_id, display_name")
@@ -129,6 +145,26 @@ export default async function InterventionsListPage({
 
   const toolSuggestions = await loadToolSuggestions(supabase);
 
+  // Stitch workflow_metrics into the workflow options so the log dialog can
+  // show "per run" baseline context and the live readout. time_baseline is
+  // stored in minutes - convert to hours so the dialog can do the same
+  // math the new-workflow form uses.
+  const metricsByWorkflowId = new Map<string, WorkflowMetricRow>();
+  for (const m of workflowMetrics ?? []) {
+    metricsByWorkflowId.set(m.workflow_id, m);
+  }
+  const workflowsForLog = (workflows ?? []).map((w) => {
+    const m = metricsByWorkflowId.get(w.id);
+    return {
+      id: w.id,
+      name: w.name,
+      frequency_per_week: w.frequency_per_week,
+      hours_per_week: m?.time_baseline != null ? m.time_baseline / 60 : null,
+      cost_per_week: m?.cost_baseline ?? null,
+      revenue_per_week: m?.revenue_baseline ?? null,
+    };
+  });
+
   return (
     <PageContainer>
       <PageHeader
@@ -136,7 +172,7 @@ export default async function InterventionsListPage({
         description="Tools, prompts, training, automations, and process changes shipped against workflows."
         actions={
           <LogInterventionButton
-            workflows={workflows ?? []}
+            workflows={workflowsForLog}
             people={pickerPeople}
             toolSuggestions={toolSuggestions}
           />
