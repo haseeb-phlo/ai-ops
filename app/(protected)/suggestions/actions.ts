@@ -465,6 +465,56 @@ export async function moveSuggestionLane(
   revalidatePath("/suggestions");
 }
 
+/**
+ * Move an AI initiative across roadmap lanes by updating its status. Same
+ * super-admin gate as suggestion moves; ai_interventions.status maps to
+ * a lane:
+ *
+ *   up_next      = status `paused`     (planned / on hold)
+ *   in_progress  = status `active`     (currently running - the default)
+ *   shipped      = status `retired`    (sunset / done)
+ *
+ * Used by the roadmap board's DnD when the dragged card is an initiative
+ * rather than a suggestion. Revalidates both the suggestions page (so the
+ * roadmap re-renders) and the initiatives list (so the status badge there
+ * stays in sync).
+ */
+const InitiativeLaneSchema = z.object({
+  initiative_id: z.string().uuid(),
+  lane: z.enum(["up_next", "in_progress", "shipped"]),
+});
+
+const INITIATIVE_LANE_STATUS: Record<
+  "up_next" | "in_progress" | "shipped",
+  "paused" | "active" | "retired"
+> = {
+  up_next: "paused",
+  in_progress: "active",
+  shipped: "retired",
+};
+
+export async function moveInitiativeLane(
+  formData: FormData,
+): Promise<void> {
+  const gate = await requireWriter();
+  if (!gate.ok) return;
+  if (gate.user.role !== "super_admin") return;
+  const parsed = InitiativeLaneSchema.safeParse({
+    initiative_id: formData.get("initiative_id"),
+    lane: formData.get("lane"),
+  });
+  if (!parsed.success) return;
+  const supabase = await createClient();
+  await supabase
+    .from("ai_interventions")
+    .update({ status: INITIATIVE_LANE_STATUS[parsed.data.lane] })
+    .eq("id", parsed.data.initiative_id);
+  revalidatePath("/suggestions");
+  revalidatePath("/interventions");
+  revalidatePath(`/interventions/${parsed.data.initiative_id}`);
+  revalidatePath("/");
+}
+
 const CommentSchema = z.object({
   suggestion_id: z.string().uuid(),
   body: z.string().trim().min(1).max(2000),
