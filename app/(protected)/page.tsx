@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getSessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { findChampionForPerson } from "@/lib/champions";
+import { resolveDisplayName } from "@/lib/profile";
 import { PageContainer } from "@/components/page-header";
 import { RedirectToast } from "./_components/dashboard/redirect-toast";
 import { ChampionsRibbon } from "./_components/dashboard/champions-ribbon";
@@ -78,6 +79,15 @@ type RecentWorkflow = {
   created_at: string;
 };
 
+type RecentSuggestion = {
+  id: string;
+  title: string;
+  body: string;
+  team: string | null;
+  created_by: string | null;
+  created_at: string;
+};
+
 function gbp(v: number): string {
   const sign = v < 0 ? "-" : "";
   return `${sign}£${Math.abs(v).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
@@ -108,6 +118,10 @@ export default async function Home() {
     { data: regEvents },
     { data: recentNotes },
     { data: recentWorkflows },
+    { data: recentSuggestions },
+    { data: streamProfileRows },
+    { data: streamPeopleRows },
+    { data: streamEmailRows },
   ] = await Promise.all([
     supabase
       .from("ai_interventions")
@@ -155,6 +169,22 @@ export default async function Home() {
       .order("created_at", { ascending: false })
       .limit(8)
       .returns<RecentWorkflow[]>(),
+    supabase
+      .from("intervention_suggestions")
+      .select("id, title, body, team, created_by, created_at")
+      .gte("created_at", since)
+      .order("created_at", { ascending: false })
+      .limit(8)
+      .returns<RecentSuggestion[]>(),
+    supabase
+      .from("profiles")
+      .select("user_id, display_name")
+      .returns<{ user_id: string; display_name: string | null }[]>(),
+    supabase
+      .from("people")
+      .select("email, display_name")
+      .returns<{ email: string; display_name: string }[]>(),
+    supabase.rpc("user_emails"),
   ]);
 
   // Headcount drives the Reach metric's "X% of company" subtitle.
@@ -403,6 +433,50 @@ export default async function Home() {
       name: w.name,
       team: w.team,
       at: w.created_at,
+    });
+  }
+  // Resolve suggestion submitter display names through the same
+  // profile -> people -> email-local chain the rest of the app uses,
+  // so the stream shows "Ingrid Maughan" instead of "ingrid.maughan".
+  const streamProfileByUserId = new Map<string, string | null>();
+  for (const p of streamProfileRows ?? []) {
+    streamProfileByUserId.set(p.user_id, p.display_name);
+  }
+  const streamPeopleByEmail = new Map<string, string>();
+  for (const p of streamPeopleRows ?? []) {
+    if (p.email && p.display_name) {
+      streamPeopleByEmail.set(p.email.trim().toLowerCase(), p.display_name);
+    }
+  }
+  const streamEmailByUserId = new Map<string, string | null>();
+  for (const r of (streamEmailRows ?? []) as {
+    user_id: string;
+    email: string | null;
+  }[]) {
+    streamEmailByUserId.set(r.user_id, r.email);
+  }
+  for (const s of recentSuggestions ?? []) {
+    let submittedBy: string | null = null;
+    if (s.created_by) {
+      const email = streamEmailByUserId.get(s.created_by) ?? null;
+      const peopleName = email
+        ? streamPeopleByEmail.get(email.trim().toLowerCase()) ?? null
+        : null;
+      submittedBy =
+        resolveDisplayName(
+          streamProfileByUserId.get(s.created_by),
+          peopleName,
+          email,
+        ) || null;
+    }
+    stream.push({
+      kind: "suggestion",
+      id: s.id,
+      title: s.title,
+      body: s.body,
+      team: s.team,
+      submittedBy,
+      at: s.created_at,
     });
   }
   stream.sort((a, b) => b.at.localeCompare(a.at));
