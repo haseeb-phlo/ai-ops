@@ -293,18 +293,33 @@ export default async function Home() {
         ? (lr.revenue_value - baseline.revenue) * w
         : (iv.estimated_revenue_per_week ?? 0) * w;
 
-    // All-time always includes the intervention - weekly rate multiplied
-    // by weeks-since-creation gives a usable cumulative ("approximately
-    // this much has been banked since this intervention launched"). It
-    // overcounts slightly if the rate has grown since launch and undercounts
-    // if it dropped, but for ROI conversations it's the right shape.
-    const weeksSinceCreated = Math.max(
+    // All-time, since launch: step up in whole weeks so a freshly logged
+    // 60 min/wk initiative immediately reads 60 min in week 1, 120 in
+    // week 2, 180 in week 3, etc. Uses the raw stated rate (not the
+    // confidence-weighted ivMins) so the displayed totals match the
+    // numbers entered at log time - confidence weighting belongs on the
+    // "what we're confident is accruing right now" weekly tiles, not on
+    // the cumulative projection.
+    const rawMinsPerWeek =
+      lt?.time_value != null
+        ? baseline.time - lt.time_value
+        : iv.minutes_saved_per_week ?? 0;
+    const rawGbpPerWeek =
+      lc?.cost_value != null
+        ? baseline.cost - lc.cost_value
+        : iv.estimated_gbp_saved_per_week ?? 0;
+    const rawRevPerWeek =
+      lr?.revenue_value != null
+        ? lr.revenue_value - baseline.revenue
+        : iv.estimated_revenue_per_week ?? 0;
+    const weeksElapsed = Math.max(
       0,
       (renderNow - new Date(iv.created_at).getTime()) / (7 * 86_400_000),
     );
-    allTimeMinutes += ivMins * weeksSinceCreated;
-    allTimeGbp += ivGbp * weeksSinceCreated;
-    allTimeRevenue += ivRev * weeksSinceCreated;
+    const weekNumber = Math.max(1, Math.floor(weeksElapsed) + 1);
+    allTimeMinutes += rawMinsPerWeek * weekNumber;
+    allTimeGbp += rawGbpPerWeek * weekNumber;
+    allTimeRevenue += rawRevPerWeek * weekNumber;
     allTimeInterventionCount += 1;
     if (iv.status === "retired") continue;
     totalMinutes += ivMins;
