@@ -32,6 +32,15 @@ export type StreamItem =
       name: string;
       team: string | null;
       at: string;
+    }
+  | {
+      kind: "suggestion";
+      id: string;
+      title: string;
+      body: string;
+      team: string | null;
+      submittedBy: string | null;
+      at: string;
     };
 
 export function ActivityStream({ items }: { items: StreamItem[] }) {
@@ -104,6 +113,27 @@ export function ActivityStream({ items }: { items: StreamItem[] }) {
               at={it.at}
             />
           )}
+          {it.kind === "suggestion" && (
+            <Row
+              icon={<Glyph kind="suggestion" />}
+              title={
+                <Link
+                  href={`/suggestions/${it.id}`}
+                  className="font-medium text-foreground hover:underline"
+                >
+                  {it.title}
+                </Link>
+              }
+              meta={[
+                "New suggestion",
+                it.submittedBy ? `by ${it.submittedBy}` : null,
+                it.team ? `team: ${it.team}` : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+              at={it.at}
+            />
+          )}
           {it.kind === "note" && (
             <Row
               icon={<Glyph kind="note" />}
@@ -156,7 +186,11 @@ function Row({
   );
 }
 
-function Glyph({ kind }: { kind: "intervention" | "note" | "workflow" }) {
+function Glyph({
+  kind,
+}: {
+  kind: "intervention" | "note" | "workflow" | "suggestion";
+}) {
   if (kind === "intervention") {
     return (
       <span className="flex size-5 items-center justify-center rounded-full bg-blue-100 text-[10px] font-semibold text-blue-700">
@@ -168,6 +202,13 @@ function Glyph({ kind }: { kind: "intervention" | "note" | "workflow" }) {
     return (
       <span className="flex size-5 items-center justify-center rounded-full bg-emerald-100 text-[10px] font-semibold text-emerald-700">
         W
+      </span>
+    );
+  }
+  if (kind === "suggestion") {
+    return (
+      <span className="flex size-5 items-center justify-center rounded-full bg-violet-100 text-[10px] font-semibold text-violet-700">
+        S
       </span>
     );
   }
