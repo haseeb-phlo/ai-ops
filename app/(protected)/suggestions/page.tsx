@@ -179,6 +179,18 @@ export default async function SuggestionsPage({
     shipped: decorated.filter((s) => s.status === "shipped"),
   };
 
+  // Initiative lane mapping mirrors the suggestion lanes by intent:
+  //   paused   -> "Up next"      (planned / on hold)
+  //   active   -> "In progress"  (the default for a freshly logged one)
+  //   retired  -> "Shipped"      (sunset / done)
+  // Dragging a card writes the corresponding status back via
+  // moveInitiativeLane.
+  const initiativeRoadmapGroups = {
+    up_next: interventionsList.filter((i) => i.status === "paused"),
+    in_progress: interventionsList.filter((i) => i.status === "active"),
+    shipped: interventionsList.filter((i) => i.status === "retired"),
+  };
+
   const activeRows = decorated.filter(
     (s) => s.status === "open" || s.status === "under_review",
   );
@@ -224,11 +236,23 @@ export default async function SuggestionsPage({
           <RoadmapBoard
             groups={roadmapGroups}
             canMove={isSuper}
-            inProgressInitiatives={activeInterventions.map((i) => ({
-              id: i.id,
-              name: i.name,
-              team: null,
-            }))}
+            initiativeGroups={{
+              up_next: initiativeRoadmapGroups.up_next.map((i) => ({
+                id: i.id,
+                name: i.name,
+                team: null,
+              })),
+              in_progress: initiativeRoadmapGroups.in_progress.map((i) => ({
+                id: i.id,
+                name: i.name,
+                team: null,
+              })),
+              shipped: initiativeRoadmapGroups.shipped.map((i) => ({
+                id: i.id,
+                name: i.name,
+                team: null,
+              })),
+            }}
           />
         ) : (
           <ActiveList
