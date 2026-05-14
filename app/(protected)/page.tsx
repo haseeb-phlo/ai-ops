@@ -91,6 +91,15 @@ type RecentSuggestion = {
   created_at: string;
 };
 
+type RecentSuggestionComment = {
+  id: string;
+  suggestion_id: string;
+  body: string;
+  created_by: string | null;
+  created_at: string;
+  suggestion: { title: string } | null;
+};
+
 function gbp(v: number): string {
   const sign = v < 0 ? "-" : "";
   return `${sign}£${Math.abs(v).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
@@ -122,6 +131,7 @@ export default async function Home() {
     { data: recentNotes },
     { data: recentWorkflows },
     { data: recentSuggestions },
+    { data: recentSuggestionComments },
     { data: streamProfileRows },
     { data: streamPeopleRows },
     { data: streamEmailRows },
@@ -179,6 +189,15 @@ export default async function Home() {
       .order("created_at", { ascending: false })
       .limit(8)
       .returns<RecentSuggestion[]>(),
+    supabase
+      .from("intervention_suggestion_comments")
+      .select(
+        "id, suggestion_id, body, created_by, created_at, suggestion:intervention_suggestions!inner(title)",
+      )
+      .gte("created_at", since)
+      .order("created_at", { ascending: false })
+      .limit(8)
+      .returns<RecentSuggestionComment[]>(),
     supabase
       .from("profiles")
       .select("user_id, display_name")
@@ -505,6 +524,30 @@ export default async function Home() {
       team: s.team,
       submittedBy,
       at: s.created_at,
+    });
+  }
+  for (const c of recentSuggestionComments ?? []) {
+    let commenter: string | null = null;
+    if (c.created_by) {
+      const email = streamEmailByUserId.get(c.created_by) ?? null;
+      const peopleName = email
+        ? streamPeopleByEmail.get(email.trim().toLowerCase()) ?? null
+        : null;
+      commenter =
+        resolveDisplayName(
+          streamProfileByUserId.get(c.created_by),
+          peopleName,
+          email,
+        ) || null;
+    }
+    stream.push({
+      kind: "suggestion-comment",
+      id: c.id,
+      suggestionId: c.suggestion_id,
+      suggestionTitle: c.suggestion?.title ?? "a suggestion",
+      body: c.body,
+      commenter,
+      at: c.created_at,
     });
   }
   stream.sort((a, b) => b.at.localeCompare(a.at));

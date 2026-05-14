@@ -1,7 +1,8 @@
 "use client";
 
-import { useOptimistic, useState, useTransition } from "react";
+import { useOptimistic, useRef, useState, useTransition } from "react";
 import Link from "next/link";
+import { GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { moveSuggestionLane } from "../actions";
 import type { SuggestionRow } from "./suggestion-card";
@@ -174,7 +175,7 @@ export function RoadmapBoard({
                   >
                     <Link
                       href={`/interventions/${iv.id}`}
-                      className="flex items-start gap-2.5 p-3 hover:bg-muted/40/60"
+                      className="flex items-start gap-2.5 p-3 hover:bg-muted/40"
                     >
                       <span
                         aria-hidden
@@ -194,54 +195,14 @@ export function RoadmapBoard({
                   </li>
                 ))}
                 {items.map((s) => (
-                  <li
+                  <SuggestionCardItem
                     key={s.id}
-                    draggable={canMove}
-                    onDragStart={(e) => {
-                      if (!canMove) return;
-                      setDraggingId(s.id);
-                      e.dataTransfer.effectAllowed = "move";
-                      e.dataTransfer.setData("text/suggestion-id", s.id);
-                    }}
+                    suggestion={s}
+                    canMove={canMove}
+                    isDragging={draggingId === s.id}
+                    onDragStart={() => setDraggingId(s.id)}
                     onDragEnd={() => setDraggingId(null)}
-                    className={cn(
-                      "rounded-md border border-border bg-background transition-opacity",
-                      canMove && "cursor-grab active:cursor-grabbing",
-                      draggingId === s.id && "opacity-40",
-                    )}
-                  >
-                    <Link
-                      href={`/suggestions/${s.id}`}
-                      draggable={false}
-                      className="block p-3 hover:bg-muted/40/60"
-                    >
-                      <p className="text-sm font-medium text-foreground">
-                        {s.title}
-                      </p>
-                      <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
-                        {s.body}
-                      </p>
-                      <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
-                        {s.team && <span>{s.team}</span>}
-                        {s.team && s.workflow_name && (
-                          <span aria-hidden>·</span>
-                        )}
-                        {s.workflow_id && s.workflow_name && (
-                          <span className="hover:text-foreground">
-                            {s.workflow_name}
-                          </span>
-                        )}
-                        {s.intervention_id && s.intervention_name && (
-                          <>
-                            <span aria-hidden>·</span>
-                            <span className="text-emerald-700">
-                              {s.intervention_name}
-                            </span>
-                          </>
-                        )}
-                      </div>
-                    </Link>
-                  </li>
+                  />
                 ))}
               </ul>
             )}
@@ -249,5 +210,86 @@ export function RoadmapBoard({
         );
       })}
     </section>
+  );
+}
+
+/**
+ * Suggestion card with a dedicated grip handle column. The drag handlers
+ * live on the handle, not on the card wrapper, so the body's Link is never
+ * the drag source - eliminating the anchor-default-drag interference that
+ * makes a draggable <li> wrapping a Link silently fail. Pattern mirrors
+ * Linear / Asana / Trello boards.
+ */
+function SuggestionCardItem({
+  suggestion: s,
+  canMove,
+  isDragging,
+  onDragStart,
+  onDragEnd,
+}: {
+  suggestion: SuggestionRow;
+  canMove: boolean;
+  isDragging: boolean;
+  onDragStart: () => void;
+  onDragEnd: () => void;
+}) {
+  const cardRef = useRef<HTMLLIElement>(null);
+  return (
+    <li
+      ref={cardRef}
+      className={cn(
+        "flex items-stretch rounded-md border border-border bg-background transition-opacity",
+        isDragging && "opacity-40",
+      )}
+    >
+      {canMove && (
+        <div
+          role="button"
+          aria-label={`Drag ${s.title} to another lane`}
+          tabIndex={0}
+          draggable
+          onDragStart={(e) => {
+            onDragStart();
+            e.dataTransfer.effectAllowed = "move";
+            e.dataTransfer.setData("text/suggestion-id", s.id);
+            // Use the whole card as the drag image, not just the grip.
+            if (cardRef.current) {
+              const rect = cardRef.current.getBoundingClientRect();
+              e.dataTransfer.setDragImage(
+                cardRef.current,
+                e.clientX - rect.left,
+                e.clientY - rect.top,
+              );
+            }
+          }}
+          onDragEnd={onDragEnd}
+          className="flex shrink-0 cursor-grab items-center px-1.5 text-muted-foreground/60 hover:bg-muted/40 hover:text-foreground active:cursor-grabbing"
+        >
+          <GripVertical aria-hidden className="size-3.5" />
+        </div>
+      )}
+      <Link
+        href={`/suggestions/${s.id}`}
+        className="block flex-1 p-3 hover:bg-muted/40"
+      >
+        <p className="text-sm font-medium text-foreground">{s.title}</p>
+        <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
+          {s.body}
+        </p>
+        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
+          {s.team && <span>{s.team}</span>}
+          {s.team && s.workflow_name && <span aria-hidden>·</span>}
+          {s.workflow_id && s.workflow_name && (
+            <span className="hover:text-foreground">{s.workflow_name}</span>
+          )}
+          {s.intervention_id && s.intervention_name && (
+            <>
+              <span aria-hidden>·</span>
+              <span className="text-emerald-700">{s.intervention_name}</span>
+            </>
+          )}
+        </div>
+      </Link>
+    </li>
   );
 }
