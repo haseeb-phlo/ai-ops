@@ -85,7 +85,7 @@ export const getSessionUser = cache(async (): Promise<SessionUser> => {
     redirect("/login");
   }
 
-  // Defense in depth — proxy.ts is the primary domain gate, but in case a
+  // Defense in depth - proxy.ts is the primary domain gate, but in case a
   // non-Phlo session reaches a Server Component (race during redirect, hook
   // change, etc.) we refuse to hand back a SessionUser. Sign-out happens on
   // the next proxy pass.

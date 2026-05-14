@@ -71,7 +71,7 @@ export async function HeaderCard({
               <Badge
                 className={CRITICALITY_CLASSNAME[workflow.criticality_score]}
               >
-                {CRITICALITY_LABEL[workflow.criticality_score] ?? "—"}
+                {CRITICALITY_LABEL[workflow.criticality_score] ?? "-"}
               </Badge>
             )}
           </div>

@@ -246,7 +246,7 @@ export default async function InterventionDetailPage({
         >
           {deleteFailed === "permission"
             ? "Only super-admins can delete an AI initiative."
-            : "Could not delete this AI initiative. The database delete policy may not be applied yet — apply supabase/ai_interventions_delete_policy_migration.sql in the Supabase SQL editor and try again."}
+            : "Could not delete this AI initiative. The database delete policy may not be applied yet - apply supabase/ai_interventions_delete_policy_migration.sql in the Supabase SQL editor and try again."}
         </p>
       )}
 

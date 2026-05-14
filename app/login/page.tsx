@@ -42,7 +42,7 @@ function friendlySignInError({
 }
 
 // Map raw Supabase auth errors to a small, user-friendly set. Never echo
-// the raw `error.message` to the UI — it can leak SDK internals (HTTP
+// the raw `error.message` to the UI - it can leak SDK internals (HTTP
 // status, server identifiers, gated-feature flags) that aren't useful to
 // the user and broaden what an attacker can probe.
 function mapAuthError(
@@ -70,15 +70,15 @@ export default function LoginPage() {
   const [linkError, setLinkError] = useState<string | null>(null);
 
   // Surface sign-in errors from two carriers:
-  //   1) Query string — set by /auth/callback when exchangeCodeForSession
+  //   1) Query string - set by /auth/callback when exchangeCodeForSession
   //      fails, AND by Supabase's own /verify endpoint, which on failure
   //      duplicates the error params into both query and hash.
-  //   2) Hash fragment — also written by Supabase's /verify endpoint. The
+  //   2) Hash fragment - also written by Supabase's /verify endpoint. The
   //      server can't read it, so we parse it on the client.
   // Read from both because the carrier varies by SDK version, redirect
   // chain (proxy.ts → /login can preserve query but may drop the hash if
   // the Location header carries its own fragment), and even browser. We
-  // map both to a small set of friendly messages — never echo raw error
+  // map both to a small set of friendly messages - never echo raw error
   // strings, which can leak SDK internals and confuse the user.
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -87,7 +87,7 @@ export default function LoginPage() {
     const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
 
     const slug = query.get("error");
-    // Prefer the hash copy when both are present — Supabase's /verify
+    // Prefer the hash copy when both are present - Supabase's /verify
     // endpoint writes it there first; the query copy only exists because
     // some redirect targets surface it for server-side handlers.
     const errorCode = hash.get("error_code") ?? query.get("error_code");

@@ -162,7 +162,7 @@ export async function logIntervention(
 }
 
 // Trim, drop empties, and dedupe by case-insensitive match while keeping
-// the first-seen casing — same rule the workflow action and RPC use.
+// the first-seen casing - same rule the workflow action and RPC use.
 function dedupeTools(raw: string[]): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
