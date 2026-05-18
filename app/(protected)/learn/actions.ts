@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getSessionUser, requireWriter } from "@/lib/auth";
 import { fetchLoomOembed, parseLoomId } from "@/lib/loom";
 import {
+  isAllowedReactionEmoji,
   LEARN_SUBTOPICS,
   LEARN_TOPICS,
   VIDEO_RESOURCE_BUCKET,
@@ -408,3 +409,50 @@ export async function signedUrlForResource(
   }
   return { ok: true, url: data.signedUrl };
 }
+
+// =========================================================================
+// Reactions
+// =========================================================================
+// One row per (video, user, emoji). Toggling the same emoji twice deletes
+// the user's row, so the card never shows duplicates. Any signed-in user
+// can react; only the user's own rows are mutable (enforced by RLS).
+
+const ToggleReactionSchema = z.object({
+  video_id: z.string().uuid(),
+  emoji: z.string().min(1).max(16),
+});
+
+export async function toggleVideoReaction(formData: FormData): Promise<void> {
+  const user = await getSessionUser();
+  const parsed = ToggleReactionSchema.safeParse({
+    video_id: formData.get("video_id"),
+    emoji: formData.get("emoji"),
+  });
+  if (!parsed.success) return;
+  if (!isAllowedReactionEmoji(parsed.data.emoji)) return;
+
+  const supabase = await createClient();
+  const { data: existing } = await supabase
+    .from("learn_video_reactions")
+    .select("id")
+    .eq("video_id", parsed.data.video_id)
+    .eq("user_id", user.id)
+    .eq("emoji", parsed.data.emoji)
+    .maybeSingle();
+
+  if (existing) {
+    await supabase
+      .from("learn_video_reactions")
+      .delete()
+      .eq("id", existing.id);
+  } else {
+    await supabase.from("learn_video_reactions").insert({
+      video_id: parsed.data.video_id,
+      user_id: user.id,
+      emoji: parsed.data.emoji,
+    });
+  }
+
+  revalidatePath("/learn");
+}
+

@@ -4,6 +4,7 @@ import { fetchLoomOembed } from "@/lib/loom";
 import { PageContainer, PageHeader } from "@/components/page-header";
 import { AddVideoDialog } from "./_components/add-video-dialog";
 import { VideoCard, type VideoAttachment } from "./_components/video-card";
+import type { ReactionEntry } from "./_components/reactions";
 import {
   LEARN_SUBTOPICS,
   LEARN_SUBTOPIC_LABEL,
@@ -39,35 +40,52 @@ type ResourceRow = {
   created_at: string;
 };
 
+type ReactionRow = {
+  video_id: string;
+  user_id: string;
+  emoji: string;
+  created_at: string;
+};
+
 type ProfileLite = { user_id: string; display_name: string | null };
 
 export default async function LearnPage() {
   const user = await getSessionUser();
   const supabase = await createClient();
 
-  const [{ data: videos }, { data: plays }, { data: resources }, { data: profiles }] =
-    await Promise.all([
-      supabase
-        .from("learn_videos")
-        .select(
-          "id, title, description, loom_share_url, loom_embed_id, topic, subtopic, thumbnail_url, added_by, created_at",
-        )
-        .order("created_at", { ascending: false })
-        .returns<VideoRow[]>(),
-      supabase
-        .from("learn_video_plays")
-        .select("video_id, user_id")
-        .returns<PlayRow[]>(),
-      supabase
-        .from("learn_video_resources")
-        .select("id, video_id, kind, title, url, file_name, file_size, created_at")
-        .order("created_at", { ascending: true })
-        .returns<ResourceRow[]>(),
-      supabase
-        .from("profiles")
-        .select("user_id, display_name")
-        .returns<ProfileLite[]>(),
-    ]);
+  const [
+    { data: videos },
+    { data: plays },
+    { data: resources },
+    { data: reactionRows },
+    { data: profiles },
+  ] = await Promise.all([
+    supabase
+      .from("learn_videos")
+      .select(
+        "id, title, description, loom_share_url, loom_embed_id, topic, subtopic, thumbnail_url, added_by, created_at",
+      )
+      .order("created_at", { ascending: false })
+      .returns<VideoRow[]>(),
+    supabase
+      .from("learn_video_plays")
+      .select("video_id, user_id")
+      .returns<PlayRow[]>(),
+    supabase
+      .from("learn_video_resources")
+      .select("id, video_id, kind, title, url, file_name, file_size, created_at")
+      .order("created_at", { ascending: true })
+      .returns<ResourceRow[]>(),
+    supabase
+      .from("learn_video_reactions")
+      .select("video_id, user_id, emoji, created_at")
+      .order("created_at", { ascending: true })
+      .returns<ReactionRow[]>(),
+    supabase
+      .from("profiles")
+      .select("user_id, display_name")
+      .returns<ProfileLite[]>(),
+  ]);
 
   // Backfill thumbnail_url for any rows that don't have one yet. Older
   // videos predate the column; rather than ship a one-off script we just
@@ -129,6 +147,20 @@ export default async function LearnPage() {
     });
   }
 
+  const reactionsByVideo = new Map<string, ReactionEntry[]>();
+  for (const r of reactionRows ?? []) {
+    let list = reactionsByVideo.get(r.video_id);
+    if (!list) {
+      list = [];
+      reactionsByVideo.set(r.video_id, list);
+    }
+    list.push({
+      emoji: r.emoji,
+      userId: r.user_id,
+      userName: nameByUserId.get(r.user_id) ?? "Someone",
+    });
+  }
+
   const canManageVideos = user.realRole === "super_admin";
   const videoRows = videoRowsMutable;
 
@@ -165,6 +197,8 @@ export default async function LearnPage() {
       uniqueViewers={uniqueViewers.get(v.id)?.size ?? 0}
       canManage={canManageVideos}
       attachments={attachmentsByVideo.get(v.id) ?? []}
+      reactions={reactionsByVideo.get(v.id) ?? []}
+      currentUserId={user.id}
     />
   );
 

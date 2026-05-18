@@ -45,3 +45,20 @@ export function isValidSubtopic(
 
 export const VIDEO_RESOURCE_MAX_FILE_BYTES = 25 * 1024 * 1024; // 25 MB
 export const VIDEO_RESOURCE_BUCKET = "learn-video-resources";
+
+// Fixed reaction emoji set. The DB column itself is free-form text, but
+// the picker only offers these so we don't get a long tail of one-off
+// reactions that aren't worth grouping. Edit here to add/remove options.
+export const REACTION_EMOJIS = [
+  "\u{1F44D}", // thumbs up
+  "\u{2764}\u{FE0F}", // red heart
+  "\u{1F389}", // party popper
+  "\u{1F602}", // joy
+  "\u{1F62E}", // open mouth (wow)
+  "\u{1F525}", // fire
+] as const;
+export type ReactionEmoji = (typeof REACTION_EMOJIS)[number];
+
+export function isAllowedReactionEmoji(value: string): value is ReactionEmoji {
+  return (REACTION_EMOJIS as readonly string[]).includes(value);
+}

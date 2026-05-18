@@ -20,6 +20,7 @@ import {
 import { type LearnSubtopic, type LearnTopic } from "../topics";
 import { AddAttachmentDialog } from "./add-attachment-dialog";
 import { EditVideoDialog } from "./edit-video-dialog";
+import { Reactions, type ReactionEntry } from "./reactions";
 
 export type VideoAttachment = {
   id: string;
@@ -45,6 +46,8 @@ export function VideoCard({
   uniqueViewers,
   canManage,
   attachments,
+  reactions,
+  currentUserId,
 }: {
   id: string;
   title: string;
@@ -60,6 +63,8 @@ export function VideoCard({
   uniqueViewers: number;
   canManage: boolean;
   attachments: VideoAttachment[];
+  reactions: ReactionEntry[];
+  currentUserId: string;
 }) {
   const [playing, setPlaying] = useState(false);
   const [thumbFailed, setThumbFailed] = useState(false);
@@ -191,6 +196,14 @@ export function VideoCard({
           />
         </div>
       )}
+
+      <div className="border-t border-border bg-background px-4 py-3">
+        <Reactions
+          videoId={id}
+          currentUserId={currentUserId}
+          reactions={reactions}
+        />
+      </div>
     </article>
   );
 }
