@@ -5,11 +5,10 @@ import { format } from "date-fns";
 import {
   PlayIcon,
   ExternalLinkIcon,
-  EyeIcon,
   TrashIcon,
-  PaperclipIcon,
   FileIcon,
   LinkIcon,
+  PlusIcon,
 } from "lucide-react";
 import { loomEmbedUrl } from "@/lib/loom";
 import {
@@ -71,9 +70,6 @@ export function VideoCard({
     startTransition(() => {
       const fd = new FormData();
       fd.set("video_id", id);
-      // Fire-and-forget; the iframe loads regardless of whether the play row
-      // lands. revalidatePath inside the action refreshes the counts on the
-      // next navigation/render.
       void recordPlay(fd);
     });
   };
@@ -86,6 +82,8 @@ export function VideoCard({
       void deleteVideo(fd);
     });
   };
+
+  const showResources = attachments.length > 0 || canManage;
 
   return (
     <article className="flex flex-col overflow-hidden rounded-lg border border-border bg-background">
@@ -102,26 +100,22 @@ export function VideoCard({
           <button
             type="button"
             onClick={handlePlay}
-            className="group absolute inset-0 flex items-center justify-center overflow-hidden bg-gradient-to-br from-muted to-muted/60 transition-colors hover:from-muted/80 hover:to-muted/40"
+            className="group absolute inset-0 flex items-center justify-center overflow-hidden"
             aria-label={`Play ${title}`}
           >
             {thumbnailUrl && !thumbFailed && (
-              // thumbnailUrl comes from Loom's oEmbed response (persisted on
-              // the row). Plain <img> avoids needing next.config remotePatterns
-              // config; onError hides it so the gradient placeholder behind
-              // can still cover the play surface if the URL ever fails.
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={thumbnailUrl}
                 alt=""
                 aria-hidden
                 onError={() => setThumbFailed(true)}
-                className="absolute inset-0 h-full w-full object-cover transition-transform group-hover:scale-[1.02]"
+                className="absolute inset-0 h-full w-full object-cover"
               />
             )}
-            <span className="absolute inset-0 bg-black/15 transition-colors group-hover:bg-black/25" />
-            <span className="relative flex size-14 items-center justify-center rounded-full bg-foreground/90 text-background ring-4 ring-background/40 transition-transform group-hover:scale-105">
-              <PlayIcon className="size-6 translate-x-[1px]" />
+            <span className="absolute inset-0 bg-black/20 transition-colors group-hover:bg-black/30" />
+            <span className="relative flex size-12 items-center justify-center rounded-full bg-foreground text-background transition-transform group-hover:scale-105">
+              <PlayIcon className="size-5 translate-x-px" />
             </span>
           </button>
         )}
@@ -147,7 +141,6 @@ export function VideoCard({
                 onClick={handleDelete}
                 className="text-muted-foreground hover:text-red-600"
                 aria-label="Delete video"
-                title="Delete video"
               >
                 <TrashIcon className="size-3.5" />
               </button>
@@ -156,46 +149,53 @@ export function VideoCard({
         </div>
 
         {description && (
-          <p className="text-xs text-muted-foreground">{description}</p>
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            {description}
+          </p>
         )}
 
-        <AttachmentsBlock
-          videoId={id}
-          videoTitle={title}
-          attachments={attachments}
-          canManage={canManage}
-        />
-
-        <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1 pt-2 text-[11px] text-muted-foreground">
-          <span title="Plays from unique viewers">
-            <EyeIcon className="mr-1 inline size-3 -translate-y-px" />
-            {totalPlays} {totalPlays === 1 ? "play" : "plays"} from{" "}
-            {uniqueViewers} {uniqueViewers === 1 ? "person" : "people"}
-          </span>
-          <span aria-hidden className="text-muted-foreground/50">·</span>
+        <div className="mt-auto flex items-center justify-between gap-3 pt-3 text-xs text-muted-foreground">
           <span>
-            Added by{" "}
-            <span className="text-foreground">{addedByName}</span>
+            {totalPlays} {totalPlays === 1 ? "play" : "plays"}
+            <span aria-hidden className="mx-1.5 text-muted-foreground/50">
+              ·
+            </span>
+            {uniqueViewers} {uniqueViewers === 1 ? "viewer" : "viewers"}
           </span>
-          <span aria-hidden className="text-muted-foreground/50">·</span>
-          <span>{format(new Date(createdAt), "d MMM yyyy")}</span>
           <a
             href={loomShareUrl}
             target="_blank"
             rel="noreferrer"
-            className="ml-auto inline-flex items-center gap-1 text-muted-foreground hover:text-foreground"
-            title="Open in Loom"
+            className="inline-flex items-center gap-1 hover:text-foreground"
           >
-            <ExternalLinkIcon className="size-3" />
             Loom
+            <ExternalLinkIcon className="size-3" />
           </a>
         </div>
+        <div className="text-xs text-muted-foreground">
+          {addedByName}
+          <span aria-hidden className="mx-1.5 text-muted-foreground/50">
+            ·
+          </span>
+          {format(new Date(createdAt), "d MMM yyyy")}
+        </div>
       </div>
+
+      {showResources && (
+        <div className="border-t border-border bg-background px-4 py-3">
+          <ResourcesSection
+            videoId={id}
+            videoTitle={title}
+            attachments={attachments}
+            canManage={canManage}
+          />
+        </div>
+      )}
     </article>
   );
 }
 
-function AttachmentsBlock({
+function ResourcesSection({
   videoId,
   videoTitle,
   attachments,
@@ -206,28 +206,42 @@ function AttachmentsBlock({
   attachments: VideoAttachment[];
   canManage: boolean;
 }) {
-  if (attachments.length === 0 && !canManage) return null;
+  const count = attachments.length;
   return (
-    <div className="space-y-1.5 rounded-md border border-dashed border-border/70 bg-muted/30 p-2">
+    <div className="space-y-2">
       <div className="flex items-center justify-between gap-2">
-        <span className="inline-flex items-center gap-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-          <PaperclipIcon className="size-3" />
-          Attachments
+        <span className="text-xs font-medium text-foreground">
+          Resources
+          {count > 0 && (
+            <span className="ml-1.5 text-muted-foreground">({count})</span>
+          )}
         </span>
         {canManage && (
-          <AddAttachmentDialog videoId={videoId} videoTitle={videoTitle} />
+          <AddAttachmentDialog
+            videoId={videoId}
+            videoTitle={videoTitle}
+            trigger={
+              <button
+                type="button"
+                className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+              >
+                <PlusIcon className="size-3.5" />
+                Add
+              </button>
+            }
+          />
         )}
       </div>
-      {attachments.length === 0 ? (
-        <p className="text-[11px] text-muted-foreground">
-          No attachments yet.
-        </p>
-      ) : (
+      {count > 0 ? (
         <ul className="space-y-0.5">
           {attachments.map((a) => (
             <AttachmentRow key={a.id} attachment={a} canManage={canManage} />
           ))}
         </ul>
+      ) : (
+        <p className="text-xs text-muted-foreground">
+          No resources attached yet.
+        </p>
       )}
     </div>
   );
@@ -264,41 +278,39 @@ function AttachmentRow({
     });
   };
 
-  const label =
-    attachment.kind === "file" && attachment.fileSize != null
-      ? `${attachment.title} (${formatBytes(attachment.fileSize)})`
-      : attachment.title;
-
   return (
-    <li className="flex items-center gap-1.5 text-xs">
+    <li className="group flex items-center gap-2 text-xs">
       <button
         type="button"
         onClick={handleOpen}
         disabled={pending}
-        className="inline-flex min-w-0 flex-1 items-center gap-1.5 truncate rounded px-1 py-0.5 text-left text-foreground hover:bg-background hover:underline disabled:opacity-50"
-        title={attachment.kind === "url" && attachment.url ? attachment.url : label}
+        className="inline-flex min-w-0 flex-1 items-center gap-2 truncate rounded py-1 text-left text-foreground hover:underline disabled:opacity-50"
       >
         {attachment.kind === "url" ? (
-          <LinkIcon className="size-3 shrink-0 text-muted-foreground" />
+          <LinkIcon className="size-3.5 shrink-0 text-muted-foreground" />
         ) : (
-          <FileIcon className="size-3 shrink-0 text-muted-foreground" />
+          <FileIcon className="size-3.5 shrink-0 text-muted-foreground" />
         )}
-        <span className="truncate">{label}</span>
+        <span className="truncate">{attachment.title}</span>
+        {attachment.kind === "file" && attachment.fileSize != null && (
+          <span className="shrink-0 text-muted-foreground">
+            {formatBytes(attachment.fileSize)}
+          </span>
+        )}
       </button>
       {canManage && (
         <button
           type="button"
           onClick={handleDelete}
           disabled={pending}
-          className="shrink-0 text-muted-foreground hover:text-red-600 disabled:opacity-50"
-          aria-label="Remove attachment"
-          title="Remove attachment"
+          className="shrink-0 text-muted-foreground opacity-0 transition-opacity hover:text-red-600 group-hover:opacity-100 disabled:opacity-50"
+          aria-label="Remove resource"
         >
-          <TrashIcon className="size-3" />
+          <TrashIcon className="size-3.5" />
         </button>
       )}
       {error && (
-        <span role="alert" className="text-[10px] text-red-600">
+        <span role="alert" className="text-xs text-red-600">
           {error}
         </span>
       )}

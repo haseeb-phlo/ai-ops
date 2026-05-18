@@ -1,8 +1,7 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useState, type ReactElement } from "react";
 import { useFormStatus } from "react-dom";
-import { PaperclipIcon } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -23,9 +22,11 @@ type Tab = "url" | "file";
 export function AddAttachmentDialog({
   videoId,
   videoTitle,
+  trigger,
 }: {
   videoId: string;
   videoTitle: string;
+  trigger: ReactElement;
 }) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<Tab>("url");
@@ -49,21 +50,10 @@ export function AddAttachmentDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger
-        render={
-          <button
-            type="button"
-            className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-muted-foreground hover:bg-background hover:text-foreground"
-            title="Add attachment"
-          >
-            <PaperclipIcon className="size-3" />
-            Add
-          </button>
-        }
-      />
+      <DialogTrigger render={trigger} />
       <DialogContent className="gap-0 p-0 sm:max-w-lg">
         <DialogHeader className="gap-2 px-6 pt-5 pb-5">
-          <DialogTitle>Add attachment</DialogTitle>
+          <DialogTitle>Add resource</DialogTitle>
           <DialogDescription>
             Attach a link or upload a file under {`"${videoTitle}"`}.
           </DialogDescription>
