@@ -11,14 +11,16 @@ import {
   FileIcon,
   LinkIcon,
 } from "lucide-react";
-import { loomEmbedUrl } from "@/lib/loom";
+import { loomEmbedUrl, loomThumbnailUrl } from "@/lib/loom";
 import {
   deleteVideo,
   deleteVideoResource,
   recordPlay,
   signedUrlForResource,
 } from "../actions";
+import { type LearnTopic } from "../topics";
 import { AddAttachmentDialog } from "./add-attachment-dialog";
+import { EditVideoDialog } from "./edit-video-dialog";
 
 export type VideoAttachment = {
   id: string;
@@ -35,6 +37,7 @@ export function VideoCard({
   description,
   loomEmbedId,
   loomShareUrl,
+  topic,
   addedByName,
   createdAt,
   totalPlays,
@@ -47,6 +50,7 @@ export function VideoCard({
   description: string | null;
   loomEmbedId: string;
   loomShareUrl: string;
+  topic: LearnTopic | null;
   addedByName: string;
   createdAt: string;
   totalPlays: number;
@@ -55,6 +59,7 @@ export function VideoCard({
   attachments: VideoAttachment[];
 }) {
   const [playing, setPlaying] = useState(false);
+  const [thumbFailed, setThumbFailed] = useState(false);
   const [, startTransition] = useTransition();
 
   const handlePlay = () => {
@@ -93,10 +98,24 @@ export function VideoCard({
           <button
             type="button"
             onClick={handlePlay}
-            className="group absolute inset-0 flex items-center justify-center bg-gradient-to-br from-muted to-muted/60 transition-colors hover:from-muted/80 hover:to-muted/40"
+            className="group absolute inset-0 flex items-center justify-center overflow-hidden bg-gradient-to-br from-muted to-muted/60 transition-colors hover:from-muted/80 hover:to-muted/40"
             aria-label={`Play ${title}`}
           >
-            <span className="flex size-14 items-center justify-center rounded-full bg-foreground/90 text-background ring-4 ring-background/40 transition-transform group-hover:scale-105">
+            {!thumbFailed && (
+              // Loom CDN thumbnails - plain <img> avoids needing remotePatterns
+              // config and the onError handler hides it if the URL 404s for an
+              // older video so the gradient still shows through.
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={loomThumbnailUrl(loomEmbedId)}
+                alt=""
+                aria-hidden
+                onError={() => setThumbFailed(true)}
+                className="absolute inset-0 h-full w-full object-cover transition-transform group-hover:scale-[1.02]"
+              />
+            )}
+            <span className="absolute inset-0 bg-black/15 transition-colors group-hover:bg-black/25" />
+            <span className="relative flex size-14 items-center justify-center rounded-full bg-foreground/90 text-background ring-4 ring-background/40 transition-transform group-hover:scale-105">
               <PlayIcon className="size-6 translate-x-[1px]" />
             </span>
           </button>
@@ -109,15 +128,24 @@ export function VideoCard({
             {title}
           </h3>
           {canManage && (
-            <button
-              type="button"
-              onClick={handleDelete}
-              className="shrink-0 text-muted-foreground hover:text-red-600"
-              aria-label="Delete video"
-              title="Delete video"
-            >
-              <TrashIcon className="size-3.5" />
-            </button>
+            <div className="flex shrink-0 items-center gap-1.5">
+              <EditVideoDialog
+                id={id}
+                title={title}
+                description={description}
+                loomShareUrl={loomShareUrl}
+                topic={topic}
+              />
+              <button
+                type="button"
+                onClick={handleDelete}
+                className="text-muted-foreground hover:text-red-600"
+                aria-label="Delete video"
+                title="Delete video"
+              >
+                <TrashIcon className="size-3.5" />
+              </button>
+            </div>
           )}
         </div>
 

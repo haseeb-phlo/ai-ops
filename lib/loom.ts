@@ -42,3 +42,11 @@ export function loomEmbedUrl(id: string, opts?: { autoplay?: boolean }): string 
 export function loomShareUrl(id: string): string {
   return `https://www.loom.com/share/${id}`;
 }
+
+// Loom serves a static frame-1 thumbnail at this CDN path for every share.
+// It's not part of the official API but has been stable for years and is
+// what the standard Loom embed itself uses. If the image ever 404s we fall
+// back to a gradient placeholder in the UI - the play button still works.
+export function loomThumbnailUrl(id: string): string {
+  return `https://cdn.loom.com/sessions/thumbnails/${id}-00001.jpg`;
+}
