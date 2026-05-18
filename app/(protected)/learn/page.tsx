@@ -1,12 +1,9 @@
-import { format } from "date-fns";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionUser } from "@/lib/auth";
 import { PageContainer, PageHeader } from "@/components/page-header";
 import { AddVideoDialog } from "./_components/add-video-dialog";
-import { AddResourceDialog } from "./_components/add-resource-dialog";
-import { VideoCard } from "./_components/video-card";
-import { ResourceRow } from "./_components/resource-row";
-import { LEARN_TOPICS, LEARN_TOPIC_LABEL, type LearnTopic } from "./actions";
+import { VideoCard, type VideoAttachment } from "./_components/video-card";
+import { LEARN_TOPICS, LEARN_TOPIC_LABEL, type LearnTopic } from "./topics";
 
 type VideoRow = {
   id: string;
@@ -21,12 +18,14 @@ type VideoRow = {
 
 type PlayRow = { video_id: string; user_id: string };
 
-type ResourceRowDb = {
+type ResourceRow = {
   id: string;
+  video_id: string;
+  kind: "url" | "file";
   title: string;
-  url: string;
-  description: string | null;
-  added_by: string | null;
+  url: string | null;
+  file_name: string | null;
+  file_size: number | null;
   created_at: string;
 };
 
@@ -50,10 +49,10 @@ export default async function LearnPage() {
         .select("video_id, user_id")
         .returns<PlayRow[]>(),
       supabase
-        .from("learn_resources")
-        .select("id, title, url, description, added_by, created_at")
-        .order("created_at", { ascending: false })
-        .returns<ResourceRowDb[]>(),
+        .from("learn_video_resources")
+        .select("id, video_id, kind, title, url, file_name, file_size, created_at")
+        .order("created_at", { ascending: true })
+        .returns<ResourceRow[]>(),
       supabase
         .from("profiles")
         .select("user_id, display_name")
@@ -81,9 +80,25 @@ export default async function LearnPage() {
     set.add(p.user_id);
   }
 
+  const attachmentsByVideo = new Map<string, VideoAttachment[]>();
+  for (const r of resources ?? []) {
+    let list = attachmentsByVideo.get(r.video_id);
+    if (!list) {
+      list = [];
+      attachmentsByVideo.set(r.video_id, list);
+    }
+    list.push({
+      id: r.id,
+      kind: r.kind,
+      title: r.title,
+      url: r.url,
+      fileName: r.file_name,
+      fileSize: r.file_size,
+    });
+  }
+
   const canManageVideos = user.realRole === "super_admin";
   const videoRows = videos ?? [];
-  const resourceRows = resources ?? [];
 
   // Group videos by topic. Each fixed topic gets its own section in the
   // order declared in actions.ts; legacy rows without a topic surface under
@@ -113,7 +128,8 @@ export default async function LearnPage() {
       createdAt={v.created_at}
       totalPlays={totalPlays.get(v.id) ?? 0}
       uniqueViewers={uniqueViewers.get(v.id)?.size ?? 0}
-      canDelete={canManageVideos}
+      canManage={canManageVideos}
+      attachments={attachmentsByVideo.get(v.id) ?? []}
     />
   );
 
@@ -121,7 +137,7 @@ export default async function LearnPage() {
     <PageContainer>
       <PageHeader
         title="Learn"
-        description="Short Loom walkthroughs and external resources for getting better at AI."
+        description="Short Loom walkthroughs and supporting materials for getting better at AI."
         actions={canManageVideos ? <AddVideoDialog /> : null}
       />
 
@@ -168,48 +184,6 @@ export default async function LearnPage() {
           </section>
         )}
       </div>
-
-      <section className="space-y-3 border-t border-border pt-8">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-semibold tracking-tight text-foreground">
-              Additional Resources
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Articles, docs, courses - anything worth bookmarking. Anyone can add.
-            </p>
-          </div>
-          <AddResourceDialog />
-        </div>
-
-        <div className="rounded-lg border border-border bg-background">
-          {resourceRows.length === 0 ? (
-            <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-              No resources yet. Be the first to share something.
-            </div>
-          ) : (
-            <ul className="divide-y divide-border">
-              {resourceRows.map((r) => (
-                <ResourceRow
-                  key={r.id}
-                  id={r.id}
-                  title={r.title}
-                  url={r.url}
-                  description={r.description}
-                  addedByName={
-                    (r.added_by && nameByUserId.get(r.added_by)) || "Unknown"
-                  }
-                  createdAt={r.created_at}
-                  canDelete={
-                    canManageVideos || r.added_by === user.id
-                  }
-                  formattedDate={format(new Date(r.created_at), "d MMM yyyy")}
-                />
-              ))}
-            </ul>
-          )}
-        </div>
-      </section>
     </PageContainer>
   );
 }
