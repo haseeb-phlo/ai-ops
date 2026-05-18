@@ -5,6 +5,7 @@ import { PageContainer, PageHeader } from "@/components/page-header";
 import { AddVideoDialog } from "./_components/add-video-dialog";
 import { VideoCard, type VideoAttachment } from "./_components/video-card";
 import type { ReactionEntry } from "./_components/reactions";
+import type { VideoComment } from "./_components/comments";
 import {
   LEARN_SUBTOPICS,
   LEARN_SUBTOPIC_LABEL,
@@ -47,6 +48,14 @@ type ReactionRow = {
   created_at: string;
 };
 
+type CommentRowDb = {
+  id: string;
+  video_id: string;
+  body: string;
+  created_by: string | null;
+  created_at: string;
+};
+
 type ProfileLite = { user_id: string; display_name: string | null };
 
 export default async function LearnPage() {
@@ -58,6 +67,7 @@ export default async function LearnPage() {
     { data: plays },
     { data: resources },
     { data: reactionRows },
+    { data: commentRows },
     { data: profiles },
   ] = await Promise.all([
     supabase
@@ -81,6 +91,11 @@ export default async function LearnPage() {
       .select("video_id, user_id, emoji, created_at")
       .order("created_at", { ascending: true })
       .returns<ReactionRow[]>(),
+    supabase
+      .from("learn_video_comments")
+      .select("id, video_id, body, created_by, created_at")
+      .order("created_at", { ascending: true })
+      .returns<CommentRowDb[]>(),
     supabase
       .from("profiles")
       .select("user_id, display_name")
@@ -161,6 +176,23 @@ export default async function LearnPage() {
     });
   }
 
+  const commentsByVideo = new Map<string, VideoComment[]>();
+  for (const c of commentRows ?? []) {
+    let list = commentsByVideo.get(c.video_id);
+    if (!list) {
+      list = [];
+      commentsByVideo.set(c.video_id, list);
+    }
+    list.push({
+      id: c.id,
+      body: c.body,
+      createdAt: c.created_at,
+      createdBy: c.created_by,
+      authorName:
+        (c.created_by && nameByUserId.get(c.created_by)) || "Unknown",
+    });
+  }
+
   const canManageVideos = user.realRole === "super_admin";
   const videoRows = videoRowsMutable;
 
@@ -198,7 +230,9 @@ export default async function LearnPage() {
       canManage={canManageVideos}
       attachments={attachmentsByVideo.get(v.id) ?? []}
       reactions={reactionsByVideo.get(v.id) ?? []}
+      comments={commentsByVideo.get(v.id) ?? []}
       currentUserId={user.id}
+      isSuperAdmin={canManageVideos}
     />
   );
 

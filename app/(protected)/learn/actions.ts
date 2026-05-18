@@ -456,3 +456,54 @@ export async function toggleVideoReaction(formData: FormData): Promise<void> {
   revalidatePath("/learn");
 }
 
+// =========================================================================
+// Comments
+// =========================================================================
+// Any signed-in user can comment. Author or super_admin can delete (RLS).
+
+const AddCommentSchema = z.object({
+  video_id: z.string().uuid(),
+  body: z.string().trim().min(1, "Comment can't be empty.").max(2000),
+});
+
+export async function addVideoComment(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const user = await getSessionUser();
+  const parsed = AddCommentSchema.safeParse({
+    video_id: formData.get("video_id"),
+    body: formData.get("body"),
+  });
+  if (!parsed.success) {
+    return {
+      kind: "error",
+      message: parsed.error.issues[0]?.message ?? "Comment can't be empty.",
+    };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("learn_video_comments").insert({
+    video_id: parsed.data.video_id,
+    body: parsed.data.body,
+    created_by: user.id,
+  });
+
+  if (error) {
+    return { kind: "error", message: `Could not post comment: ${error.message}` };
+  }
+
+  revalidatePath("/learn");
+  return { kind: "success" };
+}
+
+export async function deleteVideoComment(formData: FormData): Promise<void> {
+  // Author-or-super authorization is enforced by RLS on the delete itself.
+  await getSessionUser();
+  const id = formData.get("id");
+  if (typeof id !== "string" || !id) return;
+  const supabase = await createClient();
+  await supabase.from("learn_video_comments").delete().eq("id", id);
+  revalidatePath("/learn");
+}
+

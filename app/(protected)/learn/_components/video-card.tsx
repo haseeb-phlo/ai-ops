@@ -21,6 +21,7 @@ import { type LearnSubtopic, type LearnTopic } from "../topics";
 import { AddAttachmentDialog } from "./add-attachment-dialog";
 import { EditVideoDialog } from "./edit-video-dialog";
 import { Reactions, type ReactionEntry } from "./reactions";
+import { Comments, type VideoComment } from "./comments";
 
 export type VideoAttachment = {
   id: string;
@@ -47,7 +48,9 @@ export function VideoCard({
   canManage,
   attachments,
   reactions,
+  comments,
   currentUserId,
+  isSuperAdmin,
 }: {
   id: string;
   title: string;
@@ -64,7 +67,9 @@ export function VideoCard({
   canManage: boolean;
   attachments: VideoAttachment[];
   reactions: ReactionEntry[];
+  comments: VideoComment[];
   currentUserId: string;
+  isSuperAdmin: boolean;
 }) {
   const [playing, setPlaying] = useState(false);
   const [thumbFailed, setThumbFailed] = useState(false);
@@ -197,11 +202,17 @@ export function VideoCard({
         </div>
       )}
 
-      <div className="border-t border-border bg-background px-4 py-3">
+      <div className="space-y-3 border-t border-border bg-background px-4 py-3">
         <Reactions
           videoId={id}
           currentUserId={currentUserId}
           reactions={reactions}
+        />
+        <Comments
+          videoId={id}
+          currentUserId={currentUserId}
+          isSuperAdmin={isSuperAdmin}
+          comments={comments}
         />
       </div>
     </article>
