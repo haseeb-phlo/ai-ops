@@ -55,6 +55,7 @@ type RecentIntervention = {
   name: string;
   status: string | null;
   created_at: string;
+  created_by: string | null;
 };
 
 type RegEvent = {
@@ -63,6 +64,7 @@ type RegEvent = {
   severity: "red" | "amber" | "green";
   created_at: string;
   workflow_id: string | null;
+  created_by: string | null;
 };
 
 type RecentNote = {
@@ -72,6 +74,7 @@ type RecentNote = {
   updated_at: string;
   target_type: "workflow" | "intervention";
   target_id: string;
+  created_by: string | null;
 };
 
 type RecentWorkflow = {
@@ -79,6 +82,7 @@ type RecentWorkflow = {
   name: string;
   team: string | null;
   created_at: string;
+  created_by: string | null;
 };
 
 type RecentSuggestion = {
@@ -162,28 +166,28 @@ export default async function Home() {
       .returns<Metric[]>(),
     supabase
       .from("ai_interventions")
-      .select("id, name, status, created_at")
+      .select("id, name, status, created_at, created_by")
       .gte("created_at", since)
       .order("created_at", { ascending: false })
       .limit(8)
       .returns<RecentIntervention[]>(),
     supabase
       .from("regulatory_events")
-      .select("id, summary, severity, created_at, workflow_id")
+      .select("id, summary, severity, created_at, workflow_id, created_by")
       .gte("created_at", since)
       .order("created_at", { ascending: false })
       .limit(8)
       .returns<RegEvent[]>(),
     supabase
       .from("champion_notes")
-      .select("id, team, body, updated_at, target_type, target_id")
+      .select("id, team, body, updated_at, target_type, target_id, created_by")
       .gte("updated_at", since)
       .order("updated_at", { ascending: false })
       .limit(8)
       .returns<RecentNote[]>(),
     supabase
       .from("workflows")
-      .select("id, name, team, created_at")
+      .select("id, name, team, created_at, created_by")
       .is("deleted_at", null)
       .gte("created_at", since)
       .order("created_at", { ascending: false })
@@ -441,50 +445,9 @@ export default async function Home() {
     },
   ];
 
-  // Single chronological stream from the past 7 days.
-  const stream: StreamItem[] = [];
-  for (const iv of recentInterventions ?? []) {
-    stream.push({
-      kind: "intervention",
-      id: iv.id,
-      name: iv.name,
-      status: iv.status,
-      at: iv.created_at,
-    });
-  }
-  for (const e of regEvents ?? []) {
-    stream.push({
-      kind: "regulatory",
-      id: e.id,
-      summary: e.summary,
-      severity: e.severity,
-      at: e.created_at,
-      workflowId: e.workflow_id,
-    });
-  }
-  for (const n of recentNotes ?? []) {
-    stream.push({
-      kind: "note",
-      id: n.id,
-      team: n.team,
-      body: n.body,
-      at: n.updated_at,
-      target_type: n.target_type,
-      target_id: n.target_id,
-    });
-  }
-  for (const w of recentWorkflows ?? []) {
-    stream.push({
-      kind: "workflow",
-      id: w.id,
-      name: w.name,
-      team: w.team,
-      at: w.created_at,
-    });
-  }
-  // Resolve suggestion submitter display names through the same
-  // profile -> people -> email-local chain the rest of the app uses,
-  // so the stream shows "Ingrid Maughan" instead of "ingrid.maughan".
+  // Resolve created_by display names through the same profile -> people ->
+  // email-local chain the rest of the app uses, so the stream shows
+  // "Ingrid Maughan" instead of "ingrid.maughan".
   const streamProfileByUserId = new Map<string, string | null>();
   for (const p of streamProfileRows ?? []) {
     streamProfileByUserId.set(p.user_id, p.display_name);
@@ -502,73 +465,94 @@ export default async function Home() {
   }[]) {
     streamEmailByUserId.set(r.user_id, r.email);
   }
+  function nameFor(userId: string | null): string | null {
+    if (!userId) return null;
+    const email = streamEmailByUserId.get(userId) ?? null;
+    const peopleName = email
+      ? streamPeopleByEmail.get(email.trim().toLowerCase()) ?? null
+      : null;
+    return (
+      resolveDisplayName(
+        streamProfileByUserId.get(userId),
+        peopleName,
+        email,
+      ) || null
+    );
+  }
+
+  // Single chronological stream from the past 7 days.
+  const stream: StreamItem[] = [];
+  for (const iv of recentInterventions ?? []) {
+    stream.push({
+      kind: "intervention",
+      id: iv.id,
+      name: iv.name,
+      status: iv.status,
+      at: iv.created_at,
+      createdBy: nameFor(iv.created_by),
+    });
+  }
+  for (const e of regEvents ?? []) {
+    stream.push({
+      kind: "regulatory",
+      id: e.id,
+      summary: e.summary,
+      severity: e.severity,
+      at: e.created_at,
+      workflowId: e.workflow_id,
+      createdBy: nameFor(e.created_by),
+    });
+  }
+  for (const n of recentNotes ?? []) {
+    stream.push({
+      kind: "note",
+      id: n.id,
+      team: n.team,
+      body: n.body,
+      at: n.updated_at,
+      target_type: n.target_type,
+      target_id: n.target_id,
+      createdBy: nameFor(n.created_by),
+    });
+  }
+  for (const w of recentWorkflows ?? []) {
+    stream.push({
+      kind: "workflow",
+      id: w.id,
+      name: w.name,
+      team: w.team,
+      at: w.created_at,
+      createdBy: nameFor(w.created_by),
+    });
+  }
   for (const s of recentSuggestions ?? []) {
-    let submittedBy: string | null = null;
-    if (s.created_by) {
-      const email = streamEmailByUserId.get(s.created_by) ?? null;
-      const peopleName = email
-        ? streamPeopleByEmail.get(email.trim().toLowerCase()) ?? null
-        : null;
-      submittedBy =
-        resolveDisplayName(
-          streamProfileByUserId.get(s.created_by),
-          peopleName,
-          email,
-        ) || null;
-    }
     stream.push({
       kind: "suggestion",
       id: s.id,
       title: s.title,
       body: s.body,
       team: s.team,
-      submittedBy,
+      submittedBy: nameFor(s.created_by),
       at: s.created_at,
     });
   }
   for (const v of recentLearnVideos ?? []) {
-    let addedBy: string | null = null;
-    if (v.added_by) {
-      const email = streamEmailByUserId.get(v.added_by) ?? null;
-      const peopleName = email
-        ? streamPeopleByEmail.get(email.trim().toLowerCase()) ?? null
-        : null;
-      addedBy =
-        resolveDisplayName(
-          streamProfileByUserId.get(v.added_by),
-          peopleName,
-          email,
-        ) || null;
-    }
     stream.push({
       kind: "learn-video",
       id: v.id,
       title: v.title,
-      addedBy,
+      addedBy: nameFor(v.added_by),
       at: v.created_at,
     });
   }
   for (const c of recentSuggestionComments ?? []) {
-    let commenter: string | null = null;
-    if (c.created_by) {
-      const email = streamEmailByUserId.get(c.created_by) ?? null;
-      const peopleName = email
-        ? streamPeopleByEmail.get(email.trim().toLowerCase()) ?? null
-        : null;
-      commenter =
-        resolveDisplayName(
-          streamProfileByUserId.get(c.created_by),
-          peopleName,
-          email,
-        ) || null;
-    }
     stream.push({
       kind: "suggestion-comment",
       id: c.id,
       suggestionId: c.suggestion_id,
       suggestionTitle: c.suggestion?.title ?? "a suggestion",
       body: c.body,
-      commenter,
+      commenter: nameFor(c.created_by),
       at: c.created_at,
     });
   }

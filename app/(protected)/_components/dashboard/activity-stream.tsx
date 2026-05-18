@@ -8,6 +8,7 @@ export type StreamItem =
       name: string;
       status: string | null;
       at: string;
+      createdBy: string | null;
     }
   | {
       kind: "regulatory";
@@ -16,6 +17,7 @@ export type StreamItem =
       severity: "red" | "amber" | "green";
       at: string;
       workflowId: string | null;
+      createdBy: string | null;
     }
   | {
       kind: "note";
@@ -25,6 +27,7 @@ export type StreamItem =
       at: string;
       target_type: "workflow" | "intervention";
       target_id: string;
+      createdBy: string | null;
     }
   | {
       kind: "workflow";
@@ -32,6 +35,7 @@ export type StreamItem =
       name: string;
       team: string | null;
       at: string;
+      createdBy: string | null;
     }
   | {
       kind: "suggestion";
@@ -84,6 +88,7 @@ export function ActivityStream({ items }: { items: StreamItem[] }) {
               }
               meta={[
                 "New AI initiative",
+                it.createdBy ? `by ${it.createdBy}` : null,
                 it.status ? `status: ${it.status}` : null,
               ]
                 .filter(Boolean)
@@ -108,7 +113,12 @@ export function ActivityStream({ items }: { items: StreamItem[] }) {
                   </span>
                 )
               }
-              meta="Regulatory event"
+              meta={[
+                "Regulatory event",
+                it.createdBy ? `by ${it.createdBy}` : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
               at={it.at}
             />
           )}
@@ -123,7 +133,10 @@ export function ActivityStream({ items }: { items: StreamItem[] }) {
                   {it.name}
                 </Link>
               }
-              meta={["New workflow", it.team ? `team: ${it.team}` : null]
+              meta={[
+                "New workflow",
+                it.createdBy ? `by ${it.createdBy}` : null,
+              ]
                 .filter(Boolean)
                 .join(" · ")}
               at={it.at}
@@ -143,7 +156,6 @@ export function ActivityStream({ items }: { items: StreamItem[] }) {
               meta={[
                 "New suggestion",
                 it.submittedBy ? `by ${it.submittedBy}` : null,
-                it.team ? `team: ${it.team}` : null,
               ]
                 .filter(Boolean)
                 .join(" · ")}
@@ -204,7 +216,9 @@ export function ActivityStream({ items }: { items: StreamItem[] }) {
                   }
                   className="font-medium text-foreground hover:underline"
                 >
-                  {it.team} champion note
+                  {it.createdBy
+                    ? `Champion note from ${it.createdBy}`
+                    : "Champion note"}
                 </Link>
               }
               meta={truncate(it.body, 120)}
