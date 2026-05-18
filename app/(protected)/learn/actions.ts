@@ -80,6 +80,7 @@ export async function addVideo(
   }
 
   revalidatePath("/learn");
+  revalidatePath("/");
   return { kind: "success" };
 }
 
@@ -94,6 +95,7 @@ export async function deleteVideo(formData: FormData): Promise<void> {
   const supabase = await createClient();
   await supabase.from("learn_videos").delete().eq("id", id);
   revalidatePath("/learn");
+  revalidatePath("/");
 }
 
 const RecordPlaySchema = z.object({
