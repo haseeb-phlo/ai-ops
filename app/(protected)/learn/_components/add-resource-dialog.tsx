@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import {
   Dialog,
@@ -9,6 +9,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,26 +17,20 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { addResource, type ActionState } from "../actions";
 
-export function AddResourceDialog({
-  open,
-  onOpenChange,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}) {
+export function AddResourceDialog() {
+  const [open, setOpen] = useState(false);
   const [state, formAction] = useActionState<ActionState, FormData>(
     addResource,
     { kind: "idle" },
   );
 
-  useEffect(() => {
-    if (state.kind === "success") {
-      onOpenChange(false);
-    }
-  }, [state, onOpenChange]);
+  if (state.kind === "success" && open) {
+    setOpen(false);
+  }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger render={<Button variant="outline">Add resource</Button>} />
       <DialogContent className="gap-0 p-0 sm:max-w-lg">
         <DialogHeader className="gap-2 px-6 pt-5 pb-5">
           <DialogTitle>Add a resource</DialogTitle>
@@ -93,7 +88,7 @@ export function AddResourceDialog({
             <Button
               type="button"
               variant="ghost"
-              onClick={() => onOpenChange(false)}
+              onClick={() => setOpen(false)}
             >
               Cancel
             </Button>
