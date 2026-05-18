@@ -70,6 +70,71 @@ export async function addVideo(
   return { kind: "success" };
 }
 
+const EditVideoSchema = z.object({
+  id: z.string().uuid(),
+  title: z.string().min(1, "Title is required").max(200),
+  description: z.string().max(1000).optional(),
+  loom_url: z.string().min(1, "Loom URL is required"),
+  topic: z.enum(LEARN_TOPICS, { error: "Pick a topic" }),
+});
+
+export async function editVideo(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const gate = await requireWriter();
+  if (!gate.ok) return { kind: "error", message: gate.error };
+  if (gate.user.realRole !== "super_admin") {
+    return { kind: "error", message: "Only super admins can edit videos." };
+  }
+
+  const parsed = EditVideoSchema.safeParse({
+    id: formData.get("id"),
+    title: formData.get("title"),
+    description: (formData.get("description") as string) || undefined,
+    loom_url: formData.get("loom_url"),
+    topic: formData.get("topic"),
+  });
+  if (!parsed.success) {
+    return {
+      kind: "error",
+      message: parsed.error.issues.map((i) => i.message).join(" - "),
+    };
+  }
+
+  const embedId = parseLoomId(parsed.data.loom_url);
+  if (!embedId) {
+    return {
+      kind: "error",
+      message:
+        "That doesn't look like a Loom URL. Paste a https://www.loom.com/share/... link.",
+    };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("learn_videos")
+    .update({
+      title: parsed.data.title,
+      description: parsed.data.description ?? null,
+      loom_share_url: parsed.data.loom_url.trim(),
+      loom_embed_id: embedId,
+      topic: parsed.data.topic,
+    })
+    .eq("id", parsed.data.id);
+
+  if (error) {
+    return {
+      kind: "error",
+      message: `Could not update video: ${error.message}`,
+    };
+  }
+
+  revalidatePath("/learn");
+  revalidatePath("/");
+  return { kind: "success" };
+}
+
 export async function deleteVideo(formData: FormData): Promise<void> {
   const gate = await requireWriter();
   if (!gate.ok) return;

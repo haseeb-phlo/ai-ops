@@ -122,6 +122,7 @@ export default async function LearnPage() {
       description={v.description}
       loomEmbedId={v.loom_embed_id}
       loomShareUrl={v.loom_share_url}
+      topic={v.topic}
       addedByName={
         (v.added_by && nameByUserId.get(v.added_by)) || "Unknown"
       }

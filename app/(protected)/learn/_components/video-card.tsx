@@ -18,7 +18,9 @@ import {
   recordPlay,
   signedUrlForResource,
 } from "../actions";
+import { type LearnTopic } from "../topics";
 import { AddAttachmentDialog } from "./add-attachment-dialog";
+import { EditVideoDialog } from "./edit-video-dialog";
 
 export type VideoAttachment = {
   id: string;
@@ -35,6 +37,7 @@ export function VideoCard({
   description,
   loomEmbedId,
   loomShareUrl,
+  topic,
   addedByName,
   createdAt,
   totalPlays,
@@ -47,6 +50,7 @@ export function VideoCard({
   description: string | null;
   loomEmbedId: string;
   loomShareUrl: string;
+  topic: LearnTopic | null;
   addedByName: string;
   createdAt: string;
   totalPlays: number;
@@ -124,15 +128,24 @@ export function VideoCard({
             {title}
           </h3>
           {canManage && (
-            <button
-              type="button"
-              onClick={handleDelete}
-              className="shrink-0 text-muted-foreground hover:text-red-600"
-              aria-label="Delete video"
-              title="Delete video"
-            >
-              <TrashIcon className="size-3.5" />
-            </button>
+            <div className="flex shrink-0 items-center gap-1.5">
+              <EditVideoDialog
+                id={id}
+                title={title}
+                description={description}
+                loomShareUrl={loomShareUrl}
+                topic={topic}
+              />
+              <button
+                type="button"
+                onClick={handleDelete}
+                className="text-muted-foreground hover:text-red-600"
+                aria-label="Delete video"
+                title="Delete video"
+              >
+                <TrashIcon className="size-3.5" />
+              </button>
+            </div>
           )}
         </div>
 
