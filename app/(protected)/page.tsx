@@ -99,6 +99,13 @@ type RecentSuggestionComment = {
   suggestion: { title: string } | null;
 };
 
+type RecentLearnVideo = {
+  id: string;
+  title: string;
+  added_by: string | null;
+  created_at: string;
+};
+
 function gbp(v: number): string {
   const sign = v < 0 ? "-" : "";
   return `${sign}£${Math.abs(v).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
@@ -131,6 +138,7 @@ export default async function Home() {
     { data: recentWorkflows },
     { data: recentSuggestions },
     { data: recentSuggestionComments },
+    { data: recentLearnVideos },
     { data: streamProfileRows },
     { data: streamPeopleRows },
     { data: streamEmailRows },
@@ -197,6 +205,13 @@ export default async function Home() {
       .order("created_at", { ascending: false })
       .limit(8)
       .returns<RecentSuggestionComment[]>(),
+    supabase
+      .from("learn_videos")
+      .select("id, title, added_by, created_at")
+      .gte("created_at", since)
+      .order("created_at", { ascending: false })
+      .limit(8)
+      .returns<RecentLearnVideo[]>(),
     supabase
       .from("profiles")
       .select("user_id, display_name")
@@ -509,6 +524,28 @@ export default async function Home() {
       team: s.team,
       submittedBy,
       at: s.created_at,
+    });
+  }
+  for (const v of recentLearnVideos ?? []) {
+    let addedBy: string | null = null;
+    if (v.added_by) {
+      const email = streamEmailByUserId.get(v.added_by) ?? null;
+      const peopleName = email
+        ? streamPeopleByEmail.get(email.trim().toLowerCase()) ?? null
+        : null;
+      addedBy =
+        resolveDisplayName(
+          streamProfileByUserId.get(v.added_by),
+          peopleName,
+          email,
+        ) || null;
+    }
+    stream.push({
+      kind: "learn-video",
+      id: v.id,
+      title: v.title,
+      addedBy,
+      at: v.created_at,
     });
   }
   for (const c of recentSuggestionComments ?? []) {

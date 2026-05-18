@@ -50,6 +50,13 @@ export type StreamItem =
       body: string;
       commenter: string | null;
       at: string;
+    }
+  | {
+      kind: "learn-video";
+      id: string;
+      title: string;
+      addedBy: string | null;
+      at: string;
     };
 
 export function ActivityStream({ items }: { items: StreamItem[] }) {
@@ -165,6 +172,26 @@ export function ActivityStream({ items }: { items: StreamItem[] }) {
               at={it.at}
             />
           )}
+          {it.kind === "learn-video" && (
+            <Row
+              icon={<Glyph kind="learn-video" />}
+              title={
+                <Link
+                  href="/learn"
+                  className="font-medium text-foreground hover:underline"
+                >
+                  {it.title}
+                </Link>
+              }
+              meta={[
+                "New training video",
+                it.addedBy ? `by ${it.addedBy}` : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+              at={it.at}
+            />
+          )}
           {it.kind === "note" && (
             <Row
               icon={<Glyph kind="note" />}
@@ -225,8 +252,16 @@ function Glyph({
     | "note"
     | "workflow"
     | "suggestion"
-    | "suggestion-comment";
+    | "suggestion-comment"
+    | "learn-video";
 }) {
+  if (kind === "learn-video") {
+    return (
+      <span className="flex size-5 items-center justify-center rounded-full bg-rose-100 text-[10px] font-semibold text-rose-700">
+        ▶
+      </span>
+    );
+  }
   if (kind === "intervention") {
     return (
       <span className="flex size-5 items-center justify-center rounded-full bg-blue-100 text-[10px] font-semibold text-blue-700">

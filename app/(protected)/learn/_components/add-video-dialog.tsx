@@ -22,13 +22,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { addVideo } from "../actions";
 import {
-  addVideo,
   LEARN_TOPICS,
   LEARN_TOPIC_LABEL,
   type ActionState,
   type LearnTopic,
-} from "../actions";
+} from "../topics";
 
 export function AddVideoDialog() {
   const [open, setOpen] = useState(false);
