@@ -10,6 +10,7 @@ const ITEMS = [
   { href: "/interventions", label: "AI Initiatives" },
   { href: "/suggestions", label: "Suggestions" },
   { href: "/map", label: "People" },
+  { href: "/learn", label: "Learn" },
 ] as const;
 
 export function Nav({ canSeeAdmin }: { canSeeAdmin: boolean }) {
