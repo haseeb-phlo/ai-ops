@@ -11,14 +11,14 @@ import {
   FileIcon,
   LinkIcon,
 } from "lucide-react";
-import { loomEmbedUrl, loomThumbnailUrl } from "@/lib/loom";
+import { loomEmbedUrl } from "@/lib/loom";
 import {
   deleteVideo,
   deleteVideoResource,
   recordPlay,
   signedUrlForResource,
 } from "../actions";
-import { type LearnTopic } from "../topics";
+import { type LearnSubtopic, type LearnTopic } from "../topics";
 import { AddAttachmentDialog } from "./add-attachment-dialog";
 import { EditVideoDialog } from "./edit-video-dialog";
 
@@ -37,6 +37,7 @@ export function VideoCard({
   description,
   loomEmbedId,
   loomShareUrl,
+  thumbnailUrl,
   topic,
   subtopic,
   addedByName,
@@ -51,8 +52,9 @@ export function VideoCard({
   description: string | null;
   loomEmbedId: string;
   loomShareUrl: string;
+  thumbnailUrl: string | null;
   topic: LearnTopic | null;
-  subtopic: string | null;
+  subtopic: LearnSubtopic | null;
   addedByName: string;
   createdAt: string;
   totalPlays: number;
@@ -103,13 +105,14 @@ export function VideoCard({
             className="group absolute inset-0 flex items-center justify-center overflow-hidden bg-gradient-to-br from-muted to-muted/60 transition-colors hover:from-muted/80 hover:to-muted/40"
             aria-label={`Play ${title}`}
           >
-            {!thumbFailed && (
-              // Loom CDN thumbnails - plain <img> avoids needing remotePatterns
-              // config and the onError handler hides it if the URL 404s for an
-              // older video so the gradient still shows through.
+            {thumbnailUrl && !thumbFailed && (
+              // thumbnailUrl comes from Loom's oEmbed response (persisted on
+              // the row). Plain <img> avoids needing next.config remotePatterns
+              // config; onError hides it so the gradient placeholder behind
+              // can still cover the play surface if the URL ever fails.
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={loomThumbnailUrl(loomEmbedId)}
+                src={thumbnailUrl}
                 alt=""
                 aria-hidden
                 onError={() => setThumbFailed(true)}

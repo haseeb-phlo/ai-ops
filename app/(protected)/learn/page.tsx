@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getSessionUser } from "@/lib/auth";
+import { fetchLoomOembed } from "@/lib/loom";
 import { PageContainer, PageHeader } from "@/components/page-header";
 import { AddVideoDialog } from "./_components/add-video-dialog";
 import { VideoCard, type VideoAttachment } from "./_components/video-card";
@@ -8,6 +9,7 @@ import {
   LEARN_SUBTOPIC_LABEL,
   LEARN_TOPICS,
   LEARN_TOPIC_LABEL,
+  type LearnSubtopic,
   type LearnTopic,
 } from "./topics";
 
@@ -18,7 +20,8 @@ type VideoRow = {
   loom_share_url: string;
   loom_embed_id: string;
   topic: LearnTopic | null;
-  subtopic: string | null;
+  subtopic: LearnSubtopic | null;
+  thumbnail_url: string | null;
   added_by: string | null;
   created_at: string;
 };
@@ -47,7 +50,7 @@ export default async function LearnPage() {
       supabase
         .from("learn_videos")
         .select(
-          "id, title, description, loom_share_url, loom_embed_id, topic, subtopic, added_by, created_at",
+          "id, title, description, loom_share_url, loom_embed_id, topic, subtopic, thumbnail_url, added_by, created_at",
         )
         .order("created_at", { ascending: false })
         .returns<VideoRow[]>(),
@@ -65,6 +68,28 @@ export default async function LearnPage() {
         .select("user_id, display_name")
         .returns<ProfileLite[]>(),
     ]);
+
+  // Backfill thumbnail_url for any rows that don't have one yet. Older
+  // videos predate the column; rather than ship a one-off script we just
+  // ask Loom's oEmbed endpoint at render time and persist the result. The
+  // updates fire in parallel and we patch the in-memory rows so the
+  // current render shows thumbnails immediately. Failures are silent -
+  // the gradient placeholder still covers the play surface.
+  const videoRowsMutable = videos ?? [];
+  const missing = videoRowsMutable.filter((v) => !v.thumbnail_url);
+  if (missing.length > 0) {
+    await Promise.all(
+      missing.map(async (v) => {
+        const { thumbnailUrl } = await fetchLoomOembed(v.loom_share_url);
+        if (!thumbnailUrl) return;
+        v.thumbnail_url = thumbnailUrl;
+        await supabase
+          .from("learn_videos")
+          .update({ thumbnail_url: thumbnailUrl })
+          .eq("id", v.id);
+      }),
+    );
+  }
 
   const nameByUserId = new Map<string, string>();
   for (const p of profiles ?? []) {
@@ -105,7 +130,7 @@ export default async function LearnPage() {
   }
 
   const canManageVideos = user.realRole === "super_admin";
-  const videoRows = videos ?? [];
+  const videoRows = videoRowsMutable;
 
   // Group videos by topic. Each fixed topic gets its own section in the
   // order declared in actions.ts; legacy rows without a topic surface under
@@ -129,6 +154,7 @@ export default async function LearnPage() {
       description={v.description}
       loomEmbedId={v.loom_embed_id}
       loomShareUrl={v.loom_share_url}
+      thumbnailUrl={v.thumbnail_url}
       topic={v.topic}
       subtopic={v.subtopic}
       addedByName={
