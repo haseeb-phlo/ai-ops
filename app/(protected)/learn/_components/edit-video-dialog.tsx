@@ -30,6 +30,7 @@ import {
   LEARN_TOPICS,
   LEARN_TOPIC_LABEL,
   type ActionState,
+  type LearnSubtopic,
   type LearnTopic,
 } from "../topics";
 
@@ -149,7 +150,9 @@ export function EditVideoDialog({
                     className="w-full"
                   >
                     <SelectValue placeholder="No subtopic">
-                      {(v) => (v ? LEARN_SUBTOPIC_LABEL[v] : null)}
+                      {(v) =>
+                        v ? LEARN_SUBTOPIC_LABEL[v as LearnSubtopic] : null
+                      }
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>

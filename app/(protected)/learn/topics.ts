@@ -22,15 +22,26 @@ export const LEARN_TOPIC_LABEL: Record<LearnTopic, string> = {
 // render order on the Learn page. Subtopic keys must be globally unique
 // so the DB CHECK constraint can validate them with a single list; the
 // topic→subtopic relationship is enforced in the Server Action.
-export const LEARN_SUBTOPICS: Partial<Record<LearnTopic, readonly string[]>> = {
+export type LearnSubtopic = "claude";
+
+export const LEARN_SUBTOPICS: Partial<
+  Record<LearnTopic, readonly LearnSubtopic[]>
+> = {
   ai_tools: ["claude"],
 };
 
-export const LEARN_SUBTOPIC_LABEL: Record<string, string> = {
+export const LEARN_SUBTOPIC_LABEL: Record<LearnSubtopic, string> = {
   claude: "Claude",
 };
 
-export const LEARN_ALL_SUBTOPICS = Object.values(LEARN_SUBTOPICS).flat();
+export function isValidSubtopic(
+  topic: LearnTopic,
+  subtopic: string,
+): subtopic is LearnSubtopic {
+  return ((LEARN_SUBTOPICS[topic] ?? []) as readonly string[]).includes(
+    subtopic,
+  );
+}
 
 export const VIDEO_RESOURCE_MAX_FILE_BYTES = 25 * 1024 * 1024; // 25 MB
 export const VIDEO_RESOURCE_BUCKET = "learn-video-resources";

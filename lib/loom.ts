@@ -43,10 +43,24 @@ export function loomShareUrl(id: string): string {
   return `https://www.loom.com/share/${id}`;
 }
 
-// Loom serves a static frame-1 thumbnail at this CDN path for every share.
-// It's not part of the official API but has been stable for years and is
-// what the standard Loom embed itself uses. If the image ever 404s we fall
-// back to a gradient placeholder in the UI - the play button still works.
-export function loomThumbnailUrl(id: string): string {
-  return `https://cdn.loom.com/sessions/thumbnails/${id}-00001.jpg`;
+// Loom's public oEmbed endpoint. Returns the authoritative thumbnail URL
+// for a share link (the CDN-pattern guess does not work reliably for newer
+// uploads, so we ask Loom directly). Returns null on any failure so the
+// UI can fall back to a gradient placeholder; we never block the user
+// over a missing thumbnail.
+export async function fetchLoomOembed(
+  shareUrl: string,
+): Promise<{ thumbnailUrl: string | null }> {
+  try {
+    const oembed = `https://www.loom.com/v1/oembed?format=json&url=${encodeURIComponent(shareUrl)}`;
+    const res = await fetch(oembed, {
+      // Cache aggressively - oEmbed responses are stable per video.
+      next: { revalidate: 60 * 60 * 24 * 7 },
+    });
+    if (!res.ok) return { thumbnailUrl: null };
+    const data = (await res.json()) as { thumbnail_url?: string };
+    return { thumbnailUrl: data.thumbnail_url ?? null };
+  } catch {
+    return { thumbnailUrl: null };
+  }
 }

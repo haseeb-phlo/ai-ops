@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionUser, requireWriter } from "@/lib/auth";
-import { parseLoomId } from "@/lib/loom";
+import { fetchLoomOembed, parseLoomId } from "@/lib/loom";
 import {
   LEARN_SUBTOPICS,
   LEARN_TOPICS,
@@ -23,7 +23,7 @@ function resolveSubtopic(
 ): { ok: true; value: string | null } | { ok: false; message: string } {
   const value = typeof raw === "string" ? raw.trim() : "";
   if (!value) return { ok: true, value: null };
-  const valid = LEARN_SUBTOPICS[topic] ?? [];
+  const valid = (LEARN_SUBTOPICS[topic] ?? []) as readonly string[];
   if (!valid.includes(value)) {
     return { ok: false, message: "Pick a valid subtopic for this topic." };
   }
@@ -72,14 +72,18 @@ export async function addVideo(
   const subtopic = resolveSubtopic(formData.get("subtopic"), parsed.data.topic);
   if (!subtopic.ok) return { kind: "error", message: subtopic.message };
 
+  const loomUrl = parsed.data.loom_url.trim();
+  const { thumbnailUrl } = await fetchLoomOembed(loomUrl);
+
   const supabase = await createClient();
   const { error } = await supabase.from("learn_videos").insert({
     title: parsed.data.title,
     description: parsed.data.description ?? null,
-    loom_share_url: parsed.data.loom_url.trim(),
+    loom_share_url: loomUrl,
     loom_embed_id: embedId,
     topic: parsed.data.topic,
     subtopic: subtopic.value,
+    thumbnail_url: thumbnailUrl,
     added_by: gate.user.id,
   });
 
@@ -136,16 +140,20 @@ export async function editVideo(
   const subtopic = resolveSubtopic(formData.get("subtopic"), parsed.data.topic);
   if (!subtopic.ok) return { kind: "error", message: subtopic.message };
 
+  const loomUrl = parsed.data.loom_url.trim();
+  const { thumbnailUrl } = await fetchLoomOembed(loomUrl);
+
   const supabase = await createClient();
   const { error } = await supabase
     .from("learn_videos")
     .update({
       title: parsed.data.title,
       description: parsed.data.description ?? null,
-      loom_share_url: parsed.data.loom_url.trim(),
+      loom_share_url: loomUrl,
       loom_embed_id: embedId,
       topic: parsed.data.topic,
       subtopic: subtopic.value,
+      thumbnail_url: thumbnailUrl,
     })
     .eq("id", parsed.data.id);
 
