@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import {
   Dialog,
@@ -9,33 +9,50 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { addVideo, type ActionState } from "../actions";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  addVideo,
+  LEARN_TOPICS,
+  LEARN_TOPIC_LABEL,
+  type ActionState,
+  type LearnTopic,
+} from "../actions";
 
-export function AddVideoDialog({
-  open,
-  onOpenChange,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}) {
+export function AddVideoDialog() {
+  const [open, setOpen] = useState(false);
+  const [topic, setTopic] = useState<LearnTopic | "">("");
   const [state, formAction] = useActionState<ActionState, FormData>(
     addVideo,
     { kind: "idle" },
   );
 
-  useEffect(() => {
-    if (state.kind === "success") {
-      onOpenChange(false);
-    }
-  }, [state, onOpenChange]);
+  // Render-phase close on success - same pattern as suggestions/submit-dialog.
+  // The `open` guard prevents an infinite loop once state stays at "success".
+  if (state.kind === "success" && open) {
+    setOpen(false);
+    setTopic("");
+  }
+
+  const handleOpenChange = (next: boolean) => {
+    if (!next) setTopic("");
+    setOpen(next);
+  };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogTrigger render={<Button>Add video</Button>} />
       <DialogContent className="gap-0 p-0 sm:max-w-lg">
         <DialogHeader className="gap-2 px-6 pt-5 pb-5">
           <DialogTitle>Add Loom video</DialogTitle>
@@ -56,6 +73,28 @@ export function AddVideoDialog({
                 maxLength={200}
                 placeholder="e.g. Writing prompts that don't suck"
               />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="topic">Topic</Label>
+              <input type="hidden" name="topic" value={topic} />
+              <Select
+                value={topic}
+                onValueChange={(v) => setTopic((v as LearnTopic) ?? "")}
+              >
+                <SelectTrigger id="topic" className="w-full">
+                  <SelectValue placeholder="Pick a topic">
+                    {(v) => (v ? LEARN_TOPIC_LABEL[v as LearnTopic] : null)}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {LEARN_TOPICS.map((t) => (
+                    <SelectItem key={t} value={t}>
+                      {LEARN_TOPIC_LABEL[t]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-1.5">
@@ -97,11 +136,11 @@ export function AddVideoDialog({
             <Button
               type="button"
               variant="ghost"
-              onClick={() => onOpenChange(false)}
+              onClick={() => handleOpenChange(false)}
             >
               Cancel
             </Button>
-            <SubmitButton />
+            <SubmitButton disabled={!topic} />
           </DialogFooter>
         </form>
       </DialogContent>
@@ -109,10 +148,10 @@ export function AddVideoDialog({
   );
 }
 
-function SubmitButton() {
+function SubmitButton({ disabled = false }: { disabled?: boolean }) {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" disabled={pending}>
+    <Button type="submit" disabled={disabled || pending}>
       {pending ? "Adding…" : "Add video"}
     </Button>
   );

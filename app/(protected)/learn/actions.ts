@@ -11,10 +11,26 @@ export type ActionState =
   | { kind: "error"; message: string }
   | { kind: "success" };
 
+export const LEARN_TOPICS = [
+  "ai_ops",
+  "ai_foundations",
+  "prompt_engineering",
+  "ai_tools",
+] as const;
+export type LearnTopic = (typeof LEARN_TOPICS)[number];
+
+export const LEARN_TOPIC_LABEL: Record<LearnTopic, string> = {
+  ai_ops: "AI Ops",
+  ai_foundations: "AI Foundations",
+  prompt_engineering: "Prompt Engineering",
+  ai_tools: "AI Tools",
+};
+
 const AddVideoSchema = z.object({
   title: z.string().min(1, "Title is required").max(200),
   description: z.string().max(1000).optional(),
   loom_url: z.string().min(1, "Loom URL is required"),
+  topic: z.enum(LEARN_TOPICS, { error: "Pick a topic" }),
 });
 
 export async function addVideo(
@@ -31,6 +47,7 @@ export async function addVideo(
     title: formData.get("title"),
     description: (formData.get("description") as string) || undefined,
     loom_url: formData.get("loom_url"),
+    topic: formData.get("topic"),
   });
   if (!parsed.success) {
     return {
@@ -54,6 +71,7 @@ export async function addVideo(
     description: parsed.data.description ?? null,
     loom_share_url: parsed.data.loom_url.trim(),
     loom_embed_id: embedId,
+    topic: parsed.data.topic,
     added_by: gate.user.id,
   });
 
