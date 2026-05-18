@@ -4,7 +4,6 @@ import { useState, useTransition } from "react";
 import { format } from "date-fns";
 import {
   PlayIcon,
-  ExternalLinkIcon,
   TrashIcon,
   FileIcon,
   LinkIcon,
@@ -164,7 +163,7 @@ export function VideoCard({
           </p>
         )}
 
-        <div className="mt-auto flex items-center justify-between gap-3 pt-3 text-xs text-muted-foreground">
+        <div className="mt-auto flex items-center gap-3 pt-3 text-xs text-muted-foreground">
           <span>
             {totalPlays} {totalPlays === 1 ? "play" : "plays"}
             <span aria-hidden className="mx-1.5 text-muted-foreground/50">
@@ -172,15 +171,6 @@ export function VideoCard({
             </span>
             {uniqueViewers} {uniqueViewers === 1 ? "viewer" : "viewers"}
           </span>
-          <a
-            href={loomShareUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1 hover:text-foreground"
-          >
-            Loom
-            <ExternalLinkIcon className="size-3" />
-          </a>
         </div>
         <div className="text-xs text-muted-foreground">
           {addedByName}
