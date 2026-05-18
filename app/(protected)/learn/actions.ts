@@ -6,11 +6,29 @@ import { createClient } from "@/lib/supabase/server";
 import { getSessionUser, requireWriter } from "@/lib/auth";
 import { parseLoomId } from "@/lib/loom";
 import {
+  LEARN_SUBTOPICS,
   LEARN_TOPICS,
   VIDEO_RESOURCE_BUCKET,
   VIDEO_RESOURCE_MAX_FILE_BYTES,
   type ActionState,
+  type LearnTopic,
 } from "./topics";
+
+// Coerce an empty/blank subtopic from the form to null and verify it is
+// listed under the parent topic in LEARN_SUBTOPICS. Returns an error
+// message when invalid; null when "no subtopic selected" is acceptable.
+function resolveSubtopic(
+  raw: FormDataEntryValue | null,
+  topic: LearnTopic,
+): { ok: true; value: string | null } | { ok: false; message: string } {
+  const value = typeof raw === "string" ? raw.trim() : "";
+  if (!value) return { ok: true, value: null };
+  const valid = LEARN_SUBTOPICS[topic] ?? [];
+  if (!valid.includes(value)) {
+    return { ok: false, message: "Pick a valid subtopic for this topic." };
+  }
+  return { ok: true, value };
+}
 
 const AddVideoSchema = z.object({
   title: z.string().min(1, "Title is required").max(200),
@@ -51,6 +69,9 @@ export async function addVideo(
     };
   }
 
+  const subtopic = resolveSubtopic(formData.get("subtopic"), parsed.data.topic);
+  if (!subtopic.ok) return { kind: "error", message: subtopic.message };
+
   const supabase = await createClient();
   const { error } = await supabase.from("learn_videos").insert({
     title: parsed.data.title,
@@ -58,6 +79,7 @@ export async function addVideo(
     loom_share_url: parsed.data.loom_url.trim(),
     loom_embed_id: embedId,
     topic: parsed.data.topic,
+    subtopic: subtopic.value,
     added_by: gate.user.id,
   });
 
@@ -111,6 +133,9 @@ export async function editVideo(
     };
   }
 
+  const subtopic = resolveSubtopic(formData.get("subtopic"), parsed.data.topic);
+  if (!subtopic.ok) return { kind: "error", message: subtopic.message };
+
   const supabase = await createClient();
   const { error } = await supabase
     .from("learn_videos")
@@ -120,6 +145,7 @@ export async function editVideo(
       loom_share_url: parsed.data.loom_url.trim(),
       loom_embed_id: embedId,
       topic: parsed.data.topic,
+      subtopic: subtopic.value,
     })
     .eq("id", parsed.data.id);
 

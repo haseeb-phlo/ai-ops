@@ -25,6 +25,8 @@ import {
 } from "@/components/ui/select";
 import { editVideo } from "../actions";
 import {
+  LEARN_SUBTOPICS,
+  LEARN_SUBTOPIC_LABEL,
   LEARN_TOPICS,
   LEARN_TOPIC_LABEL,
   type ActionState,
@@ -37,18 +39,21 @@ export function EditVideoDialog({
   description,
   loomShareUrl,
   topic,
+  subtopic,
 }: {
   id: string;
   title: string;
   description: string | null;
   loomShareUrl: string;
   topic: LearnTopic | null;
+  subtopic: string | null;
 }) {
   const [open, setOpen] = useState(false);
   // Keep the selected topic in local state so the Select control can be
   // reset to the current value each time the dialog reopens (otherwise the
   // controlled component would drift after a successful edit).
   const [topicValue, setTopicValue] = useState<LearnTopic | "">(topic ?? "");
+  const [subtopicValue, setSubtopicValue] = useState<string>(subtopic ?? "");
   const [state, formAction] = useActionState<ActionState, FormData>(
     editVideo,
     { kind: "idle" },
@@ -59,9 +64,14 @@ export function EditVideoDialog({
   }
 
   const handleOpenChange = (next: boolean) => {
-    if (next) setTopicValue(topic ?? "");
+    if (next) {
+      setTopicValue(topic ?? "");
+      setSubtopicValue(subtopic ?? "");
+    }
     setOpen(next);
   };
+
+  const subtopicOptions = topicValue ? LEARN_SUBTOPICS[topicValue] ?? [] : [];
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -104,9 +114,10 @@ export function EditVideoDialog({
               <input type="hidden" name="topic" value={topicValue} />
               <Select
                 value={topicValue}
-                onValueChange={(v) =>
-                  setTopicValue((v as LearnTopic) ?? "")
-                }
+                onValueChange={(v) => {
+                  setTopicValue((v as LearnTopic) ?? "");
+                  setSubtopicValue("");
+                }}
               >
                 <SelectTrigger id={`edit-topic-${id}`} className="w-full">
                   <SelectValue placeholder="Pick a topic">
@@ -122,6 +133,35 @@ export function EditVideoDialog({
                 </SelectContent>
               </Select>
             </div>
+
+            {subtopicOptions.length > 0 && (
+              <div className="space-y-1.5">
+                <Label htmlFor={`edit-subtopic-${id}`}>
+                  Subtopic (optional)
+                </Label>
+                <input type="hidden" name="subtopic" value={subtopicValue} />
+                <Select
+                  value={subtopicValue}
+                  onValueChange={(v) => setSubtopicValue(v ?? "")}
+                >
+                  <SelectTrigger
+                    id={`edit-subtopic-${id}`}
+                    className="w-full"
+                  >
+                    <SelectValue placeholder="No subtopic">
+                      {(v) => (v ? LEARN_SUBTOPIC_LABEL[v] : null)}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {subtopicOptions.map((s) => (
+                      <SelectItem key={s} value={s}>
+                        {LEARN_SUBTOPIC_LABEL[s]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div className="space-y-1.5">
               <Label htmlFor={`edit-loom-${id}`}>Loom URL</Label>

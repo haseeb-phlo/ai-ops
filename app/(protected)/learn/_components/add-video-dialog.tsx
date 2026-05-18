@@ -24,6 +24,8 @@ import {
 } from "@/components/ui/select";
 import { addVideo } from "../actions";
 import {
+  LEARN_SUBTOPICS,
+  LEARN_SUBTOPIC_LABEL,
   LEARN_TOPICS,
   LEARN_TOPIC_LABEL,
   type ActionState,
@@ -33,6 +35,7 @@ import {
 export function AddVideoDialog() {
   const [open, setOpen] = useState(false);
   const [topic, setTopic] = useState<LearnTopic | "">("");
+  const [subtopic, setSubtopic] = useState<string>("");
   const [state, formAction] = useActionState<ActionState, FormData>(
     addVideo,
     { kind: "idle" },
@@ -43,12 +46,18 @@ export function AddVideoDialog() {
   if (state.kind === "success" && open) {
     setOpen(false);
     setTopic("");
+    setSubtopic("");
   }
 
   const handleOpenChange = (next: boolean) => {
-    if (!next) setTopic("");
+    if (!next) {
+      setTopic("");
+      setSubtopic("");
+    }
     setOpen(next);
   };
+
+  const subtopicOptions = topic ? LEARN_SUBTOPICS[topic] ?? [] : [];
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -80,7 +89,10 @@ export function AddVideoDialog() {
               <input type="hidden" name="topic" value={topic} />
               <Select
                 value={topic}
-                onValueChange={(v) => setTopic((v as LearnTopic) ?? "")}
+                onValueChange={(v) => {
+                  setTopic((v as LearnTopic) ?? "");
+                  setSubtopic("");
+                }}
               >
                 <SelectTrigger id="topic" className="w-full">
                   <SelectValue placeholder="Pick a topic">
@@ -96,6 +108,30 @@ export function AddVideoDialog() {
                 </SelectContent>
               </Select>
             </div>
+
+            {subtopicOptions.length > 0 && (
+              <div className="space-y-1.5">
+                <Label htmlFor="subtopic">Subtopic (optional)</Label>
+                <input type="hidden" name="subtopic" value={subtopic} />
+                <Select
+                  value={subtopic}
+                  onValueChange={(v) => setSubtopic(v ?? "")}
+                >
+                  <SelectTrigger id="subtopic" className="w-full">
+                    <SelectValue placeholder="No subtopic">
+                      {(v) => (v ? LEARN_SUBTOPIC_LABEL[v] : null)}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {subtopicOptions.map((s) => (
+                      <SelectItem key={s} value={s}>
+                        {LEARN_SUBTOPIC_LABEL[s]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div className="space-y-1.5">
               <Label htmlFor="loom_url">Loom URL</Label>

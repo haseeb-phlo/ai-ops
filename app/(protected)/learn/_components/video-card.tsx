@@ -38,6 +38,7 @@ export function VideoCard({
   loomEmbedId,
   loomShareUrl,
   topic,
+  subtopic,
   addedByName,
   createdAt,
   totalPlays,
@@ -51,6 +52,7 @@ export function VideoCard({
   loomEmbedId: string;
   loomShareUrl: string;
   topic: LearnTopic | null;
+  subtopic: string | null;
   addedByName: string;
   createdAt: string;
   totalPlays: number;
@@ -135,6 +137,7 @@ export function VideoCard({
                 description={description}
                 loomShareUrl={loomShareUrl}
                 topic={topic}
+                subtopic={subtopic}
               />
               <button
                 type="button"

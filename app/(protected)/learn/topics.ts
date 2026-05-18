@@ -18,5 +18,19 @@ export const LEARN_TOPIC_LABEL: Record<LearnTopic, string> = {
   ai_tools: "AI Tools",
 };
 
+// Subtopics nested under a parent topic. Order in the array drives the
+// render order on the Learn page. Subtopic keys must be globally unique
+// so the DB CHECK constraint can validate them with a single list; the
+// topic→subtopic relationship is enforced in the Server Action.
+export const LEARN_SUBTOPICS: Partial<Record<LearnTopic, readonly string[]>> = {
+  ai_tools: ["claude"],
+};
+
+export const LEARN_SUBTOPIC_LABEL: Record<string, string> = {
+  claude: "Claude",
+};
+
+export const LEARN_ALL_SUBTOPICS = Object.values(LEARN_SUBTOPICS).flat();
+
 export const VIDEO_RESOURCE_MAX_FILE_BYTES = 25 * 1024 * 1024; // 25 MB
 export const VIDEO_RESOURCE_BUCKET = "learn-video-resources";

@@ -3,7 +3,13 @@ import { getSessionUser } from "@/lib/auth";
 import { PageContainer, PageHeader } from "@/components/page-header";
 import { AddVideoDialog } from "./_components/add-video-dialog";
 import { VideoCard, type VideoAttachment } from "./_components/video-card";
-import { LEARN_TOPICS, LEARN_TOPIC_LABEL, type LearnTopic } from "./topics";
+import {
+  LEARN_SUBTOPICS,
+  LEARN_SUBTOPIC_LABEL,
+  LEARN_TOPICS,
+  LEARN_TOPIC_LABEL,
+  type LearnTopic,
+} from "./topics";
 
 type VideoRow = {
   id: string;
@@ -12,6 +18,7 @@ type VideoRow = {
   loom_share_url: string;
   loom_embed_id: string;
   topic: LearnTopic | null;
+  subtopic: string | null;
   added_by: string | null;
   created_at: string;
 };
@@ -40,7 +47,7 @@ export default async function LearnPage() {
       supabase
         .from("learn_videos")
         .select(
-          "id, title, description, loom_share_url, loom_embed_id, topic, added_by, created_at",
+          "id, title, description, loom_share_url, loom_embed_id, topic, subtopic, added_by, created_at",
         )
         .order("created_at", { ascending: false })
         .returns<VideoRow[]>(),
@@ -123,6 +130,7 @@ export default async function LearnPage() {
       loomEmbedId={v.loom_embed_id}
       loomShareUrl={v.loom_share_url}
       topic={v.topic}
+      subtopic={v.subtopic}
       addedByName={
         (v.added_by && nameByUserId.get(v.added_by)) || "Unknown"
       }
@@ -145,6 +153,24 @@ export default async function LearnPage() {
       <div className="space-y-10">
         {LEARN_TOPICS.map((topic) => {
           const items = videosByTopic.get(topic) ?? [];
+          const subtopicKeys = LEARN_SUBTOPICS[topic] ?? [];
+
+          // When a topic defines subtopics, split its videos into a
+          // default (no-subtopic) bucket plus one bucket per defined
+          // subtopic. Rows whose subtopic isn't in the parent topic's
+          // list fall back into the default bucket so they remain
+          // visible after a subtopic gets removed from the config.
+          const defaultBucket: VideoRow[] = [];
+          const bySubtopic = new Map<string, VideoRow[]>();
+          for (const s of subtopicKeys) bySubtopic.set(s, []);
+          for (const v of items) {
+            if (v.subtopic && bySubtopic.has(v.subtopic)) {
+              bySubtopic.get(v.subtopic)!.push(v);
+            } else {
+              defaultBucket.push(v);
+            }
+          }
+
           return (
             <section key={topic} className="space-y-3">
               <div className="flex items-baseline justify-between gap-3 border-b border-border pb-2">
@@ -159,9 +185,31 @@ export default async function LearnPage() {
                 <div className="rounded-lg border border-dashed border-border bg-background px-6 py-8 text-center text-xs text-muted-foreground">
                   No videos in this topic yet.
                 </div>
-              ) : (
+              ) : subtopicKeys.length === 0 ? (
                 <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                   {items.map(renderCard)}
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {defaultBucket.length > 0 && (
+                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                      {defaultBucket.map(renderCard)}
+                    </div>
+                  )}
+                  {subtopicKeys.map((s) => {
+                    const subItems = bySubtopic.get(s) ?? [];
+                    if (subItems.length === 0) return null;
+                    return (
+                      <div key={s} className="space-y-3">
+                        <h3 className="text-sm font-semibold tracking-tight text-muted-foreground">
+                          {LEARN_SUBTOPIC_LABEL[s] ?? s}
+                        </h3>
+                        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                          {subItems.map(renderCard)}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </section>
