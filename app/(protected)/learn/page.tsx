@@ -4,6 +4,7 @@ import { fetchLoomOembed } from "@/lib/loom";
 import { PageContainer, PageHeader } from "@/components/page-header";
 import { AddVideoDialog } from "./_components/add-video-dialog";
 import { VideoCard, type VideoAttachment } from "./_components/video-card";
+import { YourProgress } from "./_components/your-progress";
 import type { ReactionEntry } from "./_components/reactions";
 import type { VideoComment } from "./_components/comments";
 import {
@@ -28,7 +29,7 @@ type VideoRow = {
   created_at: string;
 };
 
-type PlayRow = { video_id: string; user_id: string };
+type PlayRow = { video_id: string; user_id: string; created_at: string };
 
 type ResourceRow = {
   id: string;
@@ -79,7 +80,7 @@ export default async function LearnPage() {
       .returns<VideoRow[]>(),
     supabase
       .from("learn_video_plays")
-      .select("video_id, user_id")
+      .select("video_id, user_id, created_at")
       .returns<PlayRow[]>(),
     supabase
       .from("learn_video_resources")
@@ -132,9 +133,13 @@ export default async function LearnPage() {
 
   // Aggregate plays per video. We track both totals (every play, including
   // rewatches) and uniques (distinct viewers) so the card can show
-  // "X plays from Y people".
+  // "X plays from Y people". In the same pass, capture the current user's
+  // earliest play timestamp per video so the card can show a "watched on X"
+  // indicator. "Watched" today means "clicked play at least once" — good
+  // enough until/unless we wire the Loom SDK for true completion.
   const totalPlays = new Map<string, number>();
   const uniqueViewers = new Map<string, Set<string>>();
+  const myWatchedAt = new Map<string, string>();
   for (const p of plays ?? []) {
     totalPlays.set(p.video_id, (totalPlays.get(p.video_id) ?? 0) + 1);
     let set = uniqueViewers.get(p.video_id);
@@ -143,6 +148,12 @@ export default async function LearnPage() {
       uniqueViewers.set(p.video_id, set);
     }
     set.add(p.user_id);
+    if (p.user_id === user.id) {
+      const existing = myWatchedAt.get(p.video_id);
+      if (!existing || p.created_at < existing) {
+        myWatchedAt.set(p.video_id, p.created_at);
+      }
+    }
   }
 
   const attachmentsByVideo = new Map<string, VideoAttachment[]>();
@@ -227,6 +238,7 @@ export default async function LearnPage() {
       createdAt={v.created_at}
       totalPlays={totalPlays.get(v.id) ?? 0}
       uniqueViewers={uniqueViewers.get(v.id)?.size ?? 0}
+      watchedAt={myWatchedAt.get(v.id) ?? null}
       canManage={canManageVideos}
       attachments={attachmentsByVideo.get(v.id) ?? []}
       reactions={reactionsByVideo.get(v.id) ?? []}
@@ -243,6 +255,8 @@ export default async function LearnPage() {
         description="Short Loom walkthroughs and supporting materials for getting better at AI."
         actions={canManageVideos ? <AddVideoDialog /> : null}
       />
+
+      <YourProgress watched={myWatchedAt.size} total={videoRows.length} />
 
       <div className="space-y-10">
         {LEARN_TOPICS.map((topic) => {

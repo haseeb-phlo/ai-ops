@@ -8,6 +8,7 @@ import {
   FileIcon,
   LinkIcon,
   PlusIcon,
+  CheckIcon,
 } from "lucide-react";
 import { loomEmbedUrl } from "@/lib/loom";
 import {
@@ -44,6 +45,7 @@ export function VideoCard({
   createdAt,
   totalPlays,
   uniqueViewers,
+  watchedAt,
   canManage,
   attachments,
   reactions,
@@ -63,6 +65,7 @@ export function VideoCard({
   createdAt: string;
   totalPlays: number;
   uniqueViewers: number;
+  watchedAt: string | null;
   canManage: boolean;
   attachments: VideoAttachment[];
   reactions: ReactionEntry[];
@@ -97,6 +100,16 @@ export function VideoCard({
   return (
     <article className="flex flex-col overflow-hidden rounded-lg border border-border bg-background">
       <div className="relative aspect-video w-full bg-muted">
+        {watchedAt && !playing && (
+          <span
+            className="pointer-events-none absolute right-2 top-2 z-10 inline-flex items-center gap-1 rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-medium text-white shadow-sm"
+            title={`Watched ${format(new Date(watchedAt), "d MMM yyyy")}`}
+            aria-label={`Watched ${format(new Date(watchedAt), "d MMM yyyy")}`}
+          >
+            <CheckIcon aria-hidden className="size-3" strokeWidth={3} />
+            Watched
+          </span>
+        )}
         {playing ? (
           <iframe
             src={loomEmbedUrl(loomEmbedId, { autoplay: true })}
