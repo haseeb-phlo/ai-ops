@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server";
-import { championsByDisplayName } from "@/lib/champions";
 import {
   ORG_TREE,
   namedEmails,
@@ -34,8 +33,6 @@ export async function OrgView() {
     { data: people },
     { data: profiles },
     signedInRpc,
-    userEmailsRpc,
-    champByName,
   ] = await Promise.all([
     supabase
       .from("people")
@@ -47,9 +44,15 @@ export async function OrgView() {
       .select("user_id, avatar_url")
       .returns<{ user_id: string; avatar_url: string | null }[]>(),
     supabase.rpc("signed_in_emails"),
-    supabase.rpc("user_emails"),
-    championsByDisplayName(),
   ]);
+
+  // Resolve user_id → email for the profile user_ids we just loaded so the
+  // avatar-by-email map can be built. user_emails requires an explicit list.
+  const profileUserIds = (profiles ?? []).map((p) => p.user_id);
+  const userEmailsRpc =
+    profileUserIds.length === 0
+      ? { data: [] as Array<{ user_id: string; email: string | null }> }
+      : await supabase.rpc("user_emails", { p_user_ids: profileUserIds });
 
   const peopleRows = people ?? [];
   const peopleByEmail = new Map(
@@ -85,8 +88,6 @@ export async function OrgView() {
   );
 
   function toResolved(row: PersonRow): ResolvedPerson {
-    const lowerName = row.display_name.trim().toLowerCase();
-    const champ = champByName.get(lowerName);
     return {
       email: row.email,
       displayName: row.display_name,
@@ -95,7 +96,6 @@ export async function OrgView() {
       startDate: row.start_date,
       avatarUrl: avatarFor(row.email),
       isSignedIn: signedInEmails.has(row.email.toLowerCase()),
-      championTeam: champ?.team ?? null,
     };
   }
 

@@ -155,7 +155,7 @@ export default async function WorkflowsPage(props: {
         .select("user_id, display_name")
         .in("user_id", creatorIds)
         .returns<ProfileLite[]>(),
-      supabase.rpc("user_emails"),
+      supabase.rpc("user_emails", { p_user_ids: creatorIds }),
     ]);
     const profileById = new Map<string, string | null>();
     for (const p of profiles ?? []) {

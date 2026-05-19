@@ -3,7 +3,6 @@ import Link from "next/link";
 import { format } from "date-fns";
 import { getSessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { championsByTeam } from "@/lib/champions";
 import { resolveDisplayName } from "@/lib/profile";
 import { PageContainer } from "@/components/page-header";
 import { DetailHeader } from "@/components/ui/detail-header";
@@ -77,8 +76,7 @@ export default async function SuggestionDetailPage({
     { data: workflows },
     { data: interventions },
     { data: peopleRows },
-    { data: emailRows },
-    byTeam,
+    { data: myChampionRows },
   ] = await Promise.all([
     supabase
       .from("intervention_suggestions")
@@ -116,13 +114,31 @@ export default async function SuggestionDetailPage({
       .from("people")
       .select("email, display_name")
       .returns<{ email: string; display_name: string }[]>(),
-    supabase.rpc("user_emails"),
-    championsByTeam(),
+    supabase
+      .from("champions")
+      .select("team")
+      .eq("user_id", user.id)
+      .returns<{ team: string }[]>(),
   ]);
 
   if (!suggestion) {
     notFound();
   }
+
+  // Resolve user_id → email for just the people on this page (suggestion
+  // author + commenters). user_emails requires an explicit user_id list.
+  const pageUserIds = Array.from(
+    new Set(
+      [
+        suggestion.created_by,
+        ...((comments ?? []).map((c) => c.created_by)),
+      ].filter((v): v is string => !!v),
+    ),
+  );
+  const { data: emailRows } =
+    pageUserIds.length === 0
+      ? { data: [] as { user_id: string; email: string | null }[] }
+      : await supabase.rpc("user_emails", { p_user_ids: pageUserIds });
 
   const profileNameByUserId = new Map<string, string | null>();
   for (const p of profileRows ?? []) {
@@ -163,11 +179,9 @@ export default async function SuggestionDetailPage({
   const voted = (voteRows ?? []).some((v) => v.user_id === user.id);
 
   const isSuper = user.role === "super_admin";
-  const isChampion = (() => {
-    if (!suggestion.team) return false;
-    const champ = byTeam.get(suggestion.team);
-    return champ?.user_id === user.id;
-  })();
+  const isChampion =
+    !!suggestion.team &&
+    (myChampionRows ?? []).some((r) => r.team === suggestion.team);
   const canTriage = isSuper || isChampion;
   const canCommit = isSuper;
 

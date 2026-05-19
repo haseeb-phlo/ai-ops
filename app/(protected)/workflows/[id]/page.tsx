@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { loadTeamOptions } from "@/lib/teams";
+import { loadToolSuggestions } from "@/lib/tools";
 import { resolveDisplayName } from "@/lib/profile";
 import { canUserEditWorkflow } from "./permissions";
 import { HeaderCard, type WorkflowHeader } from "./_components/header-card";
@@ -15,7 +16,6 @@ import {
   type LinkedIntervention,
 } from "./_components/linked-interventions";
 import { Activity, type ActivityRevision } from "./_components/activity";
-import { ChampionNotesSection } from "@/app/(protected)/_components/champion-notes/notes-section";
 import { DetailHeader } from "@/components/ui/detail-header";
 
 export default async function WorkflowDetailPage({
@@ -98,14 +98,13 @@ export default async function WorkflowDetailPage({
         .select("display_name")
         .eq("user_id", workflow.created_by)
         .maybeSingle<{ display_name: string | null }>(),
-      supabase.rpc("user_emails"),
+      supabase.rpc("user_emails", { p_user_ids: [workflow.created_by] }),
     ]);
     const emailRows = (emails ?? []) as Array<{
       user_id: string;
       email: string | null;
     }>;
-    const creatorEmail =
-      emailRows.find((e) => e.user_id === workflow.created_by)?.email ?? null;
+    const creatorEmail = emailRows[0]?.email ?? null;
     let peopleName: string | null = null;
     if (creatorEmail) {
       const { data: peopleRow } = await supabase
@@ -123,7 +122,10 @@ export default async function WorkflowDetailPage({
     loggedByLabel = resolved || null;
   }
 
-  const teams = await loadTeamOptions(supabase, workflow.team);
+  const [teams, toolSuggestions] = await Promise.all([
+    loadTeamOptions(supabase, workflow.team),
+    loadToolSuggestions(supabase),
+  ]);
 
   const canEdit = canUserEditWorkflow(user, {
     created_by: workflow.created_by,
@@ -176,6 +178,7 @@ export default async function WorkflowDetailPage({
           hoursPerWeek={
             metrics?.time_baseline != null ? metrics.time_baseline / 60 : null
           }
+          toolSuggestions={toolSuggestions}
         />
         {stepExtractionFailed && (
           <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
@@ -185,11 +188,6 @@ export default async function WorkflowDetailPage({
           </p>
         )}
         <MetricsStrip metrics={metrics ?? null} />
-        <ChampionNotesSection
-          targetType="workflow"
-          targetId={workflow.id}
-          relevantTeams={workflow.team ? [workflow.team] : []}
-        />
         <StepsTable
           steps={steps ?? []}
           workflowId={workflow.id}

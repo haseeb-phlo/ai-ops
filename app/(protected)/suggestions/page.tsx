@@ -1,6 +1,5 @@
 import { getSessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { championsByTeam } from "@/lib/champions";
 import { resolveDisplayName } from "@/lib/profile";
 import { PageContainer, PageHeader } from "@/components/page-header";
 import { SubmitSuggestionDialog } from "./_components/submit-dialog";
@@ -62,8 +61,7 @@ export default async function SuggestionsPage({
     { data: profileRows },
     { data: voteRows },
     { data: peopleRows },
-    { data: emailRows },
-    byTeam,
+    { data: myChampionRows },
   ] = await Promise.all([
     supabase
       .from("intervention_suggestions")
@@ -95,9 +93,22 @@ export default async function SuggestionsPage({
       .from("people")
       .select("email, display_name")
       .returns<{ email: string; display_name: string }[]>(),
-    supabase.rpc("user_emails"),
-    championsByTeam(),
+    supabase
+      .from("champions")
+      .select("team")
+      .eq("user_id", user.id)
+      .returns<{ team: string }[]>(),
   ]);
+
+  // Resolve user_id → email only for the authors that actually appear on
+  // this page. user_emails requires an explicit user_id list (see migration).
+  const authorIds = Array.from(
+    new Set((rows ?? []).map((r) => r.created_by).filter((v): v is string => !!v)),
+  );
+  const { data: emailRows } =
+    authorIds.length === 0
+      ? { data: [] as { user_id: string; email: string | null }[] }
+      : await supabase.rpc("user_emails", { p_user_ids: authorIds });
 
   const allRows = rows ?? [];
   const workflowsList = workflows ?? [];
@@ -204,10 +215,12 @@ export default async function SuggestionsPage({
     .filter((s) => ROADMAP_STATUSES.has(s.status))
     .sort((a, b) => b.created_at.localeCompare(a.created_at));
 
+  const myChampionTeams = new Set(
+    (myChampionRows ?? []).map((r) => r.team),
+  );
   function canTriageFor(team: string | null): boolean {
     if (!team) return false;
-    const champ = byTeam.get(team);
-    return champ?.user_id === user.id;
+    return myChampionTeams.has(team);
   }
 
   return (
