@@ -3,7 +3,7 @@
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { getSessionUser } from "@/lib/auth";
+import { requireWriter } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { ALLOWED_EMAIL_DOMAIN, isAllowedEmail } from "@/lib/auth-domain";
 
@@ -30,8 +30,13 @@ export async function invitePerson(
   _prev: InviteState,
   formData: FormData,
 ): Promise<InviteState> {
-  const user = await getSessionUser();
-  if (user.role !== "super_admin") {
+  // Block impersonating super-admins via requireWriter (the documented
+  // convention for mutating actions). Then assert the underlying grant is
+  // super_admin so we never call the service-role admin API on behalf of
+  // a non-admin.
+  const gate = await requireWriter();
+  if (!gate.ok) return { kind: "error", message: gate.error };
+  if (gate.user.realRole !== "super_admin") {
     return { kind: "error", message: "Only super admins can invite people." };
   }
 

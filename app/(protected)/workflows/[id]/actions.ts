@@ -221,19 +221,15 @@ export async function moveStep(
     return { ok: true };
   }
 
-  // Swap positions. There's no unique constraint on (workflow_id, position),
-  // so two sequential updates are safe.
-  const a = await gate.supabase
-    .from("workflow_steps")
-    .update({ position: neighbour.position })
-    .eq("id", step.id);
-  if (a.error) return { ok: false, error: a.error.message };
-
-  const b = await gate.supabase
-    .from("workflow_steps")
-    .update({ position: step.position })
-    .eq("id", neighbour.id);
-  if (b.error) return { ok: false, error: b.error.message };
+  // Swap positions atomically via the swap_step_positions RPC so a partial
+  // failure can't leave both rows sharing a position (which would make the
+  // next move non-deterministic, since position-ordered reads have no tie-
+  // breaker).
+  const { error: swapErr } = await gate.supabase.rpc(
+    "swap_step_positions",
+    { p_step_a: step.id, p_step_b: neighbour.id },
+  );
+  if (swapErr) return { ok: false, error: swapErr.message };
 
   revalidatePath(`/workflows/${step.workflow_id}`);
   return { ok: true };
@@ -256,12 +252,31 @@ const UpdateWorkflowSchema = z.object({
     .nullable(),
   business_kpi: z.string().max(500).nullable(),
   owner_names: z.array(z.string().min(1)).max(20),
+  tools_used: z
+    .array(z.string().min(1).max(80))
+    .max(20, "Twenty tools is the cap; trim to the most relevant."),
   hours_per_week: z
     .number({ error: "Hours must be a number" })
     .min(0, "Hours can't be negative")
     .max(168, "More hours per week than exist isn't possible")
     .nullable(),
 });
+
+// Same rule the new-workflow flow uses: trim, drop empties, dedupe by
+// case-insensitive match, keep first-seen casing.
+function dedupeTools(raw: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const r of raw) {
+    const t = r.trim();
+    if (!t) continue;
+    const key = t.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(t);
+  }
+  return out;
+}
 
 export type UpdateWorkflowState =
   | { kind: "idle" }
@@ -295,6 +310,11 @@ export async function updateWorkflow(
     (formData.get("hours_per_week") as string | null)?.trim() || "";
   const hoursValue: number | null =
     rawHours === "" ? null : Number(rawHours);
+  const rawTools = dedupeTools(
+    formData
+      .getAll("tools_used")
+      .filter((v): v is string => typeof v === "string"),
+  );
 
   const parsed = UpdateWorkflowSchema.safeParse({
     name: (formData.get("name") as string | null)?.trim() ?? "",
@@ -304,6 +324,7 @@ export async function updateWorkflow(
     criticality_score: criticalityValue,
     business_kpi: rawKpi,
     owner_names: rawOwners,
+    tools_used: rawTools,
     hours_per_week: hoursValue,
   });
 
@@ -319,7 +340,7 @@ export async function updateWorkflow(
   const { data: current, error: curErr } = await gate.supabase
     .from("workflows")
     .select(
-      "id, name, team, regulatory, frequency_per_week, criticality_score, business_kpi, owner_names",
+      "id, name, team, regulatory, frequency_per_week, criticality_score, business_kpi, owner_names, tools_used",
     )
     .eq("id", workflowId)
     .maybeSingle();
@@ -386,6 +407,12 @@ export async function updateWorkflow(
   const currentOwners = (current.owner_names as string[] | null) ?? [];
   if (currentOwners.join("|") !== next.owner_names.join("|"))
     record("owner_names", currentOwners.join(", "), next.owner_names.join(", "));
+  const currentTools = (current.tools_used as string[] | null) ?? [];
+  const toolsChanged =
+    currentTools.map((t) => t.toLowerCase()).join("|") !==
+    next.tools_used.map((t) => t.toLowerCase()).join("|");
+  if (toolsChanged)
+    record("tools_used", currentTools.join(", "), next.tools_used.join(", "));
   const hoursChanged = currentHours !== next.hours_per_week;
   if (hoursChanged) {
     record("hours_per_week", currentHours, next.hours_per_week);
@@ -412,6 +439,7 @@ export async function updateWorkflow(
       criticality_score: next.criticality_score,
       business_kpi: next.business_kpi,
       owner_names: next.owner_names,
+      tools_used: next.tools_used,
       updated_at: new Date().toISOString(),
     })
     .eq("id", workflowId);

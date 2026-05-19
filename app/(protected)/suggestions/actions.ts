@@ -1,24 +1,17 @@
 "use server";
 
-import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionUser, requireWriter } from "@/lib/auth";
 import { resolveDisplayName } from "@/lib/profile";
+import { appUrl } from "@/lib/app-url";
 import { sendSuggestionSubmittedEmail } from "@/lib/emails/suggestion-submitted";
 import { sendSuggestionStatusChangedEmail } from "@/lib/emails/suggestion-status-changed";
 import { sendSuggestionCommentEmail } from "@/lib/emails/suggestion-comment";
 
 const REVIEWER_EMAIL = "haseeb.hamid@wearephlo.com";
-
-async function appUrl(): Promise<string> {
-  const hdrs = await headers();
-  const host = hdrs.get("x-forwarded-host") ?? hdrs.get("host");
-  const proto = hdrs.get("x-forwarded-proto") ?? "https";
-  return host ? `${proto}://${host}` : "http://localhost:3000";
-}
 
 const STATUSES = [
   "open",
@@ -96,7 +89,7 @@ export async function createSuggestion(
       body: parsed.data.body,
       submittedByName: user.displayName,
       team: user.team ?? null,
-      appUrl: await appUrl(),
+      appUrl: appUrl(),
     });
     if ("ok" in result && !result.ok) {
       console.warn("[suggestion-submitted] email failed:", result.message);
@@ -187,21 +180,32 @@ export async function setSuggestionStatus(
       return {
         kind: "error",
         message:
-          "Only super-admins can accept or ship a suggestion. Champions can move to Under review or Decline.",
+          "Only super-admins can accept or ship a suggestion. Team leads can move to Under review or Decline.",
       };
     }
-    // Champion check: must be a champion of the suggestion's team.
+    // A suggestion can be submitted with no team attached (e.g. a workflow-
+    // less idea). The team-lead path only makes sense when there's a team to
+    // be lead of - bail with a clear error rather than running an `eq(team, "")`
+    // query that always returns nothing and produces a generic permission denial.
+    if (row.team === null) {
+      return {
+        kind: "error",
+        message:
+          "This suggestion isn't attached to a team; only a super-admin can triage it.",
+      };
+    }
+    // Team-lead check: must be a registered champion of the suggestion's team.
     const { data: champ } = await supabase
       .from("champions")
       .select("id")
       .eq("user_id", user.id)
-      .eq("team", row.team ?? "")
+      .eq("team", row.team)
       .maybeSingle();
     if (!champ) {
       return {
         kind: "error",
         message:
-          "Only the AI Champion of this team or a super-admin can change status.",
+          "Only a team lead or a super-admin can change status.",
       };
     }
   }
@@ -268,7 +272,7 @@ async function notifyAuthorOfStatusChange(args: {
   const supabase = await createClient();
   const [{ data: emailRows }, { data: profile }, { data: peopleByEmailRows }] =
     await Promise.all([
-      supabase.rpc("user_emails"),
+      supabase.rpc("user_emails", { p_user_ids: [args.authorUserId] }),
       supabase
         .from("profiles")
         .select("display_name")
@@ -281,9 +285,8 @@ async function notifyAuthorOfStatusChange(args: {
     ]);
 
   const authorEmail =
-    ((emailRows ?? []) as { user_id: string; email: string | null }[]).find(
-      (r) => r.user_id === args.authorUserId,
-    )?.email ?? null;
+    ((emailRows ?? []) as { user_id: string; email: string | null }[])[0]
+      ?.email ?? null;
   if (!authorEmail) return;
 
   const peopleName =
@@ -304,7 +307,7 @@ async function notifyAuthorOfStatusChange(args: {
     status: args.status,
     declineReason: args.declineReason,
     decidedByName: args.decidedByName,
-    appUrl: await appUrl(),
+    appUrl: appUrl(),
   });
   if ("ok" in result && !result.ok) {
     console.warn("[suggestion-status-changed] email failed:", result.message);
@@ -574,7 +577,6 @@ async function notifyCommentThread(args: {
   const [
     { data: suggestion },
     { data: priorComments },
-    { data: emailRows },
     { data: profileRows },
     { data: peopleRows },
   ] = await Promise.all([
@@ -588,7 +590,6 @@ async function notifyCommentThread(args: {
       .select("created_by")
       .eq("suggestion_id", args.suggestionId)
       .returns<{ created_by: string | null }[]>(),
-    supabase.rpc("user_emails"),
     supabase
       .from("profiles")
       .select("user_id, display_name")
@@ -614,6 +615,9 @@ async function notifyCommentThread(args: {
   }
   if (recipientIds.size === 0) return;
 
+  const { data: emailRows } = await supabase.rpc("user_emails", {
+    p_user_ids: Array.from(recipientIds),
+  });
   const emailByUserId = new Map<string, string>();
   for (const r of (emailRows ?? []) as { user_id: string; email: string | null }[]) {
     if (r.email) emailByUserId.set(r.user_id, r.email);
@@ -629,7 +633,7 @@ async function notifyCommentThread(args: {
     }
   }
 
-  const url = await appUrl();
+  const url = appUrl();
   await Promise.all(
     Array.from(recipientIds).map(async (recipientId) => {
       const email = emailByUserId.get(recipientId);

@@ -25,6 +25,11 @@ export type SessionUser = {
   realTeam: string | null;
   isImpersonating: boolean;
   displayName: string;
+  // The org directory's canonical name for this user (people.display_name).
+  // Kept alongside `displayName` because owner_names columns are populated
+  // from the directory at write time, while displayName prefers profile
+  // overrides - the two can drift and we need both to match reliably.
+  peopleDisplayName: string | null;
   avatarUrl: string;
   title: string | null;
 };
@@ -52,6 +57,11 @@ export async function requireWriter(): Promise<
 
 type ViewAs = { role: string; team: string | null };
 
+// Mirrors the cap in lib/view-as.ts. Defense-in-depth - setViewAs already
+// rejects anything off, but a cookie that predates a tightening should not
+// produce a long/garbled `team` value being rendered or compared later.
+const VIEW_AS_TEAM_MAX_LENGTH = 80;
+
 async function readViewAs(): Promise<ViewAs | null> {
   const store = await cookies();
   const raw = store.get(VIEW_AS_COOKIE)?.value;
@@ -60,10 +70,19 @@ async function readViewAs(): Promise<ViewAs | null> {
     const parsed = JSON.parse(raw) as ViewAs;
     if (!parsed?.role) return null;
     if (!(ROLES as readonly string[]).includes(parsed.role)) return null;
-    return {
-      role: parsed.role,
-      team: typeof parsed.team === "string" ? parsed.team : null,
-    };
+    let team: string | null = null;
+    if (typeof parsed.team === "string") {
+      const trimmed = parsed.team.trim();
+      if (
+        trimmed.length > 0 &&
+        trimmed.length <= VIEW_AS_TEAM_MAX_LENGTH &&
+        // No control chars / newlines - team names are short plain text.
+        !/[\x00-\x1f\x7f]/.test(trimmed)
+      ) {
+        team = trimmed;
+      }
+    }
+    return { role: parsed.role, team };
   } catch {
     return null;
   }
@@ -117,6 +136,13 @@ export const getSessionUser = cache(async (): Promise<SessionUser> => {
   if (profileRes.error) {
     throw new Error(`Failed to load profile: ${profileRes.error.message}`);
   }
+  // Fail loud rather than silently falling through to email-local-part if the
+  // people-directory RLS regresses. peopleRes is queried for display-name
+  // resolution; a missing/errored result is a misconfig signal, not a normal
+  // "user not in the directory" case (which returns null data with no error).
+  if (peopleRes.error) {
+    throw new Error(`Failed to load people directory: ${peopleRes.error.message}`);
+  }
 
   const grant = grantRes.data;
   const profile = profileRes.data;
@@ -150,6 +176,7 @@ export const getSessionUser = cache(async (): Promise<SessionUser> => {
     realTeam,
     isImpersonating,
     displayName,
+    peopleDisplayName: peopleRes.data?.display_name ?? null,
     avatarUrl: resolveAvatar(profile?.avatar_url ?? null, user.id),
     title: profile?.title ?? null,
   };
