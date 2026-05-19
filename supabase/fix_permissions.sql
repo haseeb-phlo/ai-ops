@@ -57,7 +57,17 @@ drop policy if exists "auth read workflow_metrics"       on public.workflow_metr
 drop policy if exists "auth read ai_interventions"       on public.ai_interventions;
 drop policy if exists "auth read intervention_workflows" on public.intervention_workflows;
 
-create policy "auth read workflows"              on public.workflows              for select to authenticated using (true);
+-- Soft-deleted workflows are hidden from non-super-admin reads. See
+-- workflows_read_soft_delete_migration.sql for the full reasoning.
+create policy "auth read workflows"
+  on public.workflows for select to authenticated
+  using (
+    deleted_at is null
+    or exists (
+      select 1 from public.role_grants g
+      where g.user_id = auth.uid() and g.role = 'super_admin'
+    )
+  );
 create policy "auth read workflow_steps"         on public.workflow_steps         for select to authenticated using (true);
 create policy "auth read step_revisions"         on public.step_revisions         for select to authenticated using (true);
 create policy "auth read workflow_metrics"       on public.workflow_metrics       for select to authenticated using (true);
