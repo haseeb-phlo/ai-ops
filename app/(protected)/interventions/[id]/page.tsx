@@ -3,12 +3,6 @@ import { notFound } from "next/navigation";
 import { format } from "date-fns";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionUser } from "@/lib/auth";
-import { findChampionForPerson } from "@/lib/champions";
-import {
-  PersonName,
-  TextWithMentions,
-} from "@/components/people/champion-mark";
-import { ChampionNotesSection } from "@/app/(protected)/_components/champion-notes/notes-section";
 import { Badge } from "@/components/ui/badge";
 import { DetailHeader } from "@/components/ui/detail-header";
 import { toTitle } from "@/lib/utils";
@@ -213,10 +207,6 @@ export default async function InterventionDetailPage({
     ownerDisplayName = ownerProfile?.display_name?.trim() || null;
   }
   const ownerLabel = ownerDisplayName ?? intervention.owner;
-  const ownerChampion = await findChampionForPerson({
-    userId: intervention.created_by,
-    displayName: ownerLabel,
-  });
 
   // Mirror of public.can_edit_intervention(): super_admin / champion of
   // record (created_by) / a champion for any linked-workflow team.
@@ -317,8 +307,8 @@ export default async function InterventionDetailPage({
             </div>
 
             {intervention.description && (
-              <p className="text-sm text-muted-foreground">
-                <TextWithMentions text={intervention.description} />
+              <p className="whitespace-pre-wrap text-sm text-muted-foreground">
+                {intervention.description}
               </p>
             )}
 
@@ -329,7 +319,7 @@ export default async function InterventionDetailPage({
                 </dt>
                 <dd className="text-foreground">
                   {ownerLabel ? (
-                    <PersonName name={ownerLabel} champion={ownerChampion} />
+                    <span className="font-medium text-foreground">{ownerLabel}</span>
                   ) : (
                     <span className="text-muted-foreground">-</span>
                   )}
@@ -412,21 +402,6 @@ export default async function InterventionDetailPage({
         </div>
       </section>
 
-      {/* Champion notes from each affected team's AI Champion. Endorsement
-          is implicit in the act of writing a positive note - no separate
-          "co-sign" affordance, which only added friction. */}
-      <ChampionNotesSection
-        targetType="intervention"
-        targetId={intervention.id}
-        relevantTeams={Array.from(
-          new Set(
-            (links ?? [])
-              .map((l) => l.workflows?.team)
-              .filter((t): t is string => !!t),
-          ),
-        )}
-      />
-
       {/* Suggestions this intervention closed out */}
       {(addressedSuggestions ?? []).length > 0 && (
         <section className="space-y-2">
@@ -480,13 +455,9 @@ export default async function InterventionDetailPage({
                         {w.name}
                       </Link>
                       {w.team && (
-                        <Link
-                          href={`/champions/${encodeURIComponent(w.team)}`}
-                          className="ml-2 text-xs text-muted-foreground hover:text-amber-700 hover:underline"
-                          title={`AI Champion of ${w.team}`}
-                        >
+                        <span className="ml-2 text-xs text-muted-foreground">
                           {w.team}
-                        </Link>
+                        </span>
                       )}
                     </div>
                     {b && (
@@ -533,8 +504,8 @@ export default async function InterventionDetailPage({
                     </div>
                   </div>
                   {m.notes && (
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      <TextWithMentions text={m.notes} />
+                    <p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">
+                      {m.notes}
                     </p>
                   )}
                 </li>

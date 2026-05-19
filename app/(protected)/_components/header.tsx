@@ -1,7 +1,5 @@
 import Link from "next/link";
 import type { SessionUser } from "@/lib/auth";
-import { findChampionForPerson } from "@/lib/champions";
-import { PersonAvatar } from "@/components/people/champion-mark";
 import { Nav } from "./nav";
 import { ViewAsSwitcher } from "./view-as-switcher";
 
@@ -17,10 +15,6 @@ export async function Header({
   user: SessionUser;
   teams: string[];
 }) {
-  const champion = await findChampionForPerson({
-    userId: user.id,
-    displayName: user.displayName,
-  });
   // Switcher bar: gated on the real role so a super-admin can always toggle
   // back out of impersonation.
   const isReallySuperAdmin = user.realRole === "super_admin";
@@ -70,28 +64,18 @@ export async function Header({
             )}
           </div>
 
-          {champion ? (
-            <PersonAvatar
-              seed={user.id}
-              avatarUrl={user.avatarUrl}
-              name={user.displayName}
-              champion={champion}
-              size={32}
+          <Link
+            href="/profile"
+            aria-label="Edit profile"
+            className="block size-8 overflow-hidden rounded-full ring-1 ring-border hover:ring-ring"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={user.avatarUrl}
+              alt={user.displayName}
+              className="h-full w-full object-cover"
             />
-          ) : (
-            <Link
-              href="/profile"
-              aria-label="Edit profile"
-              className="block size-8 overflow-hidden rounded-full ring-1 ring-border hover:ring-ring"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={user.avatarUrl}
-                alt={user.displayName}
-                className="h-full w-full object-cover"
-              />
-            </Link>
-          )}
+          </Link>
 
           <form action="/auth/signout" method="post">
             <button

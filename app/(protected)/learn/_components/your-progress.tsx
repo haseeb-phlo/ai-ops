@@ -14,7 +14,9 @@ export function YourProgress({
   return (
     <div className="rounded-lg border border-border bg-background p-4">
       <div className="flex items-baseline justify-between gap-3">
-        <h2 className="text-sm font-medium text-foreground">Your progress</h2>
+        <h2 className="text-sm font-semibold tracking-tight text-foreground">
+          Your progress
+        </h2>
         <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground tabular-nums">
           {done && (
             <CheckIcon
@@ -24,8 +26,6 @@ export function YourProgress({
             />
           )}
           {watched} of {total} watched
-          <span aria-hidden className="text-muted-foreground/50">·</span>
-          {pct}%
         </span>
       </div>
       <div
@@ -37,9 +37,7 @@ export function YourProgress({
         aria-label="Videos watched"
       >
         <div
-          className={`h-full transition-all ${
-            done ? "bg-emerald-500" : "bg-foreground"
-          }`}
+          className="h-full bg-emerald-500 transition-all"
           style={{ width: `${pct}%` }}
         />
       </div>

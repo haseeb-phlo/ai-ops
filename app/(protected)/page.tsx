@@ -1,12 +1,9 @@
 import { Suspense } from "react";
-import Link from "next/link";
 import { getSessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { findChampionForPerson } from "@/lib/champions";
 import { resolveDisplayName } from "@/lib/profile";
 import { PageContainer } from "@/components/page-header";
 import { RedirectToast } from "./_components/dashboard/redirect-toast";
-import { ChampionsRibbon } from "./_components/dashboard/champions-ribbon";
 import { TrendStrip } from "./_components/dashboard/trend-strip";
 import { TopWins, type Win } from "./_components/dashboard/top-wins";
 import { AllTimeRail } from "./_components/dashboard/all-time-rail";
@@ -67,16 +64,6 @@ type RegEvent = {
   created_by: string | null;
 };
 
-type RecentNote = {
-  id: string;
-  team: string;
-  body: string;
-  updated_at: string;
-  target_type: "workflow" | "intervention";
-  target_id: string;
-  created_by: string | null;
-};
-
 type RecentWorkflow = {
   id: string;
   name: string;
@@ -127,25 +114,18 @@ export default async function Home() {
   const since = sevenDaysAgoIso();
   const firstName = user.displayName.split(" ")[0];
 
-  const champion = await findChampionForPerson({
-    userId: user.id,
-    displayName: user.displayName,
-  });
-
   const [
     { data: interventions },
     { data: baselines },
     { data: metrics },
     { data: recentInterventions },
     { data: regEvents },
-    { data: recentNotes },
     { data: recentWorkflows },
     { data: recentSuggestions },
     { data: recentSuggestionComments },
     { data: recentLearnVideos },
     { data: streamProfileRows },
     { data: streamPeopleRows },
-    { data: streamEmailRows },
   ] = await Promise.all([
     supabase
       .from("ai_interventions")
@@ -178,13 +158,6 @@ export default async function Home() {
       .order("created_at", { ascending: false })
       .limit(8)
       .returns<RegEvent[]>(),
-    supabase
-      .from("champion_notes")
-      .select("id, team, body, updated_at, target_type, target_id, created_by")
-      .gte("updated_at", since)
-      .order("updated_at", { ascending: false })
-      .limit(8)
-      .returns<RecentNote[]>(),
     supabase
       .from("workflows")
       .select("id, name, team, created_at, created_by")
@@ -224,8 +197,28 @@ export default async function Home() {
       .from("people")
       .select("email, display_name")
       .returns<{ email: string; display_name: string }[]>(),
-    supabase.rpc("user_emails"),
   ]);
+
+  // Collect every user_id that drives a "by Name" attribution in the
+  // activity stream, then resolve emails in a single scoped RPC. The RPC
+  // requires an explicit list of user_ids so any one caller can only
+  // enumerate names it has already proven access to.
+  const streamUserIds = Array.from(
+    new Set(
+      [
+        ...((recentInterventions ?? []).map((i) => i.created_by)),
+        ...((regEvents ?? []).map((e) => e.created_by)),
+        ...((recentWorkflows ?? []).map((w) => w.created_by)),
+        ...((recentSuggestions ?? []).map((s) => s.created_by)),
+        ...((recentSuggestionComments ?? []).map((c) => c.created_by)),
+        ...((recentLearnVideos ?? []).map((v) => v.added_by)),
+      ].filter((v): v is string => !!v),
+    ),
+  );
+  const { data: streamEmailRows } =
+    streamUserIds.length === 0
+      ? { data: [] as { user_id: string; email: string | null }[] }
+      : await supabase.rpc("user_emails", { p_user_ids: streamUserIds });
 
   // Headcount drives the Reach metric's "X% of company" subtitle.
   const { count: peopleCount } = await supabase
@@ -503,18 +496,6 @@ export default async function Home() {
       createdBy: nameFor(e.created_by),
     });
   }
-  for (const n of recentNotes ?? []) {
-    stream.push({
-      kind: "note",
-      id: n.id,
-      team: n.team,
-      body: n.body,
-      at: n.updated_at,
-      target_type: n.target_type,
-      target_id: n.target_id,
-      createdBy: nameFor(n.created_by),
-    });
-  }
   for (const w of recentWorkflows ?? []) {
     stream.push({
       kind: "workflow",
@@ -579,16 +560,6 @@ export default async function Home() {
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">
           Hi {firstName} <span aria-hidden>👋</span>
         </h1>
-        {champion ? (
-          <p className="text-sm text-muted-foreground">
-            <Link
-              href={`/champions/${encodeURIComponent(champion.team)}`}
-              className="text-amber-700 hover:underline"
-            >
-              AI Champion of {champion.team}
-            </Link>
-          </p>
-        ) : null}
       </header>
 
       <section className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
@@ -616,8 +587,6 @@ export default async function Home() {
       />
 
       <TopWins wins={topWins} />
-
-      <ChampionsRibbon />
 
       <section className="rounded-lg border border-border bg-background">
         <div className="flex items-baseline justify-between border-b border-border px-4 py-2.5">

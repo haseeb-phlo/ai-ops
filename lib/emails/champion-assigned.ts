@@ -6,13 +6,11 @@ type SendChampionAssignedArgs = {
   recipientName: string;
   team: string;
   assignedByName: string;
-  appUrl: string;
 };
 
 // Phlo brand. Mirrors the in-app lockup so the email and the product feel
 // like the same surface.
 const PHLO_NAVY = "#07073D";
-const PHLO_CYAN = "#46C1D1";
 const PHLO_LOGO_URL =
   "https://cdn.prod.website-files.com/5d27595e2836ca3889cdbc80/631ef2c8eabdf645c82dd08f_phlo-logo-isolated-01.svg";
 
@@ -20,19 +18,12 @@ const PHLO_LOGO_URL =
  * Sends a "you have been made an AI Champion" email. No-ops (returns
  * `{ skipped: true }`) if Resend isn't configured, so a missing API key
  * never blocks the assignment itself.
- *
- * The body has been trimmed to match the platform as it actually works
- * today: champions exercise the role through champion notes on workflows
- * and interventions, plus a periodic check-in. Earlier mentions of co-sign
- * and editorial blurb / chewing-on are gone because those features have
- * been removed from the product.
  */
 export async function sendChampionAssignedEmail({
   to,
   recipientName,
   team,
   assignedByName,
-  appUrl,
 }: SendChampionAssignedArgs): Promise<
   | { ok: true; id: string | null }
   | { ok: false; message: string }
@@ -40,7 +31,6 @@ export async function sendChampionAssignedEmail({
 > {
   if (!resend) return { skipped: true };
 
-  const profileUrl = `${appUrl.replace(/\/+$/, "")}/champions/${encodeURIComponent(team)}`;
   const firstName = recipientName.split(" ")[0] || recipientName;
 
   const subject = `You're now AI Champion of ${team}`;
@@ -50,11 +40,9 @@ export async function sendChampionAssignedEmail({
     `${assignedByName} has made you the AI Champion of ${team} on Phlo AI Ops.`,
     "",
     "What that means:",
-    "  - Leave champion notes on workflows and interventions that affect your team.",
-    "  - Check in regularly so the rest of the company can see you're active.",
-    "  - Help triage AI ideas and rollouts that touch your team's work.",
-    "",
-    `Your champion page: ${profileUrl}`,
+    "  - Help triage AI suggestions that touch your team's work.",
+    "  - Edit AI initiatives that affect your team's workflows.",
+    "  - Sign off on workflow changes for your team.",
     "",
     "- Phlo AI Ops",
   ].join("\n");
@@ -101,20 +89,10 @@ export async function sendChampionAssignedEmail({
             </p>
             <p style="margin:16px 0 8px 0;font-weight:600;color:${PHLO_NAVY};">What you do as champion:</p>
             <ul style="padding-left:20px;margin:0 0 4px 0;">
-              <li style="margin-bottom:6px;">Leave champion notes on workflows and interventions that affect your team.</li>
-              <li style="margin-bottom:6px;">Check in regularly so the rest of the company can see you&rsquo;re active.</li>
-              <li style="margin-bottom:6px;">Help triage AI ideas and rollouts that touch your team&rsquo;s work.</li>
+              <li style="margin-bottom:6px;">Help triage AI suggestions that touch your team&rsquo;s work.</li>
+              <li style="margin-bottom:6px;">Edit AI initiatives that affect your team&rsquo;s workflows.</li>
+              <li style="margin-bottom:6px;">Sign off on workflow changes for your team.</li>
             </ul>
-          </td>
-        </tr>
-        <tr>
-          <td style="padding:12px 28px 24px 28px;">
-            <a
-              href="${escapeAttr(profileUrl)}"
-              style="display:inline-block;background:${PHLO_CYAN};color:${PHLO_NAVY};text-decoration:none;padding:11px 18px;border-radius:9px;font-weight:600;font-size:14px;letter-spacing:-0.005em;"
-            >
-              Open your champion page
-            </a>
           </td>
         </tr>
         <tr>
@@ -156,8 +134,4 @@ function escapeHtml(s: string): string {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
-}
-
-function escapeAttr(s: string): string {
-  return escapeHtml(s);
 }

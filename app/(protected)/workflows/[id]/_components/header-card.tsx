@@ -1,6 +1,3 @@
-import { championsByDisplayName, championsByTeam } from "@/lib/champions";
-import { PersonName } from "@/components/people/champion-mark";
-import Link from "next/link";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { DeleteWorkflowButton } from "./delete-workflow-button";
@@ -42,6 +39,7 @@ export async function HeaderCard({
   loggedByLabel,
   createdAt,
   hoursPerWeek,
+  toolSuggestions,
 }: {
   workflow: WorkflowHeader;
   teams: string[];
@@ -50,10 +48,8 @@ export async function HeaderCard({
   loggedByLabel: string | null;
   createdAt: string;
   hoursPerWeek: number | null;
+  toolSuggestions: string[];
 }) {
-  const champByName = await championsByDisplayName();
-  const champByTeam = await championsByTeam();
-  const teamChampion = workflow.team ? champByTeam.get(workflow.team) : null;
   return (
     <section className="rounded-lg border border-border bg-background p-6">
       <div className="flex items-start justify-between gap-4">
@@ -82,19 +78,7 @@ export async function HeaderCard({
                 Team
               </dt>
               <dd className="text-foreground">
-                {workflow.team ? (
-                  teamChampion ? (
-                    <Link
-                      href={`/champions/${encodeURIComponent(workflow.team)}`}
-                      className="hover:underline"
-                      title={`${teamChampion.display_name} - AI Champion of ${workflow.team}`}
-                    >
-                      {workflow.team}
-                    </Link>
-                  ) : (
-                    workflow.team
-                  )
-                ) : (
+                {workflow.team ?? (
                   <span className="text-muted-foreground">-</span>
                 )}
               </dd>
@@ -121,18 +105,14 @@ export async function HeaderCard({
                   <span className="text-muted-foreground">-</span>
                 ) : (
                   <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                    {workflow.owner_names.map((n, i) => {
-                      const champ =
-                        champByName.get(n.trim().toLowerCase()) ?? null;
-                      return (
-                        <span key={`${n}-${i}`} className="inline-flex">
-                          <PersonName name={n} champion={champ} />
-                          {i < workflow.owner_names.length - 1 && (
-                            <span className="text-muted-foreground/60">,</span>
-                          )}
-                        </span>
-                      );
-                    })}
+                    {workflow.owner_names.map((n, i) => (
+                      <span key={`${n}-${i}`} className="inline-flex">
+                        <span className="font-medium text-foreground">{n}</span>
+                        {i < workflow.owner_names.length - 1 && (
+                          <span className="text-muted-foreground/60">,</span>
+                        )}
+                      </span>
+                    ))}
                   </span>
                 )}
               </dd>
@@ -143,13 +123,7 @@ export async function HeaderCard({
               </dt>
               <dd className="text-foreground">
                 {loggedByLabel ? (
-                  <PersonName
-                    name={loggedByLabel}
-                    champion={
-                      champByName.get(loggedByLabel.trim().toLowerCase()) ??
-                      null
-                    }
-                  />
+                  <span className="font-medium text-foreground">{loggedByLabel}</span>
                 ) : (
                   <span className="text-muted-foreground">-</span>
                 )}
@@ -176,6 +150,7 @@ export async function HeaderCard({
               workflow={workflow}
               teams={teams}
               hoursPerWeek={hoursPerWeek}
+              toolSuggestions={toolSuggestions}
             />
           )}
           {canDelete && (

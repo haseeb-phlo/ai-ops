@@ -48,8 +48,8 @@ export function SubmitSuggestionDialog({
         <DialogHeader className="gap-2 px-6 pt-5 pb-5">
           <DialogTitle>Suggest an AI initiative</DialogTitle>
           <DialogDescription>
-            Pitch an idea. Champions triage; super-admins decide what gets
-            built.
+            Pitch an idea. Suggestions are triaged by team leads;
+            super-admins decide what gets built.
           </DialogDescription>
         </DialogHeader>
         <form action={action} className="flex min-h-0 flex-1 flex-col">

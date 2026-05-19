@@ -25,8 +25,6 @@ export type GalaxyData = {
     avatarUrl: string;
     team: string | null;
     kind: "user" | "ghost";
-    isChampion?: boolean;
-    championTeam?: string | null;
   }[];
   workflows: {
     id: string;
@@ -863,8 +861,6 @@ function buildGraph(data: GalaxyData): { nodes: Node[]; links: Link[] } {
         title: p.title,
         avatarUrl: p.avatarUrl,
         kind: p.kind,
-        isChampion: !!p.isChampion,
-        championTeam: p.championTeam ?? null,
       },
     });
     if (p.team) {
@@ -1134,25 +1130,9 @@ function drawPerson(ctx: CanvasRenderingContext2D, n: Node, opts: DrawOpts) {
   const r = n.radius;
   const img = opts.imageMap.get(n.id);
   const isGhost = n.meta.kind === "ghost";
-  const isChampion = n.meta.isChampion === true;
 
-  // Champions get a soft outer halo so they pop on a dense map.
-  if (isChampion) {
-    ctx.strokeStyle = "rgba(245, 158, 11, 0.35)";
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.arc(x, y, r + 4, 0, Math.PI * 2);
-    ctx.stroke();
-  }
-
-  // Avatar ring - amber + thicker for champions, default zinc otherwise.
-  if (isChampion) {
-    ctx.strokeStyle = "#f59e0b"; // amber-500
-    ctx.lineWidth = opts.isHover ? 4 : 3;
-  } else {
-    ctx.strokeStyle = isGhost ? "rgba(82,82,91,0.5)" : "#71717a";
-    ctx.lineWidth = opts.isHover ? 2.5 : 1.2;
-  }
+  ctx.strokeStyle = isGhost ? "rgba(82,82,91,0.5)" : "#71717a";
+  ctx.lineWidth = opts.isHover ? 2.5 : 1.2;
   ctx.beginPath();
   ctx.arc(x, y, r + 1, 0, Math.PI * 2);
   ctx.stroke();
@@ -1174,61 +1154,6 @@ function drawPerson(ctx: CanvasRenderingContext2D, n: Node, opts: DrawOpts) {
     ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.fill();
   }
-
-  // AI Champion mark in the bottom-right corner of the avatar: a small amber
-  // pill stamped "AI" so the badge tells you what role it represents instead
-  // of relying on a generic lightning bolt.
-  if (isChampion) {
-    const glyphR = Math.max(5, r * 0.36);
-    const pillH = glyphR * 2;
-    const pillW = pillH * 1.55;
-    const cx = x + r * 0.65;
-    const cy = y + r * 0.65;
-    // White halo so the pill reads against the avatar.
-    ctx.fillStyle = "#ffffff";
-    roundRect(
-      ctx,
-      cx - pillW / 2 - 1,
-      cy - pillH / 2 - 1,
-      pillW + 2,
-      pillH + 2,
-      pillH / 2 + 1,
-    );
-    ctx.fill();
-    ctx.fillStyle = "#f59e0b";
-    roundRect(
-      ctx,
-      cx - pillW / 2,
-      cy - pillH / 2,
-      pillW,
-      pillH,
-      pillH / 2,
-    );
-    ctx.fill();
-    ctx.fillStyle = "#ffffff";
-    ctx.font = `600 ${Math.round(glyphR * 1.05)}px ui-monospace, SFMono-Regular, Menlo, monospace`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText("AI", cx, cy + 0.5);
-  }
-}
-
-function roundRect(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  r: number,
-) {
-  const radius = Math.min(r, w / 2, h / 2);
-  ctx.beginPath();
-  ctx.moveTo(x + radius, y);
-  ctx.arcTo(x + w, y, x + w, y + h, radius);
-  ctx.arcTo(x + w, y + h, x, y + h, radius);
-  ctx.arcTo(x, y + h, x, y, radius);
-  ctx.arcTo(x, y, x + w, y, radius);
-  ctx.closePath();
 }
 
 function drawWorkflow(ctx: CanvasRenderingContext2D, n: Node, opts: DrawOpts) {

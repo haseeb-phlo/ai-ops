@@ -20,16 +20,6 @@ export type StreamItem =
       createdBy: string | null;
     }
   | {
-      kind: "note";
-      id: string;
-      team: string;
-      body: string;
-      at: string;
-      target_type: "workflow" | "intervention";
-      target_id: string;
-      createdBy: string | null;
-    }
-  | {
       kind: "workflow";
       id: string;
       name: string;
@@ -204,27 +194,6 @@ export function ActivityStream({ items }: { items: StreamItem[] }) {
               at={it.at}
             />
           )}
-          {it.kind === "note" && (
-            <Row
-              icon={<Glyph kind="note" />}
-              title={
-                <Link
-                  href={
-                    it.target_type === "workflow"
-                      ? `/workflows/${it.target_id}`
-                      : `/interventions/${it.target_id}`
-                  }
-                  className="font-medium text-foreground hover:underline"
-                >
-                  {it.createdBy
-                    ? `Champion note from ${it.createdBy}`
-                    : "Champion note"}
-                </Link>
-              }
-              meta={truncate(it.body, 120)}
-              at={it.at}
-            />
-          )}
         </li>
       ))}
     </ul>
@@ -263,7 +232,6 @@ function Glyph({
 }: {
   kind:
     | "intervention"
-    | "note"
     | "workflow"
     | "suggestion"
     | "suggestion-comment"
@@ -297,16 +265,9 @@ function Glyph({
       </span>
     );
   }
-  if (kind === "suggestion-comment") {
-    return (
-      <span className="flex size-5 items-center justify-center rounded-full bg-sky-100 text-[10px] font-semibold text-sky-700">
-        C
-      </span>
-    );
-  }
   return (
-    <span className="inline-flex h-5 items-center justify-center rounded-full bg-amber-100 px-1.5 font-mono text-[8px] font-semibold leading-none tracking-tight text-amber-700">
-      AI
+    <span className="flex size-5 items-center justify-center rounded-full bg-sky-100 text-[10px] font-semibold text-sky-700">
+      C
     </span>
   );
 }

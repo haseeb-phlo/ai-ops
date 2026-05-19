@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
 import { resolveAvatar } from "@/lib/profile";
@@ -20,7 +19,6 @@ export type ResolvedPerson = {
   startDate: string | null;
   avatarUrl: string | null;
   isSignedIn: boolean;
-  championTeam: string | null;
 };
 
 export type ResolvedNode = {
@@ -300,7 +298,6 @@ function BigCard({
   onOpen: (person: ResolvedPerson) => void;
 }) {
   const dim = !person.isSignedIn ? "opacity-60" : "";
-  const isChamp = !!person.championTeam;
 
   return (
     <div className="relative">
@@ -308,9 +305,7 @@ function BigCard({
         type="button"
         onClick={() => onOpen(person)}
         className={`relative flex w-44 flex-col items-center gap-2 rounded-lg border border-border bg-background p-4 text-left hover:border-input focus:outline-none focus-visible:ring-2 focus-visible:ring-ring ${dim}`}
-        title={
-          isChamp ? `AI Champion of ${person.championTeam}` : person.displayName
-        }
+        title={person.displayName}
       >
         <span
           className="relative inline-block shrink-0 self-center"
@@ -320,20 +315,10 @@ function BigCard({
           <img
             src={resolveAvatar(person.avatarUrl, person.email)}
             alt={person.displayName}
-            className={`h-full w-full rounded-full bg-muted/40 object-cover ring-1 ${
-              isChamp
-                ? "ring-2 ring-amber-400 ring-offset-1 ring-offset-white"
-                : "ring-border"
-            } ${person.isSignedIn ? "" : "grayscale"}`}
+            className={`h-full w-full rounded-full bg-muted/40 object-cover ring-1 ring-border ${
+              person.isSignedIn ? "" : "grayscale"
+            }`}
           />
-          {isChamp && (
-            <span
-              aria-hidden
-              className="absolute -bottom-0.5 -right-0.5 inline-flex h-4 items-center rounded-full bg-amber-400 px-1 font-mono text-[8px] font-semibold leading-none tracking-tight text-white shadow-sm ring-1 ring-white"
-            >
-              AI
-            </span>
-          )}
         </span>
         <div className="w-full text-center">
           <div className="truncate text-sm font-semibold text-foreground">
@@ -365,7 +350,6 @@ function SmallCard({
   onOpen: (person: ResolvedPerson) => void;
 }) {
   const dim = !person.isSignedIn ? "opacity-60" : "";
-  const isChamp = !!person.championTeam;
 
   return (
     <div className="relative">
@@ -373,9 +357,7 @@ function SmallCard({
         type="button"
         onClick={() => onOpen(person)}
         className={`relative flex w-36 flex-col items-center gap-2 rounded-lg border border-border bg-background p-3 text-left hover:border-input focus:outline-none focus-visible:ring-2 focus-visible:ring-ring ${dim}`}
-        title={
-          isChamp ? `AI Champion of ${person.championTeam}` : person.displayName
-        }
+        title={person.displayName}
       >
         <span
           className="relative inline-block shrink-0 self-center"
@@ -385,20 +367,10 @@ function SmallCard({
           <img
             src={resolveAvatar(person.avatarUrl, person.email)}
             alt={person.displayName}
-            className={`h-full w-full rounded-full bg-muted/40 object-cover ring-1 ${
-              isChamp
-                ? "ring-2 ring-amber-400 ring-offset-1 ring-offset-white"
-                : "ring-border"
-            } ${person.isSignedIn ? "" : "grayscale"}`}
+            className={`h-full w-full rounded-full bg-muted/40 object-cover ring-1 ring-border ${
+              person.isSignedIn ? "" : "grayscale"
+            }`}
           />
-          {isChamp && (
-            <span
-              aria-hidden
-              className="absolute -bottom-0.5 -right-0.5 inline-flex h-3.5 items-center rounded-full bg-amber-400 px-1 font-mono text-[7px] font-semibold leading-none tracking-tight text-white shadow-sm ring-1 ring-white"
-            >
-              AI
-            </span>
-          )}
         </span>
         <div className="w-full text-center">
           <div className="truncate text-xs font-semibold text-foreground">
@@ -450,16 +422,13 @@ function Chip({
   onOpen: (person: ResolvedPerson) => void;
 }) {
   const dim = !person.isSignedIn ? "opacity-60" : "";
-  const isChamp = !!person.championTeam;
 
   return (
     <button
       type="button"
       onClick={() => onOpen(person)}
       className={`flex w-44 items-center gap-2 rounded-md border border-border bg-background px-2 py-1.5 text-left hover:border-input focus:outline-none focus-visible:ring-2 focus-visible:ring-ring ${dim}`}
-      title={
-        isChamp ? `AI Champion of ${person.championTeam}` : person.title
-      }
+      title={person.title}
     >
       <span
         className="relative inline-block shrink-0"
@@ -469,11 +438,9 @@ function Chip({
         <img
           src={resolveAvatar(person.avatarUrl, person.email)}
           alt={person.displayName}
-          className={`h-full w-full rounded-full bg-muted/40 object-cover ring-1 ${
-            isChamp
-              ? "ring-2 ring-amber-400 ring-offset-1 ring-offset-white"
-              : "ring-border"
-          } ${person.isSignedIn ? "" : "grayscale"}`}
+          className={`h-full w-full rounded-full bg-muted/40 object-cover ring-1 ring-border ${
+            person.isSignedIn ? "" : "grayscale"
+          }`}
         />
       </span>
       <span className="min-w-0 flex-1 truncate text-xs text-foreground">
@@ -519,7 +486,6 @@ function PersonDialog({
   person: ResolvedPerson | null;
   onOpenChange: (open: boolean) => void;
 }) {
-  const isChamp = !!person?.championTeam;
   return (
     <Dialog open={!!person} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -535,20 +501,10 @@ function PersonDialog({
                   <img
                     src={resolveAvatar(person.avatarUrl, person.email)}
                     alt={person.displayName}
-                    className={`h-full w-full rounded-full bg-muted/40 object-cover ring-1 ${
-                      isChamp
-                        ? "ring-2 ring-amber-400 ring-offset-1 ring-offset-white"
-                        : "ring-border"
-                    } ${person.isSignedIn ? "" : "grayscale"}`}
+                    className={`h-full w-full rounded-full bg-muted/40 object-cover ring-1 ring-border ${
+                      person.isSignedIn ? "" : "grayscale"
+                    }`}
                   />
-                  {isChamp && (
-                    <span
-                      aria-hidden
-                      className="absolute -bottom-0.5 -right-0.5 inline-flex h-4 items-center rounded-full bg-amber-400 px-1 font-mono text-[8px] font-semibold leading-none tracking-tight text-white shadow-sm ring-1 ring-white"
-                    >
-                      AI
-                    </span>
-                  )}
                 </span>
                 <div className="min-w-0">
                   <DialogTitle className="truncate">
@@ -600,23 +556,6 @@ function PersonDialog({
                   <span className="text-muted-foreground">Not signed in yet</span>
                 )}
               </dd>
-
-              {isChamp && (
-                <>
-                  <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    Champion of
-                  </dt>
-                  <dd>
-                    <Link
-                      href={`/champions/${encodeURIComponent(person.championTeam ?? "")}`}
-                      className="text-amber-700 hover:underline"
-                      onClick={() => onOpenChange(false)}
-                    >
-                      {person.championTeam}
-                    </Link>
-                  </dd>
-                </>
-              )}
             </dl>
           </>
         )}

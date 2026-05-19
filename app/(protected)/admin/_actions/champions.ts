@@ -1,6 +1,5 @@
 "use server";
 
-import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -17,13 +16,6 @@ export type AssignChampionState =
   | { kind: "idle" }
   | { kind: "ok"; team: string; emailed: boolean; emailNote?: string }
   | { kind: "error"; message: string };
-
-async function appUrl(): Promise<string> {
-  const hdrs = await headers();
-  const host = hdrs.get("x-forwarded-host") ?? hdrs.get("host");
-  const proto = hdrs.get("x-forwarded-proto") ?? "https";
-  return host ? `${proto}://${host}` : "http://localhost:3000";
-}
 
 export async function assignChampion(
   _prev: AssignChampionState,
@@ -98,7 +90,6 @@ export async function assignChampion(
     recipientName: person.display_name,
     team: parsed.data.team,
     assignedByName: user.displayName,
-    appUrl: await appUrl(),
   });
 
   if ("ok" in sendResult && sendResult.ok) {
@@ -110,8 +101,6 @@ export async function assignChampion(
   }
 
   revalidatePath("/admin");
-  revalidatePath("/champions");
-  revalidatePath(`/champions/${parsed.data.team}`);
 
   return { kind: "ok", team: parsed.data.team, emailed, emailNote };
 }
@@ -121,7 +110,6 @@ export async function removeChampion(formData: FormData): Promise<void> {
   if (user.role !== "super_admin") return;
 
   const championId = (formData.get("champion_id") as string | null)?.trim();
-  const team = (formData.get("team") as string | null)?.trim();
   const redirectTo = (formData.get("redirect_to") as string | null)?.trim();
   if (!championId) return;
 
@@ -130,12 +118,9 @@ export async function removeChampion(formData: FormData): Promise<void> {
 
   revalidatePath("/admin");
   revalidatePath("/map");
-  if (team) revalidatePath(`/champions/${team}`);
 
-  // Profile-page Remove asks to be sent back to the directory because the
-  // page lookup would 404 if this was the team's only champion. Only honour
-  // same-origin relative paths - Server Actions accept arbitrary FormData,
-  // so an unvalidated redirect target is a CSRF-shaped open-redirect.
+  // Server Actions accept arbitrary FormData, so an unvalidated redirect target
+  // is a CSRF-shaped open-redirect — only honour same-origin relative paths.
   if (redirectTo && redirectTo.startsWith("/") && !redirectTo.startsWith("//")) {
     redirect(redirectTo);
   }

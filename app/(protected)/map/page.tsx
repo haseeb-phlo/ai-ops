@@ -1,7 +1,6 @@
 import { getSessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { resolveAvatar } from "@/lib/profile";
-import { championsByDisplayName, loadChampions } from "@/lib/champions";
 import { loadTeamOptions } from "@/lib/teams";
 import { Galaxy, type GalaxyData } from "./_components/galaxy";
 import {
@@ -9,13 +8,12 @@ import {
   DEFAULT_VIEW,
   type ViewKey,
 } from "./_components/view-toggle";
-import { ChampionsView } from "./_components/champions-view";
 import { OrgView } from "./_components/org-view";
 import { InviteButton } from "../admin/_components/invite-button";
 
 export const dynamic = "force-dynamic";
 
-const VALID_VIEWS = new Set<ViewKey>(["map", "directory", "champions"]);
+const VALID_VIEWS = new Set<ViewKey>(["map", "directory"]);
 
 function ninetyDaysAgo(): string {
   const d = new Date();
@@ -104,8 +102,8 @@ export default async function MapPage({
                 People
               </h1>
               <p className="mt-1 text-sm text-muted-foreground">
-                Reporting structure top to bottom. AI Champions glow amber;
-                collapse any branch with the −/+ button.
+                Reporting structure top to bottom. Collapse any branch with
+                the −/+ button.
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -121,32 +119,6 @@ export default async function MapPage({
     );
   }
 
-  if (view === "champions") {
-    return (
-      <div className="flex flex-1 flex-col">
-        <div className="border-b bg-background px-6 py-5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-                People
-              </h1>
-              <p className="mt-1 text-sm text-muted-foreground">
-                AI Champions - one per team, the editorial voice for AI work.
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              {isSuper && <InviteButton teams={inviteTeams} />}
-              <ViewToggle active={view} />
-            </div>
-          </div>
-        </div>
-        <div className="px-6 py-6">
-          <ChampionsView />
-        </div>
-      </div>
-    );
-  }
-
   const supabase = await createClient();
 
   const [
@@ -156,7 +128,6 @@ export default async function MapPage({
     workflowsRes,
     interventionsRes,
     historyRes,
-    userEmailsRes,
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -187,8 +158,16 @@ export default async function MapPage({
       .select("workflow_id, snapshot_date, metric, value")
       .gte("snapshot_date", ninetyDaysAgo())
       .returns<HistoryRow[]>(),
-    supabase.rpc("user_emails"),
   ]);
+
+  // Resolve auth emails for the profile user_ids loaded above. user_emails
+  // requires an explicit user_id list; we already have every signed-in
+  // user's profile row in `profilesRes`, so pass those ids in.
+  const profileUserIds = (profilesRes.data ?? []).map((p) => p.user_id);
+  const userEmailsRes =
+    profileUserIds.length === 0
+      ? { data: [] as Array<{ user_id: string; email: string | null }>, error: null }
+      : await supabase.rpc("user_emails", { p_user_ids: profileUserIds });
 
   const errors = [
     profilesRes.error,
@@ -256,19 +235,6 @@ export default async function MapPage({
     history: [],
   };
 
-  const championsByUser = await (async () => {
-    const all = await loadChampions();
-    const m = new Map<string, { team: string }>();
-    for (const c of all) {
-      // A user can be a champion of multiple teams; the galaxy node only
-      // shows one, so we keep the first encountered (loadChampions orders
-      // by team then created_at, so this is deterministic).
-      if (c.user_id && !m.has(c.user_id)) m.set(c.user_id, { team: c.team });
-    }
-    return m;
-  })();
-  const championsByName = await championsByDisplayName();
-
   // 1. People from profiles (real users), enriched with people-table data.
   //    Resolution order: display_name match → canonical email match →
   //    role_grant team. Email is the most reliable key because users can
@@ -294,11 +260,6 @@ export default async function MapPage({
       peopleByName.get(displayName.toLowerCase()) ??
       (userEmail ? peopleByEmail.get(userEmail) : undefined);
 
-    const champ =
-      championsByUser.get(p.user_id) ??
-      (championsByName.get(displayName.toLowerCase())
-        ? { team: championsByName.get(displayName.toLowerCase())!.team }
-        : null);
     data.people.push({
       id: `user:${p.user_id}`,
       name: displayName,
@@ -306,8 +267,6 @@ export default async function MapPage({
       avatarUrl: resolveAvatar(p.avatar_url, p.user_id),
       team: peopleMatch?.team ?? teamByUser.get(p.user_id) ?? null,
       kind: "user",
-      isChampion: !!champ,
-      championTeam: champ?.team ?? null,
     });
     profileNames.add(displayName.toLowerCase());
   }
@@ -320,7 +279,6 @@ export default async function MapPage({
     if (!name) continue;
     const key = name.toLowerCase();
     if (profileNames.has(key)) continue;
-    const champ = championsByName.get(key);
     data.people.push({
       id: `name:${key}`,
       name,
@@ -328,8 +286,6 @@ export default async function MapPage({
       avatarUrl: resolveAvatar(null, name),
       team: p.team ?? null,
       kind: "ghost",
-      isChampion: !!champ,
-      championTeam: champ?.team ?? null,
     });
     profileNames.add(key);
   }
@@ -345,7 +301,6 @@ export default async function MapPage({
       if (profileNames.has(key) || ghostByName.has(key)) continue;
       const id = `name:${key}`;
       ghostByName.set(key, id);
-      const champ = championsByName.get(key);
       data.people.push({
         id,
         name,
@@ -353,8 +308,6 @@ export default async function MapPage({
         avatarUrl: resolveAvatar(null, name),
         team: w.team,
         kind: "ghost",
-        isChampion: !!champ,
-        championTeam: champ?.team ?? null,
       });
     }
   }
@@ -419,20 +372,9 @@ export default async function MapPage({
             <h1 className="text-2xl font-semibold tracking-tight text-foreground">
               People
             </h1>
-            <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
-              <span>
-                Teams orbit Phlo, people orbit their team, workflows orbit
-                their owners.
-              </span>
-              <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-                <span
-                  aria-hidden
-                  className="inline-flex h-3.5 items-center rounded-full bg-amber-400 px-1 font-mono text-[7px] font-semibold leading-none tracking-tight text-white"
-                >
-                  AI
-                </span>
-                marks an AI Champion.
-              </span>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Teams orbit Phlo, people orbit their team, workflows orbit
+              their owners.
             </p>
           </div>
           <div className="flex items-center gap-2">

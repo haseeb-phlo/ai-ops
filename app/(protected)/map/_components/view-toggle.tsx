@@ -4,14 +4,13 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 const VIEWS = [
-  { value: "champions", label: "AI Champions" },
   { value: "map", label: "Map" },
   { value: "directory", label: "Directory" },
 ] as const;
 
 export type ViewKey = (typeof VIEWS)[number]["value"];
 
-export const DEFAULT_VIEW: ViewKey = "champions";
+export const DEFAULT_VIEW: ViewKey = "map";
 
 export function ViewToggle({ active }: { active: ViewKey }) {
   // View-scoped params (team, q) are filter state, not view identity, so

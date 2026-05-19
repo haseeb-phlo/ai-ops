@@ -102,7 +102,7 @@ export function VideoCard({
       <div className="relative aspect-video w-full bg-muted">
         {watchedAt && !playing && (
           <span
-            className="pointer-events-none absolute right-2 top-2 z-10 inline-flex items-center gap-1 rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-medium text-white shadow-sm"
+            className="pointer-events-none absolute right-2 top-2 z-10 inline-flex items-center gap-1 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-medium text-white shadow-sm ring-1 ring-white"
             title={`Watched ${format(new Date(watchedAt), "d MMM yyyy")}`}
             aria-label={`Watched ${format(new Date(watchedAt), "d MMM yyyy")}`}
           >

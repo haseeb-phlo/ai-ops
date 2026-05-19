@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SegmentedControl } from "@/components/ui/segmented-control";
+import { TagInput } from "@/components/ui/tag-input";
 import {
   updateWorkflow,
   type UpdateWorkflowState,
@@ -35,6 +36,7 @@ type Workflow = {
   criticality_score: number | null;
   business_kpi: string | null;
   owner_names: string[];
+  tools_used: string[] | null;
 };
 
 const CRITICALITY_OPTIONS = [
@@ -51,10 +53,12 @@ export function EditWorkflowDialog({
   workflow,
   teams,
   hoursPerWeek,
+  toolSuggestions,
 }: {
   workflow: Workflow;
   teams: string[];
   hoursPerWeek: number | null;
+  toolSuggestions: string[];
 }) {
   const [open, setOpen] = useState(false);
   const [team, setTeam] = useState<string>(workflow.team ?? TEAM_NONE);
@@ -62,6 +66,7 @@ export function EditWorkflowDialog({
     workflow.criticality_score != null ? String(workflow.criticality_score) : "3",
   );
   const [regulatory, setRegulatory] = useState(workflow.regulatory);
+  const [tools, setTools] = useState<string[]>(workflow.tools_used ?? []);
   const [state, setState] = useState<UpdateWorkflowState>({ kind: "idle" });
   const [pending, startTransition] = useTransition();
 
@@ -84,6 +89,7 @@ export function EditWorkflowDialog({
           : "3",
       );
       setRegulatory(workflow.regulatory);
+      setTools(workflow.tools_used ?? []);
     }
     setOpen(next);
   }
@@ -216,6 +222,21 @@ export function EditWorkflowDialog({
               />
               <p className="text-xs text-muted-foreground">
                 Plain text names, separated by commas.
+              </p>
+            </div>
+
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label>Tools used</Label>
+              <TagInput
+                selected={tools}
+                onChange={setTools}
+                suggestions={toolSuggestions}
+                inputName="tools_used"
+                placeholder="e.g. Notion, Claude, Linear"
+              />
+              <p className="text-xs text-muted-foreground">
+                Apps, AI models, or systems people use to run this. Press Enter
+                or comma to add.
               </p>
             </div>
 
