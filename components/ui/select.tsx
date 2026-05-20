@@ -22,7 +22,13 @@ function SelectValue({ className, ...props }: SelectPrimitive.Value.Props) {
   return (
     <SelectPrimitive.Value
       data-slot="select-value"
-      className={cn("flex flex-1 text-left", className)}
+      className={cn(
+        // first-letter:uppercase ensures the trigger label always reads with
+        // a capital first letter — even when the underlying value or label
+        // is lowercased (e.g. a free-text team name typed in lowercase).
+        "flex flex-1 text-left first-letter:uppercase",
+        className,
+      )}
       {...props}
     />
   )
