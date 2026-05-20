@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { getISOWeek } from "date-fns";
+import { getISOWeek, getISOWeekYear } from "date-fns";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { appUrl } from "@/lib/app-url";
 import { isAllowedEmail } from "@/lib/auth-domain";
@@ -85,6 +85,19 @@ type Video = {
 type Play = { video_id: string; user_id: string };
 
 export async function GET(request: NextRequest) {
+  // Refuse to run on Preview/Development Vercel deploys even if they
+  // somehow received CRON_SECRET + RESEND_API_KEY. A leaked preview URL
+  // with the secret could otherwise mass-email production users from a
+  // throwaway branch. VERCEL_ENV is set automatically by Vercel; absent
+  // locally so dev can still exercise the route via the localhost gate
+  // inside isCronAuthorized.
+  if (process.env.VERCEL_ENV && process.env.VERCEL_ENV !== "production") {
+    return NextResponse.json(
+      { error: "Cron is disabled on non-production deploys." },
+      { status: 403, headers: NO_STORE },
+    );
+  }
+
   if (
     !isCronAuthorized({
       authorizationHeader: request.headers.get("authorization"),
@@ -115,7 +128,50 @@ export async function GET(request: NextRequest) {
   const since = new Date(now.getTime() - PERIOD_DAYS * 86_400_000);
   const sinceIso = since.toISOString();
   const periodLabel = `${formatDate(since)} → ${formatDate(now)}`;
+  // ISO year + week → e.g. "digest-2026-W22". Using getISOWeekYear (not
+  // getYear) keeps the key stable across the Jan-1 boundary, where ISO
+  // week 1 can belong to the previous calendar year.
+  const periodKey = `digest-${getISOWeekYear(now)}-W${String(
+    getISOWeek(now),
+  ).padStart(2, "0")}`;
   const supabase = createAdminClient();
+
+  // Claim this period so retries / accidental double-fires are no-ops.
+  // ?force=1 skips the claim - reserved for manual ops recovery.
+  // ?dry=1 also skips - a dry-run should be state-free, otherwise it
+  // would consume the period key and block the real send later.
+  // The table has a primary-key constraint on period_key, so a second
+  // unforced fire conflicts and `claimed` comes back null.
+  if (!force && !dryRun) {
+    const { data: claimed, error: claimError } = await supabase
+      .from("digest_sends")
+      .insert({ period_key: periodKey, forced: false })
+      .select("period_key")
+      .maybeSingle<{ period_key: string }>();
+    if (claimError) {
+      // Postgres unique-violation = 23505; we treat that as "already sent"
+      // and exit cleanly. Any other error is a real fault and surfaces.
+      if (claimError.code === "23505") {
+        return NextResponse.json(
+          { ok: true, skipped: "already-sent", periodKey },
+          { headers: NO_STORE },
+        );
+      }
+      console.error("[digest-cron] claim insert failed", claimError.message);
+      return NextResponse.json(
+        { error: "Failed to claim period" },
+        { status: 500, headers: NO_STORE },
+      );
+    }
+    if (!claimed) {
+      // Defensive - .insert + .select + .maybeSingle should always return
+      // the inserted row on success.
+      return NextResponse.json(
+        { ok: true, skipped: "already-sent", periodKey },
+        { headers: NO_STORE },
+      );
+    }
+  }
 
   // ----- Recipient enumeration ------------------------------------------------
   // Anyone with a profile row counts as a recipient (one is created on first
@@ -417,13 +473,40 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  // Record the actual outcome on the period row. Upsert because a forced
+  // run might be the first write for this period_key (no prior claim) or
+  // a replay over an existing row. Skipped for dry-runs so they remain
+  // state-free. Failure here is non-fatal: emails are already out the
+  // door, and the dedupe row was claimed at the top of a normal run.
+  const sentCount = results.filter((r) => r.status === "sent").length;
+  if (!dryRun) {
+    const { error: recordError } = await supabase
+      .from("digest_sends")
+      .upsert(
+        {
+          period_key: periodKey,
+          sent_at: new Date().toISOString(),
+          recipient_count: sentCount,
+          forced: force,
+        },
+        { onConflict: "period_key" },
+      );
+    if (recordError) {
+      console.warn(
+        "[digest-cron] failed to record send outcome",
+        recordError.message,
+      );
+    }
+  }
+
   return NextResponse.json(
     {
       ok: true,
+      periodKey,
       periodLabel,
       isoWeek: getISOWeek(now),
       forced: force,
-      sent: results.filter((r) => r.status === "sent").length,
+      sent: sentCount,
       failed: results.filter((r) => r.status === "failed").length,
       results: results.slice(0, 50),
     },
