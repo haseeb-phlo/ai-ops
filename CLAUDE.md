@@ -23,9 +23,11 @@ Vitest runs in `jsdom` with globals enabled; tests live in `tests/**/*.test.ts(x
 Env vars (see `../.example_env` - the example file lives one directory **above** the repo root, shared with sibling Phlo projects):
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY` - required only for system-initiated paths (cron, scripts). `createAdminClient()` throws at first use if missing; the rest of the app boots without it.
 - `ANTHROPIC_API_KEY`
 - `RESEND_API_KEY` - optional in dev; when unset, `lib/resend.ts` exports `null` and sends no-op.
 - `EMAIL_FROM` - optional; defaults to the Resend test domain.
+- `CRON_SECRET` - required in production for `/api/cron/*`. Vercel injects this on Cron-triggered requests; the route checks it with a constant-time compare.
 
 Path alias: `@/*` → repository root (e.g. `@/lib/supabase/server`).
 
@@ -45,13 +47,14 @@ Treat `proxy.ts` as the single global gate. Pages do not need to re-check auth f
 
 `lib/auth-domain.ts` pins auth to a single domain (`@wearephlo.com`) via `isAllowedEmail`. It's enforced in three layers - the proxy, the `/auth/callback` route, and `getSessionUser` - and the file is intentionally dependency-free so it can be imported from any execution context (Edge proxy, RSC, Server Action, client). When changing the allowed domain, update this one constant.
 
-### Three Supabase clients, one per execution context
+### Supabase clients, one per execution context
 
-`lib/supabase/` has three factories - pick the one matching where you're calling from:
+`lib/supabase/` has four factories - pick the one matching where you're calling from:
 
 - `client.ts` → `createBrowserClient` for Client Components (`"use client"`).
-- `server.ts` → `createServerClient` reading `cookies()` from `next/headers`. Use in Server Components, Server Actions, and Route Handlers. The `setAll` swallows errors because Server Components can't set cookies; the proxy handles refresh, so this is safe.
+- `server.ts` → `createServerClient` reading `cookies()` from `next/headers`. Use in Server Components, Server Actions, and Route Handlers responding to a human request. The `setAll` swallows errors because Server Components can't set cookies; the proxy handles refresh, so this is safe.
 - `proxy.ts` → request/response-bound variant used only by the root `proxy.ts`.
+- `admin.ts` → `createAdminClient()` returns a **service-role** client that bypasses RLS. Use **only** in system-initiated contexts (Cron handlers, scripts, internal RPCs). Never on a request path where the caller is a human - those must use `server.ts` so RLS is enforced against the user's JWT. The factory throws at first call when `SUPABASE_SERVICE_ROLE_KEY` is missing rather than at import, so dev/test environments without the key still boot.
 
 ### Session + role loading
 
@@ -72,12 +75,13 @@ Two critical implications:
 
 ### Route layout
 
-- `app/(protected)/` - route group whose `layout.tsx` calls `getSessionUser()` and renders `<Header user={user} />`. New authenticated pages go inside this group.
+- `app/(protected)/` - route group whose `layout.tsx` calls `getSessionUser()` and renders the app chrome: `Sidebar` (collapsible, cookie-persisted via `SIDEBAR_COLLAPSED_COOKIE` in `lib/sidebar.ts`), `MobileTopBar`, `ImpersonationBanner`, and the global `CommandPalette`. New authenticated pages go inside this group.
 - Feature areas under `app/(protected)/` follow a consistent shape: `page.tsx` (list/index), `[id]/` (detail), `_components/` (route-local UI), `actions.ts` (Server Actions). Mutations go through `actions.ts` next to the route, not separate API routes. Server Actions validate inputs with Zod at the boundary; trust the parsed shape downstream.
 - The `_components/` underscore prefix marks a Next.js **private folder** - excluded from routing. Use it for any route-local file that isn't a page/layout/route handler.
 - `app/login/page.tsx` - Client Component using Supabase magic-link OTP (`signInWithOtp`), redirect target `${origin}/auth/callback`.
 - `app/auth/callback/route.ts` - exchanges the OTP `code` for a session via `exchangeCodeForSession`, then redirects to `?next=` or `/`.
-- `app/auth/signout/route.ts` - POST handler used by the header's sign-out form.
+- `app/auth/signout/route.ts` - POST handler used by the sidebar's sign-out form.
+- `app/api/` - reserved for system endpoints (Cron handlers, the `/api/search/index` global search endpoint). Application mutations still belong in route-local `actions.ts`, not here.
 
 ### Mutation conventions
 
@@ -96,6 +100,16 @@ Per-resource edit permission helpers (e.g. `canUserEditWorkflow` in `app/(protec
 ### Soft delete
 
 Workflows use `deleted_at` + `deleted_by` columns; reads filter `.is("deleted_at", null)`. The `/admin` page lists deleted rows and offers restore. Don't `DELETE FROM` - soft delete preserves the audit trail and lets champions/admins undo mistakes.
+
+### Cron & system-initiated endpoints
+
+Scheduled jobs are declared in `vercel.json` under `crons` (currently a Wednesday-morning digest at `0 7 * * 3` hitting `/api/cron/digest`) and run as ordinary `app/api/cron/*/route.ts` handlers. Three pieces interlock:
+
+1. **Proxy bypass.** `lib/supabase/proxy.ts` skips the cookie-based auth gate for paths starting with `/api/cron`, because Vercel Cron requests carry no Supabase session - without the skip they'd be redirected to `/login` before the handler ran.
+2. **Bearer-token gate.** Every cron handler must call `isCronAuthorized` from `lib/cron-auth.ts` before doing any work. In production it requires `Authorization: Bearer ${CRON_SECRET}` (constant-time compare via `timingSafeEqual`); in non-production it additionally requires a localhost `Host` header so a stray `NODE_ENV=development` deploy can't expose the endpoint publicly.
+3. **Service-role DB access.** Cron handlers have no user JWT, so they use `createAdminClient()` from `lib/supabase/admin.ts` and are responsible for any access checks that RLS would have enforced.
+
+When adding a new scheduled job, add the entry to `vercel.json`, gate the handler with `isCronAuthorized`, and use `createAdminClient()` for DB writes. The `/api/cron/digest` route is the canonical example.
 
 ### Database schema
 
