@@ -63,7 +63,7 @@ export default async function WorkflowsPage(props: {
       "id, name, team, frequency_per_week, frequency_cadence, created_by, created_at, workflow_steps(count)",
     )
     .is("deleted_at", null)
-    .order("name");
+    .order("created_at", { ascending: false });
 
   if (activeTeam !== ALL_TEAMS) {
     q = q.eq("team", activeTeam);
