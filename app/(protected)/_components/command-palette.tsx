@@ -467,7 +467,7 @@ export function CommandPaletteHint() {
       aria-label="Open command palette"
     >
       <SearchIcon className="size-3.5 shrink-0" aria-hidden />
-      <span className="flex-1 truncate">Search the workshop…</span>
+      <span className="flex-1 truncate">Search AI Ops…</span>
       <kbd className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground">
         <span>⌘</span>
         <span>K</span>
