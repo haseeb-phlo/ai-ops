@@ -84,7 +84,9 @@ export function SubmitSuggestionDialog({
                 onValueChange={(v) => setWorkflowId(v ?? "")}
               >
                 <SelectTrigger id="workflow_id" className="w-full">
-                  <SelectValue placeholder="Pick a workflow" />
+                  <SelectValue placeholder="Pick a workflow">
+                    {(v) => workflows.find((w) => w.id === v)?.name ?? ""}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {workflows.map((w) => (

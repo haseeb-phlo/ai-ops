@@ -117,7 +117,9 @@ export function ViewAsSwitcher({
           disabled={isPending}
         >
           <SelectTrigger className="h-7 px-2 text-xs">
-            <SelectValue placeholder="No team" />
+            <SelectValue placeholder="No team">
+              {(v) => (v === NO_TEAM ? "No team" : (v as string))}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={NO_TEAM}>No team</SelectItem>

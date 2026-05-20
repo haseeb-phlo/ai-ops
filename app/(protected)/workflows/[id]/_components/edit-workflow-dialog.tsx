@@ -159,7 +159,9 @@ export function EditWorkflowDialog({
               />
               <Select value={team} onValueChange={(v) => setTeam(v ?? TEAM_NONE)}>
                 <SelectTrigger id="team">
-                  <SelectValue />
+                  <SelectValue>
+                    {(v) => (v === TEAM_NONE ? "No team" : (v as string))}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={TEAM_NONE}>No team</SelectItem>
@@ -184,7 +186,9 @@ export function EditWorkflowDialog({
                 onValueChange={(v) => v && setCadence(v as Cadence)}
               >
                 <SelectTrigger id="frequency_cadence" className="w-full">
-                  <SelectValue />
+                  <SelectValue>
+                    {(v) => (v ? CADENCE_LABEL[v as Cadence] ?? "" : null)}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {CADENCES.map((c) => (

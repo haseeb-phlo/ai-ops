@@ -390,7 +390,11 @@ export function EditInterventionDialog({
                     onValueChange={(v) => v && setCadence(v as Cadence)}
                   >
                     <SelectTrigger id="frequency_cadence" className="w-full">
-                      <SelectValue />
+                      <SelectValue>
+                        {(v) =>
+                          v ? CADENCE_LABEL[v as Cadence] ?? "" : null
+                        }
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {CADENCES.map((c) => (

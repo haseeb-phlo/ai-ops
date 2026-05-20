@@ -88,7 +88,11 @@ export function LinkInterventionDialog({
                 onValueChange={(v) => setInterventionId(v ?? "")}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Pick an AI initiative" />
+                  <SelectValue placeholder="Pick an AI initiative">
+                    {(v) =>
+                      interventions.find((iv) => iv.id === v)?.name ?? ""
+                    }
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {interventions.map((iv) => (
