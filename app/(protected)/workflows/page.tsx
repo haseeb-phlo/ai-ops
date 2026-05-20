@@ -22,6 +22,7 @@ type WorkflowRow = {
   team: string | null;
   frequency_per_week: number | null;
   created_by: string | null;
+  created_at: string;
   workflow_steps: { count: number }[];
 };
 
@@ -57,7 +58,7 @@ export default async function WorkflowsPage(props: {
   let q = supabase
     .from("workflows")
     .select(
-      "id, name, team, frequency_per_week, created_by, workflow_steps(count)",
+      "id, name, team, frequency_per_week, created_by, created_at, workflow_steps(count)",
     )
     .is("deleted_at", null)
     .order("name");
@@ -231,6 +232,7 @@ export default async function WorkflowsPage(props: {
                 <TableHead className="text-right">Total hours / wk</TableHead>
                 <TableHead className="text-right">Active AI initiatives</TableHead>
                 <TableHead>Logged by</TableHead>
+                <TableHead>Logged on</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -279,6 +281,13 @@ export default async function WorkflowsPage(props: {
                     </TableCell>
                     <TableCell className="text-foreground">
                       {loggedBy ?? <span className="text-muted-foreground">-</span>}
+                    </TableCell>
+                    <TableCell className="text-foreground tabular-nums">
+                      {new Date(wf.created_at).toLocaleDateString(undefined, {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                      })}
                     </TableCell>
                   </TableRow>
                 );
