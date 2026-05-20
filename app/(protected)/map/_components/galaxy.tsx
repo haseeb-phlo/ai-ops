@@ -33,6 +33,7 @@ export type GalaxyData = {
     team: string | null;
     regulatory: boolean;
     frequencyPerWeek: number;
+    frequencyLabel: string | null;
     criticality: number;
     activeInterventions: number;
     ownerIds: string[];
@@ -887,6 +888,7 @@ function buildGraph(data: GalaxyData): { nodes: Node[]; links: Link[] } {
         rawId: w.rawId,
         regulatory: w.regulatory,
         frequencyPerWeek: w.frequencyPerWeek,
+        frequencyLabel: w.frequencyLabel,
         criticality: w.criticality,
         activeInterventions: w.activeInterventions,
         team: w.team,
@@ -1293,7 +1295,7 @@ function WorkflowDetail({ node }: { node: Node }) {
       <p className="text-muted-foreground">
         Team: {(m.team as string | null) ?? "-"}
       </p>
-      <p>Frequency / wk: {(m.frequencyPerWeek as number) ?? 0}</p>
+      <p>Frequency: {(m.frequencyLabel as string | null) ?? "-"}</p>
       <p>Criticality: {(m.criticality as number) ?? 3}/5</p>
       <p>
         Active interventions: {(m.activeInterventions as number) ?? 0}

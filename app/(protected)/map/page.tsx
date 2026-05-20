@@ -2,6 +2,7 @@ import { getSessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { resolveAvatar } from "@/lib/profile";
 import { loadTeamOptions } from "@/lib/teams";
+import { formatCadence } from "@/lib/frequency";
 import { Galaxy, type GalaxyData } from "./_components/galaxy";
 import {
   ViewToggle,
@@ -51,6 +52,7 @@ type WorkflowRow = {
   team: string | null;
   regulatory: boolean;
   frequency_per_week: number | null;
+  frequency_cadence: string | null;
   criticality_score: number | null;
   owner_names: string[] | null;
 };
@@ -144,7 +146,7 @@ export default async function MapPage({
     supabase
       .from("workflows")
       .select(
-        "id, name, team, regulatory, frequency_per_week, criticality_score, owner_names",
+        "id, name, team, regulatory, frequency_per_week, frequency_cadence, criticality_score, owner_names",
       )
       .is("deleted_at", null)
       .returns<WorkflowRow[]>(),
@@ -348,6 +350,7 @@ export default async function MapPage({
       team: w.team,
       regulatory: w.regulatory,
       frequencyPerWeek: w.frequency_per_week ?? 0,
+      frequencyLabel: formatCadence(w.frequency_cadence, w.frequency_per_week),
       criticality: w.criticality_score ?? 3,
       activeInterventions: interventionsByWorkflow.get(w.id) ?? 0,
       ownerIds,

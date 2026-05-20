@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getSessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { resolveDisplayName } from "@/lib/profile";
+import { formatCadence } from "@/lib/frequency";
 import {
   Table,
   TableBody,
@@ -21,6 +22,7 @@ type WorkflowRow = {
   name: string;
   team: string | null;
   frequency_per_week: number | null;
+  frequency_cadence: string | null;
   created_by: string | null;
   created_at: string;
   workflow_steps: { count: number }[];
@@ -58,7 +60,7 @@ export default async function WorkflowsPage(props: {
   let q = supabase
     .from("workflows")
     .select(
-      "id, name, team, frequency_per_week, created_by, created_at, workflow_steps(count)",
+      "id, name, team, frequency_per_week, frequency_cadence, created_by, created_at, workflow_steps(count)",
     )
     .is("deleted_at", null)
     .order("name");
@@ -227,7 +229,7 @@ export default async function WorkflowsPage(props: {
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Team</TableHead>
-                <TableHead className="text-right">Frequency / wk</TableHead>
+                <TableHead>Frequency</TableHead>
                 <TableHead className="text-right">Steps</TableHead>
                 <TableHead className="text-right">Total hours / wk</TableHead>
                 <TableHead className="text-right">Active AI initiatives</TableHead>
@@ -257,12 +259,11 @@ export default async function WorkflowsPage(props: {
                     <TableCell className="text-foreground">
                       {wf.team ?? <span className="text-muted-foreground">-</span>}
                     </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {wf.frequency_per_week != null
-                        ? wf.frequency_per_week.toLocaleString(undefined, {
-                            maximumFractionDigits: 1,
-                          })
-                        : 0}
+                    <TableCell className="text-foreground">
+                      {formatCadence(
+                        wf.frequency_cadence,
+                        wf.frequency_per_week,
+                      ) ?? <span className="text-muted-foreground">-</span>}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
                       {stepsCount}
