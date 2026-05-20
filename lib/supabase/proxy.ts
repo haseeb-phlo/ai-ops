@@ -34,8 +34,13 @@ export async function updateSession(request: NextRequest) {
 
   const path = request.nextUrl.pathname;
   const isAuthRoute = path.startsWith("/login") || path.startsWith("/auth");
+  // System-initiated requests (Vercel Cron, queued jobs) hit /api/cron with
+  // no Supabase session. The route handler enforces its own bearer-token
+  // auth via CRON_SECRET; skip the cookie-based gate here so the cron
+  // request isn't redirected to /login before the handler ever runs.
+  const isCronRoute = path.startsWith("/api/cron");
 
-  if (!user && !isAuthRoute) {
+  if (!user && !isAuthRoute && !isCronRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
