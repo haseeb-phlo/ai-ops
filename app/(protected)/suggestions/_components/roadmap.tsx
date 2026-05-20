@@ -29,7 +29,7 @@ const LANES: Lane[] = [
   {
     key: "shipped",
     title: "Shipped",
-    hint: "Closed out or retired.",
+    hint: "Live and done; still counted in active metrics.",
   },
 ];
 
@@ -51,10 +51,10 @@ export type RoadmapInitiative = {
  * round-trip; if the server rejects, the optimistic state reverts when the
  * page next revalidates.
  *
- * AI initiatives also surface on the board, in the lane that matches
- * their status (paused -> up_next, active -> in_progress, retired ->
- * shipped). They use the same grip-handle pattern and write back to
- * ai_interventions.status via moveInitiativeLane on drop.
+ * AI initiatives also surface on the board. Lane membership is 2D over
+ * (shipped_at, status): shipped_at set -> shipped (status stays active so
+ * dashboard metrics keep counting it); otherwise paused -> up_next, active
+ * -> in_progress. Drag-write goes through moveInitiativeLane.
  */
 
 type InitiativeGroups = Record<LaneKey, RoadmapInitiative[]>;

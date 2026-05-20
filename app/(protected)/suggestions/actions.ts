@@ -469,13 +469,19 @@ export async function moveSuggestionLane(
 }
 
 /**
- * Move an AI initiative across roadmap lanes by updating its status. Same
- * super-admin gate as suggestion moves; ai_interventions.status maps to
- * a lane:
+ * Move an AI initiative across roadmap lanes. Same super-admin gate as
+ * suggestion moves. Lane membership is a 2D mapping over status and
+ * shipped_at:
  *
- *   up_next      = status `paused`     (planned / on hold)
- *   in_progress  = status `active`     (currently running - the default)
- *   shipped      = status `retired`    (sunset / done)
+ *   up_next      = shipped_at null + status `paused`  (planned / on hold)
+ *   in_progress  = shipped_at null + status `active`  (currently running)
+ *   shipped      = shipped_at set                     (live and done)
+ *
+ * Crucially, "shipped" is orthogonal to status: an initiative dropped into
+ * the Shipped lane stays `active` and keeps counting in dashboard metrics.
+ * `retired` remains a real lifecycle state, set explicitly via the status
+ * button / edit dialog when an initiative is decommissioned - the roadmap
+ * never writes it.
  *
  * Used by the roadmap board's DnD when the dragged card is an initiative
  * rather than a suggestion. Revalidates both the suggestions page (so the
@@ -486,15 +492,6 @@ const InitiativeLaneSchema = z.object({
   initiative_id: z.string().uuid(),
   lane: z.enum(["up_next", "in_progress", "shipped"]),
 });
-
-const INITIATIVE_LANE_STATUS: Record<
-  "up_next" | "in_progress" | "shipped",
-  "paused" | "active" | "retired"
-> = {
-  up_next: "paused",
-  in_progress: "active",
-  shipped: "retired",
-};
 
 export async function moveInitiativeLane(
   formData: FormData,
@@ -508,9 +505,26 @@ export async function moveInitiativeLane(
   });
   if (!parsed.success) return;
   const supabase = await createClient();
+
+  // Build the update so each lane move clears the "other" axis. Moving out
+  // of Shipped clears shipped_at; moving into Shipped sets it and forces
+  // status back to active (so paused-then-shipped doesn't leave the row
+  // counted as paused).
+  const update: Record<string, unknown> = {};
+  if (parsed.data.lane === "up_next") {
+    update.status = "paused";
+    update.shipped_at = null;
+  } else if (parsed.data.lane === "in_progress") {
+    update.status = "active";
+    update.shipped_at = null;
+  } else if (parsed.data.lane === "shipped") {
+    update.status = "active";
+    update.shipped_at = new Date().toISOString();
+  }
+
   await supabase
     .from("ai_interventions")
-    .update({ status: INITIATIVE_LANE_STATUS[parsed.data.lane] })
+    .update(update)
     .eq("id", parsed.data.initiative_id);
   revalidatePath("/suggestions");
   revalidatePath("/interventions");

@@ -78,9 +78,16 @@ export default async function SuggestionsPage({
       .returns<{ id: string; name: string }[]>(),
     supabase
       .from("ai_interventions")
-      .select("id, name, status")
+      .select("id, name, status, shipped_at")
       .order("name", { ascending: true })
-      .returns<{ id: string; name: string; status: string | null }[]>(),
+      .returns<
+        {
+          id: string;
+          name: string;
+          status: string | null;
+          shipped_at: string | null;
+        }[]
+      >(),
     supabase
       .from("profiles")
       .select("user_id, display_name")
@@ -190,16 +197,21 @@ export default async function SuggestionsPage({
     shipped: decorated.filter((s) => s.status === "shipped"),
   };
 
-  // Initiative lane mapping mirrors the suggestion lanes by intent:
-  //   paused   -> "Up next"      (planned / on hold)
-  //   active   -> "In progress"  (the default for a freshly logged one)
-  //   retired  -> "Shipped"      (sunset / done)
-  // Dragging a card writes the corresponding status back via
-  // moveInitiativeLane.
+  // Initiative lane mapping is 2D over status + shipped_at:
+  //   shipped_at set                  -> "Shipped"     (live and done)
+  //   shipped_at null + status paused -> "Up next"     (planned / on hold)
+  //   shipped_at null + status active -> "In progress" (the default)
+  // Status='retired' is a separate lifecycle state (decommissioned) set via
+  // the status button / edit dialog - those rows don't appear on the board.
+  // Dragging a card writes back via moveInitiativeLane.
   const initiativeRoadmapGroups = {
-    up_next: interventionsList.filter((i) => i.status === "paused"),
-    in_progress: interventionsList.filter((i) => i.status === "active"),
-    shipped: interventionsList.filter((i) => i.status === "retired"),
+    up_next: interventionsList.filter(
+      (i) => !i.shipped_at && i.status === "paused",
+    ),
+    in_progress: interventionsList.filter(
+      (i) => !i.shipped_at && i.status === "active",
+    ),
+    shipped: interventionsList.filter((i) => !!i.shipped_at),
   };
 
   const activeRows = decorated.filter(
