@@ -46,6 +46,7 @@ type WorkflowOption = {
   id: string;
   name: string;
   frequency_per_week: number | null;
+  frequency_cadence: string | null;
 };
 
 type WorkflowMetricRow = {
@@ -103,7 +104,7 @@ export default async function InterventionsListPage({
     interventionsQuery.returns<InterventionRow[]>(),
     supabase
       .from("workflows")
-      .select("id, name, frequency_per_week")
+      .select("id, name, frequency_per_week, frequency_cadence")
       .is("deleted_at", null)
       .order("name", { ascending: true })
       .returns<WorkflowOption[]>(),
@@ -159,6 +160,7 @@ export default async function InterventionsListPage({
       id: w.id,
       name: w.name,
       frequency_per_week: w.frequency_per_week,
+      frequency_cadence: w.frequency_cadence,
       hours_per_week: m?.time_baseline != null ? m.time_baseline / 60 : null,
       cost_per_week: m?.cost_baseline ?? null,
       revenue_per_week: m?.revenue_baseline ?? null,
