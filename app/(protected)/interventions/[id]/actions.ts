@@ -7,6 +7,7 @@ import { getSessionUser, requireWriter } from "@/lib/auth";
 import { appUrl } from "@/lib/app-url";
 import { resolveDisplayName } from "@/lib/profile";
 import { sendInterventionCommentEmail } from "@/lib/emails/intervention-comment";
+import { CADENCES, cadenceToPerWeek } from "@/lib/frequency";
 
 const INTERVENTION_TYPES = [
   "tool",
@@ -123,10 +124,9 @@ const UpdateSchema = z.object({
     .min(1, "Pick at least one AI initiative type"),
   status: z.enum(STATUSES),
   description: z.string().max(500).nullable(),
-  uses_per_week: z
-    .number({ error: "Times per week is required" })
-    .min(0, "Times per week can't be negative")
-    .max(10000),
+  frequency_cadence: z.enum(CADENCES, {
+    error: "Pick how often this AI initiative runs",
+  }),
   minutes_saved_per_use: z
     .number({ error: "Minutes saved per use is required" })
     .min(0, "Minutes saved can't be negative")
@@ -148,6 +148,13 @@ const UpdateSchema = z.object({
     .max(5, "Satisfaction is 1-5")
     .nullable(),
   recipient_emails: z.array(z.string().email().toLowerCase()).max(500),
+  // Notes write directly via UPDATE (update_intervention RPC doesn't accept
+  // it yet), and the action writes an intervention_edits row to keep the
+  // audit log honest. Nullable so a user can clear an existing note.
+  notes: z
+    .string()
+    .max(2000, "Notes can be at most 2000 characters")
+    .nullable(),
 });
 
 export type UpdateInterventionState =
@@ -188,6 +195,9 @@ export async function updateIntervention(
     .filter(
       (v): v is string => typeof v === "string" && v.trim().length > 0,
     );
+  const notesRaw = formData.get("notes");
+  const notes: string | null =
+    typeof notesRaw === "string" && notesRaw.trim() !== "" ? notesRaw : null;
 
   const parsed = UpdateSchema.safeParse({
     id: formData.get("id"),
@@ -204,7 +214,7 @@ export async function updateIntervention(
     ),
     status: formData.get("status"),
     description,
-    uses_per_week: numericField("uses_per_week"),
+    frequency_cadence: formData.get("frequency_cadence"),
     minutes_saved_per_use: numericField("minutes_saved_per_use"),
     cost_saved_per_use: numericField("cost_saved_per_use"),
     revenue_per_use: numericField("revenue_per_use"),
@@ -212,6 +222,7 @@ export async function updateIntervention(
     adoption_status: adoption,
     satisfaction,
     recipient_emails: recipients,
+    notes,
   });
 
   if (!parsed.success) {
@@ -223,6 +234,10 @@ export async function updateIntervention(
 
   const data = parsed.data;
   const supabase = await createClient();
+  // Cadence is canonical; the numeric uses_per_week is derived here so
+  // dashboard aggregates (which read the per-week column) reflect the
+  // user's pick.
+  const usesPerWeek = cadenceToPerWeek(data.frequency_cadence);
 
   // Audited fields (including the per-use shape) go through the RPC, which
   // computes and writes the derived per-week columns and a per-field row
@@ -232,13 +247,14 @@ export async function updateIntervention(
     p_name: data.name,
     p_types: data.types,
     p_description: data.description,
-    p_uses_per_week: data.uses_per_week,
+    p_uses_per_week: usesPerWeek,
     p_minutes_saved_per_use: data.minutes_saved_per_use,
     p_cost_saved_per_use: data.cost_saved_per_use,
     p_revenue_per_use: data.revenue_per_use,
     p_attribution_confidence: data.attribution_confidence,
     p_adoption_status: data.adoption_status,
     p_satisfaction: data.satisfaction,
+    p_frequency_cadence: data.frequency_cadence,
   });
   if (rpcError) {
     return {
@@ -249,12 +265,26 @@ export async function updateIntervention(
 
   // Status + recipients aren't audited by the RPC yet, so write them
   // directly. Same pattern as before; audit coverage can be added in a
-  // follow-up migration that extends update_intervention.
+  // follow-up migration that extends update_intervention. Notes joins
+  // them - written directly here, with an explicit intervention_edits row
+  // so the audit log still reflects the change.
+  //
+  // Load the current notes value so we only audit + write when it changed.
+  const { data: currentRow } = await supabase
+    .from("ai_interventions")
+    .select("notes")
+    .eq("id", data.id)
+    .maybeSingle<{ notes: string | null }>();
+  const currentNotes = currentRow?.notes ?? null;
+  const nextNotes = data.notes;
+  const notesChanged = currentNotes !== nextNotes;
+
   const { error: directError } = await supabase
     .from("ai_interventions")
     .update({
       status: data.status,
       recipient_emails: data.recipient_emails,
+      notes: nextNotes,
     })
     .eq("id", data.id);
   if (directError) {
@@ -262,6 +292,24 @@ export async function updateIntervention(
       kind: "error",
       message: `Saved core fields, but could not update extras: ${directError.message}`,
     };
+  }
+
+  if (notesChanged) {
+    const user = await getSessionUser();
+    const { error: auditError } = await supabase
+      .from("intervention_edits")
+      .insert({
+        intervention_id: data.id,
+        actor_id: user.id,
+        actor_email: user.email,
+        action: "edit",
+        field: "notes",
+        old_value: currentNotes,
+        new_value: nextNotes,
+      });
+    if (auditError) {
+      console.warn("updateIntervention: notes audit write failed", auditError);
+    }
   }
 
   revalidatePath(`/interventions/${data.id}`);

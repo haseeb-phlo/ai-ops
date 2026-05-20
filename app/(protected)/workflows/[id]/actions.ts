@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionUser, requireWriter } from "@/lib/auth";
+import { CADENCES, cadenceToPerWeek } from "@/lib/frequency";
 import { canUserEditWorkflow } from "./permissions";
 
 export type StepField = "title" | "description" | "owner" | "duration_minutes";
@@ -241,11 +242,9 @@ const UpdateWorkflowSchema = z.object({
   name: z.string().min(1, "Name is required").max(200),
   team: z.string().max(120).nullable(),
   regulatory: z.boolean(),
-  frequency_per_week: z
-    .number({ error: "Frequency must be a number" })
-    .min(0, "Frequency can't be negative")
-    .max(1000)
-    .nullable(),
+  frequency_cadence: z.enum(CADENCES, {
+    error: "Pick how often this workflow runs",
+  }),
   criticality_score: z
     .number({ error: "Criticality must be a number" })
     .int()
@@ -261,6 +260,11 @@ const UpdateWorkflowSchema = z.object({
     .number({ error: "Hours must be a number" })
     .min(0, "Hours can't be negative")
     .max(168, "More hours per week than exist isn't possible")
+    .nullable(),
+  // Freeform notes - same field as creation. Nullable to allow clearing.
+  notes: z
+    .string()
+    .max(2000, "Notes can be at most 2000 characters")
     .nullable(),
 });
 
@@ -294,10 +298,8 @@ export async function updateWorkflow(
   if (!gate.ok) return { kind: "error", message: gate.error };
 
   const rawTeam = (formData.get("team") as string | null)?.trim() || null;
-  const rawFrequency =
-    (formData.get("frequency_per_week") as string | null)?.trim() || "";
-  const frequencyValue: number | null =
-    rawFrequency === "" ? null : Number(rawFrequency);
+  const rawCadence =
+    (formData.get("frequency_cadence") as string | null)?.trim() || "";
   const rawCriticality =
     (formData.get("criticality_score") as string | null)?.trim() || "";
   const criticalityValue: number | null =
@@ -317,17 +319,23 @@ export async function updateWorkflow(
       .getAll("tools_used")
       .filter((v): v is string => typeof v === "string"),
   );
+  const rawNotesRaw = formData.get("notes");
+  const rawNotes: string | null =
+    typeof rawNotesRaw === "string" && rawNotesRaw.trim() !== ""
+      ? rawNotesRaw
+      : null;
 
   const parsed = UpdateWorkflowSchema.safeParse({
     name: (formData.get("name") as string | null)?.trim() ?? "",
     team: rawTeam,
     regulatory: formData.get("regulatory") === "on",
-    frequency_per_week: frequencyValue,
+    frequency_cadence: rawCadence,
     criticality_score: criticalityValue,
     business_kpi: rawKpi,
     owner_names: rawOwners,
     tools_used: rawTools,
     hours_per_week: hoursValue,
+    notes: rawNotes,
   });
 
   if (!parsed.success) {
@@ -342,7 +350,7 @@ export async function updateWorkflow(
   const { data: current, error: curErr } = await gate.supabase
     .from("workflows")
     .select(
-      "id, name, team, regulatory, frequency_per_week, criticality_score, business_kpi, owner_names, tools_used",
+      "id, name, team, regulatory, frequency_per_week, frequency_cadence, criticality_score, business_kpi, owner_names, tools_used, notes",
     )
     .eq("id", workflowId)
     .maybeSingle();
@@ -387,17 +395,29 @@ export async function updateWorkflow(
     });
   }
 
+  // Derive numeric per-week from the user's cadence pick so dashboard
+  // math (which still reads frequency_per_week) reflects the choice.
+  const nextFrequencyPerWeek = cadenceToPerWeek(next.frequency_cadence);
+
   if (current.name !== next.name) record("name", current.name, next.name);
   if ((current.team ?? null) !== next.team)
     record("team", current.team, next.team);
   if (Boolean(current.regulatory) !== next.regulatory)
     record("regulatory", current.regulatory, next.regulatory);
-  if ((current.frequency_per_week ?? null) !== next.frequency_per_week)
+  if ((current.frequency_cadence ?? null) !== next.frequency_cadence) {
+    record(
+      "frequency_cadence",
+      current.frequency_cadence,
+      next.frequency_cadence,
+    );
+    // Also log the derived numeric so the dashboard audit trail explains
+    // any change in weekly aggregates.
     record(
       "frequency_per_week",
       current.frequency_per_week,
-      next.frequency_per_week,
+      nextFrequencyPerWeek,
     );
+  }
   if ((current.criticality_score ?? null) !== next.criticality_score)
     record(
       "criticality_score",
@@ -419,6 +439,14 @@ export async function updateWorkflow(
   if (hoursChanged) {
     record("hours_per_week", currentHours, next.hours_per_week);
   }
+  // Notes diff treats "" and null as equivalent (the form trims to null on
+  // submit, but legacy rows may still hold ""). Audit only when the
+  // canonicalised values differ.
+  const currentNotes = (current.notes as string | null) ?? null;
+  const nextNotes = next.notes ?? null;
+  if (currentNotes !== nextNotes) {
+    record("notes", currentNotes, nextNotes);
+  }
 
   if (revisions.length === 0) {
     return { kind: "success" };
@@ -437,11 +465,13 @@ export async function updateWorkflow(
       name: next.name,
       team: next.team,
       regulatory: next.regulatory,
-      frequency_per_week: next.frequency_per_week,
+      frequency_per_week: nextFrequencyPerWeek,
+      frequency_cadence: next.frequency_cadence,
       criticality_score: next.criticality_score,
       business_kpi: next.business_kpi,
       owner_names: next.owner_names,
       tools_used: next.tools_used,
+      notes: next.notes,
       updated_at: new Date().toISOString(),
     })
     .eq("id", workflowId);

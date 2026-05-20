@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -27,6 +28,7 @@ import {
 } from "@/components/ui/people-picker";
 import { TagInput } from "@/components/ui/tag-input";
 import { SegmentedControl } from "@/components/ui/segmented-control";
+import { CADENCES, CADENCE_LABEL, type Cadence } from "@/lib/frequency";
 import { createWorkflow, type CreateWorkflowState } from "../actions";
 import { StepEditor } from "./step-editor";
 
@@ -52,6 +54,7 @@ export function NewWorkflowDialog({
   const [open, setOpen] = useState(false);
   const [team, setTeam] = useState(defaultTeam);
   const [criticality, setCriticality] = useState("3");
+  const [cadence, setCadence] = useState<Cadence>("weekly");
   const [owners, setOwners] = useState<Set<string>>(new Set());
   const [tools, setTools] = useState<string[]>([]);
   const [stepCount, setStepCount] = useState(0);
@@ -107,18 +110,27 @@ export function NewWorkflowDialog({
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="frequency_per_week">Frequency per week</Label>
-                <SuffixInput suffix="/ wk">
-                  <Input
-                    id="frequency_per_week"
-                    name="frequency_per_week"
-                    type="number"
-                    step="0.5"
-                    min="0"
-                    defaultValue="1"
-                    required
-                  />
-                </SuffixInput>
+                <Label htmlFor="frequency_cadence">How often does it run?</Label>
+                <input
+                  type="hidden"
+                  name="frequency_cadence"
+                  value={cadence}
+                />
+                <Select
+                  value={cadence}
+                  onValueChange={(v) => v && setCadence(v as Cadence)}
+                >
+                  <SelectTrigger id="frequency_cadence" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CADENCES.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {CADENCE_LABEL[c]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-1.5 sm:col-span-2">
@@ -272,6 +284,25 @@ export function NewWorkflowDialog({
                 </p>
               </div>
               <StepEditor onCountChange={setStepCount} />
+            </div>
+
+            <div className="space-y-3 border-t border-border pt-5">
+              <div className="space-y-1">
+                <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Notes
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Optional. Anything reviewers should know &mdash; context,
+                  caveats, links. Plain text, line breaks preserved.
+                </p>
+              </div>
+              <Textarea
+                id="notes"
+                name="notes"
+                rows={4}
+                maxLength={2000}
+                placeholder="e.g. We pause this during quarter-end close. Spec lives in Notion → Ops handbook."
+              />
             </div>
 
             {state.kind === "error" && (

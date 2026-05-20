@@ -5,14 +5,14 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { requireWriter } from "@/lib/auth";
+import { CADENCES, cadenceToPerWeek, type Cadence } from "@/lib/frequency";
 
 const FormSchema = z.object({
   name: z.string().min(1, "Name is required").max(200),
   team: z.string().min(1, "Team is required"),
-  frequency_per_week: z
-    .number({ error: "Frequency must be a number" })
-    .min(0, "Frequency can't be negative")
-    .max(1000),
+  frequency_cadence: z.enum(CADENCES, {
+    error: "Pick how often this workflow runs",
+  }),
   criticality_score: z.number().int().min(1).max(5),
   business_kpi: z.string().min(1, "Business KPI is required").max(500),
   regulatory_flag: z.boolean(),
@@ -49,6 +49,10 @@ const FormSchema = z.object({
     )
     .min(1, "Add at least one step")
     .max(20, "Twenty steps is the cap; consider splitting the workflow."),
+  // Freeform context the structured fields don't capture - caveats,
+  // background reasoning, links. Optional; rendered as plain text with
+  // line breaks on the detail page.
+  notes: z.string().max(2000, "Notes can be at most 2000 characters").optional(),
 });
 
 export type CreateWorkflowState =
@@ -91,7 +95,7 @@ export async function createWorkflow(
   const parsed = FormSchema.safeParse({
     name: formData.get("name"),
     team: formData.get("team"),
-    frequency_per_week: Number(formData.get("frequency_per_week") ?? 0),
+    frequency_cadence: formData.get("frequency_cadence"),
     criticality_score: Number(formData.get("criticality_score") ?? 3),
     business_kpi: (formData.get("business_kpi") as string) || undefined,
     regulatory_flag: formData.get("regulatory_flag") === "on",
@@ -107,6 +111,7 @@ export async function createWorkflow(
         .filter((v): v is string => typeof v === "string"),
     ),
     steps: stepInputs,
+    notes: ((formData.get("notes") as string | null) ?? "").trim() || undefined,
   });
 
   if (!parsed.success) {
@@ -140,17 +145,22 @@ export async function createWorkflow(
   }
 
   // 1. Insert the workflow row.
+  // frequency_per_week is derived from the cadence here so dashboard math
+  // (which still reads the numeric column) reflects what the user picked.
+  const cadence: Cadence = data.frequency_cadence;
   const { data: workflow, error: insertError } = await supabase
     .from("workflows")
     .insert({
       name: data.name,
       team: data.team,
-      frequency_per_week: data.frequency_per_week,
+      frequency_per_week: cadenceToPerWeek(cadence),
+      frequency_cadence: cadence,
       criticality_score: data.criticality_score,
       business_kpi: data.business_kpi ?? null,
       regulatory: data.regulatory_flag,
       owner_names: ownerNames,
       tools_used: data.tools_used,
+      notes: data.notes ?? null,
       active: true,
       created_by: user.id,
     })

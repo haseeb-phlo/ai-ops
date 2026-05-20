@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { requireWriter } from "@/lib/auth";
+import { CADENCES, cadenceToPerWeek } from "@/lib/frequency";
 
 const INTERVENTION_TYPES = [
   "tool",
@@ -35,12 +36,11 @@ const FormSchema = z.object({
     .string()
     .min(3, "Description is required")
     .max(500),
-  // Mandatory: how often the initiative runs. Together with the per-use
-  // fields it drives the per-week display value.
-  uses_per_week: z
-    .number({ error: "Times per week is required" })
-    .min(0, "Times per week can't be negative")
-    .max(10000, "That's a lot of runs - check the value"),
+  // Mandatory: how often the initiative runs. The user picks a cadence;
+  // we derive uses_per_week from it so the dashboard math is consistent.
+  frequency_cadence: z.enum(CADENCES, {
+    error: "Pick how often this AI initiative runs",
+  }),
   minutes_saved_per_use: z
     .number({ error: "Minutes saved per use is required" })
     .min(0, "Minutes saved can't be negative")
@@ -78,6 +78,10 @@ const FormSchema = z.object({
   tools_used: z
     .array(z.string().min(1).max(80))
     .max(20, "Twenty tools is the cap; trim to the most relevant."),
+  // Freeform context the structured fields don't capture. Optional;
+  // applied via a follow-up UPDATE after the RPC inserts the row, since
+  // log_intervention doesn't accept this column yet.
+  notes: z.string().max(2000, "Notes can be at most 2000 characters").optional(),
 });
 
 export type LogInterventionState =
@@ -112,7 +116,7 @@ export async function logIntervention(
     ),
     workflow_ids: formData.getAll("workflow_ids"),
     description: (formData.get("description") as string) || "",
-    uses_per_week: numericField("uses_per_week"),
+    frequency_cadence: formData.get("frequency_cadence"),
     minutes_saved_per_use: numericField("minutes_saved_per_use"),
     cost_saved_per_use: numericField("cost_saved_per_use"),
     revenue_per_use: numericField("revenue_per_use"),
@@ -129,6 +133,7 @@ export async function logIntervention(
         .getAll("tools_used")
         .filter((v): v is string => typeof v === "string"),
     ),
+    notes: ((formData.get("notes") as string | null) ?? "").trim() || undefined,
   });
 
   if (!parsed.success) {
@@ -140,12 +145,15 @@ export async function logIntervention(
 
   const data = parsed.data;
   const supabase = await createClient();
+  // Derive numeric uses_per_week from the cadence. The RPC writes both,
+  // so the dashboard's per-week aggregates reflect the user's choice.
+  const usesPerWeek = cadenceToPerWeek(data.frequency_cadence);
 
   const { data: newId, error } = await supabase.rpc("log_intervention", {
     p_name: data.name,
     p_types: data.types,
     p_workflow_ids: data.workflow_ids,
-    p_uses_per_week: data.uses_per_week,
+    p_uses_per_week: usesPerWeek,
     p_minutes_saved_per_use: data.minutes_saved_per_use,
     p_cost_saved_per_use: data.cost_saved_per_use,
     p_revenue_per_use: data.revenue_per_use,
@@ -155,6 +163,7 @@ export async function logIntervention(
     p_satisfaction: data.satisfaction ?? null,
     p_recipient_emails: data.recipient_emails,
     p_tools_used: data.tools_used,
+    p_frequency_cadence: data.frequency_cadence,
   });
 
   if (error || !newId) {
@@ -162,6 +171,21 @@ export async function logIntervention(
       kind: "error",
       message: `Could not log AI initiative: ${error?.message ?? "unknown error"}`,
     };
+  }
+
+  // log_intervention RPC doesn't accept notes yet, so write it via a
+  // follow-up UPDATE on the freshly-inserted row. Failure here logs but
+  // doesn't fail the whole creation - the user can re-add notes from the
+  // edit dialog. Same pragmatic pattern used for status/recipients in the
+  // edit action (see comment in [id]/actions.ts).
+  if (data.notes) {
+    const { error: notesErr } = await supabase
+      .from("ai_interventions")
+      .update({ notes: data.notes })
+      .eq("id", newId);
+    if (notesErr) {
+      console.error("logIntervention: notes write failed", notesErr);
+    }
   }
 
   revalidatePath("/interventions");

@@ -1,5 +1,6 @@
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
+import { formatCadence } from "@/lib/frequency";
 import { DeleteWorkflowButton } from "./delete-workflow-button";
 import { EditWorkflowDialog } from "./edit-workflow-dialog";
 
@@ -9,10 +10,12 @@ export type WorkflowHeader = {
   team: string | null;
   regulatory: boolean;
   frequency_per_week: number | null;
+  frequency_cadence: string | null;
   criticality_score: number | null;
   business_kpi: string | null;
   owner_names: string[];
   tools_used: string[] | null;
+  notes: string | null;
 };
 
 const CRITICALITY_LABEL: Record<number, string> = {
@@ -84,12 +87,11 @@ export async function HeaderCard({
               </dd>
             </div>
             <Field
-              label="Frequency / wk"
-              value={
-                workflow.frequency_per_week != null
-                  ? formatNumber(workflow.frequency_per_week)
-                  : null
-              }
+              label="Frequency"
+              value={formatCadence(
+                workflow.frequency_cadence,
+                workflow.frequency_per_week,
+              )}
             />
             <Field
               label="Hours / wk"
@@ -142,6 +144,17 @@ export async function HeaderCard({
               </dd>
             </div>
           </dl>
+
+          {workflow.notes && workflow.notes.trim().length > 0 && (
+            <div className="space-y-1.5 border-t border-border pt-3">
+              <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Notes
+              </h2>
+              <p className="whitespace-pre-wrap text-sm text-foreground">
+                {workflow.notes}
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="flex shrink-0 flex-wrap gap-2">

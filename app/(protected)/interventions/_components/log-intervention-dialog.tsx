@@ -27,6 +27,15 @@ import {
 } from "@/components/ui/people-picker";
 import { TagInput } from "@/components/ui/tag-input";
 import { cn } from "@/lib/utils";
+import {
+  CADENCES,
+  CADENCE_LABEL,
+  cadenceToPerWeek,
+  formatCadence,
+  isCadence,
+  perWeekToCadence,
+  type Cadence,
+} from "@/lib/frequency";
 import { logIntervention, type LogInterventionState } from "../actions";
 
 const TYPES = [
@@ -63,6 +72,7 @@ export type WorkflowForLog = {
   id: string;
   name: string;
   frequency_per_week: number | null;
+  frequency_cadence: string | null;
   hours_per_week: number | null;
   cost_per_week: number | null;
   revenue_per_week: number | null;
@@ -96,14 +106,16 @@ export function LogInterventionDialog({
 
   // Atomic impact inputs. Storing as strings keeps "" (empty) distinct from
   // 0 so the live readout doesn't show "= 0 / wk" before the user has typed.
-  const [usesPerWeek, setUsesPerWeek] = useState<string>("");
+  // Cadence is empty until the user picks one (or it auto-fills from a
+  // single linked workflow's cadence).
+  const [cadence, setCadence] = useState<Cadence | "">("");
   const [minutesPerUse, setMinutesPerUse] = useState<string>("");
   const [costPerUse, setCostPerUse] = useState<string>("");
   const [revenuePerUse, setRevenuePerUse] = useState<string>("");
 
-  // Track the last workflow id we auto-filled uses_per_week from. If the
-  // user picks a different single workflow we re-fill; if they edit the
-  // number manually we leave it alone on subsequent re-renders.
+  // Track the last workflow id we auto-filled the cadence from. If the
+  // user picks a different single workflow we re-fill; if they pick a
+  // different cadence manually we leave it alone on subsequent re-renders.
   const lastAutoFilledFromWorkflowId = useRef<string | null>(null);
 
   const reset = () => {
@@ -115,7 +127,7 @@ export function LogInterventionDialog({
     setRecipients(new Set());
     setTools([]);
     setSearch("");
-    setUsesPerWeek("");
+    setCadence("");
     setMinutesPerUse("");
     setCostPerUse("");
     setRevenuePerUse("");
@@ -156,22 +168,31 @@ export function LogInterventionDialog({
     return workflows.find((w) => w.id === onlyId) ?? null;
   }, [selected, workflows]);
 
-  // Auto-fill uses_per_week from a single-selected workflow's frequency.
-  // Only when the source workflow changes, and only if the user hasn't
-  // typed a different value since the last auto-fill (we compare against
-  // the value we previously injected, which we stash in the ref's data).
+  // Auto-fill cadence from a single-selected workflow's cadence (or the
+  // numeric value bucketed into the nearest cadence). Only when the
+  // source workflow changes, and only if the user hasn't picked a
+  // different cadence manually since the last auto-fill.
+  const inferredCadence: Cadence | null = singleSelectedWorkflow
+    ? isCadence(singleSelectedWorkflow.frequency_cadence)
+      ? singleSelectedWorkflow.frequency_cadence
+      : perWeekToCadence(singleSelectedWorkflow.frequency_per_week)
+    : null;
+  const inferredSourceId =
+    singleSelectedWorkflow && inferredCadence
+      ? singleSelectedWorkflow.id
+      : null;
   useEffect(() => {
     if (
-      singleSelectedWorkflow &&
-      singleSelectedWorkflow.frequency_per_week != null &&
-      lastAutoFilledFromWorkflowId.current !== singleSelectedWorkflow.id
+      inferredSourceId &&
+      inferredCadence &&
+      lastAutoFilledFromWorkflowId.current !== inferredSourceId
     ) {
-      setUsesPerWeek(String(singleSelectedWorkflow.frequency_per_week));
-      lastAutoFilledFromWorkflowId.current = singleSelectedWorkflow.id;
+      setCadence(inferredCadence);
+      lastAutoFilledFromWorkflowId.current = inferredSourceId;
     } else if (!singleSelectedWorkflow) {
       lastAutoFilledFromWorkflowId.current = null;
     }
-  }, [singleSelectedWorkflow]);
+  }, [singleSelectedWorkflow, inferredSourceId, inferredCadence]);
 
   // Per-run baseline shown as context next to the per-use inputs. Only
   // computed when exactly one workflow is selected and has a frequency >
@@ -190,7 +211,7 @@ export function LogInterventionDialog({
     };
   }, [singleSelectedWorkflow]);
 
-  const uses = toNum(usesPerWeek);
+  const uses = cadence === "" ? null : cadenceToPerWeek(cadence);
   const weeklyMinutes = uses != null ? uses * (toNum(minutesPerUse) ?? 0) : null;
   const weeklyCost = uses != null ? uses * (toNum(costPerUse) ?? 0) : null;
   const weeklyRevenue = uses != null ? uses * (toNum(revenuePerUse) ?? 0) : null;
@@ -199,7 +220,7 @@ export function LogInterventionDialog({
     types.size > 0 &&
     selected.size > 0 &&
     recipients.size > 0 &&
-    toNum(usesPerWeek) != null &&
+    cadence !== "" &&
     toNum(minutesPerUse) != null &&
     toNum(costPerUse) != null &&
     toNum(revenuePerUse) != null;
@@ -333,9 +354,15 @@ export function LogInterventionDialog({
                                 className="size-4 rounded border-input"
                               />
                               <span className="truncate">{w.name}</span>
-                              {w.frequency_per_week != null && (
-                                <span className="ml-auto shrink-0 text-xs text-muted-foreground tabular-nums">
-                                  {formatNumber(w.frequency_per_week)} / wk
+                              {formatCadence(
+                                w.frequency_cadence,
+                                w.frequency_per_week,
+                              ) && (
+                                <span className="ml-auto shrink-0 text-xs text-muted-foreground">
+                                  {formatCadence(
+                                    w.frequency_cadence,
+                                    w.frequency_per_week,
+                                  )}
                                 </span>
                               )}
                             </label>
@@ -401,42 +428,60 @@ export function LogInterventionDialog({
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="uses_per_week">
-                  How many times per week does this AI initiative run?
+                <Label htmlFor="frequency_cadence">
+                  How often does this AI initiative run?
                 </Label>
-                <SuffixInput suffix="/ wk">
-                  <Input
-                    id="uses_per_week"
-                    name="uses_per_week"
-                    type="number"
-                    min={0}
-                    step="0.5"
-                    required
-                    value={usesPerWeek}
-                    onChange={(e) => {
-                      setUsesPerWeek(e.target.value);
-                      // User-edited values stick - clear the auto-fill
-                      // memo so re-selecting the same workflow won't
-                      // overwrite this entry.
-                      lastAutoFilledFromWorkflowId.current = null;
-                    }}
-                    placeholder="0"
-                  />
-                </SuffixInput>
-                {singleSelectedWorkflow?.frequency_per_week != null && (
-                  <p className="text-xs text-muted-foreground">
-                    Defaulted from{" "}
-                    <span className="font-medium text-foreground">
-                      {singleSelectedWorkflow.name}
-                    </span>{" "}
-                    ({formatNumber(singleSelectedWorkflow.frequency_per_week)}{" "}
-                    / wk). Adjust if this AI initiative runs on a different
-                    cadence.
-                  </p>
-                )}
+                <input
+                  type="hidden"
+                  name="frequency_cadence"
+                  value={cadence}
+                />
+                <Select
+                  value={cadence}
+                  onValueChange={(v) => {
+                    setCadence((v ?? "") as Cadence | "");
+                    // User-picked values stick - clear the auto-fill memo
+                    // so re-selecting the same workflow won't overwrite.
+                    lastAutoFilledFromWorkflowId.current = null;
+                  }}
+                >
+                  <SelectTrigger id="frequency_cadence" className="w-full">
+                    <SelectValue placeholder="Pick a cadence">
+                      {(v) =>
+                        v ? CADENCE_LABEL[v as Cadence] ?? "" : null
+                      }
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CADENCES.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {CADENCE_LABEL[c]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {singleSelectedWorkflow &&
+                  formatCadence(
+                    singleSelectedWorkflow.frequency_cadence,
+                    singleSelectedWorkflow.frequency_per_week,
+                  ) && (
+                    <p className="text-xs text-muted-foreground">
+                      Defaulted from{" "}
+                      <span className="font-medium text-foreground">
+                        {singleSelectedWorkflow.name}
+                      </span>{" "}
+                      (
+                      {formatCadence(
+                        singleSelectedWorkflow.frequency_cadence,
+                        singleSelectedWorkflow.frequency_per_week,
+                      )}
+                      ). Change if this AI initiative runs on a different
+                      cadence.
+                    </p>
+                  )}
                 {selected.size > 1 && (
                   <p className="text-xs text-muted-foreground">
-                    Multiple workflows linked - enter how often this AI
+                    Multiple workflows linked - pick how often this AI
                     initiative itself runs.
                   </p>
                 )}
@@ -605,6 +650,25 @@ export function LogInterventionDialog({
                   Doesn&apos;t change the dashboard math.
                 </p>
               </div>
+            </div>
+
+            <div className="space-y-3 border-t border-border pt-5">
+              <div className="space-y-1">
+                <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Notes
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Optional. Anything reviewers should know &mdash; context,
+                  caveats, links. Plain text, line breaks preserved.
+                </p>
+              </div>
+              <Textarea
+                id="notes"
+                name="notes"
+                rows={4}
+                maxLength={2000}
+                placeholder="e.g. Tool only works for the Stockholm warehouse for now; Berlin pilot starts next month."
+              />
             </div>
 
             <div className="space-y-3 border-t border-border pt-5">

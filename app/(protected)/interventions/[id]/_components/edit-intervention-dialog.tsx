@@ -25,6 +25,15 @@ import {
   type PickerPerson,
 } from "@/components/ui/people-picker";
 import { cn } from "@/lib/utils";
+import {
+  CADENCES,
+  CADENCE_LABEL,
+  cadenceToPerWeek,
+  formatCadence,
+  isCadence,
+  perWeekToCadence,
+  type Cadence,
+} from "@/lib/frequency";
 import { updateIntervention } from "../actions";
 
 const TYPES = [
@@ -72,6 +81,7 @@ export type LinkedWorkflowContext = {
   id: string;
   name: string;
   frequency_per_week: number | null;
+  frequency_cadence: string | null;
   hours_per_week: number | null;
   cost_per_week: number | null;
   revenue_per_week: number | null;
@@ -89,6 +99,7 @@ export function EditInterventionDialog({
     status: Status | null;
     description: string | null;
     uses_per_week: number | null;
+    frequency_cadence: string | null;
     minutes_saved_per_use: number | null;
     cost_saved_per_use: number | null;
     revenue_per_use: number | null;
@@ -96,6 +107,7 @@ export function EditInterventionDialog({
     adoption_status: AdoptionStatus | null;
     satisfaction: number | null;
     recipient_emails: string[];
+    notes: string | null;
   };
   people: PickerPerson[];
   linkedWorkflows?: LinkedWorkflowContext[];
@@ -121,9 +133,15 @@ export function EditInterventionDialog({
     new Set(intervention.recipient_emails ?? []),
   );
 
-  const [usesPerWeek, setUsesPerWeek] = useState<string>(
-    intervention.uses_per_week != null ? String(intervention.uses_per_week) : "",
-  );
+  // Cadence preference at open time: stored cadence → bucketed numeric →
+  // "weekly" default. Means pre-migration rows still get a sensible
+  // starting value when the dialog opens.
+  const initialCadence: Cadence =
+    (isCadence(intervention.frequency_cadence)
+      ? intervention.frequency_cadence
+      : perWeekToCadence(intervention.uses_per_week)) ?? "weekly";
+
+  const [cadence, setCadence] = useState<Cadence>(initialCadence);
   const [minutesPerUse, setMinutesPerUse] = useState<string>(
     intervention.minutes_saved_per_use != null
       ? String(intervention.minutes_saved_per_use)
@@ -149,9 +167,7 @@ export function EditInterventionDialog({
       intervention.satisfaction != null ? String(intervention.satisfaction) : "",
     );
     setRecipients(new Set(intervention.recipient_emails ?? []));
-    setUsesPerWeek(
-      intervention.uses_per_week != null ? String(intervention.uses_per_week) : "",
-    );
+    setCadence(initialCadence);
     setMinutesPerUse(
       intervention.minutes_saved_per_use != null
         ? String(intervention.minutes_saved_per_use)
@@ -205,10 +221,10 @@ export function EditInterventionDialog({
     };
   }, [singleLinkedWorkflow]);
 
-  const uses = toNum(usesPerWeek);
-  const weeklyMinutes = uses != null ? uses * (toNum(minutesPerUse) ?? 0) : null;
-  const weeklyCost = uses != null ? uses * (toNum(costPerUse) ?? 0) : null;
-  const weeklyRevenue = uses != null ? uses * (toNum(revenuePerUse) ?? 0) : null;
+  const uses = cadenceToPerWeek(cadence);
+  const weeklyMinutes = uses * (toNum(minutesPerUse) ?? 0);
+  const weeklyCost = uses * (toNum(costPerUse) ?? 0);
+  const weeklyRevenue = uses * (toNum(revenuePerUse) ?? 0);
 
   const handleSubmit = (formData: FormData) => {
     startTransition(async () => {
@@ -224,7 +240,6 @@ export function EditInterventionDialog({
 
   const isComplete =
     types.size > 0 &&
-    toNum(usesPerWeek) != null &&
     toNum(minutesPerUse) != null &&
     toNum(costPerUse) != null &&
     toNum(revenuePerUse) != null;
@@ -362,33 +377,47 @@ export function EditInterventionDialog({
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="uses_per_week">
-                    How many times per week does this AI initiative run?
+                  <Label htmlFor="frequency_cadence">
+                    How often does this AI initiative run?
                   </Label>
-                  <SuffixInput suffix="/ wk">
-                    <Input
-                      id="uses_per_week"
-                      name="uses_per_week"
-                      type="number"
-                      min={0}
-                      step="0.5"
-                      required
-                      value={usesPerWeek}
-                      onChange={(e) => setUsesPerWeek(e.target.value)}
-                      placeholder="0"
-                    />
-                  </SuffixInput>
-                  {singleLinkedWorkflow?.frequency_per_week != null && (
-                    <p className="text-xs text-muted-foreground">
-                      Linked workflow{" "}
-                      <span className="font-medium text-foreground">
-                        {singleLinkedWorkflow.name}
-                      </span>{" "}
-                      runs{" "}
-                      {formatNumber(singleLinkedWorkflow.frequency_per_week)} /
-                      wk.
-                    </p>
-                  )}
+                  <input
+                    type="hidden"
+                    name="frequency_cadence"
+                    value={cadence}
+                  />
+                  <Select
+                    value={cadence}
+                    onValueChange={(v) => v && setCadence(v as Cadence)}
+                  >
+                    <SelectTrigger id="frequency_cadence" className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CADENCES.map((c) => (
+                        <SelectItem key={c} value={c}>
+                          {CADENCE_LABEL[c]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {singleLinkedWorkflow &&
+                    formatCadence(
+                      singleLinkedWorkflow.frequency_cadence,
+                      singleLinkedWorkflow.frequency_per_week,
+                    ) && (
+                      <p className="text-xs text-muted-foreground">
+                        Linked workflow{" "}
+                        <span className="font-medium text-foreground">
+                          {singleLinkedWorkflow.name}
+                        </span>{" "}
+                        runs{" "}
+                        {formatCadence(
+                          singleLinkedWorkflow.frequency_cadence,
+                          singleLinkedWorkflow.frequency_per_week,
+                        )}
+                        .
+                      </p>
+                    )}
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-3">
@@ -633,6 +662,26 @@ export function EditInterventionDialog({
                     </Select>
                   </div>
                 </div>
+              </div>
+
+              <div className="space-y-3 border-t border-border pt-5">
+                <div className="space-y-1">
+                  <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Notes
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Optional. Context, caveats, links. Plain text, line breaks
+                    preserved. Tracked in the audit log.
+                  </p>
+                </div>
+                <Textarea
+                  id="notes"
+                  name="notes"
+                  rows={4}
+                  maxLength={2000}
+                  defaultValue={intervention.notes ?? ""}
+                  placeholder="Anything reviewers should know about this initiative."
+                />
               </div>
 
               {errorMessage && (

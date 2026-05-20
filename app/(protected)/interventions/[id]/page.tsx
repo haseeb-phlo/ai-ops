@@ -7,6 +7,7 @@ import { resolveDisplayName } from "@/lib/profile";
 import { Badge } from "@/components/ui/badge";
 import { DetailHeader } from "@/components/ui/detail-header";
 import { toTitle } from "@/lib/utils";
+import { formatCadence } from "@/lib/frequency";
 import { LogMetricSnapshotButton } from "./_components/log-metric-snapshot-button";
 import { EditInterventionDialog } from "./_components/edit-intervention-dialog";
 import { StatusButton } from "./_components/status-button";
@@ -34,6 +35,7 @@ type Intervention = {
   description: string | null;
   owner: string | null;
   uses_per_week: number | null;
+  frequency_cadence: string | null;
   minutes_saved_per_use: number | null;
   cost_saved_per_use: number | null;
   revenue_per_use: number | null;
@@ -45,6 +47,7 @@ type Intervention = {
   satisfaction: number | null;
   recipient_emails: string[] | null;
   tools_used: string[] | null;
+  notes: string | null;
   created_by: string | null;
   created_at: string;
 };
@@ -67,6 +70,7 @@ type LinkedWorkflow = {
     name: string;
     team: string | null;
     frequency_per_week: number | null;
+    frequency_cadence: string | null;
   } | null;
 };
 
@@ -136,13 +140,13 @@ export default async function InterventionDetailPage({
     supabase
       .from("ai_interventions")
       .select(
-        "id, name, types, status, description, owner, uses_per_week, minutes_saved_per_use, cost_saved_per_use, revenue_per_use, minutes_saved_per_week, estimated_gbp_saved_per_week, estimated_revenue_per_week, attribution_confidence, adoption_status, satisfaction, recipient_emails, tools_used, created_by, created_at",
+        "id, name, types, status, description, owner, uses_per_week, frequency_cadence, minutes_saved_per_use, cost_saved_per_use, revenue_per_use, minutes_saved_per_week, estimated_gbp_saved_per_week, estimated_revenue_per_week, attribution_confidence, adoption_status, satisfaction, recipient_emails, tools_used, notes, created_by, created_at",
       )
       .eq("id", id)
       .maybeSingle<Intervention>(),
     supabase
       .from("intervention_workflows")
-      .select("workflows(id, name, team, frequency_per_week)")
+      .select("workflows(id, name, team, frequency_per_week, frequency_cadence)")
       .eq("intervention_id", id)
       .returns<LinkedWorkflow[]>(),
     supabase
@@ -267,6 +271,7 @@ export default async function InterventionDetailPage({
       id: w.id,
       name: w.name,
       frequency_per_week: w.frequency_per_week,
+      frequency_cadence: w.frequency_cadence,
       hours_per_week: m?.time_baseline != null ? m.time_baseline / 60 : null,
       cost_per_week: m?.cost_baseline ?? null,
       revenue_per_week: m?.revenue_baseline ?? null,
@@ -399,6 +404,13 @@ export default async function InterventionDetailPage({
                 label="Logged on"
                 value={format(new Date(intervention.created_at), "d MMM yyyy")}
               />
+              <Field
+                label="Frequency"
+                value={formatCadence(
+                  intervention.frequency_cadence,
+                  intervention.uses_per_week,
+                )}
+              />
               <div>
                 <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   Adoption
@@ -431,6 +443,17 @@ export default async function InterventionDetailPage({
               costPerUse={intervention.cost_saved_per_use}
               revenuePerUse={intervention.revenue_per_use}
             />
+
+            {intervention.notes && intervention.notes.trim().length > 0 && (
+              <div className="space-y-1.5 border-t border-border pt-3">
+                <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Notes
+                </h2>
+                <p className="whitespace-pre-wrap text-sm text-foreground">
+                  {intervention.notes}
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -444,6 +467,7 @@ export default async function InterventionDetailPage({
                     status: intervention.status,
                     description: intervention.description,
                     uses_per_week: intervention.uses_per_week,
+                    frequency_cadence: intervention.frequency_cadence,
                     minutes_saved_per_use: intervention.minutes_saved_per_use,
                     cost_saved_per_use: intervention.cost_saved_per_use,
                     revenue_per_use: intervention.revenue_per_use,
@@ -451,6 +475,7 @@ export default async function InterventionDetailPage({
                     adoption_status: intervention.adoption_status,
                     satisfaction: intervention.satisfaction,
                     recipient_emails: intervention.recipient_emails ?? [],
+                    notes: intervention.notes,
                   }}
                   people={pickerPeople}
                   linkedWorkflows={linkedWorkflowsForEdit}

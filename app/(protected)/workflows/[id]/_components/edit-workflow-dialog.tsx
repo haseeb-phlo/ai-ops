@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -22,6 +23,13 @@ import {
 } from "@/components/ui/select";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { TagInput } from "@/components/ui/tag-input";
+import {
+  CADENCES,
+  CADENCE_LABEL,
+  isCadence,
+  perWeekToCadence,
+  type Cadence,
+} from "@/lib/frequency";
 import {
   updateWorkflow,
   type UpdateWorkflowState,
@@ -33,10 +41,12 @@ type Workflow = {
   team: string | null;
   regulatory: boolean;
   frequency_per_week: number | null;
+  frequency_cadence: string | null;
   criticality_score: number | null;
   business_kpi: string | null;
   owner_names: string[];
   tools_used: string[] | null;
+  notes: string | null;
 };
 
 const CRITICALITY_OPTIONS = [
@@ -60,11 +70,20 @@ export function EditWorkflowDialog({
   hoursPerWeek: number | null;
   toolSuggestions: string[];
 }) {
+  // Initial cadence preference: stored cadence → inferred from numeric →
+  // "weekly" default. Means a row created before the migration but
+  // backfilled by it opens edit on its bucketed cadence.
+  const initialCadence: Cadence =
+    (isCadence(workflow.frequency_cadence)
+      ? workflow.frequency_cadence
+      : perWeekToCadence(workflow.frequency_per_week)) ?? "weekly";
+
   const [open, setOpen] = useState(false);
   const [team, setTeam] = useState<string>(workflow.team ?? TEAM_NONE);
   const [criticality, setCriticality] = useState<string>(
     workflow.criticality_score != null ? String(workflow.criticality_score) : "3",
   );
+  const [cadence, setCadence] = useState<Cadence>(initialCadence);
   const [regulatory, setRegulatory] = useState(workflow.regulatory);
   const [tools, setTools] = useState<string[]>(workflow.tools_used ?? []);
   const [state, setState] = useState<UpdateWorkflowState>({ kind: "idle" });
@@ -88,6 +107,7 @@ export function EditWorkflowDialog({
           ? String(workflow.criticality_score)
           : "3",
       );
+      setCadence(initialCadence);
       setRegulatory(workflow.regulatory);
       setTools(workflow.tools_used ?? []);
     }
@@ -153,20 +173,27 @@ export function EditWorkflowDialog({
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="frequency_per_week">Frequency per week</Label>
-              <Input
-                id="frequency_per_week"
-                name="frequency_per_week"
-                type="number"
-                min="0"
-                step="0.5"
-                defaultValue={
-                  workflow.frequency_per_week != null
-                    ? String(workflow.frequency_per_week)
-                    : ""
-                }
-                placeholder="e.g. 5"
+              <Label htmlFor="frequency_cadence">How often does it run?</Label>
+              <input
+                type="hidden"
+                name="frequency_cadence"
+                value={cadence}
               />
+              <Select
+                value={cadence}
+                onValueChange={(v) => v && setCadence(v as Cadence)}
+              >
+                <SelectTrigger id="frequency_cadence" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CADENCES.map((c) => (
+                    <SelectItem key={c} value={c}>
+                      {CADENCE_LABEL[c]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-1.5">
@@ -259,6 +286,21 @@ export function EditWorkflowDialog({
                 You&apos;re removing the regulatory flag.
               </p>
             )}
+
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label htmlFor="notes">Notes</Label>
+              <Textarea
+                id="notes"
+                name="notes"
+                rows={4}
+                maxLength={2000}
+                defaultValue={workflow.notes ?? ""}
+                placeholder="Optional. Context, caveats, links - anything the structured fields don't capture."
+              />
+              <p className="text-xs text-muted-foreground">
+                Plain text, line breaks preserved. Tracked in the audit log.
+              </p>
+            </div>
           </div>
 
           {state.kind === "error" && (
