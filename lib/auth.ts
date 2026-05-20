@@ -24,6 +24,13 @@ export type SessionUser = {
   realRole: string;
   realTeam: string | null;
   isImpersonating: boolean;
+  // null = not impersonating; "role" = role-only override; "user" = id/email/
+  // role/team all snapshotted from a specific user. The mode matters because
+  // user-mode swaps `id` and `email` while role-mode leaves them untouched.
+  viewAsMode: "role" | "user" | null;
+  // The target user's id when in user-mode (same as `id` in that case, but
+  // typed separately so callers don't have to know about the override).
+  impersonatedUserId: string | null;
   displayName: string;
   // The org directory's canonical name for this user (people.display_name).
   // Kept alongside `displayName` because owner_names columns are populated
@@ -55,37 +62,102 @@ export async function requireWriter(): Promise<
   return { ok: true, user };
 }
 
-type ViewAs = { role: string; team: string | null };
+// Two view-as modes:
+//   - "role": override just role/team. Identity (id, email, display name) is
+//     unchanged - the super_admin is still themselves, just seeing the chrome
+//     of a member.
+//   - "user": override identity AND role/team to a specific user's snapshot,
+//     so "is this my comment / my vote / my workflow" checks resolve against
+//     that user. This is what makes the feature useful for reproducing bugs.
+export type ViewAsRoleMode = {
+  mode: "role";
+  role: string;
+  team: string | null;
+};
+export type ViewAsUserMode = {
+  mode: "user";
+  userId: string;
+  email: string;
+  displayName: string;
+  avatarUrl: string | null;
+  title: string | null;
+  role: string;
+  team: string | null;
+};
+export type ViewAs = ViewAsRoleMode | ViewAsUserMode;
 
 // Mirrors the cap in lib/view-as.ts. Defense-in-depth - setViewAs already
 // rejects anything off, but a cookie that predates a tightening should not
 // produce a long/garbled `team` value being rendered or compared later.
 const VIEW_AS_TEAM_MAX_LENGTH = 80;
+const VIEW_AS_TEXT_MAX_LENGTH = 200;
+const VIEW_AS_URL_MAX_LENGTH = 2048;
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function sanitizeTeam(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (trimmed.length === 0 || trimmed.length > VIEW_AS_TEAM_MAX_LENGTH) {
+    return null;
+  }
+  if (/[\x00-\x1f\x7f]/.test(trimmed)) return null;
+  return trimmed;
+}
+
+function sanitizeText(value: unknown, max = VIEW_AS_TEXT_MAX_LENGTH): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (trimmed.length === 0 || trimmed.length > max) return null;
+  if (/[\x00-\x1f\x7f]/.test(trimmed)) return null;
+  return trimmed;
+}
+
+export function parseViewAsCookie(raw: string | undefined | null): ViewAs | null {
+  if (!raw) return null;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  if (!parsed || typeof parsed !== "object") return null;
+  const p = parsed as Record<string, unknown>;
+
+  // Back-compat: cookies written before user-mode have no `mode` field.
+  const mode = typeof p.mode === "string" ? p.mode : "role";
+
+  if (mode === "user") {
+    const userId = typeof p.userId === "string" ? p.userId : null;
+    if (!userId || !UUID_RE.test(userId)) return null;
+    const email = sanitizeText(p.email);
+    const displayName = sanitizeText(p.displayName);
+    const role = typeof p.role === "string" ? p.role : null;
+    if (!email || !displayName || !role) return null;
+    if (!(ROLES as readonly string[]).includes(role)) return null;
+    const avatarUrl = sanitizeText(p.avatarUrl, VIEW_AS_URL_MAX_LENGTH);
+    const title = sanitizeText(p.title);
+    return {
+      mode: "user",
+      userId,
+      email,
+      displayName,
+      avatarUrl,
+      title,
+      role,
+      team: sanitizeTeam(p.team),
+    };
+  }
+
+  const role = typeof p.role === "string" ? p.role : null;
+  if (!role || !(ROLES as readonly string[]).includes(role)) return null;
+  return { mode: "role", role, team: sanitizeTeam(p.team) };
+}
 
 async function readViewAs(): Promise<ViewAs | null> {
   const store = await cookies();
   const raw = store.get(VIEW_AS_COOKIE)?.value;
-  if (!raw) return null;
-  try {
-    const parsed = JSON.parse(raw) as ViewAs;
-    if (!parsed?.role) return null;
-    if (!(ROLES as readonly string[]).includes(parsed.role)) return null;
-    let team: string | null = null;
-    if (typeof parsed.team === "string") {
-      const trimmed = parsed.team.trim();
-      if (
-        trimmed.length > 0 &&
-        trimmed.length <= VIEW_AS_TEAM_MAX_LENGTH &&
-        // No control chars / newlines - team names are short plain text.
-        !/[\x00-\x1f\x7f]/.test(trimmed)
-      ) {
-        team = trimmed;
-      }
-    }
-    return { role: parsed.role, team };
-  } catch {
-    return null;
-  }
+  return parseViewAsCookie(raw);
 }
 
 /**
@@ -155,29 +227,55 @@ export const getSessionUser = cache(async (): Promise<SessionUser> => {
   const realRole = grant?.role ?? "member";
   const realTeam = grant?.team ?? null;
 
+  let id = user.id;
+  let email = user.email;
   let role = realRole;
   let team = realTeam;
   let isImpersonating = false;
+  let viewAsMode: "role" | "user" | null = null;
+  let impersonatedUserId: string | null = null;
+  let effectiveDisplayName = displayName;
+  let effectivePeopleDisplayName = peopleRes.data?.display_name ?? null;
+  let effectiveAvatarUrl = resolveAvatar(profile?.avatar_url ?? null, user.id);
+  let effectiveTitle = profile?.title ?? null;
+
   if (realRole === "super_admin") {
     const viewAs = await readViewAs();
     if (viewAs) {
+      isImpersonating = true;
+      viewAsMode = viewAs.mode;
       role = viewAs.role;
       team = viewAs.team;
-      isImpersonating = true;
+      if (viewAs.mode === "user") {
+        id = viewAs.userId;
+        email = viewAs.email;
+        impersonatedUserId = viewAs.userId;
+        effectiveDisplayName = viewAs.displayName;
+        // The directory's canonical name - best effort, since we only have the
+        // snapshot taken at set-view-as time. Fine for owner_names matching.
+        effectivePeopleDisplayName = viewAs.displayName;
+        // Fall back to a Supabase avatar for the impersonated user when the
+        // snapshot didn't include one.
+        effectiveAvatarUrl =
+          viewAs.avatarUrl ?? resolveAvatar(null, viewAs.userId);
+        effectiveTitle = viewAs.title;
+      }
     }
   }
 
   return {
-    id: user.id,
-    email: user.email,
+    id,
+    email,
     role,
     team,
     realRole,
     realTeam,
     isImpersonating,
-    displayName,
-    peopleDisplayName: peopleRes.data?.display_name ?? null,
-    avatarUrl: resolveAvatar(profile?.avatar_url ?? null, user.id),
-    title: profile?.title ?? null,
+    viewAsMode,
+    impersonatedUserId,
+    displayName: effectiveDisplayName,
+    peopleDisplayName: effectivePeopleDisplayName,
+    avatarUrl: effectiveAvatarUrl,
+    title: effectiveTitle,
   };
 });

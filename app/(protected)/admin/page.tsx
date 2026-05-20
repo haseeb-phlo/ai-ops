@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionUser } from "@/lib/auth";
+import { loadImpersonableUsers } from "@/lib/impersonable-users";
 import { PageContainer, PageHeader } from "@/components/page-header";
 import { AdminTabs } from "./_components/admin-tabs";
 import { Logins } from "./_components/logins";
@@ -105,7 +106,11 @@ type DirectoryPerson = {
 
 export default async function AdminPage() {
   const user = await getSessionUser();
-  if (user.role !== "super_admin") {
+  // Gate on the real grant, not the effective role. A super_admin viewing as a
+  // member must still be able to reach this page - otherwise the view-as
+  // switcher (which lives on this page) becomes unreachable as soon as you
+  // pick "Member", since the next render would redirect.
+  if (user.realRole !== "super_admin") {
     redirect("/?toast=admin-only");
   }
 
@@ -412,6 +417,8 @@ export default async function AdminPage() {
     ),
   ).sort();
 
+  const impersonableUsers = await loadImpersonableUsers();
+
   return (
     <PageContainer className="max-w-7xl">
       <PageHeader
@@ -425,6 +432,8 @@ export default async function AdminPage() {
               isImpersonating={user.isImpersonating}
               teams={viewAsTeams}
               realRole={user.realRole}
+              impersonableUsers={impersonableUsers}
+              impersonatedUserId={user.impersonatedUserId}
             />
           </div>
         }
