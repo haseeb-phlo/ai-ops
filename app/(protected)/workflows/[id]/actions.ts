@@ -43,17 +43,19 @@ export async function updateStepField(
 
   const { data: workflow, error: wErr } = await supabase
     .from("workflows")
-    .select("team")
+    .select("team, created_by, owner_names")
     .eq("id", step.workflow_id)
-    .maybeSingle();
+    .maybeSingle<{
+      team: string | null;
+      created_by: string | null;
+      owner_names: string[] | null;
+    }>();
 
   if (wErr || !workflow) {
     return { ok: false, error: "Workflow not found." };
   }
 
-  const canEdit =
-    user.role === "super_admin" || user.team === workflow.team;
-  if (!canEdit) {
+  if (!canUserEditWorkflow(user, workflow)) {
     return { ok: false, error: "You don't have permission to edit this step." };
   }
 

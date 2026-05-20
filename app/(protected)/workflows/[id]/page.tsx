@@ -130,6 +130,7 @@ export default async function WorkflowDetailPage({
   const canEdit = canUserEditWorkflow(user, {
     created_by: workflow.created_by,
     owner_names: workflow.owner_names,
+    team: workflow.team,
   });
 
   let canDelete =
