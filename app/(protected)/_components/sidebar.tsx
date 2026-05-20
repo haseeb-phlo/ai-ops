@@ -14,11 +14,13 @@ import {
   ChevronsLeftIcon,
   ChevronsRightIcon,
   LogOutIcon,
+  SearchIcon,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { SessionUser } from "@/lib/auth";
 import { setSidebarCollapsed } from "@/lib/sidebar-actions";
+import { CommandPaletteHint, useCommandPalette } from "./command-palette";
 
 type Item = { href: string; label: string; icon: LucideIcon };
 
@@ -71,30 +73,74 @@ export function Sidebar({
     <aside
       data-collapsed={collapsed ? "" : undefined}
       className={cn(
-        "hidden md:flex shrink-0 flex-col border-r border-border bg-background transition-[width] duration-150 ease-out",
-        collapsed ? "w-[60px]" : "w-[224px]",
+        "group hidden md:flex shrink-0 flex-col border-r border-border bg-background transition-[width] duration-150 ease-out",
+        collapsed ? "w-[60px]" : "w-60",
       )}
     >
-      {/* Brand */}
-      <Link
-        href="/"
-        aria-label="Phlo AI Ops home"
+      {/* Brand row - holds the logo and (when expanded) a hover-revealed
+          collapse toggle on the right. The expand affordance lives just
+          below this row when the sidebar is collapsed. */}
+      <div
         className={cn(
-          "flex h-14 items-center gap-2.5 border-b border-border px-4",
-          collapsed && "justify-center px-0",
+          "flex h-14 items-center border-b border-border",
+          collapsed ? "justify-center px-2" : "gap-3 px-4",
         )}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/phlo-mark.svg" alt="Phlo" className="h-5 w-auto shrink-0" />
+        <Link
+          href="/"
+          aria-label="Phlo AI Ops home"
+          className={cn(
+            "flex min-w-0 items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            !collapsed && "flex-1",
+          )}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/phlo-mark.svg"
+            alt="Phlo"
+            className="h-5 w-auto shrink-0"
+          />
+          {!collapsed && (
+            <>
+              <span aria-hidden className="h-4 w-px bg-border" />
+              <span className="truncate text-sm font-medium tracking-tight text-muted-foreground">
+                AI Ops
+              </span>
+            </>
+          )}
+        </Link>
         {!collapsed && (
-          <>
-            <span aria-hidden className="h-4 w-px bg-muted-foreground/60" />
-            <span className="text-sm font-medium tracking-tight text-muted-foreground">
-              AI Ops
-            </span>
-          </>
+          <button
+            type="button"
+            onClick={handleToggle}
+            aria-label="Collapse sidebar"
+            aria-pressed={collapsed}
+            className="rounded-md p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-muted/40 hover:text-foreground focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group-hover:opacity-100"
+          >
+            <ChevronsLeftIcon className="size-4" aria-hidden />
+          </button>
         )}
-      </Link>
+      </div>
+
+      {collapsed && (
+        <div className="px-2 pt-2">
+          <button
+            type="button"
+            onClick={handleToggle}
+            aria-label="Expand sidebar"
+            aria-pressed={collapsed}
+            title="Expand sidebar"
+            className="flex w-full items-center justify-center rounded-md py-1.5 text-muted-foreground hover:bg-muted/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <ChevronsRightIcon className="size-4" aria-hidden />
+          </button>
+        </div>
+      )}
+
+      {/* Search hint - opens the command palette */}
+      <div className="px-2 pt-3">
+        {collapsed ? <CommandPaletteIconButton /> : <CommandPaletteHint />}
+      </div>
 
       {/* Nav */}
       <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-2 py-3">
@@ -120,7 +166,7 @@ export function Sidebar({
         <Link
           href="/profile"
           className={cn(
-            "flex items-center gap-2.5 rounded-md px-2 py-1.5 hover:bg-muted/40",
+            "flex items-center gap-3 rounded-md px-2 py-2 hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             collapsed && "justify-center px-0",
           )}
           aria-label="Edit profile"
@@ -139,7 +185,9 @@ export function Sidebar({
                 {user.displayName}
               </p>
               <p className="truncate text-[11px] text-muted-foreground">
-                {user.role === "super_admin" ? "Super admin" : user.team ?? "Member"}
+                {user.role === "super_admin"
+                  ? "Super admin"
+                  : user.team ?? "Member"}
               </p>
             </div>
           )}
@@ -149,7 +197,7 @@ export function Sidebar({
           <button
             type="submit"
             className={cn(
-              "flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:bg-muted/40 hover:text-foreground",
+              "flex w-full items-center gap-3 rounded-md px-2 py-2 text-xs text-muted-foreground hover:bg-muted/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               collapsed && "justify-center px-0",
             )}
             aria-label="Sign out"
@@ -159,26 +207,23 @@ export function Sidebar({
             {!collapsed && <span>Sign out</span>}
           </button>
         </form>
-
-        <button
-          type="button"
-          onClick={handleToggle}
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          aria-pressed={collapsed}
-          className={cn(
-            "mt-1 flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:bg-muted/40 hover:text-foreground",
-            collapsed && "justify-center px-0",
-          )}
-        >
-          {collapsed ? (
-            <ChevronsRightIcon className="size-4 shrink-0" />
-          ) : (
-            <ChevronsLeftIcon className="size-4 shrink-0" />
-          )}
-          {!collapsed && <span>Collapse</span>}
-        </button>
       </div>
     </aside>
+  );
+}
+
+function CommandPaletteIconButton() {
+  const { open } = useCommandPalette();
+  return (
+    <button
+      type="button"
+      onClick={open}
+      aria-label="Open command palette"
+      title="Search (⌘K)"
+      className="flex w-full items-center justify-center rounded-md px-0 py-1.5 text-muted-foreground hover:bg-muted/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      <SearchIcon className="size-4" aria-hidden />
+    </button>
   );
 }
 
@@ -197,9 +242,10 @@ function SidebarLink({
       href={item.href}
       title={collapsed ? item.label : undefined}
       className={cn(
-        "flex items-center gap-2.5 rounded-md px-2 py-1.5 text-sm transition-colors",
+        "relative flex items-center gap-3 rounded-md px-2 py-2 text-sm transition-colors",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         active
-          ? "bg-muted font-medium text-foreground"
+          ? "bg-muted font-medium text-foreground before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-r-full before:bg-foreground"
           : "text-muted-foreground hover:bg-muted/40 hover:text-foreground",
         collapsed && "justify-center px-0",
       )}

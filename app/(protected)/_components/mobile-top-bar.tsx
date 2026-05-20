@@ -51,7 +51,7 @@ export function MobileTopBar({ canSeeAdmin }: { canSeeAdmin: boolean }) {
         <Link href="/" className="flex items-center gap-2.5">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/phlo-mark.svg" alt="Phlo" className="h-5 w-auto" />
-          <span aria-hidden className="h-4 w-px bg-muted-foreground/60" />
+          <span aria-hidden className="h-4 w-px bg-border" />
           <span className="text-sm font-medium tracking-tight text-muted-foreground">
             AI Ops
           </span>
