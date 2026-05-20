@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { format } from "date-fns";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionUser } from "@/lib/auth";
+import { resolveDisplayName } from "@/lib/profile";
 import { Badge } from "@/components/ui/badge";
 import { DetailHeader } from "@/components/ui/detail-header";
 import { toTitle } from "@/lib/utils";
@@ -10,6 +11,8 @@ import { LogMetricSnapshotButton } from "./_components/log-metric-snapshot-butto
 import { EditInterventionDialog } from "./_components/edit-intervention-dialog";
 import { StatusButton } from "./_components/status-button";
 import { DeleteInterventionButton } from "./_components/delete-intervention-button";
+import { InterventionCommentForm } from "./_components/comment-form";
+import { InterventionCommentRow } from "./_components/comment-row";
 
 type InterventionType =
   | "tool"
@@ -95,6 +98,13 @@ type MetricRow = {
   notes: string | null;
 };
 
+type CommentRow = {
+  id: string;
+  body: string;
+  created_at: string;
+  created_by: string | null;
+};
+
 const STATUS_DOT: Record<Status, string> = {
   active: "bg-emerald-500",
   paused: "bg-amber-500",
@@ -121,6 +131,7 @@ export default async function InterventionDetailPage({
     { data: metrics },
     { data: edits },
     { data: addressedSuggestions },
+    { data: comments },
   ] = await Promise.all([
     supabase
       .from("ai_interventions")
@@ -170,6 +181,12 @@ export default async function InterventionDetailPage({
           created_by: string | null;
         }[]
       >(),
+    supabase
+      .from("ai_intervention_comments")
+      .select("id, body, created_at, created_by")
+      .eq("intervention_id", id)
+      .order("created_at", { ascending: true })
+      .returns<CommentRow[]>(),
   ]);
 
   if (!intervention) {
@@ -260,6 +277,59 @@ export default async function InterventionDetailPage({
     (baselines ?? []).map((b) => [b.workflow_id, b]),
   );
   const metricRows = metrics ?? [];
+  const commentRows = comments ?? [];
+
+  // Resolve commenter names through the same profile -> people -> email
+  // chain the rest of the app uses. Only the commenters that actually
+  // appear on this thread are queried, in a single scoped RPC.
+  const commenterIds = Array.from(
+    new Set(
+      commentRows
+        .map((c) => c.created_by)
+        .filter((v): v is string => !!v),
+    ),
+  );
+  const commenterNameById = new Map<string, string>();
+  if (commenterIds.length > 0) {
+    const [{ data: commentProfiles }, { data: commentEmails }, { data: commentPeople }] =
+      await Promise.all([
+        supabase
+          .from("profiles")
+          .select("user_id, display_name")
+          .in("user_id", commenterIds)
+          .returns<{ user_id: string; display_name: string | null }[]>(),
+        supabase.rpc("user_emails", { p_user_ids: commenterIds }),
+        supabase
+          .from("people")
+          .select("email, display_name")
+          .returns<{ email: string; display_name: string }[]>(),
+      ]);
+    const profileById = new Map<string, string | null>();
+    for (const p of commentProfiles ?? []) {
+      profileById.set(p.user_id, p.display_name);
+    }
+    const emailById = new Map<string, string | null>();
+    for (const r of (commentEmails ?? []) as {
+      user_id: string;
+      email: string | null;
+    }[]) {
+      emailById.set(r.user_id, r.email);
+    }
+    const peopleByEmail = new Map<string, string>();
+    for (const p of commentPeople ?? []) {
+      if (p.email && p.display_name) {
+        peopleByEmail.set(p.email.trim().toLowerCase(), p.display_name);
+      }
+    }
+    for (const uid of commenterIds) {
+      const email = emailById.get(uid) ?? null;
+      const peopleName = email
+        ? peopleByEmail.get(email.trim().toLowerCase()) ?? null
+        : null;
+      const label = resolveDisplayName(profileById.get(uid), peopleName, email);
+      if (label) commenterNameById.set(uid, label);
+    }
+  }
   const editRows = edits ?? [];
 
   return (
@@ -512,6 +582,43 @@ export default async function InterventionDetailPage({
               ))}
             </ul>
           )}
+        </div>
+      </section>
+
+      {/* Comments */}
+      <section className="space-y-2">
+        <h2 className="text-sm font-semibold tracking-tight text-foreground">
+          Comments
+        </h2>
+        <div className="rounded-lg border border-border bg-background">
+          {commentRows.length === 0 ? (
+            <div className="px-4 py-6 text-center text-sm text-muted-foreground">
+              No comments yet. Start the discussion.
+            </div>
+          ) : (
+            <ul className="divide-y divide-border">
+              {commentRows.map((c) => (
+                <InterventionCommentRow
+                  key={c.id}
+                  id={c.id}
+                  interventionId={intervention.id}
+                  body={c.body}
+                  authorName={
+                    (c.created_by && commenterNameById.get(c.created_by)) ??
+                    "Unknown"
+                  }
+                  createdAt={c.created_at}
+                  canDelete={
+                    user.realRole === "super_admin" ||
+                    c.created_by === user.id
+                  }
+                />
+              ))}
+            </ul>
+          )}
+          <div className="border-t border-border px-4 py-3">
+            <InterventionCommentForm interventionId={intervention.id} />
+          </div>
         </div>
       </section>
 

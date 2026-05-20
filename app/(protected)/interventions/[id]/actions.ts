@@ -3,7 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { requireWriter } from "@/lib/auth";
+import { getSessionUser, requireWriter } from "@/lib/auth";
+import { appUrl } from "@/lib/app-url";
+import { resolveDisplayName } from "@/lib/profile";
+import { sendInterventionCommentEmail } from "@/lib/emails/intervention-comment";
 
 const INTERVENTION_TYPES = [
   "tool",
@@ -385,4 +388,170 @@ export async function deleteIntervention(
   revalidatePath("/interventions");
   revalidatePath("/");
   return { kind: "ok" };
+}
+
+// =========================================================================
+// Comments
+// =========================================================================
+// Mirrors the suggestion-comment thread. Any signed-in user can post; the
+// author or a super-admin can delete (RLS enforces this).
+
+export type CommentState =
+  | { kind: "idle" }
+  | { kind: "error"; message: string }
+  | { kind: "ok" };
+
+const CommentSchema = z.object({
+  intervention_id: z.string().uuid(),
+  body: z.string().trim().min(1, "Comment can't be empty.").max(2000),
+});
+
+export async function createInterventionComment(
+  _prev: CommentState,
+  formData: FormData,
+): Promise<CommentState> {
+  // Comments are deliberately allowed under impersonation - they're a
+  // discussion surface, not a record-of-truth mutation. We still need a
+  // real session so getSessionUser (not requireWriter) is the right gate.
+  const user = await getSessionUser();
+  const parsed = CommentSchema.safeParse({
+    intervention_id: formData.get("intervention_id"),
+    body: formData.get("body"),
+  });
+  if (!parsed.success) {
+    return {
+      kind: "error",
+      message: parsed.error.issues[0]?.message ?? "Comment can't be empty.",
+    };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("ai_intervention_comments").insert({
+    intervention_id: parsed.data.intervention_id,
+    body: parsed.data.body,
+    created_by: user.id,
+  });
+  if (error) return { kind: "error", message: error.message };
+
+  // Fan out to the initiative owner + every prior commenter (minus self).
+  // Failures log but don't fail the comment - in-app remains source of truth.
+  try {
+    await notifyInterventionCommentThread({
+      interventionId: parsed.data.intervention_id,
+      commentBody: parsed.data.body,
+      commenterUserId: user.id,
+      commenterName: user.displayName,
+    });
+  } catch (err) {
+    console.warn("[intervention-comment] notify thread threw:", err);
+  }
+
+  revalidatePath(`/interventions/${parsed.data.intervention_id}`);
+  revalidatePath("/");
+  return { kind: "ok" };
+}
+
+async function notifyInterventionCommentThread(args: {
+  interventionId: string;
+  commentBody: string;
+  commenterUserId: string;
+  commenterName: string;
+}): Promise<void> {
+  const supabase = await createClient();
+  const [
+    { data: intervention },
+    { data: priorComments },
+    { data: profileRows },
+    { data: peopleRows },
+  ] = await Promise.all([
+    supabase
+      .from("ai_interventions")
+      .select("id, name, created_by")
+      .eq("id", args.interventionId)
+      .maybeSingle<{ id: string; name: string; created_by: string | null }>(),
+    supabase
+      .from("ai_intervention_comments")
+      .select("created_by")
+      .eq("intervention_id", args.interventionId)
+      .returns<{ created_by: string | null }[]>(),
+    supabase
+      .from("profiles")
+      .select("user_id, display_name")
+      .returns<{ user_id: string; display_name: string | null }[]>(),
+    supabase
+      .from("people")
+      .select("email, display_name")
+      .returns<{ email: string; display_name: string }[]>(),
+  ]);
+
+  if (!intervention) return;
+
+  const recipientIds = new Set<string>();
+  if (intervention.created_by && intervention.created_by !== args.commenterUserId) {
+    recipientIds.add(intervention.created_by);
+  }
+  for (const c of priorComments ?? []) {
+    if (c.created_by && c.created_by !== args.commenterUserId) {
+      recipientIds.add(c.created_by);
+    }
+  }
+  if (recipientIds.size === 0) return;
+
+  const { data: emailRows } = await supabase.rpc("user_emails", {
+    p_user_ids: Array.from(recipientIds),
+  });
+  const emailByUserId = new Map<string, string>();
+  for (const r of (emailRows ?? []) as { user_id: string; email: string | null }[]) {
+    if (r.email) emailByUserId.set(r.user_id, r.email);
+  }
+  const profileByUserId = new Map<string, string | null>();
+  for (const p of profileRows ?? []) {
+    profileByUserId.set(p.user_id, p.display_name);
+  }
+  const peopleByEmail = new Map<string, string>();
+  for (const p of peopleRows ?? []) {
+    if (p.email && p.display_name) {
+      peopleByEmail.set(p.email.trim().toLowerCase(), p.display_name);
+    }
+  }
+
+  const url = appUrl();
+  await Promise.all(
+    Array.from(recipientIds).map(async (recipientId) => {
+      const email = emailByUserId.get(recipientId);
+      if (!email) return;
+      const peopleName = peopleByEmail.get(email.trim().toLowerCase()) ?? null;
+      const displayName = resolveDisplayName(
+        profileByUserId.get(recipientId),
+        peopleName,
+        email,
+      );
+      const result = await sendInterventionCommentEmail({
+        recipient: { email, displayName },
+        interventionId: args.interventionId,
+        interventionName: intervention.name,
+        commentBody: args.commentBody,
+        commenterName: args.commenterName,
+        isOwner: recipientId === intervention.created_by,
+        appUrl: url,
+      });
+      if ("ok" in result && !result.ok) {
+        console.warn(
+          `[intervention-comment] email to ${email} failed:`,
+          result.message,
+        );
+      }
+    }),
+  );
+}
+
+export async function deleteInterventionComment(formData: FormData): Promise<void> {
+  await getSessionUser();
+  const id = formData.get("comment_id");
+  const interventionId = formData.get("intervention_id");
+  if (typeof id !== "string" || typeof interventionId !== "string") return;
+  const supabase = await createClient();
+  await supabase.from("ai_intervention_comments").delete().eq("id", id);
+  revalidatePath(`/interventions/${interventionId}`);
+  revalidatePath("/");
 }
