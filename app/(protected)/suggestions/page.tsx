@@ -42,7 +42,7 @@ export default async function SuggestionsPage({
   const tab: Tab =
     typeof sp.tab === "string" && VALID_TABS.includes(sp.tab as Tab)
       ? (sp.tab as Tab)
-      : "roadmap";
+      : "active";
 
   const view: ViewMode =
     sp.view === "list" || sp.view === "board"
