@@ -190,7 +190,7 @@ export default async function WorkflowsPage(props: {
   const toolSuggestions = await loadToolSuggestions(supabase);
 
   return (
-    <PageContainer>
+    <PageContainer className="max-w-none">
       <PageHeader
         title="Workflows"
         description="Active recurring processes across the company."
