@@ -7,7 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest"
+    "test": "vitest",
+    "db:types": "supabase gen types typescript --linked > lib/database.types.ts",
+    "db:diff": "supabase db diff --linked",
+    "db:new": "supabase migration new"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.92.0",

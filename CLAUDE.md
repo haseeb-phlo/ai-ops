@@ -113,7 +113,26 @@ When adding a new scheduled job, add the entry to `vercel.json`, gate the handle
 
 ### Database schema
 
-`supabase/` holds the SQL source of truth: `schema.sql`, `workflows.sql`, and `*_migration.sql` files. Schema changes go here - there is no separate ORM or migration tool. When adding a column or table, update the relevant `.sql` file and apply it to your Supabase project.
+The project uses the Supabase CLI for migrations as of 2026-05-26. Layout:
+
+- `supabase/migrations/` - the active migration pipeline. Files are timestamp-prefixed and applied in order. The first file (`20260526090413_baseline.sql`) is a `pg_dump` snapshot of prod at adoption time and is marked as already-applied via `supabase migration repair`; it never runs again.
+- `supabase/legacy/` - historical record of the ad-hoc `.sql` files that built the schema before CLI adoption. Reference-only; do not add to it. Each file has a comment block explaining the *why* of a particular policy or column, which is useful when debugging.
+- `supabase/seed.sql`, `supabase/people_seed.sql`, `supabase/clear_seed_*.sql` - reference seeds, run manually as needed.
+- `supabase/config.toml` - Supabase CLI config (project_id, ports, etc.).
+- `lib/database.types.ts` - generated TypeScript types for every table / view / RPC. Re-run after every migration so types stay in sync.
+
+**Workflow for schema changes:**
+
+```
+npm run db:new <name>      # creates supabase/migrations/<timestamp>_<name>.sql
+# edit the file
+supabase db push           # applies pending migrations to the linked project
+npm run db:types           # regenerates lib/database.types.ts
+```
+
+`npm run db:diff` shows drift between local migrations and the linked DB - useful when you've made changes in Studio that aren't yet captured in a migration file. The linked project is set via `supabase link --project-ref <ref>`; credentials are local-only in `supabase/.temp/`.
+
+**`auth.users` triggers** (`on_auth_user_created`, `enforce_phlo_email_trigger`) live on a schema the `--schema public` dump skips, so they're appended manually at the bottom of the baseline. Any future change to these triggers must be written as an explicit migration that touches the `auth.users` table directly.
 
 ### Anthropic / Claude
 
