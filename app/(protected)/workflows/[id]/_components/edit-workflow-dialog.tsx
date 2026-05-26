@@ -129,194 +129,203 @@ export function EditWorkflowDialog({
       >
         Edit
       </Button>
-      <DialogContent className="sm:max-w-2xl">
-        <DialogHeader>
+      <DialogContent className="gap-0 p-0 sm:max-w-2xl">
+        <DialogHeader className="gap-2 px-6 pt-5 pb-5">
           <DialogTitle>Edit workflow</DialogTitle>
           <DialogDescription>
             Updates are recorded in the audit log.
           </DialogDescription>
         </DialogHeader>
 
-        <form action={formAction} className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5 sm:col-span-2">
-              <Label htmlFor="name">Workflow name</Label>
-              <Input
-                id="name"
-                name="name"
-                required
-                defaultValue={workflow.name}
-                maxLength={200}
-              />
+        <form action={formAction} className="flex min-h-0 flex-1 flex-col">
+          <div className="flex-1 space-y-4 overflow-y-auto border-t border-border px-6 py-5">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label htmlFor="name">Workflow name</Label>
+                <Input
+                  id="name"
+                  name="name"
+                  required
+                  defaultValue={workflow.name}
+                  maxLength={200}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="team">Team</Label>
+                <input
+                  type="hidden"
+                  name="team"
+                  value={team === TEAM_NONE ? "" : team}
+                />
+                <Select
+                  value={team}
+                  onValueChange={(v) => setTeam(v ?? TEAM_NONE)}
+                >
+                  <SelectTrigger id="team">
+                    <SelectValue>
+                      {(v) => (v === TEAM_NONE ? "No team" : (v as string))}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={TEAM_NONE}>No team</SelectItem>
+                    {teamOptions.map((t) => (
+                      <SelectItem key={t} value={t}>
+                        {t}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="frequency_cadence">
+                  How often does it run?
+                </Label>
+                <input
+                  type="hidden"
+                  name="frequency_cadence"
+                  value={cadence}
+                />
+                <Select
+                  value={cadence}
+                  onValueChange={(v) => v && setCadence(v as Cadence)}
+                >
+                  <SelectTrigger id="frequency_cadence" className="w-full">
+                    <SelectValue>
+                      {(v) => (v ? CADENCE_LABEL[v as Cadence] ?? "" : null)}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CADENCES.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {CADENCE_LABEL[c]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="hours_per_week">Hours per week</Label>
+                <Input
+                  id="hours_per_week"
+                  name="hours_per_week"
+                  type="number"
+                  min="0"
+                  max="168"
+                  step="0.25"
+                  defaultValue={
+                    hoursPerWeek != null ? String(hoursPerWeek) : ""
+                  }
+                  placeholder="e.g. 2"
+                />
+              </div>
+
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label>Criticality</Label>
+                <input
+                  type="hidden"
+                  name="criticality_score"
+                  value={criticality}
+                />
+                <SegmentedControl
+                  value={criticality}
+                  onChange={setCriticality}
+                  options={CRITICALITY_OPTIONS.map((c) => ({
+                    value: c.value,
+                    label: c.label,
+                    suffix: c.value,
+                  }))}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="business_kpi">Business KPI</Label>
+                <Input
+                  id="business_kpi"
+                  name="business_kpi"
+                  defaultValue={workflow.business_kpi ?? ""}
+                  placeholder="e.g. Order accuracy"
+                  maxLength={500}
+                />
+              </div>
+
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label htmlFor="owner_names">Owners</Label>
+                <Input
+                  id="owner_names"
+                  name="owner_names"
+                  defaultValue={workflow.owner_names.join(", ")}
+                  placeholder="Comma-separated, e.g. Aisha Khan, Marcus Lee"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Plain text names, separated by commas.
+                </p>
+              </div>
+
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label>Tools used</Label>
+                <TagInput
+                  selected={tools}
+                  onChange={setTools}
+                  suggestions={toolSuggestions}
+                  inputName="tools_used"
+                  placeholder="e.g. Notion, Claude, Linear"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Apps, AI models, or systems people use to run this. Press
+                  Enter or comma to add.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 sm:col-span-2">
+                <input
+                  id="regulatory"
+                  name="regulatory"
+                  type="checkbox"
+                  checked={regulatory}
+                  onChange={(e) => setRegulatory(e.target.checked)}
+                  className="h-4 w-4 rounded border-input"
+                />
+                <Label htmlFor="regulatory" className="font-normal">
+                  This workflow has regulatory implications
+                </Label>
+              </div>
+
+              {workflow.regulatory && !regulatory && (
+                <p className="rounded-md bg-amber-50 p-2 text-xs text-amber-900 sm:col-span-2">
+                  You&apos;re removing the regulatory flag.
+                </p>
+              )}
+
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label htmlFor="notes">Notes</Label>
+                <Textarea
+                  id="notes"
+                  name="notes"
+                  rows={4}
+                  maxLength={2000}
+                  defaultValue={workflow.notes ?? ""}
+                  placeholder="Optional. Context, caveats, links - anything the structured fields don't capture."
+                />
+                <p className="text-xs text-muted-foreground">
+                  Plain text, line breaks preserved. Tracked in the audit log.
+                </p>
+              </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="team">Team</Label>
-              <input
-                type="hidden"
-                name="team"
-                value={team === TEAM_NONE ? "" : team}
-              />
-              <Select value={team} onValueChange={(v) => setTeam(v ?? TEAM_NONE)}>
-                <SelectTrigger id="team">
-                  <SelectValue>
-                    {(v) => (v === TEAM_NONE ? "No team" : (v as string))}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={TEAM_NONE}>No team</SelectItem>
-                  {teamOptions.map((t) => (
-                    <SelectItem key={t} value={t}>
-                      {t}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="frequency_cadence">How often does it run?</Label>
-              <input
-                type="hidden"
-                name="frequency_cadence"
-                value={cadence}
-              />
-              <Select
-                value={cadence}
-                onValueChange={(v) => v && setCadence(v as Cadence)}
+            {state.kind === "error" && (
+              <p
+                role="alert"
+                className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700"
               >
-                <SelectTrigger id="frequency_cadence" className="w-full">
-                  <SelectValue>
-                    {(v) => (v ? CADENCE_LABEL[v as Cadence] ?? "" : null)}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {CADENCES.map((c) => (
-                    <SelectItem key={c} value={c}>
-                      {CADENCE_LABEL[c]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="hours_per_week">Hours per week</Label>
-              <Input
-                id="hours_per_week"
-                name="hours_per_week"
-                type="number"
-                min="0"
-                max="168"
-                step="0.25"
-                defaultValue={hoursPerWeek != null ? String(hoursPerWeek) : ""}
-                placeholder="e.g. 2"
-              />
-            </div>
-
-            <div className="space-y-1.5 sm:col-span-2">
-              <Label>Criticality</Label>
-              <input
-                type="hidden"
-                name="criticality_score"
-                value={criticality}
-              />
-              <SegmentedControl
-                value={criticality}
-                onChange={setCriticality}
-                options={CRITICALITY_OPTIONS.map((c) => ({
-                  value: c.value,
-                  label: c.label,
-                  suffix: c.value,
-                }))}
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="business_kpi">Business KPI</Label>
-              <Input
-                id="business_kpi"
-                name="business_kpi"
-                defaultValue={workflow.business_kpi ?? ""}
-                placeholder="e.g. Order accuracy"
-                maxLength={500}
-              />
-            </div>
-
-            <div className="space-y-1.5 sm:col-span-2">
-              <Label htmlFor="owner_names">Owners</Label>
-              <Input
-                id="owner_names"
-                name="owner_names"
-                defaultValue={workflow.owner_names.join(", ")}
-                placeholder="Comma-separated, e.g. Aisha Khan, Marcus Lee"
-              />
-              <p className="text-xs text-muted-foreground">
-                Plain text names, separated by commas.
-              </p>
-            </div>
-
-            <div className="space-y-1.5 sm:col-span-2">
-              <Label>Tools used</Label>
-              <TagInput
-                selected={tools}
-                onChange={setTools}
-                suggestions={toolSuggestions}
-                inputName="tools_used"
-                placeholder="e.g. Notion, Claude, Linear"
-              />
-              <p className="text-xs text-muted-foreground">
-                Apps, AI models, or systems people use to run this. Press Enter
-                or comma to add.
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2 sm:col-span-2">
-              <input
-                id="regulatory"
-                name="regulatory"
-                type="checkbox"
-                checked={regulatory}
-                onChange={(e) => setRegulatory(e.target.checked)}
-                className="h-4 w-4 rounded border-input"
-              />
-              <Label htmlFor="regulatory" className="font-normal">
-                This workflow has regulatory implications
-              </Label>
-            </div>
-
-            {workflow.regulatory && !regulatory && (
-              <p className="rounded-md bg-amber-50 p-2 text-xs text-amber-900 sm:col-span-2">
-                You&apos;re removing the regulatory flag.
+                {state.message}
               </p>
             )}
-
-            <div className="space-y-1.5 sm:col-span-2">
-              <Label htmlFor="notes">Notes</Label>
-              <Textarea
-                id="notes"
-                name="notes"
-                rows={4}
-                maxLength={2000}
-                defaultValue={workflow.notes ?? ""}
-                placeholder="Optional. Context, caveats, links - anything the structured fields don't capture."
-              />
-              <p className="text-xs text-muted-foreground">
-                Plain text, line breaks preserved. Tracked in the audit log.
-              </p>
-            </div>
           </div>
 
-          {state.kind === "error" && (
-            <p
-              role="alert"
-              className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700"
-            >
-              {state.message}
-            </p>
-          )}
-
-          <DialogFooter>
+          <DialogFooter className="m-0 border-t border-border bg-muted/40 px-6 py-3">
             <DialogClose
               render={
                 <Button type="button" variant="outline" disabled={pending}>
