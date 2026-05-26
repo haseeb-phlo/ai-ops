@@ -3,6 +3,7 @@ import { getSessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { resolveDisplayName } from "@/lib/profile";
 import { formatCadence } from "@/lib/frequency";
+import { WorkflowIcon } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -12,6 +13,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { PageContainer, PageHeader } from "@/components/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Time } from "@/components/ui/time";
 import { loadTeamOptions } from "@/lib/teams";
 import { loadToolSuggestions } from "@/lib/tools";
 import { TeamFilter } from "./_components/team-filter";
@@ -189,8 +192,10 @@ export default async function WorkflowsPage(props: {
 
   const toolSuggestions = await loadToolSuggestions(supabase);
 
+  const isEmpty = (workflows ?? []).length === 0 && !error;
+
   return (
-    <PageContainer className="max-w-none">
+    <PageContainer accent="workflows">
       <PageHeader
         title="Workflows"
         description="Active recurring processes across the company."
@@ -217,86 +222,112 @@ export default async function WorkflowsPage(props: {
         </p>
       )}
 
-      <div className="rounded-lg border border-border bg-background">
-        {(workflows ?? []).length === 0 && !error ? (
-          <div className="px-4 py-10 text-center text-sm text-muted-foreground">
-            No workflows
-            {activeTeam !== ALL_TEAMS && ` for team "${activeTeam}"`} yet.
-          </div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Team</TableHead>
-                <TableHead>Frequency</TableHead>
-                <TableHead className="text-right">Steps</TableHead>
-                <TableHead className="text-right">Total hours / wk</TableHead>
-                <TableHead className="text-right">Active AI initiatives</TableHead>
-                <TableHead>Logged by</TableHead>
-                <TableHead>Logged on</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {(workflows ?? []).map((wf) => {
-                const stepsCount = wf.workflow_steps?.[0]?.count ?? 0;
-                const activeInterventions = interventionCounts.get(wf.id) ?? 0;
-                const totalHours = hoursByWorkflow.get(wf.id) ?? null;
-                const loggedBy = wf.created_by
-                  ? creatorLabelById.get(wf.created_by) ?? null
-                  : null;
+      {isEmpty ? (
+        <EmptyState
+          icon={<WorkflowIcon className="size-5" aria-hidden />}
+          title={
+            activeTeam !== ALL_TEAMS
+              ? `No workflows for team "${activeTeam}" yet`
+              : "No workflows yet"
+          }
+          description="Workflows are the recurring processes your team runs today — the ones AI initiatives chip away at. Log the first one to start measuring impact."
+          action={
+            <NewWorkflowDialog
+              teams={teamOptions}
+              defaultTeam={user.team ?? teamOptions[0] ?? ""}
+              people={pickerPeople}
+              toolSuggestions={toolSuggestions}
+            />
+          }
+        />
+      ) : (
+        <div className="overflow-hidden rounded-lg border border-border bg-background">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="sticky left-0 z-10 bg-background">
+                    Name
+                  </TableHead>
+                  <TableHead>Team</TableHead>
+                  <TableHead>Frequency</TableHead>
+                  <TableHead className="text-right">Steps</TableHead>
+                  <TableHead className="text-right">Hours / wk</TableHead>
+                  <TableHead className="text-right">
+                    <span className="hidden sm:inline">Active </span>AI
+                  </TableHead>
+                  <TableHead className="hidden lg:table-cell">
+                    Logged by
+                  </TableHead>
+                  <TableHead className="hidden md:table-cell">
+                    Logged on
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(workflows ?? []).map((wf) => {
+                  const stepsCount = wf.workflow_steps?.[0]?.count ?? 0;
+                  const activeInterventions =
+                    interventionCounts.get(wf.id) ?? 0;
+                  const totalHours = hoursByWorkflow.get(wf.id) ?? null;
+                  const loggedBy = wf.created_by
+                    ? creatorLabelById.get(wf.created_by) ?? null
+                    : null;
 
-                return (
-                  <TableRow key={wf.id}>
-                    <TableCell className="font-medium text-foreground">
-                      <Link
-                        href={`/workflows/${wf.id}`}
-                        className="hover:underline"
-                      >
-                        {wf.name}
-                      </Link>
-                    </TableCell>
-                    <TableCell className="text-foreground">
-                      {wf.team ?? <span className="text-muted-foreground">-</span>}
-                    </TableCell>
-                    <TableCell className="text-foreground">
-                      {formatCadence(
-                        wf.frequency_cadence,
-                        wf.frequency_per_week,
-                      ) ?? <span className="text-muted-foreground">-</span>}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {stepsCount}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {totalHours != null ? (
-                        totalHours.toLocaleString(undefined, {
-                          maximumFractionDigits: 1,
-                        })
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {activeInterventions}
-                    </TableCell>
-                    <TableCell className="text-foreground">
-                      {loggedBy ?? <span className="text-muted-foreground">-</span>}
-                    </TableCell>
-                    <TableCell className="text-foreground tabular-nums">
-                      {new Date(wf.created_at).toLocaleDateString(undefined, {
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                      })}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        )}
-      </div>
+                  return (
+                    <TableRow key={wf.id}>
+                      <TableCell className="sticky left-0 z-10 bg-background font-medium text-foreground">
+                        <Link
+                          href={`/workflows/${wf.id}`}
+                          className="hover:underline"
+                        >
+                          {wf.name}
+                        </Link>
+                      </TableCell>
+                      <TableCell className="text-foreground">
+                        {wf.team ?? (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-foreground">
+                        {formatCadence(
+                          wf.frequency_cadence,
+                          wf.frequency_per_week,
+                        ) ?? (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {stepsCount}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {totalHours != null ? (
+                          totalHours.toLocaleString(undefined, {
+                            maximumFractionDigits: 1,
+                          })
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {activeInterventions}
+                      </TableCell>
+                      <TableCell className="hidden text-foreground lg:table-cell">
+                        {loggedBy ?? (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="hidden text-foreground tabular-nums md:table-cell">
+                        <Time iso={wf.created_at} />
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      )}
     </PageContainer>
   );
 }
