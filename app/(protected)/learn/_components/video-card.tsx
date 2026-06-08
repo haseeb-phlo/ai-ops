@@ -21,8 +21,6 @@ import {
 import { type LearnSubtopic, type LearnTopic } from "../topics";
 import { AddAttachmentDialog } from "./add-attachment-dialog";
 import { EditVideoDialog } from "./edit-video-dialog";
-import { Reactions, type ReactionEntry } from "./reactions";
-import { Comments, type VideoComment } from "./comments";
 
 export type VideoAttachment = {
   id: string;
@@ -42,18 +40,12 @@ export function VideoCard({
   thumbnailUrl,
   topic,
   subtopic,
-  addedByName,
-  createdAt,
   totalPlays,
   uniqueViewers,
   watchedAt,
   isCompleted,
   canManage,
   attachments,
-  reactions,
-  comments,
-  currentUserId,
-  isSuperAdmin,
 }: {
   id: string;
   title: string;
@@ -63,18 +55,12 @@ export function VideoCard({
   thumbnailUrl: string | null;
   topic: LearnTopic | null;
   subtopic: LearnSubtopic | null;
-  addedByName: string;
-  createdAt: string;
   totalPlays: number;
   uniqueViewers: number;
   watchedAt: string | null;
   isCompleted: boolean;
   canManage: boolean;
   attachments: VideoAttachment[];
-  reactions: ReactionEntry[];
-  comments: VideoComment[];
-  currentUserId: string;
-  isSuperAdmin: boolean;
 }) {
   const [playing, setPlaying] = useState(false);
   const [thumbFailed, setThumbFailed] = useState(false);
@@ -82,7 +68,7 @@ export function VideoCard({
   const [, startTransition] = useTransition();
 
   const handleToggleCompleted = () => {
-    // Optimistic flip. Fire-and-forget like recordPlay/toggleVideoReaction:
+    // Optimistic flip. Fire-and-forget like recordPlay:
     // the happy path revalidates /learn and the local state already matches.
     // A failed write would leave this checkbox stale until a full reload,
     // which is an acceptable trade for these low-stakes per-user marks.
@@ -165,74 +151,46 @@ export function VideoCard({
           <h3 className="text-sm font-semibold leading-snug text-foreground">
             {title}
           </h3>
-          {canManage && (
-            <div className="flex shrink-0 items-center gap-1.5">
-              <EditVideoDialog
-                id={id}
-                title={title}
-                description={description}
-                loomShareUrl={loomShareUrl}
-                topic={topic}
-                subtopic={subtopic}
-              />
-              <button
-                type="button"
-                onClick={handleDelete}
-                className="text-muted-foreground hover:text-red-600"
-                aria-label="Delete video"
-              >
-                <TrashIcon className="size-3.5" />
-              </button>
-            </div>
-          )}
+          <div className="flex shrink-0 items-center gap-1.5">
+            <CompletionToggle
+              completed={completed}
+              onToggle={handleToggleCompleted}
+            />
+            {canManage && (
+              <>
+                <EditVideoDialog
+                  id={id}
+                  title={title}
+                  description={description}
+                  loomShareUrl={loomShareUrl}
+                  topic={topic}
+                  subtopic={subtopic}
+                />
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  className="text-muted-foreground hover:text-red-600"
+                  aria-label="Delete video"
+                >
+                  <TrashIcon className="size-3.5" />
+                </button>
+              </>
+            )}
+          </div>
         </div>
 
         {description && (
-          <p className="text-xs leading-relaxed text-muted-foreground">
+          <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
             {description}
           </p>
         )}
 
-        <div className="mt-auto pt-3">
-          <button
-            type="button"
-            onClick={handleToggleCompleted}
-            aria-pressed={completed}
-            className={`inline-flex items-center gap-2 text-xs font-medium transition-colors ${
-              completed
-                ? "text-emerald-700"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <span
-              aria-hidden
-              className={`flex size-4 items-center justify-center rounded border transition-colors ${
-                completed
-                  ? "border-emerald-500 bg-emerald-500 text-white"
-                  : "border-input bg-background"
-              }`}
-            >
-              {completed && <CheckIcon className="size-3" strokeWidth={3} />}
-            </span>
-            {completed ? "Completed" : "Mark as completed"}
-          </button>
-        </div>
-
-        <div className="flex items-center gap-3 pt-2 text-xs text-muted-foreground">
-          <span>
-            {totalPlays} {totalPlays === 1 ? "play" : "plays"}
-            <span aria-hidden className="mx-1.5 text-muted-foreground/50">
-              ·
-            </span>
-            {uniqueViewers} {uniqueViewers === 1 ? "viewer" : "viewers"}
-          </span>
-        </div>
-        <div className="text-xs text-muted-foreground">
-          {addedByName}
+        <div className="mt-auto pt-3 text-xs text-muted-foreground tabular-nums">
+          {totalPlays} {totalPlays === 1 ? "play" : "plays"}
           <span aria-hidden className="mx-1.5 text-muted-foreground/50">
             ·
           </span>
-          {format(new Date(createdAt), "d MMM yyyy")}
+          {uniqueViewers} {uniqueViewers === 1 ? "viewer" : "viewers"}
         </div>
       </div>
 
@@ -246,21 +204,40 @@ export function VideoCard({
           />
         </div>
       )}
-
-      <div className="space-y-3 border-t border-border bg-background px-4 py-3">
-        <Reactions
-          videoId={id}
-          currentUserId={currentUserId}
-          reactions={reactions}
-        />
-        <Comments
-          videoId={id}
-          currentUserId={currentUserId}
-          isSuperAdmin={isSuperAdmin}
-          comments={comments}
-        />
-      </div>
     </article>
+  );
+}
+
+// A compact tick-to-complete control, sat at the end of the title row so it
+// reads like a checklist item (Things/Todoist/Linear) and stays reachable
+// while the video is playing — the card body persists behind the iframe.
+function CompletionToggle({
+  completed,
+  onToggle,
+}: {
+  completed: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-pressed={completed}
+      aria-label={completed ? "Mark as not completed" : "Mark as completed"}
+      title={completed ? "Completed" : "Mark as completed"}
+      className={`group/done inline-flex size-5 shrink-0 items-center justify-center rounded-full border transition-colors ${
+        completed
+          ? "border-emerald-500 bg-emerald-500 text-white"
+          : "border-input text-muted-foreground hover:border-emerald-500 hover:text-emerald-600"
+      }`}
+    >
+      <CheckIcon
+        className={`size-3 transition-opacity ${
+          completed ? "" : "opacity-0 group-hover/done:opacity-100"
+        }`}
+        strokeWidth={3}
+      />
+    </button>
   );
 }
 
