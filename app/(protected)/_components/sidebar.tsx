@@ -27,7 +27,7 @@ type Item = { href: string; label: string; icon: LucideIcon };
 const ITEMS: Item[] = [
   { href: "/", label: "Dashboard", icon: LayoutDashboardIcon },
   { href: "/workflows", label: "Workflows", icon: WorkflowIcon },
-  { href: "/interventions", label: "AI Initiatives", icon: SparklesIcon },
+  { href: "/interventions", label: "Initiatives", icon: SparklesIcon },
   { href: "/suggestions", label: "Suggestions", icon: LightbulbIcon },
   { href: "/learn", label: "Learn", icon: GraduationCapIcon },
   { href: "/map", label: "People", icon: UsersIcon },
