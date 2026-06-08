@@ -773,7 +773,7 @@ function SubmitButton({ disabled }: { disabled: boolean }) {
   const { pending } = useFormStatus();
   return (
     <Button type="submit" disabled={disabled || pending}>
-      {pending ? "Logging…" : "Log AI Initiative"}
+      {pending ? "Logging…" : "Log Initiative"}
     </Button>
   );
 }

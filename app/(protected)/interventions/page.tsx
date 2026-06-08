@@ -170,7 +170,7 @@ export default async function InterventionsListPage({
   return (
     <PageContainer className="max-w-none">
       <PageHeader
-        title="AI Initiatives"
+        title="Initiatives"
         description="Tools, prompts, training, automations, and process changes shipped against workflows."
         actions={
           <LogInterventionButton

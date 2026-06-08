@@ -52,7 +52,7 @@ const NAV_HITS: StaticHit[] = [
   {
     id: "nav:interventions",
     kind: "nav",
-    title: "Go to AI Initiatives",
+    title: "Go to Initiatives",
     subtitle: null,
     href: "/interventions",
   },
@@ -89,7 +89,7 @@ const NAV_HITS: StaticHit[] = [
 const KIND_LABEL: Record<AnyHit["kind"], string> = {
   nav: "Navigate",
   workflow: "Workflows",
-  intervention: "AI Initiatives",
+  intervention: "Initiatives",
   suggestion: "Suggestions",
   video: "Learn",
   person: "People",
