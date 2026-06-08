@@ -578,6 +578,35 @@ export type Database = {
           },
         ]
       }
+      learn_video_completions: {
+        Row: {
+          created_at: string
+          id: string
+          user_id: string
+          video_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          user_id: string
+          video_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          user_id?: string
+          video_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learn_video_completions_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "learn_videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       learn_video_plays: {
         Row: {
           created_at: string
@@ -697,6 +726,7 @@ export type Database = {
           id: string
           loom_embed_id: string
           loom_share_url: string
+          position: number
           subtopic: string | null
           thumbnail_url: string | null
           title: string
@@ -709,6 +739,7 @@ export type Database = {
           id?: string
           loom_embed_id: string
           loom_share_url: string
+          position?: number
           subtopic?: string | null
           thumbnail_url?: string | null
           title: string
@@ -721,6 +752,7 @@ export type Database = {
           id?: string
           loom_embed_id?: string
           loom_share_url?: string
+          position?: number
           subtopic?: string | null
           thumbnail_url?: string | null
           title?: string

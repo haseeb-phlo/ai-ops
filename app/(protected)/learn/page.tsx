@@ -4,6 +4,10 @@ import { fetchLoomOembed } from "@/lib/loom";
 import { PageContainer, PageHeader } from "@/components/page-header";
 import { AddVideoDialog } from "./_components/add-video-dialog";
 import { VideoCard, type VideoAttachment } from "./_components/video-card";
+import {
+  SortableVideoGrid,
+  type SortableItem,
+} from "./_components/sortable-video-grid";
 import { YourProgress } from "./_components/your-progress";
 import type { ReactionEntry } from "./_components/reactions";
 import type { VideoComment } from "./_components/comments";
@@ -27,9 +31,12 @@ type VideoRow = {
   thumbnail_url: string | null;
   added_by: string | null;
   created_at: string;
+  position: number;
 };
 
 type PlayRow = { video_id: string; user_id: string; created_at: string };
+
+type CompletionRow = { video_id: string; user_id: string };
 
 type ResourceRow = {
   id: string;
@@ -66,6 +73,7 @@ export default async function LearnPage() {
   const [
     { data: videos },
     { data: plays },
+    { data: completionRows },
     { data: resources },
     { data: reactionRows },
     { data: commentRows },
@@ -74,14 +82,20 @@ export default async function LearnPage() {
     supabase
       .from("learn_videos")
       .select(
-        "id, title, description, loom_share_url, loom_embed_id, topic, subtopic, thumbnail_url, added_by, created_at",
+        "id, title, description, loom_share_url, loom_embed_id, topic, subtopic, thumbnail_url, added_by, created_at, position",
       )
+      .order("position", { ascending: true })
       .order("created_at", { ascending: false })
       .returns<VideoRow[]>(),
     supabase
       .from("learn_video_plays")
       .select("video_id, user_id, created_at")
       .returns<PlayRow[]>(),
+    supabase
+      .from("learn_video_completions")
+      .select("video_id, user_id")
+      .eq("user_id", user.id)
+      .returns<CompletionRow[]>(),
     supabase
       .from("learn_video_resources")
       .select("id, video_id, kind, title, url, file_name, file_size, created_at")
@@ -156,6 +170,11 @@ export default async function LearnPage() {
     }
   }
 
+  // The current user's explicit "completed" marks. The query already
+  // filters to user.id, so every row here is the caller's own.
+  const myCompletedVideoIds = new Set<string>();
+  for (const c of completionRows ?? []) myCompletedVideoIds.add(c.video_id);
+
   const attachmentsByVideo = new Map<string, VideoAttachment[]>();
   for (const r of resources ?? []) {
     let list = attachmentsByVideo.get(r.video_id);
@@ -221,32 +240,33 @@ export default async function LearnPage() {
     }
   }
 
-  const renderCard = (v: VideoRow) => (
-    <VideoCard
-      key={v.id}
-      id={v.id}
-      title={v.title}
-      description={v.description}
-      loomEmbedId={v.loom_embed_id}
-      loomShareUrl={v.loom_share_url}
-      thumbnailUrl={v.thumbnail_url}
-      topic={v.topic}
-      subtopic={v.subtopic}
-      addedByName={
-        (v.added_by && nameByUserId.get(v.added_by)) || "Unknown"
-      }
-      createdAt={v.created_at}
-      totalPlays={totalPlays.get(v.id) ?? 0}
-      uniqueViewers={uniqueViewers.get(v.id)?.size ?? 0}
-      watchedAt={myWatchedAt.get(v.id) ?? null}
-      canManage={canManageVideos}
-      attachments={attachmentsByVideo.get(v.id) ?? []}
-      reactions={reactionsByVideo.get(v.id) ?? []}
-      comments={commentsByVideo.get(v.id) ?? []}
-      currentUserId={user.id}
-      isSuperAdmin={canManageVideos}
-    />
-  );
+  const toItem = (v: VideoRow): SortableItem => ({
+    id: v.id,
+    node: (
+      <VideoCard
+        id={v.id}
+        title={v.title}
+        description={v.description}
+        loomEmbedId={v.loom_embed_id}
+        loomShareUrl={v.loom_share_url}
+        thumbnailUrl={v.thumbnail_url}
+        topic={v.topic}
+        subtopic={v.subtopic}
+        addedByName={(v.added_by && nameByUserId.get(v.added_by)) || "Unknown"}
+        createdAt={v.created_at}
+        totalPlays={totalPlays.get(v.id) ?? 0}
+        uniqueViewers={uniqueViewers.get(v.id)?.size ?? 0}
+        watchedAt={myWatchedAt.get(v.id) ?? null}
+        isCompleted={myCompletedVideoIds.has(v.id)}
+        canManage={canManageVideos}
+        attachments={attachmentsByVideo.get(v.id) ?? []}
+        reactions={reactionsByVideo.get(v.id) ?? []}
+        comments={commentsByVideo.get(v.id) ?? []}
+        currentUserId={user.id}
+        isSuperAdmin={canManageVideos}
+      />
+    ),
+  });
 
   return (
     <PageContainer>
@@ -256,7 +276,11 @@ export default async function LearnPage() {
         actions={canManageVideos ? <AddVideoDialog /> : null}
       />
 
-      <YourProgress watched={myWatchedAt.size} total={videoRows.length} />
+      <YourProgress
+        completed={myCompletedVideoIds.size}
+        watched={myWatchedAt.size}
+        total={videoRows.length}
+      />
 
       <div className="space-y-10">
         {LEARN_TOPICS.map((topic) => {
@@ -294,15 +318,17 @@ export default async function LearnPage() {
                   No videos in this topic yet.
                 </div>
               ) : subtopicKeys.length === 0 ? (
-                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                  {items.map(renderCard)}
-                </div>
+                <SortableVideoGrid
+                  items={items.map(toItem)}
+                  canManage={canManageVideos}
+                />
               ) : (
                 <div className="space-y-6">
                   {defaultBucket.length > 0 && (
-                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                      {defaultBucket.map(renderCard)}
-                    </div>
+                    <SortableVideoGrid
+                      items={defaultBucket.map(toItem)}
+                      canManage={canManageVideos}
+                    />
                   )}
                   {subtopicKeys.map((s) => {
                     const subItems = bySubtopic.get(s) ?? [];
@@ -312,9 +338,10 @@ export default async function LearnPage() {
                         <h3 className="text-sm font-semibold tracking-tight text-muted-foreground">
                           {LEARN_SUBTOPIC_LABEL[s] ?? s}
                         </h3>
-                        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                          {subItems.map(renderCard)}
-                        </div>
+                        <SortableVideoGrid
+                          items={subItems.map(toItem)}
+                          canManage={canManageVideos}
+                        />
                       </div>
                     );
                   })}
@@ -335,9 +362,10 @@ export default async function LearnPage() {
                 {uncategorized.length === 1 ? "video" : "videos"}
               </span>
             </div>
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {uncategorized.map(renderCard)}
-            </div>
+            <SortableVideoGrid
+              items={uncategorized.map(toItem)}
+              canManage={canManageVideos}
+            />
           </section>
         )}
       </div>

@@ -76,11 +76,12 @@ Two critical implications:
 ### Route layout
 
 - `app/(protected)/` - route group whose `layout.tsx` calls `getSessionUser()` and renders the app chrome: `Sidebar` (collapsible, cookie-persisted via `SIDEBAR_COLLAPSED_COOKIE` in `lib/sidebar.ts`), `MobileTopBar`, `ImpersonationBanner`, and the global `CommandPalette`. New authenticated pages go inside this group.
-- Feature areas under `app/(protected)/` follow a consistent shape: `page.tsx` (list/index), `[id]/` (detail), `_components/` (route-local UI), `actions.ts` (Server Actions). Mutations go through `actions.ts` next to the route, not separate API routes. Server Actions validate inputs with Zod at the boundary; trust the parsed shape downstream.
+- Feature areas under `app/(protected)/` follow a consistent shape: `page.tsx` (list/index), `[id]/` (detail), `_components/` (route-local UI), `actions.ts` (Server Actions). Mutations go through `actions.ts` next to the route, not separate API routes. Server Actions validate inputs with Zod at the boundary; trust the parsed shape downstream. The areas are `admin`, `dashboard`, `interventions`, `learn`, `map`, `people`, `profile`, `suggestions`, and `workflows`. Note `interventions` is backed by the `ai_interventions` table (workflows are the soft-deletable `workflows` table); both share the tools-tag autocomplete in `lib/tools.ts`.
 - The `_components/` underscore prefix marks a Next.js **private folder** - excluded from routing. Use it for any route-local file that isn't a page/layout/route handler.
 - `app/login/page.tsx` - Client Component using Supabase magic-link OTP (`signInWithOtp`), redirect target `${origin}/auth/callback`.
 - `app/auth/callback/route.ts` - exchanges the OTP `code` for a session via `exchangeCodeForSession`, then redirects to `?next=` or `/`.
 - `app/auth/signout/route.ts` - POST handler used by the sidebar's sign-out form.
+- `app/auth/dev-login/route.ts` - **dev-only** shortcut to log in as any `@wearephlo.com` email without an email round-trip (`/auth/dev-login?email=you@wearephlo.com`). Triple-gated: returns 404 unless `NODE_ENV === "development"` *and* the `Host` is localhost, and needs `SUPABASE_SERVICE_ROLE_KEY`. It mints a magic link via `auth.admin.generateLink` and verifies it server-side. Never reachable in production.
 - `app/api/` - reserved for system endpoints (Cron handlers, the `/api/search/index` global search endpoint). Application mutations still belong in route-local `actions.ts`, not here.
 
 ### Mutation conventions

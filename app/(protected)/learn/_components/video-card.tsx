@@ -16,6 +16,7 @@ import {
   deleteVideoResource,
   recordPlay,
   signedUrlForResource,
+  toggleVideoCompletion,
 } from "../actions";
 import { type LearnSubtopic, type LearnTopic } from "../topics";
 import { AddAttachmentDialog } from "./add-attachment-dialog";
@@ -46,6 +47,7 @@ export function VideoCard({
   totalPlays,
   uniqueViewers,
   watchedAt,
+  isCompleted,
   canManage,
   attachments,
   reactions,
@@ -66,6 +68,7 @@ export function VideoCard({
   totalPlays: number;
   uniqueViewers: number;
   watchedAt: string | null;
+  isCompleted: boolean;
   canManage: boolean;
   attachments: VideoAttachment[];
   reactions: ReactionEntry[];
@@ -75,7 +78,21 @@ export function VideoCard({
 }) {
   const [playing, setPlaying] = useState(false);
   const [thumbFailed, setThumbFailed] = useState(false);
+  const [completed, setCompleted] = useState(isCompleted);
   const [, startTransition] = useTransition();
+
+  const handleToggleCompleted = () => {
+    // Optimistic flip. Fire-and-forget like recordPlay/toggleVideoReaction:
+    // the happy path revalidates /learn and the local state already matches.
+    // A failed write would leave this checkbox stale until a full reload,
+    // which is an acceptable trade for these low-stakes per-user marks.
+    setCompleted((c) => !c);
+    const fd = new FormData();
+    fd.set("video_id", id);
+    startTransition(() => {
+      void toggleVideoCompletion(fd);
+    });
+  };
 
   const handlePlay = () => {
     setPlaying(true);
@@ -176,7 +193,32 @@ export function VideoCard({
           </p>
         )}
 
-        <div className="mt-auto flex items-center gap-3 pt-3 text-xs text-muted-foreground">
+        <div className="mt-auto pt-3">
+          <button
+            type="button"
+            onClick={handleToggleCompleted}
+            aria-pressed={completed}
+            className={`inline-flex items-center gap-2 text-xs font-medium transition-colors ${
+              completed
+                ? "text-emerald-700"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <span
+              aria-hidden
+              className={`flex size-4 items-center justify-center rounded border transition-colors ${
+                completed
+                  ? "border-emerald-500 bg-emerald-500 text-white"
+                  : "border-input bg-background"
+              }`}
+            >
+              {completed && <CheckIcon className="size-3" strokeWidth={3} />}
+            </span>
+            {completed ? "Completed" : "Mark as completed"}
+          </button>
+        </div>
+
+        <div className="flex items-center gap-3 pt-2 text-xs text-muted-foreground">
           <span>
             {totalPlays} {totalPlays === 1 ? "play" : "plays"}
             <span aria-hidden className="mx-1.5 text-muted-foreground/50">
