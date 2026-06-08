@@ -9,8 +9,6 @@ import {
   type SortableItem,
 } from "./_components/sortable-video-grid";
 import { YourProgress } from "./_components/your-progress";
-import type { ReactionEntry } from "./_components/reactions";
-import type { VideoComment } from "./_components/comments";
 import {
   LEARN_SUBTOPICS,
   LEARN_SUBTOPIC_LABEL,
@@ -49,23 +47,6 @@ type ResourceRow = {
   created_at: string;
 };
 
-type ReactionRow = {
-  video_id: string;
-  user_id: string;
-  emoji: string;
-  created_at: string;
-};
-
-type CommentRowDb = {
-  id: string;
-  video_id: string;
-  body: string;
-  created_by: string | null;
-  created_at: string;
-};
-
-type ProfileLite = { user_id: string; display_name: string | null };
-
 export default async function LearnPage() {
   const user = await getSessionUser();
   const supabase = await createClient();
@@ -75,9 +56,6 @@ export default async function LearnPage() {
     { data: plays },
     { data: completionRows },
     { data: resources },
-    { data: reactionRows },
-    { data: commentRows },
-    { data: profiles },
   ] = await Promise.all([
     supabase
       .from("learn_videos")
@@ -101,20 +79,6 @@ export default async function LearnPage() {
       .select("id, video_id, kind, title, url, file_name, file_size, created_at")
       .order("created_at", { ascending: true })
       .returns<ResourceRow[]>(),
-    supabase
-      .from("learn_video_reactions")
-      .select("video_id, user_id, emoji, created_at")
-      .order("created_at", { ascending: true })
-      .returns<ReactionRow[]>(),
-    supabase
-      .from("learn_video_comments")
-      .select("id, video_id, body, created_by, created_at")
-      .order("created_at", { ascending: true })
-      .returns<CommentRowDb[]>(),
-    supabase
-      .from("profiles")
-      .select("user_id, display_name")
-      .returns<ProfileLite[]>(),
   ]);
 
   // Backfill thumbnail_url for any rows that don't have one yet. Older
@@ -137,12 +101,6 @@ export default async function LearnPage() {
           .eq("id", v.id);
       }),
     );
-  }
-
-  const nameByUserId = new Map<string, string>();
-  for (const p of profiles ?? []) {
-    const dn = p.display_name?.trim();
-    if (dn) nameByUserId.set(p.user_id, dn);
   }
 
   // Aggregate plays per video. We track both totals (every play, including
@@ -192,37 +150,6 @@ export default async function LearnPage() {
     });
   }
 
-  const reactionsByVideo = new Map<string, ReactionEntry[]>();
-  for (const r of reactionRows ?? []) {
-    let list = reactionsByVideo.get(r.video_id);
-    if (!list) {
-      list = [];
-      reactionsByVideo.set(r.video_id, list);
-    }
-    list.push({
-      emoji: r.emoji,
-      userId: r.user_id,
-      userName: nameByUserId.get(r.user_id) ?? "Someone",
-    });
-  }
-
-  const commentsByVideo = new Map<string, VideoComment[]>();
-  for (const c of commentRows ?? []) {
-    let list = commentsByVideo.get(c.video_id);
-    if (!list) {
-      list = [];
-      commentsByVideo.set(c.video_id, list);
-    }
-    list.push({
-      id: c.id,
-      body: c.body,
-      createdAt: c.created_at,
-      createdBy: c.created_by,
-      authorName:
-        (c.created_by && nameByUserId.get(c.created_by)) || "Unknown",
-    });
-  }
-
   const canManageVideos = user.realRole === "super_admin";
   const videoRows = videoRowsMutable;
 
@@ -252,18 +179,12 @@ export default async function LearnPage() {
         thumbnailUrl={v.thumbnail_url}
         topic={v.topic}
         subtopic={v.subtopic}
-        addedByName={(v.added_by && nameByUserId.get(v.added_by)) || "Unknown"}
-        createdAt={v.created_at}
         totalPlays={totalPlays.get(v.id) ?? 0}
         uniqueViewers={uniqueViewers.get(v.id)?.size ?? 0}
         watchedAt={myWatchedAt.get(v.id) ?? null}
         isCompleted={myCompletedVideoIds.has(v.id)}
         canManage={canManageVideos}
         attachments={attachmentsByVideo.get(v.id) ?? []}
-        reactions={reactionsByVideo.get(v.id) ?? []}
-        comments={commentsByVideo.get(v.id) ?? []}
-        currentUserId={user.id}
-        isSuperAdmin={canManageVideos}
       />
     ),
   });

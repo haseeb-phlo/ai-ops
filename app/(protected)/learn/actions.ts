@@ -7,7 +7,6 @@ import { getSessionUser, requireWriter } from "@/lib/auth";
 import { fetchLoomOembed, parseLoomId } from "@/lib/loom";
 import { redealBucketPositions } from "./reorder";
 import {
-  isAllowedReactionEmoji,
   LEARN_SUBTOPICS,
   LEARN_TOPICS,
   VIDEO_RESOURCE_BUCKET,
@@ -508,102 +507,5 @@ export async function signedUrlForResource(
     };
   }
   return { ok: true, url: data.signedUrl };
-}
-
-// =========================================================================
-// Reactions
-// =========================================================================
-// One row per (video, user, emoji). Toggling the same emoji twice deletes
-// the user's row, so the card never shows duplicates. Any signed-in user
-// can react; only the user's own rows are mutable (enforced by RLS).
-
-const ToggleReactionSchema = z.object({
-  video_id: z.string().uuid(),
-  emoji: z.string().min(1).max(16),
-});
-
-export async function toggleVideoReaction(formData: FormData): Promise<void> {
-  const user = await getSessionUser();
-  const parsed = ToggleReactionSchema.safeParse({
-    video_id: formData.get("video_id"),
-    emoji: formData.get("emoji"),
-  });
-  if (!parsed.success) return;
-  if (!isAllowedReactionEmoji(parsed.data.emoji)) return;
-
-  const supabase = await createClient();
-  const { data: existing } = await supabase
-    .from("learn_video_reactions")
-    .select("id")
-    .eq("video_id", parsed.data.video_id)
-    .eq("user_id", user.id)
-    .eq("emoji", parsed.data.emoji)
-    .maybeSingle();
-
-  if (existing) {
-    await supabase
-      .from("learn_video_reactions")
-      .delete()
-      .eq("id", existing.id);
-  } else {
-    await supabase.from("learn_video_reactions").insert({
-      video_id: parsed.data.video_id,
-      user_id: user.id,
-      emoji: parsed.data.emoji,
-    });
-  }
-
-  revalidatePath("/learn");
-}
-
-// =========================================================================
-// Comments
-// =========================================================================
-// Any signed-in user can comment. Author or super_admin can delete (RLS).
-
-const AddCommentSchema = z.object({
-  video_id: z.string().uuid(),
-  body: z.string().trim().min(1, "Comment can't be empty.").max(2000),
-});
-
-export async function addVideoComment(
-  _prev: ActionState,
-  formData: FormData,
-): Promise<ActionState> {
-  const user = await getSessionUser();
-  const parsed = AddCommentSchema.safeParse({
-    video_id: formData.get("video_id"),
-    body: formData.get("body"),
-  });
-  if (!parsed.success) {
-    return {
-      kind: "error",
-      message: parsed.error.issues[0]?.message ?? "Comment can't be empty.",
-    };
-  }
-
-  const supabase = await createClient();
-  const { error } = await supabase.from("learn_video_comments").insert({
-    video_id: parsed.data.video_id,
-    body: parsed.data.body,
-    created_by: user.id,
-  });
-
-  if (error) {
-    return { kind: "error", message: `Could not post comment: ${error.message}` };
-  }
-
-  revalidatePath("/learn");
-  return { kind: "success" };
-}
-
-export async function deleteVideoComment(formData: FormData): Promise<void> {
-  // Author-or-super authorization is enforced by RLS on the delete itself.
-  await getSessionUser();
-  const id = formData.get("id");
-  if (typeof id !== "string" || !id) return;
-  const supabase = await createClient();
-  await supabase.from("learn_video_comments").delete().eq("id", id);
-  revalidatePath("/learn");
 }
 
