@@ -5,6 +5,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionUser, requireWriter } from "@/lib/auth";
 import { fetchLoomOembed, parseLoomId } from "@/lib/loom";
+import { redealBucketPositions } from "./reorder";
 import {
   isAllowedReactionEmoji,
   LEARN_SUBTOPICS,
@@ -77,6 +78,18 @@ export async function addVideo(
   const { thumbnailUrl } = await fetchLoomOembed(loomUrl);
 
   const supabase = await createClient();
+
+  // Land new videos at the end of the (global) order. Concurrent adds can
+  // race to the same max, but writes are super-admin-only and the
+  // created_at tiebreaker keeps the render deterministic until a reorder.
+  const { data: last } = await supabase
+    .from("learn_videos")
+    .select("position")
+    .order("position", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const nextPosition = (last?.position ?? 0) + 1;
+
   const { error } = await supabase.from("learn_videos").insert({
     title: parsed.data.title,
     description: parsed.data.description ?? null,
@@ -85,6 +98,7 @@ export async function addVideo(
     topic: parsed.data.topic,
     subtopic: subtopic.value,
     thumbnail_url: thumbnailUrl,
+    position: nextPosition,
     added_by: gate.user.id,
   });
 
@@ -184,6 +198,52 @@ export async function deleteVideo(formData: FormData): Promise<void> {
   revalidatePath("/");
 }
 
+const ReorderVideosSchema = z.object({
+  ids: z.array(z.string().uuid()).min(1),
+});
+
+// Persist a drag-to-reorder of one topic/subtopic bucket. `ids` is the
+// bucket's videos in their new visual order. We keep the exact multiset of
+// position values those videos already hold and re-deal them in the new
+// order — so reordering one bucket never disturbs any other bucket's
+// positions, and we can't collide with rows we didn't touch.
+export async function reorderVideos(ids: string[]): Promise<ActionState> {
+  const gate = await requireWriter();
+  if (!gate.ok) return { kind: "error", message: gate.error };
+  if (gate.user.realRole !== "super_admin") {
+    return { kind: "error", message: "Only super admins can reorder videos." };
+  }
+
+  const parsed = ReorderVideosSchema.safeParse({ ids });
+  if (!parsed.success) {
+    return { kind: "error", message: "Invalid reorder request." };
+  }
+
+  const supabase = await createClient();
+  const { data: rows, error } = await supabase
+    .from("learn_videos")
+    .select("id, position")
+    .in("id", parsed.data.ids);
+
+  if (error || !rows) {
+    return { kind: "error", message: "Could not load videos to reorder." };
+  }
+
+  const updates = redealBucketPositions(rows, parsed.data.ids).map(
+    ({ id, position }) =>
+      supabase.from("learn_videos").update({ position }).eq("id", id),
+  );
+  const results = await Promise.all(updates);
+  const failed = results.find((r) => r.error);
+  if (failed?.error) {
+    return { kind: "error", message: `Could not save order: ${failed.error.message}` };
+  }
+
+  revalidatePath("/learn");
+  revalidatePath("/");
+  return { kind: "success" };
+}
+
 const RecordPlaySchema = z.object({
   video_id: z.string().uuid(),
 });
@@ -204,6 +264,46 @@ export async function recordPlay(formData: FormData): Promise<void> {
     user_id: user.id,
   });
   revalidatePath("/learn");
+}
+
+const ToggleCompletionSchema = z.object({
+  video_id: z.string().uuid(),
+});
+
+// Toggle the caller's "completed" mark for a video. Unlike a play (an
+// automatic one-way event), completion is an explicit signal the user can
+// tick and untick: insert a row to mark complete, delete it to un-mark.
+// One row per (video, user) is enforced by the table's unique constraint;
+// RLS limits inserts/deletes to the caller's own rows.
+export async function toggleVideoCompletion(formData: FormData): Promise<void> {
+  const user = await getSessionUser();
+  const parsed = ToggleCompletionSchema.safeParse({
+    video_id: formData.get("video_id"),
+  });
+  if (!parsed.success) return;
+
+  const supabase = await createClient();
+  const { data: existing } = await supabase
+    .from("learn_video_completions")
+    .select("id")
+    .eq("video_id", parsed.data.video_id)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (existing) {
+    await supabase
+      .from("learn_video_completions")
+      .delete()
+      .eq("id", existing.id);
+  } else {
+    await supabase.from("learn_video_completions").insert({
+      video_id: parsed.data.video_id,
+      user_id: user.id,
+    });
+  }
+
+  revalidatePath("/learn");
+  revalidatePath("/");
 }
 
 // =========================================================================
