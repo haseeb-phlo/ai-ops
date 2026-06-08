@@ -38,7 +38,9 @@ export function SortableVideoGrid({
     return (
       <div className={GRID_CLASS}>
         {items.map((it) => (
-          <div key={it.id}>{it.node}</div>
+          <div key={it.id} className="h-full">
+            {it.node}
+          </div>
         ))}
       </div>
     );
@@ -125,7 +127,7 @@ function SortableCard({ id, children }: { id: string; children: ReactNode }) {
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`group/card relative ${isDragging ? "z-10 opacity-60" : ""}`}
+      className={`group/card relative h-full ${isDragging ? "z-10 opacity-60" : ""}`}
     >
       <button
         type="button"

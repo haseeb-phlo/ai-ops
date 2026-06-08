@@ -101,7 +101,7 @@ export function VideoCard({
   const showResources = attachments.length > 0 || canManage;
 
   return (
-    <article className="flex flex-col overflow-hidden rounded-lg border border-border bg-background">
+    <article className="flex h-full flex-col overflow-hidden rounded-lg border border-border bg-background">
       <div className="relative aspect-video w-full bg-muted">
         {watchedAt && !playing && (
           <span
@@ -148,7 +148,7 @@ export function VideoCard({
 
       <div className="flex flex-1 flex-col gap-2 p-4">
         <div className="flex items-start justify-between gap-2">
-          <h3 className="text-sm font-semibold leading-snug text-foreground">
+          <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-foreground">
             {title}
           </h3>
           <div className="flex shrink-0 items-center gap-1.5">
