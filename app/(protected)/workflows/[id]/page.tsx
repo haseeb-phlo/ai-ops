@@ -43,7 +43,7 @@ export default async function WorkflowDetailPage({
     supabase
       .from("workflows")
       .select(
-        "id, name, team, regulatory, frequency_per_week, frequency_cadence, criticality_score, business_kpi, owner_names, tools_used, notes, created_by, created_at",
+        "id, name, team, regulatory, visibility, frequency_per_week, frequency_cadence, criticality_score, business_kpi, owner_names, tools_used, notes, created_by, created_at",
       )
       .eq("id", id)
       .is("deleted_at", null)

@@ -335,6 +335,26 @@ function NewWorkflowForm({
               This workflow has regulatory implications
             </Label>
           </div>
+
+          <div className="space-y-1 sm:col-span-2">
+            <div className="flex items-center gap-2">
+              <input
+                key={`confidential-${submitEpoch}`}
+                id="confidential"
+                name="confidential"
+                type="checkbox"
+                defaultChecked={d("confidential") === "on"}
+                className="size-4 rounded border-input"
+              />
+              <Label htmlFor="confidential" className="font-normal">
+                Confidential &mdash; only visible to the owner team
+              </Label>
+            </div>
+            <p className="pl-6 text-xs text-muted-foreground">
+              Hides this workflow (and its steps, metrics and activity) from
+              everyone outside the owner team, except admins.
+            </p>
+          </div>
         </div>
 
         <div className="space-y-3 border-t border-border pt-5">

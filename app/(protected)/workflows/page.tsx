@@ -3,7 +3,7 @@ import { getSessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { resolveDisplayName } from "@/lib/profile";
 import { formatCadence } from "@/lib/frequency";
-import { WorkflowIcon } from "lucide-react";
+import { LockIcon, WorkflowIcon } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -25,6 +25,7 @@ type WorkflowRow = {
   id: string;
   name: string;
   team: string | null;
+  visibility: string;
   frequency_per_week: number | null;
   frequency_cadence: string | null;
   created_by: string | null;
@@ -64,7 +65,7 @@ export default async function WorkflowsPage(props: {
   let q = supabase
     .from("workflows")
     .select(
-      "id, name, team, frequency_per_week, frequency_cadence, created_by, created_at, workflow_steps(count)",
+      "id, name, team, visibility, frequency_per_week, frequency_cadence, created_by, created_at, workflow_steps(count)",
     )
     .is("deleted_at", null)
     .order("created_at", { ascending: false });
@@ -308,6 +309,12 @@ export default async function WorkflowsPage(props: {
                         >
                           {wf.name}
                         </Link>
+                        {wf.visibility === "team" && (
+                          <LockIcon
+                            className="ml-1.5 inline size-3.5 align-[-2px] text-muted-foreground"
+                            aria-label="Confidential - only visible to the owner team and admins"
+                          />
+                        )}
                       </TableCell>
                       <TableCell className="text-foreground">
                         {wf.team ?? (
