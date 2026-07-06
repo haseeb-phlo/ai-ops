@@ -1,4 +1,4 @@
-import { formatDistanceToNow } from "date-fns";
+import { Time } from "@/components/ui/time";
 
 export type ActivityRevision = {
   id: string;
@@ -7,6 +7,8 @@ export type ActivityRevision = {
   old_value: string | null;
   new_value: string | null;
   changed_by_email: string | null;
+  /** Display name resolved server-side (profile → people → email). */
+  changed_by_label: string | null;
   changed_at: string;
   step_title: string | null;
 };
@@ -35,7 +37,7 @@ export function Activity({ revisions }: { revisions: ActivityRevision[] }) {
               <li key={rev.id} className="px-4 py-3 text-sm">
                 <div className="flex flex-wrap items-baseline gap-x-2 text-muted-foreground">
                   <span className="font-medium text-foreground">
-                    {rev.changed_by_email ?? "Someone"}
+                    {rev.changed_by_label ?? "Someone"}
                   </span>
                   <span>changed</span>
                   <span className="font-medium text-foreground">
@@ -46,21 +48,19 @@ export function Activity({ revisions }: { revisions: ActivityRevision[] }) {
                     {rev.step_title ?? "(deleted step)"}
                   </span>
                   <span className="text-muted-foreground">·</span>
-                  <time
+                  <Time
+                    iso={rev.changed_at}
+                    relative
                     className="text-muted-foreground"
-                    dateTime={rev.changed_at}
-                    title={new Date(rev.changed_at).toLocaleString()}
-                  >
-                    {formatDistanceToNow(new Date(rev.changed_at), {
-                      addSuffix: true,
-                    })}
-                  </time>
+                  />
                 </div>
                 <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
                   <span className="rounded bg-red-50 px-1.5 py-0.5 text-red-800 ring-1 ring-inset ring-red-200 line-through">
                     {rev.old_value ?? "-"}
                   </span>
-                  <span className="text-muted-foreground">→</span>
+                  <span className="text-muted-foreground" aria-hidden>
+                    →
+                  </span>
                   <span className="rounded bg-green-50 px-1.5 py-0.5 text-green-800 ring-1 ring-inset ring-green-200">
                     {rev.new_value ?? "-"}
                   </span>

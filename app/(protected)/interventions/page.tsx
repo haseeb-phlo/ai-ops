@@ -1,8 +1,13 @@
 import Link from "next/link";
-import { format } from "date-fns";
+import { Sparkles } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionUser } from "@/lib/auth";
+import { resolveDisplayName } from "@/lib/profile";
+import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Time } from "@/components/ui/time";
 import {
   Table,
   TableBody,
@@ -13,9 +18,10 @@ import {
 } from "@/components/ui/table";
 import { PageContainer, PageHeader } from "@/components/page-header";
 import { toTitle } from "@/lib/utils";
+import { INTERVENTION_STATUS } from "@/lib/status";
 import { loadToolSuggestions } from "@/lib/tools";
 import { Filters } from "./_components/filters";
-import { LogInterventionButton } from "./_components/log-intervention-button";
+import { LogInterventionDialog } from "./_components/log-intervention-dialog";
 
 const INTERVENTION_TYPES = [
   "tool",
@@ -57,12 +63,7 @@ type WorkflowMetricRow = {
 };
 
 type ProfileLite = { user_id: string; display_name: string | null };
-
-const STATUS_DOT: Record<Status, string> = {
-  active: "bg-emerald-500",
-  paused: "bg-amber-500",
-  retired: "bg-muted-foreground/60",
-};
+type UserEmailRow = { user_id: string; email: string | null };
 
 export default async function InterventionsListPage({
   searchParams,
@@ -80,6 +81,7 @@ export default async function InterventionsListPage({
     params.status && (STATUSES as readonly string[]).includes(params.status)
       ? (params.status as Status)
       : null;
+  const hasFilters = Boolean(typeFilter || statusFilter);
 
   const supabase = await createClient();
 
@@ -95,7 +97,7 @@ export default async function InterventionsListPage({
   if (statusFilter) interventionsQuery = interventionsQuery.eq("status", statusFilter);
 
   const [
-    { data: interventions },
+    { data: interventions, error: interventionsError },
     { data: workflows },
     { data: workflowMetrics },
     { data: profiles },
@@ -131,10 +133,51 @@ export default async function InterventionsListPage({
   ]);
 
   const rows = interventions ?? [];
-  const displayNameByUserId = new Map<string, string>();
+
+  // "3 of 12" needs the unfiltered total; only worth a second (head-only)
+  // query when a filter is active.
+  let totalCount: number | null = null;
+  if (hasFilters && !interventionsError) {
+    const { count } = await supabase
+      .from("ai_interventions")
+      .select("id", { count: "exact", head: true });
+    totalCount = count;
+  }
+
+  const peopleByEmail = new Map<string, string>();
+  for (const p of directoryPeople ?? []) {
+    if (p.email && p.display_name) {
+      peopleByEmail.set(p.email.trim().toLowerCase(), p.display_name);
+    }
+  }
+
+  // "Logged by" resolution mirrors the workflows list: profile display name
+  // (unless it's still the email-local default) → people directory →
+  // email, so the same person reads identically across both areas.
+  const profileById = new Map<string, string | null>();
   for (const p of profiles ?? []) {
-    const dn = p.display_name?.trim();
-    if (dn) displayNameByUserId.set(p.user_id, dn);
+    profileById.set(p.user_id, p.display_name);
+  }
+  const creatorIds = Array.from(
+    new Set(rows.map((r) => r.created_by).filter((v): v is string => !!v)),
+  );
+  const creatorLabelById = new Map<string, string>();
+  if (creatorIds.length > 0) {
+    const { data: emails } = await supabase.rpc("user_emails", {
+      p_user_ids: creatorIds,
+    });
+    const emailById = new Map<string, string | null>();
+    for (const e of (emails ?? []) as UserEmailRow[]) {
+      emailById.set(e.user_id, e.email);
+    }
+    for (const id of creatorIds) {
+      const email = emailById.get(id) ?? null;
+      const peopleName = email
+        ? peopleByEmail.get(email.trim().toLowerCase()) ?? null
+        : null;
+      const label = resolveDisplayName(profileById.get(id), peopleName, email);
+      if (label) creatorLabelById.set(id, label);
+    }
   }
 
   const pickerPeople = (directoryPeople ?? []).map((p) => ({
@@ -168,12 +211,12 @@ export default async function InterventionsListPage({
   });
 
   return (
-    <PageContainer className="max-w-none">
+    <PageContainer>
       <PageHeader
         title="Initiatives"
         description="Tools, prompts, training, automations, and process changes shipped against workflows."
         actions={
-          <LogInterventionButton
+          <LogInterventionDialog
             workflows={workflowsForLog}
             people={pickerPeople}
             toolSuggestions={toolSuggestions}
@@ -188,83 +231,128 @@ export default async function InterventionsListPage({
         statuses={[...STATUSES]}
       />
 
-      <div className="rounded-lg border border-border bg-background">
-        {rows.length === 0 ? (
-          <div className="px-4 py-10 text-center text-sm text-muted-foreground">
-            No AI initiatives{typeFilter || statusFilter ? " for this filter" : " logged yet"}.
+      {interventionsError ? (
+        <Alert variant="destructive">
+          Could not load initiatives: {interventionsError.message}
+        </Alert>
+      ) : rows.length === 0 ? (
+        <EmptyState
+          icon={<Sparkles className="size-5" aria-hidden />}
+          title={
+            hasFilters
+              ? "No initiatives match these filters"
+              : "No initiatives logged yet"
+          }
+          description={
+            hasFilters
+              ? "Try removing a filter, or log a new initiative."
+              : "Initiatives are the tools, prompts, training, and process changes you ship against workflows. Log the first one to start tracking impact."
+          }
+          action={
+            hasFilters ? (
+              <Button
+                variant="outline"
+                render={<Link href="/interventions" />}
+              >
+                Clear filters
+              </Button>
+            ) : (
+              <LogInterventionDialog
+                workflows={workflowsForLog}
+                people={pickerPeople}
+                toolSuggestions={toolSuggestions}
+              />
+            )
+          }
+        />
+      ) : (
+        <>
+          <p className="text-sm text-muted-foreground">
+            {totalCount != null && totalCount !== rows.length
+              ? `${rows.length} of ${totalCount} initiatives`
+              : `${rows.length} ${rows.length === 1 ? "initiative" : "initiatives"}`}
+          </p>
+          <div className="rounded-lg border border-border bg-background">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="hidden text-right sm:table-cell">
+                    Workflows
+                  </TableHead>
+                  <TableHead className="hidden lg:table-cell">
+                    Logged by
+                  </TableHead>
+                  <TableHead className="hidden md:table-cell">
+                    Logged on
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rows.map((row) => {
+                  const linkedCount = row.intervention_workflows.filter(
+                    (l) => l.workflows !== null,
+                  ).length;
+                  const ownerName =
+                    (row.created_by && creatorLabelById.get(row.created_by)) ||
+                    row.owner;
+                  return (
+                    <TableRow key={row.id}>
+                      <TableCell className="font-medium text-foreground">
+                        <Link
+                          href={`/interventions/${row.id}`}
+                          className="hover:underline"
+                        >
+                          {row.name}
+                        </Link>
+                      </TableCell>
+                      <TableCell>
+                        {row.types && row.types.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {row.types.map((t) => (
+                              <Badge key={t} variant="secondary">
+                                {toTitle(t)}
+                              </Badge>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {row.status ? (
+                          <Badge
+                            className={
+                              INTERVENTION_STATUS[row.status].badgeClassName
+                            }
+                          >
+                            {INTERVENTION_STATUS[row.status].label}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="hidden text-right tabular-nums text-foreground sm:table-cell">
+                        {linkedCount}
+                      </TableCell>
+                      <TableCell className="hidden text-foreground lg:table-cell">
+                        {ownerName ?? (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="hidden text-muted-foreground tabular-nums md:table-cell">
+                        <Time iso={row.created_at} />
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
           </div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Workflows</TableHead>
-                <TableHead>Logged by</TableHead>
-                <TableHead>Logged on</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.map((row) => {
-                const linkedCount = row.intervention_workflows.filter(
-                  (l) => l.workflows !== null,
-                ).length;
-                const ownerName =
-                  (row.created_by && displayNameByUserId.get(row.created_by)) ||
-                  row.owner;
-                return (
-                  <TableRow key={row.id}>
-                    <TableCell className="font-medium text-foreground">
-                      <Link
-                        href={`/interventions/${row.id}`}
-                        className="hover:underline"
-                      >
-                        {row.name}
-                      </Link>
-                    </TableCell>
-                    <TableCell>
-                      {row.types && row.types.length > 0 ? (
-                        <div className="flex flex-wrap gap-1">
-                          {row.types.map((t) => (
-                            <Badge key={t} variant="secondary">
-                              {toTitle(t)}
-                            </Badge>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {row.status ? (
-                        <span className="inline-flex items-center gap-1.5 text-xs text-foreground">
-                          <span
-                            aria-hidden
-                            className={`size-1.5 rounded-full ${STATUS_DOT[row.status]}`}
-                          />
-                          {toTitle(row.status)}
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="tabular-nums text-foreground">
-                      {linkedCount}
-                    </TableCell>
-                    <TableCell className="text-foreground">
-                      {ownerName ?? <span className="text-muted-foreground">-</span>}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {format(new Date(row.created_at), "d MMM yyyy")}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        )}
-      </div>
+        </>
+      )}
     </PageContainer>
   );
 }

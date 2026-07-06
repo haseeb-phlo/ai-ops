@@ -11,6 +11,8 @@ import {
   CheckIcon,
 } from "lucide-react";
 import { loomEmbedUrl } from "@/lib/loom";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   deleteVideo,
   deleteVideoResource,
@@ -31,6 +33,16 @@ export type VideoAttachment = {
   fileSize: number | null;
 };
 
+function formatDuration(totalSeconds: number): string {
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return hours > 0
+    ? `${hours}:${pad(minutes)}:${pad(seconds)}`
+    : `${minutes}:${pad(seconds)}`;
+}
+
 export function VideoCard({
   id,
   title,
@@ -40,6 +52,7 @@ export function VideoCard({
   thumbnailUrl,
   topic,
   subtopic,
+  durationSeconds,
   totalPlays,
   uniqueViewers,
   watchedAt,
@@ -55,6 +68,7 @@ export function VideoCard({
   thumbnailUrl: string | null;
   topic: LearnTopic | null;
   subtopic: LearnSubtopic | null;
+  durationSeconds: number | null;
   totalPlays: number;
   uniqueViewers: number;
   watchedAt: string | null;
@@ -65,18 +79,23 @@ export function VideoCard({
   const [playing, setPlaying] = useState(false);
   const [thumbFailed, setThumbFailed] = useState(false);
   const [completed, setCompleted] = useState(isCompleted);
+  const [completionError, setCompletionError] = useState<string | null>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [, startTransition] = useTransition();
 
   const handleToggleCompleted = () => {
-    // Optimistic flip. Fire-and-forget like recordPlay:
-    // the happy path revalidates /learn and the local state already matches.
-    // A failed write would leave this checkbox stale until a full reload,
-    // which is an acceptable trade for these low-stakes per-user marks.
+    // Optimistic flip; on failure we revert and surface a small inline
+    // error instead of leaving the checkbox silently stale.
+    setCompletionError(null);
     setCompleted((c) => !c);
     const fd = new FormData();
     fd.set("video_id", id);
-    startTransition(() => {
-      void toggleVideoCompletion(fd);
+    startTransition(async () => {
+      const result = await toggleVideoCompletion(fd);
+      if (result.kind === "error") {
+        setCompleted((c) => !c);
+        setCompletionError(result.message);
+      }
     });
   };
 
@@ -90,7 +109,6 @@ export function VideoCard({
   };
 
   const handleDelete = () => {
-    if (!confirm(`Delete "${title}"? This cannot be undone.`)) return;
     const fd = new FormData();
     fd.set("id", id);
     startTransition(() => {
@@ -104,13 +122,22 @@ export function VideoCard({
     <article className="flex h-full flex-col overflow-hidden rounded-lg border border-border bg-background">
       <div className="relative aspect-video w-full bg-muted">
         {watchedAt && !playing && (
-          <span
-            className="pointer-events-none absolute right-2 top-2 z-10 inline-flex items-center gap-1 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-medium text-white shadow-sm ring-1 ring-white"
-            title={`Watched ${format(new Date(watchedAt), "d MMM yyyy")}`}
-            aria-label={`Watched ${format(new Date(watchedAt), "d MMM yyyy")}`}
+          <Badge
+            variant="secondary"
+            className="pointer-events-none absolute right-2 top-2 z-10 shadow-sm"
+            title={`Started ${format(new Date(watchedAt), "d MMM yyyy")}`}
+            aria-label={`Started ${format(new Date(watchedAt), "d MMM yyyy")}`}
           >
-            <CheckIcon aria-hidden className="size-3" strokeWidth={3} />
-            Watched
+            <PlayIcon aria-hidden />
+            Started
+          </Badge>
+        )}
+        {durationSeconds != null && !playing && (
+          <span
+            className="pointer-events-none absolute bottom-2 right-2 z-10 rounded bg-black/70 px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-white"
+            aria-label={`Duration ${formatDuration(durationSeconds)}`}
+          >
+            {formatDuration(durationSeconds)}
           </span>
         )}
         {playing ? (
@@ -134,6 +161,8 @@ export function VideoCard({
                 src={thumbnailUrl}
                 alt=""
                 aria-hidden
+                loading="lazy"
+                decoding="async"
                 onError={() => setThumbFailed(true)}
                 className="absolute inset-0 h-full w-full object-cover"
               />
@@ -151,33 +180,63 @@ export function VideoCard({
           <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-foreground">
             {title}
           </h3>
-          <div className="flex shrink-0 items-center gap-1.5">
+          <div className="flex shrink-0 items-center gap-0.5">
             <CompletionToggle
               completed={completed}
               onToggle={handleToggleCompleted}
             />
-            {canManage && (
-              <>
-                <EditVideoDialog
-                  id={id}
-                  title={title}
-                  description={description}
-                  loomShareUrl={loomShareUrl}
-                  topic={topic}
-                  subtopic={subtopic}
-                />
-                <button
-                  type="button"
-                  onClick={handleDelete}
-                  className="text-muted-foreground hover:text-red-600"
-                  aria-label="Delete video"
-                >
-                  <TrashIcon className="size-3.5" />
-                </button>
-              </>
-            )}
+            {canManage &&
+              (confirmingDelete ? (
+                <span className="flex items-center gap-1">
+                  <span className="text-xs text-muted-foreground">
+                    Confirm delete?
+                  </span>
+                  <Button
+                    type="button"
+                    size="xs"
+                    variant="destructive"
+                    onClick={handleDelete}
+                  >
+                    Delete
+                  </Button>
+                  <Button
+                    type="button"
+                    size="xs"
+                    variant="ghost"
+                    onClick={() => setConfirmingDelete(false)}
+                  >
+                    Cancel
+                  </Button>
+                </span>
+              ) : (
+                <>
+                  <EditVideoDialog
+                    id={id}
+                    title={title}
+                    description={description}
+                    loomShareUrl={loomShareUrl}
+                    topic={topic}
+                    subtopic={subtopic}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setConfirmingDelete(true)}
+                    className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-destructive"
+                    aria-label={`Delete ${title}`}
+                    title="Delete video"
+                  >
+                    <TrashIcon className="size-3.5" />
+                  </button>
+                </>
+              ))}
           </div>
         </div>
+
+        {completionError && (
+          <p role="alert" className="text-xs text-destructive">
+            {completionError}
+          </p>
+        )}
 
         {description && (
           <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
@@ -211,6 +270,9 @@ export function VideoCard({
 // A compact tick-to-complete control, sat at the end of the title row so it
 // reads like a checklist item (Things/Todoist/Linear) and stays reachable
 // while the video is playing — the card body persists behind the iframe.
+// The circle is visible at rest (muted ring) so the affordance is
+// discoverable without hover; the check fills in when complete. Padding
+// gives it a ≥28px effective hit area for touch.
 function CompletionToggle({
   completed,
   onToggle,
@@ -223,20 +285,22 @@ function CompletionToggle({
       type="button"
       onClick={onToggle}
       aria-pressed={completed}
-      aria-label={completed ? "Mark as not completed" : "Mark as completed"}
-      title={completed ? "Completed" : "Mark as completed"}
-      className={`group/done inline-flex size-5 shrink-0 items-center justify-center rounded-full border transition-colors ${
-        completed
-          ? "border-emerald-500 bg-emerald-500 text-white"
-          : "border-input text-muted-foreground hover:border-emerald-500 hover:text-emerald-600"
-      }`}
+      title={completed ? "Completed — click to unmark" : "Mark as completed"}
+      className="inline-flex shrink-0 items-center justify-center rounded-full p-1"
     >
-      <CheckIcon
-        className={`size-3 transition-opacity ${
-          completed ? "" : "opacity-0 group-hover/done:opacity-100"
+      <span
+        aria-hidden
+        className={`inline-flex size-5 items-center justify-center rounded-full border transition-colors ${
+          completed
+            ? "border-emerald-500 bg-emerald-500 text-white"
+            : "border-muted-foreground/40 text-transparent hover:border-emerald-500"
         }`}
-        strokeWidth={3}
-      />
+      >
+        <CheckIcon className={completed ? "size-3" : "hidden"} strokeWidth={3} />
+      </span>
+      <span className="sr-only">
+        {completed ? "Mark as not completed" : "Mark as completed"}
+      </span>
     </button>
   );
 }
@@ -269,7 +333,7 @@ function ResourcesSection({
             trigger={
               <button
                 type="button"
-                className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               >
                 <PlusIcon className="size-3.5" />
                 Add
@@ -302,6 +366,7 @@ function AttachmentRow({
 }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState(false);
 
   const handleOpen = () => {
     setError(null);
@@ -316,7 +381,6 @@ function AttachmentRow({
   };
 
   const handleDelete = () => {
-    if (!confirm(`Remove "${attachment.title}"?`)) return;
     const fd = new FormData();
     fd.set("id", attachment.id);
     startTransition(() => {
@@ -325,40 +389,66 @@ function AttachmentRow({
   };
 
   return (
-    <li className="group flex items-center gap-2 text-xs">
-      <button
-        type="button"
-        onClick={handleOpen}
-        disabled={pending}
-        className="inline-flex min-w-0 flex-1 items-center gap-2 truncate rounded py-1 text-left text-foreground hover:underline disabled:opacity-50"
-      >
-        {attachment.kind === "url" ? (
-          <LinkIcon className="size-3.5 shrink-0 text-muted-foreground" />
-        ) : (
-          <FileIcon className="size-3.5 shrink-0 text-muted-foreground" />
-        )}
-        <span className="truncate">{attachment.title}</span>
-        {attachment.kind === "file" && attachment.fileSize != null && (
-          <span className="shrink-0 text-muted-foreground">
-            {formatBytes(attachment.fileSize)}
-          </span>
-        )}
-      </button>
-      {canManage && (
+    <li className="text-xs">
+      <div className="flex items-center gap-2">
         <button
           type="button"
-          onClick={handleDelete}
+          onClick={handleOpen}
           disabled={pending}
-          className="shrink-0 text-muted-foreground opacity-0 transition-opacity hover:text-red-600 group-hover:opacity-100 disabled:opacity-50"
-          aria-label="Remove resource"
+          className="inline-flex min-w-0 flex-1 items-center gap-2 truncate rounded py-1 text-left text-foreground hover:underline disabled:opacity-50"
         >
-          <TrashIcon className="size-3.5" />
+          {attachment.kind === "url" ? (
+            <LinkIcon className="size-3.5 shrink-0 text-muted-foreground" />
+          ) : (
+            <FileIcon className="size-3.5 shrink-0 text-muted-foreground" />
+          )}
+          <span className="truncate">{attachment.title}</span>
+          {attachment.kind === "file" && attachment.fileSize != null && (
+            <span className="shrink-0 text-muted-foreground">
+              {formatBytes(attachment.fileSize)}
+            </span>
+          )}
         </button>
-      )}
+        {canManage &&
+          (confirming ? (
+            <span className="flex shrink-0 items-center gap-1">
+              <span className="text-muted-foreground">Confirm delete?</span>
+              <Button
+                type="button"
+                size="xs"
+                variant="destructive"
+                loading={pending}
+                onClick={handleDelete}
+              >
+                Delete
+              </Button>
+              <Button
+                type="button"
+                size="xs"
+                variant="ghost"
+                disabled={pending}
+                onClick={() => setConfirming(false)}
+              >
+                Cancel
+              </Button>
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setConfirming(true)}
+              disabled={pending}
+              className="shrink-0 rounded-md p-1.5 text-muted-foreground/70 transition-colors hover:bg-muted hover:text-destructive disabled:opacity-50"
+              aria-label={`Remove ${attachment.title}`}
+              title="Remove resource"
+            >
+              <TrashIcon className="size-3.5" />
+            </button>
+          ))}
+      </div>
       {error && (
-        <span role="alert" className="text-xs text-red-600">
+        <p role="alert" className="mt-0.5 text-xs text-destructive">
           {error}
-        </span>
+        </p>
       )}
     </li>
   );

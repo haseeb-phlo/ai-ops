@@ -2,18 +2,26 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
 import { ALLOWED_EMAIL_DOMAIN, isAllowedEmail } from "@/lib/auth-domain";
 
+// Which form is on screen. Deliberately separate from `status` so an async
+// failure (e.g. a bad code) never knocks the user off the step they were
+// on - a failed verification keeps the code form visible with an inline
+// error instead of bouncing back to the email form.
+type Step = "email" | "code";
+
 type Status =
   | { kind: "idle" }
   | { kind: "sending" }
-  | { kind: "awaiting-code" }
   | { kind: "verifying" }
   | { kind: "error"; message: string };
+
+const RESEND_COOLDOWN_SECONDS = 30;
 
 function friendlySignInError({
   slug,
@@ -57,17 +65,21 @@ function mapAuthError(
     return "Couldn't reach the sign-in server. Try again.";
   }
   if (ctx === "verify") {
-    return "That code is invalid or has expired. Request a new one.";
+    return "That code didn't work — check it and try again.";
   }
   return "We couldn't send the sign-in code. Try again in a moment.";
 }
 
 export default function LoginPage() {
   const router = useRouter();
+  const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const [linkError, setLinkError] = useState<string | null>(null);
+  // Seconds remaining before "Resend code" re-enables. Started after every
+  // successful send so a user can't hammer the OTP endpoint.
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   // Surface sign-in errors from two carriers:
   //   1) Query string - set by /auth/callback when exchangeCodeForSession
@@ -104,20 +116,21 @@ export default function LoginPage() {
     history.replaceState(null, "", window.location.pathname);
   }, []);
 
+  // Tick the resend cooldown down once a second while it's running.
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setResendCooldown((s) => Math.max(0, s - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
+
   const isBusy = status.kind === "sending" || status.kind === "verifying";
 
-  async function handleSendCode(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+  // Shared by the initial "Send code" submit and the "Resend code" action
+  // on the code step. Returns true when the email went out.
+  async function sendCode(): Promise<boolean> {
     setLinkError(null);
-
-    if (!isAllowedEmail(email)) {
-      setStatus({
-        kind: "error",
-        message: `Use your @${ALLOWED_EMAIL_DOMAIN} email to sign in.`,
-      });
-      return;
-    }
-
     setStatus({ kind: "sending" });
 
     const supabase = createClient();
@@ -130,9 +143,33 @@ export default function LoginPage() {
 
     if (error) {
       setStatus({ kind: "error", message: mapAuthError(error.message, "send") });
+      return false;
+    }
+    setStatus({ kind: "idle" });
+    setResendCooldown(RESEND_COOLDOWN_SECONDS);
+    return true;
+  }
+
+  async function handleSendCode(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+
+    if (!isAllowedEmail(email)) {
+      setStatus({
+        kind: "error",
+        message: `Use your @${ALLOWED_EMAIL_DOMAIN} email to sign in.`,
+      });
       return;
     }
-    setStatus({ kind: "awaiting-code" });
+
+    if (await sendCode()) {
+      setStep("code");
+    }
+  }
+
+  async function handleResendCode() {
+    if (isBusy || resendCooldown > 0) return;
+    setCode("");
+    await sendCode();
   }
 
   async function handleVerifyCode(e: React.FormEvent<HTMLFormElement>) {
@@ -150,6 +187,8 @@ export default function LoginPage() {
     });
 
     if (error) {
+      // Stay on the code step: `step` is untouched, so the form (and the
+      // entered email) survive - only an inline error appears.
       setStatus({
         kind: "error",
         message: mapAuthError(error.message, "verify"),
@@ -160,12 +199,13 @@ export default function LoginPage() {
     router.refresh();
   }
 
-  function handleResend() {
+  function handleUseDifferentEmail() {
     setCode("");
     setStatus({ kind: "idle" });
+    setStep("email");
   }
 
-  const awaitingCode = status.kind === "awaiting-code" || status.kind === "verifying";
+  const onCodeStep = step === "code";
 
   return (
     <div className="flex flex-1 items-center justify-center px-6 py-16">
@@ -176,7 +216,13 @@ export default function LoginPage() {
         <header className="mb-8 flex flex-col items-center text-center">
           <div className="flex items-center gap-2.5">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/phlo-mark.svg" alt="Phlo" className="h-7 w-auto" />
+            <img
+              src="/phlo-mark.svg"
+              alt="Phlo"
+              width={84}
+              height={28}
+              className="h-7 w-auto"
+            />
             <span aria-hidden className="h-5 w-px bg-muted-foreground/60" />
             <span className="text-sm font-medium tracking-tight text-muted-foreground">
               AI Ops
@@ -188,13 +234,13 @@ export default function LoginPage() {
           </p>
         </header>
 
-        <div className="rounded-xl border border-border bg-background p-6 shadow-sm">
+        <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
           <div className="space-y-1">
             <h1 className="text-lg font-semibold tracking-tight text-foreground">
-              {awaitingCode ? "Check your email" : "Sign in"}
+              {onCodeStep ? "Check your email" : "Sign in"}
             </h1>
             <p className="text-sm text-muted-foreground">
-              {awaitingCode ? (
+              {onCodeStep ? (
                 <>
                   We sent a 6-digit code to{" "}
                   <strong className="text-foreground">{email}</strong>. Paste it
@@ -206,7 +252,7 @@ export default function LoginPage() {
             </p>
           </div>
 
-          {!awaitingCode ? (
+          {!onCodeStep ? (
             <form onSubmit={handleSendCode} className="mt-5 space-y-3">
               <div className="space-y-1.5">
                 <Label htmlFor="email">Work email</Label>
@@ -227,10 +273,11 @@ export default function LoginPage() {
               </div>
               <Button
                 type="submit"
+                loading={status.kind === "sending"}
                 disabled={isBusy || email.trim() === ""}
                 className="w-full"
               >
-                {status.kind === "sending" ? "Sending" : "Send code"}
+                {status.kind === "sending" ? "Sending…" : "Send code"}
               </Button>
             </form>
           ) : (
@@ -252,48 +299,55 @@ export default function LoginPage() {
                   onChange={(e) => {
                     setCode(e.target.value.replace(/\D/g, ""));
                     // Clear stale error state if the user re-enters a code.
-                    setStatus((s) =>
-                      s.kind === "error" ? { kind: "awaiting-code" } : s,
-                    );
+                    setStatus((s) => (s.kind === "error" ? { kind: "idle" } : s));
                   }}
-                  disabled={status.kind === "verifying"}
+                  disabled={isBusy}
                   autoFocus
                 />
               </div>
               <Button
                 type="submit"
-                disabled={status.kind === "verifying" || code.trim().length < 6}
+                loading={status.kind === "verifying"}
+                disabled={isBusy || code.trim().length < 6}
                 className="w-full"
               >
-                {status.kind === "verifying" ? "Verifying" : "Sign in"}
+                {status.kind === "verifying" ? "Verifying…" : "Sign in"}
               </Button>
-              <button
-                type="button"
-                onClick={handleResend}
-                className="block w-full text-center text-xs text-muted-foreground hover:text-foreground"
-              >
-                Use a different email
-              </button>
+              <div className="flex items-center justify-center gap-4 text-xs">
+                <button
+                  type="button"
+                  onClick={handleResendCode}
+                  disabled={isBusy || resendCooldown > 0}
+                  className="text-muted-foreground outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-default disabled:opacity-60 disabled:hover:text-muted-foreground"
+                >
+                  {status.kind === "sending"
+                    ? "Sending…"
+                    : resendCooldown > 0
+                      ? `Resend code (${resendCooldown}s)`
+                      : "Resend code"}
+                </button>
+                <span aria-hidden className="h-3 w-px bg-border" />
+                <button
+                  type="button"
+                  onClick={handleUseDifferentEmail}
+                  disabled={isBusy}
+                  className="text-muted-foreground outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-60"
+                >
+                  Use a different email
+                </button>
+              </div>
             </form>
           )}
 
           {linkError && status.kind !== "error" && (
-            <p className="mt-4 text-sm text-amber-700">
-              <span
-                aria-hidden
-                className="mr-1.5 inline-block size-1.5 rounded-full bg-amber-500 align-middle"
-              />
+            <Alert variant="warning" className="mt-4">
               {linkError}
-            </p>
+            </Alert>
           )}
           {status.kind === "error" && (
-            <p className="mt-4 text-sm text-red-700">
-              <span
-                aria-hidden
-                className="mr-1.5 inline-block size-1.5 rounded-full bg-red-500 align-middle"
-              />
+            <Alert variant="destructive" className="mt-4">
               {status.message}
-            </p>
+            </Alert>
           )}
         </div>
 

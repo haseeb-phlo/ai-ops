@@ -1,82 +1,117 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  LayoutDashboardIcon,
-  WorkflowIcon,
-  SparklesIcon,
-  LightbulbIcon,
-  GraduationCapIcon,
-  UsersIcon,
-  ShieldCheckIcon,
-  MenuIcon,
-  XIcon,
-  type LucideIcon,
-} from "lucide-react";
+import { MenuIcon, SearchIcon, XIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { SessionUser } from "@/lib/auth";
+import { NAV_ITEMS, ADMIN_NAV_ITEM, isNavActive } from "@/lib/navigation";
+import { Avatar } from "@/components/ui/avatar";
+import { useCommandPalette } from "./command-palette";
 
-type Item = { href: string; label: string; icon: LucideIcon };
+/**
+ * Active test for a nav item. Beyond the shared prefix logic, the People
+ * item (href /map) also owns the /people/* detail routes, so browsing a
+ * person's page keeps People highlighted.
+ */
+function isItemActive(pathname: string, href: string): boolean {
+  if (isNavActive(pathname, href)) return true;
+  if (href === "/map") return isNavActive(pathname, "/people");
+  return false;
+}
 
-const ITEMS: Item[] = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboardIcon },
-  { href: "/workflows", label: "Workflows", icon: WorkflowIcon },
-  { href: "/interventions", label: "Initiatives", icon: SparklesIcon },
-  { href: "/suggestions", label: "Suggestions", icon: LightbulbIcon },
-  { href: "/learn", label: "Learn", icon: GraduationCapIcon },
-  { href: "/map", label: "People", icon: UsersIcon },
-];
-
-const ADMIN_ITEM: Item = {
-  href: "/admin",
-  label: "Admin",
-  icon: ShieldCheckIcon,
-};
-
-export function MobileTopBar({ canSeeAdmin }: { canSeeAdmin: boolean }) {
+export function MobileTopBar({
+  user,
+  canSeeAdmin,
+}: {
+  user: SessionUser;
+  canSeeAdmin: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname() ?? "/";
+  const menuId = useId();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { open: openPalette } = useCommandPalette();
 
-  function isActive(href: string): boolean {
-    if (href === "/") return pathname === "/";
-    return pathname === href || pathname.startsWith(href + "/");
-  }
+  // Close the open menu on Escape and on clicks/taps outside the bar.
+  useEffect(() => {
+    if (!open) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    function onDocClick(e: MouseEvent) {
+      if (!containerRef.current) return;
+      if (!containerRef.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("mousedown", onDocClick);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("mousedown", onDocClick);
+    };
+  }, [open]);
 
-  const items = canSeeAdmin ? [...ITEMS, ADMIN_ITEM] : ITEMS;
+  const items = canSeeAdmin ? [...NAV_ITEMS, ADMIN_NAV_ITEM] : [...NAV_ITEMS];
+  const profileActive = isNavActive(pathname, "/profile");
+
+  const iconButtonClass =
+    "inline-flex size-9 items-center justify-center rounded-md text-muted-foreground outline-none hover:bg-muted/40 hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50";
 
   return (
-    <div className="md:hidden">
+    <div ref={containerRef} className="md:hidden">
       <header className="flex h-14 items-center justify-between border-b border-border bg-background px-4">
         <Link href="/" className="flex items-center gap-2.5">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/phlo-mark.svg" alt="Phlo" className="h-5 w-auto" />
+          <img
+            src="/phlo-mark.svg"
+            alt="Phlo"
+            width={60}
+            height={20}
+            className="h-5 w-auto"
+          />
           <span aria-hidden className="h-4 w-px bg-border" />
           <span className="text-sm font-medium tracking-tight text-muted-foreground">
             AI Ops
           </span>
         </Link>
-        <button
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          aria-label={open ? "Close menu" : "Open menu"}
-          aria-expanded={open}
-          className="inline-flex size-9 items-center justify-center rounded-md text-muted-foreground hover:bg-muted/40"
-        >
-          {open ? <XIcon className="size-5" /> : <MenuIcon className="size-5" />}
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={openPalette}
+            aria-label="Search"
+            className={iconButtonClass}
+          >
+            <SearchIcon className="size-5" aria-hidden />
+          </button>
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            aria-label={open ? "Close menu" : "Open menu"}
+            aria-expanded={open}
+            aria-controls={menuId}
+            className={iconButtonClass}
+          >
+            {open ? (
+              <XIcon className="size-5" aria-hidden />
+            ) : (
+              <MenuIcon className="size-5" aria-hidden />
+            )}
+          </button>
+        </div>
       </header>
       {open && (
-        <nav className="border-b border-border bg-background px-2 py-2">
+        <nav id={menuId} className="border-b border-border bg-background px-2 py-2">
           <ul className="flex flex-col gap-0.5">
             {items.map((item) => {
               const Icon = item.icon;
-              const active = isActive(item.href);
+              const active = isItemActive(pathname, item.href);
               return (
                 <li key={item.href}>
                   <Link
                     href={item.href}
                     onClick={() => setOpen(false)}
+                    aria-current={active ? "page" : undefined}
                     className={cn(
                       "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm",
                       active
@@ -91,10 +126,30 @@ export function MobileTopBar({ canSeeAdmin }: { canSeeAdmin: boolean }) {
               );
             })}
             <li className="mt-1 border-t border-border pt-1">
+              <Link
+                href="/profile"
+                onClick={() => setOpen(false)}
+                aria-current={profileActive ? "page" : undefined}
+                className={cn(
+                  "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm",
+                  profileActive
+                    ? "bg-muted font-medium text-foreground"
+                    : "text-muted-foreground hover:bg-muted/40 hover:text-foreground",
+                )}
+              >
+                <Avatar
+                  src={user.avatarUrl}
+                  name={user.displayName}
+                  className="size-5"
+                />
+                Profile
+              </Link>
+            </li>
+            <li>
               <form action="/auth/signout" method="post">
                 <button
                   type="submit"
-                  className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted/40 hover:text-foreground"
+                  className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm text-muted-foreground outline-none hover:bg-muted/40 hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
                 >
                   Sign out
                 </button>

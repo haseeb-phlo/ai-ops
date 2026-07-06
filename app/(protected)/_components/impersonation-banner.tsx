@@ -1,4 +1,6 @@
 import type { SessionUser } from "@/lib/auth";
+import { alertVariants } from "@/components/ui/alert";
+import { cn } from "@/lib/utils";
 import { ViewAsSwitcher, type ImpersonableOption } from "./view-as-switcher";
 
 const ROLE_LABEL: Record<string, string> = {
@@ -20,14 +22,24 @@ export function ImpersonationBanner({
   const isUserMode = user.viewAsMode === "user";
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-amber-200 bg-amber-50 px-6 py-2 text-sm text-amber-900">
+    // Composes the Alert warning variant's tokens onto a full-width,
+    // sticky banner: it stays visible while scrolled (the "writes are
+    // blocked" warning must not scroll away) at z-40 - above page content,
+    // below dialogs/palette (z-50).
+    <div
+      role="status"
+      className={cn(
+        alertVariants({ variant: "warning" }),
+        "sticky top-0 z-40 flex flex-wrap items-center justify-between gap-3 rounded-none border-x-0 border-t-0 px-4 py-2 sm:px-6",
+      )}
+    >
       <span className="flex items-center gap-2">
         <span aria-hidden className="size-1.5 rounded-full bg-amber-500" />
         <span>
           {isUserMode ? (
             <>
               Viewing as <strong>{user.displayName}</strong>{" "}
-              <span className="text-amber-800/80">
+              <span className="opacity-80">
                 ({ROLE_LABEL[user.role] ?? user.role}
                 {user.team ? `, ${user.team}` : ""})
               </span>

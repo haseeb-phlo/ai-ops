@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { Trophy } from "lucide-react";
+import { gbp, fmtMinutes } from "@/lib/format";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export type Win = {
   id: string;
@@ -10,13 +13,6 @@ export type Win = {
   adoption: "daily" | "weekly" | "occasional" | "abandoned" | null;
 };
 
-const ADOPTION_DOT: Record<NonNullable<Win["adoption"]>, string> = {
-  daily: "bg-emerald-500",
-  weekly: "bg-emerald-400",
-  occasional: "bg-amber-500",
-  abandoned: "bg-red-500",
-};
-
 const ADOPTION_LABEL: Record<NonNullable<Win["adoption"]>, string> = {
   daily: "Daily",
   weekly: "Weekly",
@@ -24,25 +20,24 @@ const ADOPTION_LABEL: Record<NonNullable<Win["adoption"]>, string> = {
   abandoned: "Abandoned",
 };
 
-function gbp(v: number): string {
-  const sign = v < 0 ? "-" : "";
-  return `${sign}£${Math.abs(v).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
-}
-function fmtMinutes(v: number): string {
-  return `${Math.round(v).toLocaleString()} min`;
-}
-
 /**
  * Top 5 wins on the home dashboard. Ranks active interventions by weekly
- * £ saved + revenue generated, falling back to minutes saved when the
- * financial signal is zero. Designed for leadership ROI conversations -
- * "which AI bets are paying off most" answered in five lines.
- *
- * Hidden when there's nothing to rank (no interventions yet, or all zero
- * impact) so the dashboard stays clean for new orgs.
+ * £ saved + revenue generated, counting time saved at £1/hour so
+ * volunteer-time wins still surface. Designed for leadership ROI
+ * conversations - "which AI bets are paying off most" answered in five
+ * lines.
  */
 export function TopWins({ wins }: { wins: Win[] }) {
-  if (wins.length === 0) return null;
+  if (wins.length === 0) {
+    return (
+      <EmptyState
+        className="py-8"
+        icon={<Trophy aria-hidden />}
+        title="No wins to rank yet"
+        description="Active AI initiatives with weekly savings or revenue show up here, ranked by impact."
+      />
+    );
+  }
 
   return (
     <section className="rounded-lg border border-border bg-background">
@@ -79,13 +74,7 @@ export function TopWins({ wins }: { wins: Win[] }) {
                     {w.adoption && (
                       <>
                         <span aria-hidden>·</span>
-                        <span className="inline-flex items-center gap-1">
-                          <span
-                            aria-hidden
-                            className={`size-1.5 rounded-full ${ADOPTION_DOT[w.adoption]}`}
-                          />
-                          {ADOPTION_LABEL[w.adoption]}
-                        </span>
+                        <span>{ADOPTION_LABEL[w.adoption]} use</span>
                       </>
                     )}
                   </p>
@@ -99,7 +88,8 @@ export function TopWins({ wins }: { wins: Win[] }) {
                 </p>
                 {w.weeklyGbp !== 0 && w.weeklyMinutes !== 0 && (
                   <p className="mt-0.5 text-xs text-muted-foreground tabular-nums">
-                    + {fmtMinutes(w.weeklyMinutes)} / wk
+                    {w.weeklyMinutes > 0 ? "+" : ""}
+                    {fmtMinutes(w.weeklyMinutes)} / wk
                   </p>
                 )}
               </div>
@@ -107,6 +97,10 @@ export function TopWins({ wins }: { wins: Win[] }) {
           </li>
         ))}
       </ol>
+      <p className="border-t border-border px-4 py-2 text-[11px] text-muted-foreground">
+        £ / wk combines cost saved and revenue generated. Ranking also counts
+        time saved, valued at £1 per hour.
+      </p>
     </section>
   );
 }

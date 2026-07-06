@@ -48,7 +48,7 @@ export default async function ProtectedLayout({
           initialCollapsed={sidebarCollapsed}
         />
         <div className="flex min-w-0 flex-1 flex-col">
-          <MobileTopBar canSeeAdmin={canSeeAdmin} />
+          <MobileTopBar user={user} canSeeAdmin={canSeeAdmin} />
           <ImpersonationBanner
             user={user}
             teams={teams}

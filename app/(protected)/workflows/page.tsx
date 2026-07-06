@@ -13,6 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { PageContainer, PageHeader } from "@/components/page-header";
+import { Alert } from "@/components/ui/alert";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Time } from "@/components/ui/time";
 import { loadTeamOptions } from "@/lib/teams";
@@ -194,8 +195,20 @@ export default async function WorkflowsPage(props: {
 
   const isEmpty = (workflows ?? []).length === 0 && !error;
 
+  // Result count. When a team filter is active, also fetch the unfiltered
+  // total so the line reads "3 of 12 workflows".
+  const rowCount = (workflows ?? []).length;
+  let totalCount: number | null = null;
+  if (activeTeam !== ALL_TEAMS) {
+    const { count } = await supabase
+      .from("workflows")
+      .select("id", { count: "exact", head: true })
+      .is("deleted_at", null);
+    totalCount = count;
+  }
+
   return (
-    <PageContainer accent="workflows">
+    <PageContainer>
       <PageHeader
         title="Workflows"
         description="Active recurring processes across the company."
@@ -217,9 +230,9 @@ export default async function WorkflowsPage(props: {
       />
 
       {error && (
-        <p className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+        <Alert variant="destructive">
           Could not load workflows: {error.message}
-        </p>
+        </Alert>
       )}
 
       {isEmpty ? (
@@ -241,6 +254,12 @@ export default async function WorkflowsPage(props: {
           }
         />
       ) : (
+        <>
+        <p className="text-sm text-muted-foreground">
+          {totalCount != null && totalCount !== rowCount
+            ? `${rowCount} of ${totalCount} workflows`
+            : `${rowCount} ${rowCount === 1 ? "workflow" : "workflows"}`}
+        </p>
         <div className="overflow-hidden rounded-lg border border-border bg-background">
           <div className="overflow-x-auto">
             <Table>
@@ -254,7 +273,8 @@ export default async function WorkflowsPage(props: {
                   <TableHead className="text-right">Steps</TableHead>
                   <TableHead className="text-right">Hours / wk</TableHead>
                   <TableHead className="text-right">
-                    <span className="hidden sm:inline">Active </span>AI
+                    <span className="hidden sm:inline">Active initiatives</span>
+                    <span className="sm:hidden">Initiatives</span>
                   </TableHead>
                   <TableHead className="hidden lg:table-cell">
                     Logged by
@@ -275,8 +295,13 @@ export default async function WorkflowsPage(props: {
                     : null;
 
                   return (
-                    <TableRow key={wf.id}>
-                      <TableCell className="sticky left-0 z-10 bg-background font-medium text-foreground">
+                    <TableRow key={wf.id} className="group">
+                      {/* Sticky cell needs an opaque background so rows
+                          scrolling beneath don't show through - the ::before
+                          overlay (below the content, above the background)
+                          replays the row's hover tint so the frozen column
+                          highlights with the rest of the row. */}
+                      <TableCell className="sticky left-0 z-10 bg-background font-medium text-foreground before:absolute before:inset-0 before:-z-10 before:bg-muted/50 before:opacity-0 before:transition-opacity group-hover:before:opacity-100">
                         <Link
                           href={`/workflows/${wf.id}`}
                           className="hover:underline"
@@ -327,6 +352,7 @@ export default async function WorkflowsPage(props: {
             </Table>
           </div>
         </div>
+        </>
       )}
     </PageContainer>
   );

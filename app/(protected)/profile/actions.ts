@@ -87,6 +87,13 @@ export async function updateProfile(
     return { kind: "error", message: `Could not save team: ${teamError.message}` };
   }
 
+  // The layout revalidation refreshes the chrome (sidebar identity) across
+  // routes; the explicit paths cover every reader of name/title/team:
+  // the map + directory, dashboards, and this profile page itself.
   revalidatePath("/", "layout");
+  revalidatePath("/");
+  revalidatePath("/map");
+  revalidatePath("/people");
+  revalidatePath("/profile");
   return { kind: "ok" };
 }

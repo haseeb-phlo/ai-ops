@@ -1,4 +1,13 @@
-import { gbp } from "./format";
+import { format } from "date-fns";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { gbp } from "@/lib/format";
 
 type Bucket = {
   key: string;
@@ -14,23 +23,49 @@ type Props = {
   };
 };
 
+/** "2026-06" → "Jun", or "Jun 26" when the visible window crosses a year. */
+function monthLabel(month: string, withYear: boolean): string {
+  const [y, m] = month.split("-").map(Number);
+  if (!y || !m) return month;
+  return format(new Date(y, m - 1, 1), withYear ? "MMM yy" : "MMM");
+}
+
 export function CostSummary({ cost }: Props) {
   const months = collectMonths(cost);
+  const crossesYear = new Set(months.map((m) => m.slice(0, 4))).size > 1;
 
   return (
     <div className="space-y-3">
       <p className="text-xs text-muted-foreground">
-        Includes failed and retired interventions. We&apos;d rather see honest
+        Includes failed and retired initiatives. We&apos;d rather see honest
         spend than flatter the active ones.
       </p>
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
-        <CostCard title="By vendor" buckets={cost.byVendor} months={months} />
         <CostCard
-          title="By AI initiative type"
+          title="By vendor"
+          buckets={cost.byVendor}
+          months={months}
+          crossesYear={crossesYear}
+        />
+        <CostCard
+          title="By initiative type"
           buckets={cost.byType}
           months={months}
+          crossesYear={crossesYear}
         />
-        <CostCard title="By team" buckets={cost.byTeam} months={months} />
+        <CostCard
+          title="By team"
+          buckets={cost.byTeam}
+          months={months}
+          crossesYear={crossesYear}
+        />
+      </div>
+      <div className="space-y-0.5 text-xs text-muted-foreground">
+        <p>
+          Initiatives with multiple type tags count once per type, so type
+          totals can exceed the overall total.
+        </p>
+        <p>— = no data for that month (which may differ from £0).</p>
       </div>
     </div>
   );
@@ -48,10 +83,12 @@ function CostCard({
   title,
   buckets,
   months,
+  crossesYear,
 }: {
   title: string;
   buckets: Bucket[];
   months: string[];
+  crossesYear: boolean;
 }) {
   const grandTotal = buckets.reduce((s, b) => s + b.total, 0);
   return (
@@ -69,42 +106,51 @@ function CostCard({
           No cost snapshots logged.
         </p>
       ) : (
-        <table className="w-full text-xs">
-          <thead>
-            <tr className="border-b border-border text-left text-[10px] uppercase tracking-wide text-muted-foreground">
-              <th className="px-3 py-1.5 font-medium">Bucket</th>
+        <Table className="text-xs">
+          <TableHeader>
+            <TableRow>
+              <TableHead className="h-8 px-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Bucket
+              </TableHead>
               {months.map((m) => (
-                <th key={m} className="px-2 py-1.5 text-right font-medium">
-                  {m.slice(5)}
-                </th>
+                <TableHead
+                  key={m}
+                  className="h-8 px-2 text-right text-xs font-medium uppercase tracking-wide text-muted-foreground"
+                >
+                  {monthLabel(m, crossesYear)}
+                </TableHead>
               ))}
-              <th className="px-3 py-1.5 text-right font-medium">Total</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
+              <TableHead className="h-8 px-3 text-right text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Total
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {buckets.map((b) => {
               const monthMap = new Map(b.rows.map((r) => [r.month, r.spend]));
               return (
-                <tr key={b.key}>
-                  <td className="truncate px-3 py-1.5 font-medium text-foreground">
-                    {b.key}
-                  </td>
+                <TableRow key={b.key}>
+                  <TableCell className="px-3 py-1.5 font-medium text-foreground">
+                    <span className="block max-w-40 truncate" title={b.key}>
+                      {b.key}
+                    </span>
+                  </TableCell>
                   {months.map((m) => (
-                    <td
+                    <TableCell
                       key={m}
                       className="px-2 py-1.5 text-right tabular-nums text-muted-foreground"
                     >
-                      {monthMap.has(m) ? gbp(monthMap.get(m)!) : "-"}
-                    </td>
+                      {monthMap.has(m) ? gbp(monthMap.get(m)!) : "—"}
+                    </TableCell>
                   ))}
-                  <td className="px-3 py-1.5 text-right tabular-nums font-semibold text-foreground">
+                  <TableCell className="px-3 py-1.5 text-right font-semibold tabular-nums text-foreground">
                     {gbp(b.total)}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               );
             })}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       )}
     </div>
   );

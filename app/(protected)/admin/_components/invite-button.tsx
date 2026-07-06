@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { Alert } from "@/components/ui/alert";
 import {
   Dialog,
   DialogContent,
@@ -45,7 +46,7 @@ export function InviteButton({ teams }: { teams: string[] }) {
             <DialogTitle>Invite a person</DialogTitle>
             <DialogDescription>
               Sends a sign-in invitation email and adds the person to the
-              directory. Super admin only.
+              directory.
             </DialogDescription>
           </DialogHeader>
 
@@ -95,20 +96,10 @@ export function InviteButton({ teams }: { teams: string[] }) {
             </div>
 
             {state.kind === "error" && (
-              <p
-                role="alert"
-                className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800 ring-1 ring-inset ring-red-200"
-              >
-                {state.message}
-              </p>
+              <Alert variant="destructive">{state.message}</Alert>
             )}
             {state.kind === "ok" && (
-              <p
-                role="status"
-                className="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-800 ring-1 ring-inset ring-emerald-200"
-              >
-                Invite sent to {state.email}.
-              </p>
+              <Alert variant="success">Invite sent to {state.email}.</Alert>
             )}
 
             <DialogFooter>
@@ -119,7 +110,11 @@ export function InviteButton({ teams }: { teams: string[] }) {
               >
                 Close
               </Button>
-              <Button type="submit" disabled={pending || team === ""}>
+              <Button
+                type="submit"
+                loading={pending}
+                disabled={pending || team === ""}
+              >
                 {pending ? "Sending…" : "Send invite"}
               </Button>
             </DialogFooter>

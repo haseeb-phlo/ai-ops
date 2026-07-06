@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
   Dialog,
   DialogContent,
@@ -8,7 +8,9 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -44,12 +46,6 @@ const TYPES = [
   { value: "automation", label: "Automation" },
   { value: "process_change", label: "Process change" },
 ] as const;
-
-const STATUS_LABEL: Record<string, string> = {
-  active: "Active",
-  paused: "Paused",
-  retired: "Retired",
-};
 
 const CONFIDENCE_LABEL: Record<string, string> = {
   high: "High - clean before/after",
@@ -87,39 +83,95 @@ export type LinkedWorkflowContext = {
   revenue_per_week: number | null;
 };
 
+type Intervention = {
+  id: string;
+  name: string;
+  types: InterventionType[];
+  status: Status | null;
+  description: string | null;
+  uses_per_week: number | null;
+  frequency_cadence: string | null;
+  minutes_saved_per_use: number | null;
+  cost_saved_per_use: number | null;
+  revenue_per_use: number | null;
+  attribution_confidence: Confidence | null;
+  adoption_status: AdoptionStatus | null;
+  satisfaction: number | null;
+  recipient_emails: string[];
+  notes: string | null;
+};
+
 export function EditInterventionDialog({
   intervention,
   people,
   linkedWorkflows = [],
 }: {
-  intervention: {
-    id: string;
-    name: string;
-    types: InterventionType[];
-    status: Status | null;
-    description: string | null;
-    uses_per_week: number | null;
-    frequency_cadence: string | null;
-    minutes_saved_per_use: number | null;
-    cost_saved_per_use: number | null;
-    revenue_per_use: number | null;
-    attribution_confidence: Confidence | null;
-    adoption_status: AdoptionStatus | null;
-    satisfaction: number | null;
-    recipient_emails: string[];
-    notes: string | null;
-  };
+  intervention: Intervention;
   people: PickerPerson[];
   linkedWorkflows?: LinkedWorkflowContext[];
 }) {
   const [open, setOpen] = useState(false);
+  // Remount the inner form on each open so cancelled edits and stale
+  // errors don't leak into the next session.
+  const [epoch, setEpoch] = useState(0);
+  const pendingRef = useRef(false);
+
+  function handleOpenChange(next: boolean) {
+    if (pendingRef.current) return;
+    if (next) setEpoch((n) => n + 1);
+    setOpen(next);
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogTrigger render={<Button variant="outline">Edit</Button>} />
+      <DialogContent className="gap-0 p-0 sm:max-w-2xl">
+        <DialogHeader className="gap-2 px-6 pt-5 pb-5">
+          <DialogTitle>Edit AI initiative</DialogTitle>
+          <DialogDescription>
+            Linked workflows and baselines are fixed at log time. Re-log to
+            change them. Status changes happen from the buttons on the
+            initiative page. Fields marked * are required.
+          </DialogDescription>
+        </DialogHeader>
+
+        <EditInterventionForm
+          key={epoch}
+          intervention={intervention}
+          people={people}
+          linkedWorkflows={linkedWorkflows}
+          onPendingChange={(p) => {
+            pendingRef.current = p;
+          }}
+          onCancel={() => handleOpenChange(false)}
+          onSaved={() => setOpen(false)}
+        />
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function EditInterventionForm({
+  intervention,
+  people,
+  linkedWorkflows,
+  onPendingChange,
+  onCancel,
+  onSaved,
+}: {
+  intervention: Intervention;
+  people: PickerPerson[];
+  linkedWorkflows: LinkedWorkflowContext[];
+  onPendingChange: (pending: boolean) => void;
+  onCancel: () => void;
+  onSaved: () => void;
+}) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const [types, setTypes] = useState<Set<string>>(
     new Set(intervention.types ?? []),
   );
-  const [status, setStatus] = useState<string>(intervention.status ?? "active");
   const [confidence, setConfidence] = useState<string>(
     intervention.attribution_confidence ?? "medium",
   );
@@ -158,32 +210,22 @@ export function EditInterventionDialog({
       : "",
   );
 
-  const reset = () => {
-    setTypes(new Set(intervention.types ?? []));
-    setStatus(intervention.status ?? "active");
-    setConfidence(intervention.attribution_confidence ?? "medium");
-    setAdoption(intervention.adoption_status ?? "");
-    setSatisfaction(
-      intervention.satisfaction != null ? String(intervention.satisfaction) : "",
-    );
-    setRecipients(new Set(intervention.recipient_emails ?? []));
-    setCadence(initialCadence);
-    setMinutesPerUse(
-      intervention.minutes_saved_per_use != null
-        ? String(intervention.minutes_saved_per_use)
-        : "",
-    );
-    setCostPerUse(
-      intervention.cost_saved_per_use != null
-        ? String(intervention.cost_saved_per_use)
-        : "",
-    );
-    setRevenuePerUse(
-      intervention.revenue_per_use != null
-        ? String(intervention.revenue_per_use)
-        : "",
-    );
-    setErrorMessage(null);
+  // React 19 auto-resets uncontrolled fields when the form action settles -
+  // including on a validation error. Snapshot the FormData on submit and
+  // immediately remount the uncontrolled fields with the snapshot as their
+  // defaultValues; the auto-reset then restores those defaults, so the
+  // user's typed input survives an error round-trip.
+  const [snapshot, setSnapshot] = useState<FormData | null>(null);
+  const [submitEpoch, setSubmitEpoch] = useState(0);
+  const errorRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    onPendingChange(isPending);
+  }, [isPending, onPendingChange]);
+
+  const d = (name: string, fallback: string): string => {
+    const v = snapshot?.get(name);
+    return typeof v === "string" ? v : fallback;
   };
 
   const toggleType = (value: string) => {
@@ -193,11 +235,6 @@ export function EditInterventionDialog({
       else next.add(value);
       return next;
     });
-  };
-
-  const handleOpenChange = (next: boolean) => {
-    if (!next) reset();
-    setOpen(next);
   };
 
   // Only show per-run baseline context when there's exactly one linked
@@ -231,490 +268,495 @@ export function EditInterventionDialog({
       const result = await updateIntervention({ kind: "idle" }, formData);
       if (result.kind === "error") {
         setErrorMessage(result.message);
+        // Wait for the re-render, then bring the error into view + focus.
+        requestAnimationFrame(() => {
+          errorRef.current?.scrollIntoView({
+            block: "nearest",
+            behavior: "smooth",
+          });
+          errorRef.current?.focus();
+        });
       } else if (result.kind === "success") {
         setErrorMessage(null);
-        setOpen(false);
+        onSaved();
       }
     });
   };
 
-  const isComplete =
-    types.size > 0 &&
-    toNum(minutesPerUse) != null &&
-    toNum(costPerUse) != null &&
-    toNum(revenuePerUse) != null;
+  // Same conditions that disable the submit button, spelled out.
+  const missing: string[] = [];
+  if (types.size === 0) missing.push("choose at least one type");
+  if (
+    toNum(minutesPerUse) == null ||
+    toNum(costPerUse) == null ||
+    toNum(revenuePerUse) == null
+  ) {
+    missing.push("fill in all three per-run numbers");
+  }
+  const isComplete = missing.length === 0;
+  const hintId = "edit-initiative-missing-hint";
 
   return (
-    <>
-      <Button variant="outline" onClick={() => setOpen(true)}>
-        Edit
-      </Button>
-      <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent className="gap-0 p-0 sm:max-w-2xl">
-          <DialogHeader className="gap-2 px-6 pt-5 pb-5">
-            <DialogTitle>Edit AI initiative</DialogTitle>
-            <DialogDescription>
-              Linked workflows and baselines are fixed at log time. Re-log to
-              change them.
-            </DialogDescription>
-          </DialogHeader>
+    <form
+      action={handleSubmit}
+      onSubmit={(e) => {
+        setSnapshot(new FormData(e.currentTarget));
+        setSubmitEpoch((n) => n + 1);
+      }}
+      className="flex min-h-0 flex-1 flex-col"
+    >
+      <div className="flex-1 space-y-6 overflow-y-auto border-t border-border px-6 py-5">
+        <input type="hidden" name="id" value={intervention.id} />
 
-          <form action={handleSubmit} className="flex min-h-0 flex-1 flex-col">
-            <div className="flex-1 space-y-6 overflow-y-auto border-t border-border px-6 py-5">
-              <input type="hidden" name="id" value={intervention.id} />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label htmlFor="name">
+              Name
+              <RequiredMark />
+            </Label>
+            <Input
+              key={`name-${submitEpoch}`}
+              id="name"
+              name="name"
+              required
+              maxLength={200}
+              defaultValue={d("name", intervention.name)}
+            />
+          </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-1.5 sm:col-span-2">
-                  <Label htmlFor="name">Name</Label>
-                  <Input
-                    id="name"
-                    name="name"
-                    required
-                    maxLength={200}
-                    defaultValue={intervention.name}
-                  />
-                </div>
-
-                <div className="space-y-1.5 sm:col-span-2">
-                  <Label>Type</Label>
-                  <p className="text-xs text-muted-foreground">
-                    Pick one or more.
-                  </p>
-                  <div
-                    role="group"
-                    aria-label="Initiative type"
-                    className="flex flex-wrap gap-1.5"
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label>
+              Type
+              <RequiredMark />
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              Pick one or more.
+            </p>
+            <div
+              role="group"
+              aria-label="Initiative type"
+              className="flex flex-wrap gap-1.5"
+            >
+              {TYPES.map((t) => {
+                const checked = types.has(t.value);
+                return (
+                  <label
+                    key={t.value}
+                    className={cn(
+                      "inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1 text-sm transition-colors focus-within:ring-2 focus-within:ring-ring/50",
+                      checked
+                        ? "border-foreground bg-foreground text-background"
+                        : "border-border bg-background text-foreground hover:bg-muted",
+                    )}
                   >
-                    {TYPES.map((t) => {
-                      const checked = types.has(t.value);
-                      return (
-                        <label
-                          key={t.value}
-                          className={cn(
-                            "inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1 text-sm transition-colors focus-within:ring-2 focus-within:ring-ring/50",
-                            checked
-                              ? "border-foreground bg-foreground text-background"
-                              : "border-border bg-background text-foreground hover:bg-muted",
-                          )}
-                        >
-                          <input
-                            type="checkbox"
-                            name="types"
-                            value={t.value}
-                            checked={checked}
-                            onChange={() => toggleType(t.value)}
-                            className="sr-only"
-                          />
-                          {t.label}
-                        </label>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="status">Status</Label>
-                  <input type="hidden" name="status" value={status} />
-                  <Select
-                    value={status}
-                    onValueChange={(v) => setStatus(v ?? "active")}
-                  >
-                    <SelectTrigger id="status" className="w-full">
-                      <SelectValue>
-                        {(v) =>
-                          STATUS_LABEL[v as string] ?? STATUS_LABEL.active
-                        }
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="paused">Paused</SelectItem>
-                      <SelectItem value="retired">Retired</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-1.5 sm:col-span-2">
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    name="description"
-                    rows={2}
-                    maxLength={500}
-                    defaultValue={intervention.description ?? ""}
-                    placeholder="One-line summary"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-3 border-t border-border pt-5">
-                <div className="space-y-1">
-                  <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    People affected
-                  </h3>
-                  <p className="text-xs text-muted-foreground">
-                    Drives per-person reach metrics. Add or remove anyone
-                    whose access has changed.
-                  </p>
-                </div>
-                <PeoplePicker
-                  people={people}
-                  selected={recipients}
-                  onChange={setRecipients}
-                  inputName="recipient_emails"
-                />
-              </div>
-
-              <div className="space-y-3 border-t border-border pt-5">
-                <div className="space-y-1">
-                  <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    Impact per run × times per week
-                  </h3>
-                  <p className="text-xs text-muted-foreground">
-                    What does one run save, and how often does it run? The
-                    weekly total is computed below.
-                  </p>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="frequency_cadence">
-                    How often does this AI initiative run?
-                  </Label>
-                  <input
-                    type="hidden"
-                    name="frequency_cadence"
-                    value={cadence}
-                  />
-                  <Select
-                    value={cadence}
-                    onValueChange={(v) => v && setCadence(v as Cadence)}
-                  >
-                    <SelectTrigger id="frequency_cadence" className="w-full">
-                      <SelectValue>
-                        {(v) =>
-                          v ? CADENCE_LABEL[v as Cadence] ?? "" : null
-                        }
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {CADENCES.map((c) => (
-                        <SelectItem key={c} value={c}>
-                          {CADENCE_LABEL[c]}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {singleLinkedWorkflow &&
-                    formatCadence(
-                      singleLinkedWorkflow.frequency_cadence,
-                      singleLinkedWorkflow.frequency_per_week,
-                    ) && (
-                      <p className="text-xs text-muted-foreground">
-                        Linked workflow{" "}
-                        <span className="font-medium text-foreground">
-                          {singleLinkedWorkflow.name}
-                        </span>{" "}
-                        runs{" "}
-                        {formatCadence(
-                          singleLinkedWorkflow.frequency_cadence,
-                          singleLinkedWorkflow.frequency_per_week,
-                        )}
-                        .
-                      </p>
-                    )}
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-3">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="minutes_saved_per_use">
-                      Minutes saved each run
-                    </Label>
-                    <SuffixInput suffix="/ run">
-                      <Input
-                        id="minutes_saved_per_use"
-                        name="minutes_saved_per_use"
-                        type="number"
-                        min={0}
-                        step={1}
-                        required
-                        value={minutesPerUse}
-                        onChange={(e) => setMinutesPerUse(e.target.value)}
-                        placeholder="0"
-                      />
-                    </SuffixInput>
-                    <WeeklyReadout
-                      perUse={toNum(minutesPerUse)}
-                      uses={uses}
-                      suffix="min / wk"
+                    <input
+                      type="checkbox"
+                      name="types"
+                      value={t.value}
+                      checked={checked}
+                      onChange={() => toggleType(t.value)}
+                      className="sr-only"
                     />
-                    {perRunBaseline && (
-                      <p className="text-[11px] text-muted-foreground">
-                        Workflow baseline:{" "}
-                        <span className="text-foreground tabular-nums">
-                          ~{formatNumber(perRunBaseline.minutes)} min
-                        </span>{" "}
-                        per run.
-                      </p>
-                    )}
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="cost_saved_per_use">
-                      Cost saved each run
-                    </Label>
-                    <PrefixInput prefix="£">
-                      <SuffixInput suffix="/ run">
-                        <Input
-                          id="cost_saved_per_use"
-                          name="cost_saved_per_use"
-                          type="number"
-                          min={0}
-                          step="0.01"
-                          required
-                          value={costPerUse}
-                          onChange={(e) => setCostPerUse(e.target.value)}
-                          placeholder="0"
-                        />
-                      </SuffixInput>
-                    </PrefixInput>
-                    <WeeklyReadout
-                      perUse={toNum(costPerUse)}
-                      uses={uses}
-                      suffix="/ wk"
-                      isCurrency
-                    />
-                    {perRunBaseline && (
-                      <p className="text-[11px] text-muted-foreground">
-                        Workflow baseline:{" "}
-                        <span className="text-foreground tabular-nums">
-                          ~£{formatNumber(perRunBaseline.cost)}
-                        </span>{" "}
-                        per run.
-                      </p>
-                    )}
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="revenue_per_use">Revenue each run</Label>
-                    <PrefixInput prefix="£">
-                      <SuffixInput suffix="/ run">
-                        <Input
-                          id="revenue_per_use"
-                          name="revenue_per_use"
-                          type="number"
-                          min={0}
-                          step="0.01"
-                          required
-                          value={revenuePerUse}
-                          onChange={(e) => setRevenuePerUse(e.target.value)}
-                          placeholder="0"
-                        />
-                      </SuffixInput>
-                    </PrefixInput>
-                    <WeeklyReadout
-                      perUse={toNum(revenuePerUse)}
-                      uses={uses}
-                      suffix="/ wk"
-                      isCurrency
-                    />
-                    {perRunBaseline && (
-                      <p className="text-[11px] text-muted-foreground">
-                        Workflow baseline:{" "}
-                        <span className="text-foreground tabular-nums">
-                          ~£{formatNumber(perRunBaseline.revenue)}
-                        </span>{" "}
-                        per run.
-                      </p>
-                    )}
-                  </div>
-                </div>
+                    {t.label}
+                  </label>
+                );
+              })}
+            </div>
+          </div>
 
-                {weeklyMinutes != null &&
-                  weeklyCost != null &&
-                  weeklyRevenue != null &&
-                  uses != null &&
-                  uses > 0 &&
-                  (weeklyMinutes > 0 ||
-                    weeklyCost > 0 ||
-                    weeklyRevenue > 0) && (
-                    <div className="rounded-md border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-                      Weekly total ={" "}
-                      <span className="text-foreground tabular-nums">
-                        {formatNumber(weeklyMinutes)} min
-                      </span>
-                      {", "}
-                      <span className="text-foreground tabular-nums">
-                        £{formatNumber(weeklyCost)}
-                      </span>
-                      {" saved"}
-                      {weeklyRevenue > 0 && (
-                        <>
-                          {", "}
-                          <span className="text-foreground tabular-nums">
-                            £{formatNumber(weeklyRevenue)}
-                          </span>{" "}
-                          revenue
-                        </>
-                      )}
-                      .
-                    </div>
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label htmlFor="description">Description</Label>
+            <Textarea
+              key={`description-${submitEpoch}`}
+              id="description"
+              name="description"
+              rows={2}
+              maxLength={500}
+              defaultValue={d("description", intervention.description ?? "")}
+              placeholder="One-line summary"
+            />
+          </div>
+        </div>
+
+        <div className="space-y-3 border-t border-border pt-5">
+          <div className="space-y-1">
+            <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              People affected
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              Drives per-person reach metrics. Add or remove anyone
+              whose access has changed.
+            </p>
+          </div>
+          <PeoplePicker
+            people={people}
+            selected={recipients}
+            onChange={setRecipients}
+            inputName="recipient_emails"
+          />
+        </div>
+
+        <div className="space-y-3 border-t border-border pt-5">
+          <div className="space-y-1">
+            <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Impact per run × times per week
+              <RequiredMark />
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              What does one run save, and how often does it run? The
+              weekly total is computed below. Enter 0 if a number
+              doesn&apos;t apply.
+            </p>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="frequency_cadence">
+              How often does this AI initiative run?
+            </Label>
+            <input
+              type="hidden"
+              name="frequency_cadence"
+              value={cadence}
+            />
+            <Select
+              value={cadence}
+              onValueChange={(v) => v && setCadence(v as Cadence)}
+            >
+              <SelectTrigger id="frequency_cadence" className="w-full">
+                <SelectValue>
+                  {(v) =>
+                    v ? CADENCE_LABEL[v as Cadence] ?? "" : null
+                  }
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {CADENCES.map((c) => (
+                  <SelectItem key={c} value={c}>
+                    {CADENCE_LABEL[c]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {singleLinkedWorkflow &&
+              formatCadence(
+                singleLinkedWorkflow.frequency_cadence,
+                singleLinkedWorkflow.frequency_per_week,
+              ) && (
+                <p className="text-xs text-muted-foreground">
+                  Linked workflow{" "}
+                  <span className="font-medium text-foreground">
+                    {singleLinkedWorkflow.name}
+                  </span>{" "}
+                  runs{" "}
+                  {formatCadence(
+                    singleLinkedWorkflow.frequency_cadence,
+                    singleLinkedWorkflow.frequency_per_week,
                   )}
+                  .
+                </p>
+              )}
+          </div>
 
-                <div className="space-y-1.5">
-                  <Label htmlFor="attribution_confidence">
-                    Attribution confidence
-                  </Label>
-                  <input
-                    type="hidden"
-                    name="attribution_confidence"
-                    value={confidence}
-                  />
-                  <Select
-                    value={confidence}
-                    onValueChange={(v) => setConfidence(v ?? "high")}
-                  >
-                    <SelectTrigger
-                      id="attribution_confidence"
-                      className="w-full"
-                    >
-                      <SelectValue>
-                        {(v) =>
-                          CONFIDENCE_LABEL[v as string] ?? CONFIDENCE_LABEL.high
-                        }
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="high">{CONFIDENCE_LABEL.high}</SelectItem>
-                      <SelectItem value="medium">
-                        {CONFIDENCE_LABEL.medium}
-                      </SelectItem>
-                      <SelectItem value="low">{CONFIDENCE_LABEL.low}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">
-                    Editorial signal for reviewers. Doesn&apos;t change the
-                    dashboard math.
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-3 border-t border-border pt-5">
-                <div className="space-y-1">
-                  <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    Adoption & sentiment
-                  </h3>
-                  <p className="text-xs text-muted-foreground">
-                    Optional - updated as people start using it.
-                  </p>
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="adoption_status">Is it being used?</Label>
-                    <input
-                      type="hidden"
-                      name="adoption_status"
-                      value={adoption}
-                    />
-                    <Select
-                      value={adoption}
-                      onValueChange={(v) => setAdoption(v ?? "")}
-                    >
-                      <SelectTrigger id="adoption_status" className="w-full">
-                        <SelectValue placeholder="Pick one">
-                          {(v) =>
-                            v ? ADOPTION_LABEL[v as string] ?? "" : null
-                          }
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="daily">{ADOPTION_LABEL.daily}</SelectItem>
-                        <SelectItem value="weekly">
-                          {ADOPTION_LABEL.weekly}
-                        </SelectItem>
-                        <SelectItem value="occasional">
-                          {ADOPTION_LABEL.occasional}
-                        </SelectItem>
-                        <SelectItem value="abandoned">
-                          {ADOPTION_LABEL.abandoned}
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="satisfaction">Do people like it?</Label>
-                    <input
-                      type="hidden"
-                      name="satisfaction"
-                      value={satisfaction}
-                    />
-                    <Select
-                      value={satisfaction}
-                      onValueChange={(v) => setSatisfaction(v ?? "")}
-                    >
-                      <SelectTrigger id="satisfaction" className="w-full">
-                        <SelectValue placeholder="Pick one">
-                          {(v) =>
-                            v ? SATISFACTION_LABEL[v as string] ?? "" : null
-                          }
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1">{SATISFACTION_LABEL["1"]}</SelectItem>
-                        <SelectItem value="2">{SATISFACTION_LABEL["2"]}</SelectItem>
-                        <SelectItem value="3">{SATISFACTION_LABEL["3"]}</SelectItem>
-                        <SelectItem value="4">{SATISFACTION_LABEL["4"]}</SelectItem>
-                        <SelectItem value="5">{SATISFACTION_LABEL["5"]}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-3 border-t border-border pt-5">
-                <div className="space-y-1">
-                  <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    Notes
-                  </h3>
-                  <p className="text-xs text-muted-foreground">
-                    Optional. Context, caveats, links. Plain text, line breaks
-                    preserved. Tracked in the audit log.
-                  </p>
-                </div>
-                <Textarea
-                  id="notes"
-                  name="notes"
-                  rows={4}
-                  maxLength={2000}
-                  defaultValue={intervention.notes ?? ""}
-                  placeholder="Anything reviewers should know about this initiative."
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="minutes_saved_per_use">
+                Minutes saved each run
+              </Label>
+              <SuffixInput suffix="/ run">
+                <Input
+                  id="minutes_saved_per_use"
+                  name="minutes_saved_per_use"
+                  type="number"
+                  min={0}
+                  step={1}
+                  required
+                  value={minutesPerUse}
+                  onChange={(e) => setMinutesPerUse(e.target.value)}
                 />
-              </div>
-
-              {errorMessage && (
-                <p
-                  role="alert"
-                  className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700"
-                >
-                  {errorMessage}
+              </SuffixInput>
+              <WeeklyReadout
+                perUse={toNum(minutesPerUse)}
+                uses={uses}
+                suffix="min / wk"
+              />
+              {perRunBaseline && (
+                <p className="text-xs text-muted-foreground">
+                  Workflow baseline:{" "}
+                  <span className="text-foreground tabular-nums">
+                    ~{formatNumber(perRunBaseline.minutes)} min
+                  </span>{" "}
+                  per run.
                 </p>
               )}
             </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="cost_saved_per_use">
+                Cost saved each run
+              </Label>
+              <PrefixInput prefix="£">
+                <SuffixInput suffix="/ run">
+                  <Input
+                    id="cost_saved_per_use"
+                    name="cost_saved_per_use"
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    required
+                    value={costPerUse}
+                    onChange={(e) => setCostPerUse(e.target.value)}
+                  />
+                </SuffixInput>
+              </PrefixInput>
+              <WeeklyReadout
+                perUse={toNum(costPerUse)}
+                uses={uses}
+                suffix="/ wk"
+                isCurrency
+              />
+              {perRunBaseline && (
+                <p className="text-xs text-muted-foreground">
+                  Workflow baseline:{" "}
+                  <span className="text-foreground tabular-nums">
+                    ~£{formatNumber(perRunBaseline.cost)}
+                  </span>{" "}
+                  per run.
+                </p>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="revenue_per_use">Revenue each run</Label>
+              <PrefixInput prefix="£">
+                <SuffixInput suffix="/ run">
+                  <Input
+                    id="revenue_per_use"
+                    name="revenue_per_use"
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    required
+                    value={revenuePerUse}
+                    onChange={(e) => setRevenuePerUse(e.target.value)}
+                  />
+                </SuffixInput>
+              </PrefixInput>
+              <WeeklyReadout
+                perUse={toNum(revenuePerUse)}
+                uses={uses}
+                suffix="/ wk"
+                isCurrency
+              />
+              {perRunBaseline && (
+                <p className="text-xs text-muted-foreground">
+                  Workflow baseline:{" "}
+                  <span className="text-foreground tabular-nums">
+                    ~£{formatNumber(perRunBaseline.revenue)}
+                  </span>{" "}
+                  per run.
+                </p>
+              )}
+            </div>
+          </div>
 
-            <DialogFooter className="m-0 border-t border-border bg-muted/40 px-6 py-3">
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => handleOpenChange(false)}
-                disabled={isPending}
+          {uses > 0 &&
+            (weeklyMinutes > 0 ||
+              weeklyCost > 0 ||
+              weeklyRevenue > 0) && (
+              <div className="rounded-md border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+                Weekly total ={" "}
+                <span className="text-foreground tabular-nums">
+                  {formatNumber(weeklyMinutes)} min
+                </span>
+                {", "}
+                <span className="text-foreground tabular-nums">
+                  £{formatNumber(weeklyCost)}
+                </span>
+                {" saved"}
+                {weeklyRevenue > 0 && (
+                  <>
+                    {", "}
+                    <span className="text-foreground tabular-nums">
+                      £{formatNumber(weeklyRevenue)}
+                    </span>{" "}
+                    revenue
+                  </>
+                )}
+                .
+              </div>
+            )}
+
+          <div className="space-y-1.5">
+            <Label htmlFor="attribution_confidence">
+              Attribution confidence
+            </Label>
+            <input
+              type="hidden"
+              name="attribution_confidence"
+              value={confidence}
+            />
+            <Select
+              value={confidence}
+              onValueChange={(v) => setConfidence(v ?? "high")}
+            >
+              <SelectTrigger
+                id="attribution_confidence"
+                className="w-full"
               >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isPending || !isComplete}>
-                {isPending ? "Saving…" : "Save changes"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-    </>
+                <SelectValue>
+                  {(v) =>
+                    CONFIDENCE_LABEL[v as string] ?? CONFIDENCE_LABEL.high
+                  }
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="high">{CONFIDENCE_LABEL.high}</SelectItem>
+                <SelectItem value="medium">
+                  {CONFIDENCE_LABEL.medium}
+                </SelectItem>
+                <SelectItem value="low">{CONFIDENCE_LABEL.low}</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Editorial signal for reviewers. Doesn&apos;t change the
+              dashboard math.
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-3 border-t border-border pt-5">
+          <div className="space-y-1">
+            <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Adoption & sentiment
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              Optional - updated as people start using it.
+            </p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="adoption_status">Is it being used?</Label>
+              <input
+                type="hidden"
+                name="adoption_status"
+                value={adoption}
+              />
+              <Select
+                value={adoption}
+                onValueChange={(v) => setAdoption(v ?? "")}
+              >
+                <SelectTrigger id="adoption_status" className="w-full">
+                  <SelectValue placeholder="Pick one">
+                    {(v) =>
+                      v ? ADOPTION_LABEL[v as string] ?? "" : null
+                    }
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="daily">{ADOPTION_LABEL.daily}</SelectItem>
+                  <SelectItem value="weekly">
+                    {ADOPTION_LABEL.weekly}
+                  </SelectItem>
+                  <SelectItem value="occasional">
+                    {ADOPTION_LABEL.occasional}
+                  </SelectItem>
+                  <SelectItem value="abandoned">
+                    {ADOPTION_LABEL.abandoned}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="satisfaction">Do people like it?</Label>
+              <input
+                type="hidden"
+                name="satisfaction"
+                value={satisfaction}
+              />
+              <Select
+                value={satisfaction}
+                onValueChange={(v) => setSatisfaction(v ?? "")}
+              >
+                <SelectTrigger id="satisfaction" className="w-full">
+                  <SelectValue placeholder="Pick one">
+                    {(v) =>
+                      v ? SATISFACTION_LABEL[v as string] ?? "" : null
+                    }
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">{SATISFACTION_LABEL["1"]}</SelectItem>
+                  <SelectItem value="2">{SATISFACTION_LABEL["2"]}</SelectItem>
+                  <SelectItem value="3">{SATISFACTION_LABEL["3"]}</SelectItem>
+                  <SelectItem value="4">{SATISFACTION_LABEL["4"]}</SelectItem>
+                  <SelectItem value="5">{SATISFACTION_LABEL["5"]}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-3 border-t border-border pt-5">
+          <div className="space-y-1">
+            <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Notes
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              Optional. Context, caveats, links. Plain text, line breaks
+              preserved. Tracked in the audit log.
+            </p>
+          </div>
+          <Textarea
+            key={`notes-${submitEpoch}`}
+            id="notes"
+            name="notes"
+            rows={4}
+            maxLength={2000}
+            defaultValue={d("notes", intervention.notes ?? "")}
+            placeholder="Anything reviewers should know about this initiative."
+          />
+        </div>
+
+        {errorMessage && (
+          <Alert variant="destructive" ref={errorRef} tabIndex={-1}>
+            {errorMessage}
+          </Alert>
+        )}
+      </div>
+
+      <DialogFooter className="m-0 border-t border-border bg-muted/40 px-6 py-3">
+        {!isComplete && (
+          <p
+            id={hintId}
+            className="self-center text-xs text-muted-foreground sm:mr-auto"
+          >
+            To save: {missing.join(", ")}.
+          </p>
+        )}
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={onCancel}
+          disabled={isPending}
+        >
+          Cancel
+        </Button>
+        <Button
+          type="submit"
+          disabled={isPending || !isComplete}
+          aria-describedby={!isComplete ? hintId : undefined}
+        >
+          {isPending ? "Saving…" : "Save changes"}
+        </Button>
+      </DialogFooter>
+    </form>
+  );
+}
+
+function RequiredMark() {
+  return (
+    <span aria-hidden className="text-destructive">
+      {" "}
+      *
+    </span>
   );
 }
 
@@ -730,8 +772,10 @@ function WeeklyReadout({
   isCurrency?: boolean;
 }) {
   if (perUse == null || uses == null) {
+    // In the edit dialog the fields arrive pre-filled, so an empty value
+    // means the user cleared it - showing the nudge here is intentional.
     return (
-      <p className="text-[11px] text-muted-foreground">
+      <p className="text-xs text-muted-foreground">
         = enter both values to see weekly total
       </p>
     );
@@ -741,7 +785,7 @@ function WeeklyReadout({
     ? `£${formatNumber(weekly)}`
     : formatNumber(weekly);
   return (
-    <p className="text-[11px] text-muted-foreground">
+    <p className="text-xs text-muted-foreground">
       ={" "}
       <span className="font-medium text-foreground tabular-nums">
         {display}
@@ -788,7 +832,7 @@ function SuffixInput({
   return (
     <div className="relative">
       <div className="[&_input]:pr-12">{children}</div>
-      <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+      <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 font-mono text-xs uppercase tracking-wider text-muted-foreground">
         {suffix}
       </span>
     </div>

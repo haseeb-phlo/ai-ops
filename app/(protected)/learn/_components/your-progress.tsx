@@ -11,8 +11,9 @@ export function YourProgress({
 }) {
   if (total === 0) return null;
   // Completion is the explicit "I've finished this" signal users tick, so
-  // it's the headline metric. "Watched" (auto-recorded on first play) stays
-  // as a softer secondary line for context.
+  // it's the headline metric. "Started" (auto-recorded on first play) is a
+  // softer secondary line, always rendered so the two measures read as a
+  // consistent pair instead of popping in and out.
   const pct = Math.round((completed / total) * 100);
   const done = completed === total;
 
@@ -46,11 +47,9 @@ export function YourProgress({
           style={{ width: `${pct}%` }}
         />
       </div>
-      {watched > completed && (
-        <p className="mt-2 text-xs text-muted-foreground tabular-nums">
-          {watched} of {total} watched
-        </p>
-      )}
+      <p className="mt-2 text-xs text-muted-foreground tabular-nums">
+        {watched} started
+      </p>
     </div>
   );
 }

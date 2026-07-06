@@ -2,7 +2,9 @@ import { Suspense } from "react";
 import { getSessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { resolveDisplayName } from "@/lib/profile";
-import { PageContainer } from "@/components/page-header";
+import { gbp, fmtMinutes } from "@/lib/format";
+import { PageContainer, PageHeader } from "@/components/page-header";
+import { cn } from "@/lib/utils";
 import { RedirectToast } from "./_components/dashboard/redirect-toast";
 import { TrendStrip } from "./_components/dashboard/trend-strip";
 import { TopWins, type Win } from "./_components/dashboard/top-wins";
@@ -97,15 +99,63 @@ type RecentLearnVideo = {
   created_at: string;
 };
 
-function gbp(v: number): string {
-  const sign = v < 0 ? "-" : "";
-  return `${sign}£${Math.abs(v).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
-}
-function fmtMinutes(v: number): string {
-  return `${Math.round(v).toLocaleString()} min`;
-}
 function sevenDaysAgoIso(): string {
   return new Date(Date.now() - 7 * 86_400_000).toISOString();
+}
+
+/**
+ * Per-week impact for one intervention as of a given date (or "now" when
+ * omitted): prefer the metric-vs-baseline delta once a snapshot has been
+ * logged; until then fall back to the at-log estimate so a freshly entered
+ * initiative banks against its projected weekly run-rate immediately.
+ * Revenue is higher-better, so positive = uplift since baseline.
+ *
+ * This is the single source of "current weekly impact" - the headline stat
+ * tiles AND every trend-strip point run through it, so the two surfaces can
+ * never disagree about the same label.
+ */
+function weeklyImpact(
+  iv: Intervention,
+  baseline: { time: number; cost: number; revenue: number },
+  ivMetrics: Metric[] | undefined,
+  asOfIso?: string,
+): { minutes: number; gbp: number; revenue: number } {
+  // ivMetrics is newest-first; find the latest snapshot per field at or
+  // before the as-of date.
+  let lt: Metric | undefined;
+  let lc: Metric | undefined;
+  let lr: Metric | undefined;
+  for (const m of ivMetrics ?? []) {
+    if (asOfIso && m.snapshot_date > asOfIso) continue;
+    if (!lt && m.time_value != null) lt = m;
+    if (!lc && m.cost_value != null) lc = m;
+    if (!lr && m.revenue_value != null) lr = m;
+    if (lt && lc && lr) break;
+  }
+  // The estimate fallback only applies once the initiative existed at the
+  // as-of date - otherwise historical trend points would back-fill impact
+  // from before the initiative was logged.
+  const existed = !asOfIso || iv.created_at.slice(0, 10) <= asOfIso;
+  return {
+    minutes:
+      lt?.time_value != null
+        ? baseline.time - lt.time_value
+        : existed
+          ? iv.minutes_saved_per_week ?? 0
+          : 0,
+    gbp:
+      lc?.cost_value != null
+        ? baseline.cost - lc.cost_value
+        : existed
+          ? iv.estimated_gbp_saved_per_week ?? 0
+          : 0,
+    revenue:
+      lr?.revenue_value != null
+        ? lr.revenue_value - baseline.revenue
+        : existed
+          ? iv.estimated_revenue_per_week ?? 0
+          : 0,
+  };
 }
 
 export default async function Home() {
@@ -124,8 +174,6 @@ export default async function Home() {
     { data: recentSuggestions },
     { data: recentSuggestionComments },
     { data: recentLearnVideos },
-    { data: streamProfileRows },
-    { data: streamPeopleRows },
   ] = await Promise.all([
     supabase
       .from("ai_interventions")
@@ -143,6 +191,9 @@ export default async function Home() {
         "intervention_id, snapshot_date, time_value, cost_value, revenue_value",
       )
       .order("snapshot_date", { ascending: false })
+      // Safety cap only - newest-first ordering means the rows we'd drop at
+      // this ceiling are ancient snapshots that no tile or trend point reads.
+      .limit(5000)
       .returns<Metric[]>(),
     supabase
       .from("ai_interventions")
@@ -189,20 +240,16 @@ export default async function Home() {
       .order("created_at", { ascending: false })
       .limit(8)
       .returns<RecentLearnVideo[]>(),
-    supabase
-      .from("profiles")
-      .select("user_id, display_name")
-      .returns<{ user_id: string; display_name: string | null }[]>(),
-    supabase
-      .from("people")
-      .select("email, display_name")
-      .returns<{ email: string; display_name: string }[]>(),
   ]);
 
   // Collect every user_id that drives a "by Name" attribution in the
   // activity stream, then resolve emails in a single scoped RPC. The RPC
   // requires an explicit list of user_ids so any one caller can only
-  // enumerate names it has already proven access to.
+  // enumerate names it has already proven access to. Profiles are fetched
+  // for exactly these ids (not the whole table); the people directory read
+  // keeps a whole-table scan (email casing in the directory may not match
+  // auth emails, so an .in() filter could silently drop matches) but is
+  // capped well above any realistic company size.
   const streamUserIds = Array.from(
     new Set(
       [
@@ -215,10 +262,24 @@ export default async function Home() {
       ].filter((v): v is string => !!v),
     ),
   );
-  const { data: streamEmailRows } =
-    streamUserIds.length === 0
-      ? { data: [] as { user_id: string; email: string | null }[] }
-      : await supabase.rpc("user_emails", { p_user_ids: streamUserIds });
+  const [{ data: streamEmailRows }, { data: streamProfileRows }, { data: streamPeopleRows }] =
+    await Promise.all([
+      streamUserIds.length === 0
+        ? { data: [] as { user_id: string; email: string | null }[] }
+        : supabase.rpc("user_emails", { p_user_ids: streamUserIds }),
+      streamUserIds.length === 0
+        ? { data: [] as { user_id: string; display_name: string | null }[] }
+        : supabase
+            .from("profiles")
+            .select("user_id, display_name")
+            .in("user_id", streamUserIds)
+            .returns<{ user_id: string; display_name: string | null }[]>(),
+      supabase
+        .from("people")
+        .select("email, display_name")
+        .limit(2000)
+        .returns<{ email: string; display_name: string }[]>(),
+    ]);
 
   // Headcount drives the Reach metric's "X% of company" subtitle.
   const { count: peopleCount } = await supabase
@@ -257,19 +318,15 @@ export default async function Home() {
     baselineSums.set(b.intervention_id, cur);
   }
 
-  const latestTime = new Map<string, Metric>();
-  const latestCost = new Map<string, Metric>();
-  const latestRevenue = new Map<string, Metric>();
+  // Pre-bucket metrics by intervention so per-intervention lookups don't
+  // re-scan the full metrics array. Source query orders by snapshot_date
+  // desc, so each per-intervention slice is already newest-first (which
+  // weeklyImpact relies on).
+  const metricsByIntervention = new Map<string, Metric[]>();
   for (const m of metrics ?? []) {
-    if (m.time_value != null && !latestTime.has(m.intervention_id)) {
-      latestTime.set(m.intervention_id, m);
-    }
-    if (m.cost_value != null && !latestCost.has(m.intervention_id)) {
-      latestCost.set(m.intervention_id, m);
-    }
-    if (m.revenue_value != null && !latestRevenue.has(m.intervention_id)) {
-      latestRevenue.set(m.intervention_id, m);
-    }
+    const arr = metricsByIntervention.get(m.intervention_id);
+    if (arr) arr.push(m);
+    else metricsByIntervention.set(m.intervention_id, [m]);
   }
 
   let totalMinutes = 0;
@@ -300,28 +357,15 @@ export default async function Home() {
     }
     const baseline =
       baselineSums.get(iv.id) ?? { time: 0, cost: 0, revenue: 0 };
-    const lt = latestTime.get(iv.id);
-    const lc = latestCost.get(iv.id);
-    const lr = latestRevenue.get(iv.id);
-
-    // Per-week impact: prefer the metric-vs-baseline delta once a snapshot
-    // has been logged; until then fall back to the at-log estimate so a
-    // freshly entered or edited initiative banks against its projected
-    // weekly run-rate immediately. Revenue is higher-better, so positive
-    // = uplift since baseline. No confidence weighting - the raw number is
-    // what we report.
-    const ivMins =
-      lt?.time_value != null
-        ? baseline.time - lt.time_value
-        : iv.minutes_saved_per_week ?? 0;
-    const ivGbp =
-      lc?.cost_value != null
-        ? baseline.cost - lc.cost_value
-        : iv.estimated_gbp_saved_per_week ?? 0;
-    const ivRev =
-      lr?.revenue_value != null
-        ? lr.revenue_value - baseline.revenue
-        : iv.estimated_revenue_per_week ?? 0;
+    // No confidence weighting - the raw number is what we report.
+    const impact = weeklyImpact(
+      iv,
+      baseline,
+      metricsByIntervention.get(iv.id),
+    );
+    const ivMins = impact.minutes;
+    const ivGbp = impact.gbp;
+    const ivRev = impact.revenue;
 
     // All-time projection multiplies the per-week run-rate by weeks since
     // the initiative was logged. Step up in whole weeks so a freshly
@@ -367,20 +411,11 @@ export default async function Home() {
     })
     .slice(0, 5);
 
-  // Pre-bucket metrics by intervention so each trend point doesn't re-scan
-  // the full metrics array. Source query orders by snapshot_date desc, so
-  // each per-intervention slice is already newest-first.
-  const metricsByIntervention = new Map<string, Metric[]>();
-  for (const m of metrics ?? []) {
-    const arr = metricsByIntervention.get(m.intervention_id);
-    if (arr) arr.push(m);
-    else metricsByIntervention.set(m.intervention_id, [m]);
-  }
-
-  // Trend buckets: 13 weekly snapshots covering the last 12 weeks. For each
-  // bucket we re-roll the same baseline-vs-latest math but cap the latest
-  // metric at "as of this week-end" so the line shows how cumulative impact
-  // moved over time, not just today's number repeated.
+  // Trend buckets: 13 weekly snapshots covering the last 12 weeks. Each
+  // point runs the SAME weeklyImpact computation as the headline tiles
+  // (metric-vs-baseline once measured, at-log estimate until then), just
+  // capped at "as of this week-end" - so the trend's newest point always
+  // matches the tiles exactly.
   function totalsAsOf(asOfIso: string) {
     let mins = 0;
     let gbpAccum = 0;
@@ -389,21 +424,15 @@ export default async function Home() {
       if (iv.status === "retired") continue;
       const baseline =
         baselineSums.get(iv.id) ?? { time: 0, cost: 0, revenue: 0 };
-      const ivMetrics = metricsByIntervention.get(iv.id);
-      if (!ivMetrics) continue;
-      let lt: Metric | undefined;
-      let lc: Metric | undefined;
-      let lr: Metric | undefined;
-      for (const m of ivMetrics) {
-        if (m.snapshot_date > asOfIso) continue;
-        if (!lt && m.time_value != null) lt = m;
-        if (!lc && m.cost_value != null) lc = m;
-        if (!lr && m.revenue_value != null) lr = m;
-        if (lt && lc && lr) break;
-      }
-      if (lt?.time_value != null) mins += baseline.time - lt.time_value;
-      if (lc?.cost_value != null) gbpAccum += baseline.cost - lc.cost_value;
-      if (lr?.revenue_value != null) rev += lr.revenue_value - baseline.revenue;
+      const impact = weeklyImpact(
+        iv,
+        baseline,
+        metricsByIntervention.get(iv.id),
+        asOfIso,
+      );
+      mins += impact.minutes;
+      gbpAccum += impact.gbp;
+      rev += impact.revenue;
     }
     return { minutes: mins, gbp: gbpAccum, revenue: rev };
   }
@@ -427,7 +456,7 @@ export default async function Home() {
       format: fmtMinutes,
     },
     {
-      label: "GBP saved / week",
+      label: "£ saved / week",
       points: trendPoints.map((p) => ({ date: p.date, value: p.gbp })),
       format: gbp,
     },
@@ -556,15 +585,19 @@ export default async function Home() {
         <RedirectToast />
       </Suspense>
 
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-          Hi {firstName} <span aria-hidden>👋</span>
-        </h1>
-      </header>
+      <PageHeader
+        title={
+          <>
+            Hi {firstName} <span aria-hidden>👋</span>
+          </>
+        }
+      />
 
-      <section className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+      {/* 5 tiles: 2 + 2 + 1 full-width on small screens, one row of 5 on
+          lg+ - no orphaned tile at any breakpoint. */}
+      <section className="grid grid-cols-2 gap-4 lg:grid-cols-5">
         <Stat label="Minutes saved / week" value={fmtMinutes(totalMinutes)} />
-        <Stat label="GBP saved / week" value={gbp(totalGbp)} />
+        <Stat label="£ saved / week" value={gbp(totalGbp)} />
         <Stat label="Revenue generated / week" value={gbp(totalRevenue)} />
         <Stat
           label="People reached"
@@ -574,6 +607,7 @@ export default async function Home() {
         <Stat
           label="Active AI initiatives"
           value={activeCount.toLocaleString()}
+          className="col-span-2 lg:col-span-1"
         />
       </section>
 
@@ -593,21 +627,11 @@ export default async function Home() {
           <h2 className="text-sm font-semibold tracking-tight text-foreground">
             Recent activity
           </h2>
-          <span className="text-xs text-muted-foreground">
-            {streamTop.length === 0
-              ? "Past 7 days"
-              : `Past 7 days · ${streamTop.length} ${
-                  streamTop.length === 1 ? "event" : "events"
-                }`}
-          </span>
+          {/* The stream is capped at 10, so don't present the rendered
+              count as a total. */}
+          <span className="text-xs text-muted-foreground">Past 7 days</span>
         </div>
-        {streamTop.length === 0 ? (
-          <p className="px-4 py-6 text-center text-xs text-muted-foreground">
-            Nothing logged in the last week.
-          </p>
-        ) : (
-          <ActivityStream items={streamTop} />
-        )}
+        <ActivityStream items={streamTop} />
       </section>
     </PageContainer>
   );
@@ -617,13 +641,17 @@ function Stat({
   label,
   value,
   subtitle,
+  className,
 }: {
   label: string;
   value: string;
   subtitle?: string;
+  className?: string;
 }) {
   return (
-    <div className="rounded-lg border border-border bg-background p-4">
+    <div
+      className={cn("rounded-lg border border-border bg-background p-4", className)}
+    >
       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
         {label}
       </p>

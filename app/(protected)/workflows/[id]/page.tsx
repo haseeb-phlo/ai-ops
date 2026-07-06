@@ -16,6 +16,7 @@ import {
   type LinkedIntervention,
 } from "./_components/linked-interventions";
 import { Activity, type ActivityRevision } from "./_components/activity";
+import { DismissableAlert } from "@/components/ui/dismissable-alert";
 import { DetailHeader } from "@/components/ui/detail-header";
 
 export default async function WorkflowDetailPage({
@@ -37,6 +38,7 @@ export default async function WorkflowDetailPage({
     { data: steps },
     { data: interventionLinks },
     { data: revisions },
+    { data: directoryPeople },
   ] = await Promise.all([
     supabase
       .from("workflows")
@@ -69,15 +71,30 @@ export default async function WorkflowDetailPage({
     supabase
       .from("step_revisions")
       .select(
-        "id, step_id, field, old_value, new_value, changed_by_email, changed_at, workflow_steps(title)",
+        "id, step_id, field, old_value, new_value, changed_by, changed_by_email, changed_at, workflow_steps(title)",
       )
       .eq("workflow_id", id)
       .order("changed_at", { ascending: false })
       .limit(20)
       .returns<
-        (Omit<ActivityRevision, "step_title"> & {
+        (Omit<ActivityRevision, "step_title" | "changed_by_label"> & {
+          changed_by: string | null;
           workflow_steps: { title: string } | null;
         })[]
+      >(),
+    // Company directory: powers the edit dialog's people picker and the
+    // people-name leg of every display-name resolution on this page.
+    supabase
+      .from("people")
+      .select("email, display_name, title, team")
+      .order("display_name", { ascending: true })
+      .returns<
+        {
+          email: string;
+          display_name: string;
+          title: string | null;
+          team: string | null;
+        }[]
       >(),
   ]);
 
@@ -85,42 +102,66 @@ export default async function WorkflowDetailPage({
     notFound();
   }
 
-  // Resolve created_by → display name. Three sources, in priority:
-  // - profiles.display_name (user-set), unless still on the email-local default
-  // - people.display_name (canonical org directory)
-  // - email (last-resort)
-  // Falls back to null for legacy rows where created_by is unset.
-  let loggedByLabel: string | null = null;
-  if (workflow.created_by) {
-    const [{ data: ownerProfile }, { data: emails }] = await Promise.all([
+  const peopleByEmail = new Map<string, string>();
+  for (const p of directoryPeople ?? []) {
+    if (p.email && p.display_name) {
+      peopleByEmail.set(p.email.trim().toLowerCase(), p.display_name);
+    }
+  }
+  const pickerPeople = (directoryPeople ?? []).map((p) => ({
+    email: p.email,
+    displayName: p.display_name,
+    title: p.title,
+    team: p.team,
+  }));
+
+  // Resolve every user id referenced on this page (workflow creator +
+  // revision actors) to a display name in one pass, via the standard
+  // profile → people-directory → email chain.
+  const userIds = new Set<string>();
+  if (workflow.created_by) userIds.add(workflow.created_by);
+  for (const r of revisions ?? []) {
+    if (r.changed_by) userIds.add(r.changed_by);
+  }
+
+  const profileById = new Map<string, string | null>();
+  const emailById = new Map<string, string | null>();
+  if (userIds.size > 0) {
+    const ids = Array.from(userIds);
+    const [{ data: profiles }, { data: emails }] = await Promise.all([
       supabase
         .from("profiles")
-        .select("display_name")
-        .eq("user_id", workflow.created_by)
-        .maybeSingle<{ display_name: string | null }>(),
-      supabase.rpc("user_emails", { p_user_ids: [workflow.created_by] }),
+        .select("user_id, display_name")
+        .in("user_id", ids)
+        .returns<{ user_id: string; display_name: string | null }[]>(),
+      supabase.rpc("user_emails", { p_user_ids: ids }),
     ]);
-    const emailRows = (emails ?? []) as Array<{
+    for (const p of profiles ?? []) profileById.set(p.user_id, p.display_name);
+    for (const e of (emails ?? []) as {
       user_id: string;
       email: string | null;
-    }>;
-    const creatorEmail = emailRows[0]?.email ?? null;
-    let peopleName: string | null = null;
-    if (creatorEmail) {
-      const { data: peopleRow } = await supabase
-        .from("people")
-        .select("display_name")
-        .ilike("email", creatorEmail)
-        .maybeSingle<{ display_name: string | null }>();
-      peopleName = peopleRow?.display_name ?? null;
+    }[]) {
+      emailById.set(e.user_id, e.email);
     }
-    const resolved = resolveDisplayName(
-      ownerProfile?.display_name,
-      peopleName,
-      creatorEmail,
-    );
-    loggedByLabel = resolved || null;
   }
+
+  function labelFor(
+    userId: string | null,
+    fallbackEmail: string | null,
+  ): string | null {
+    const email = (userId ? emailById.get(userId) : null) ?? fallbackEmail;
+    const peopleName = email
+      ? peopleByEmail.get(email.trim().toLowerCase()) ?? null
+      : null;
+    const resolved = resolveDisplayName(
+      userId ? profileById.get(userId) : null,
+      peopleName,
+      email,
+    );
+    return resolved || null;
+  }
+
+  const loggedByLabel = labelFor(workflow.created_by, null);
 
   const [teams, toolSuggestions] = await Promise.all([
     loadTeamOptions(supabase, workflow.team),
@@ -157,6 +198,7 @@ export default async function WorkflowDetailPage({
       old_value: r.old_value,
       new_value: r.new_value,
       changed_by_email: r.changed_by_email,
+      changed_by_label: labelFor(r.changed_by, r.changed_by_email),
       changed_at: r.changed_at,
       step_title: r.workflow_steps?.title ?? null,
     })) ?? [];
@@ -172,6 +214,7 @@ export default async function WorkflowDetailPage({
         <HeaderCard
           workflow={workflow}
           teams={teams}
+          people={pickerPeople}
           canEdit={canEdit}
           canDelete={canDelete}
           loggedByLabel={loggedByLabel}
@@ -182,11 +225,10 @@ export default async function WorkflowDetailPage({
           toolSuggestions={toolSuggestions}
         />
         {stepExtractionFailed && (
-          <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-            <strong>Heads up:</strong> the workflow saved, but Claude
-            couldn&apos;t extract steps from your walk-through. Add steps
-            manually below.
-          </p>
+          <DismissableAlert param="stepExtractionFailed" variant="warning">
+            The workflow saved, but the steps couldn&apos;t be extracted
+            automatically. Add them manually below.
+          </DismissableAlert>
         )}
         <MetricsStrip metrics={metrics ?? null} />
         <StepsTable

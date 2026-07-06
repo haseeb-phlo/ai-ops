@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { GripVertical, X } from "lucide-react";
+import { ArrowDown, ArrowUp, GripVertical, X } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
@@ -28,6 +28,9 @@ function stripPrefix(line: string): string {
  * adding a step is zero-click - just type. Multi-line paste into an empty
  * row splits into one step per non-empty line; "1.", "1)", "-", "*", "•"
  * leading markers are stripped so a numbered list pastes cleanly.
+ *
+ * Reordering: HTML5 drag for mouse users, plus visible ↑/↓ buttons per row
+ * as the keyboard/touch path.
  *
  * Form serialization: hidden inputs `step_titles[]` + `step_descriptions[]`
  * in the same DOM order, zipped index-by-index server-side.
@@ -69,6 +72,27 @@ export function StepEditor({
       if (next.length === 0 || next[next.length - 1].title.trim() !== "") {
         next.push(newStep());
       }
+      return next;
+    });
+  }
+
+  // Keyboard/touch path for reordering (drag stays as the mouse shortcut).
+  function moveStep(key: string, direction: "up" | "down") {
+    setSteps((prev) => {
+      const idx = prev.findIndex((s) => s.key === key);
+      if (idx === -1) return prev;
+      const target = direction === "up" ? idx - 1 : idx + 1;
+      if (target < 0 || target >= prev.length) return prev;
+      // Never swap with the trailing empty placeholder - it must stay last.
+      const targetStep = prev[target];
+      if (
+        targetStep.title.trim() === "" &&
+        target === prev.length - 1
+      ) {
+        return prev;
+      }
+      const next = [...prev];
+      [next[idx], next[target]] = [next[target], next[idx]];
       return next;
     });
   }
@@ -174,11 +198,18 @@ export function StepEditor({
     setDragOverKey(null);
   }
 
+  // Index of the last committed (non-placeholder) row, for disabling the
+  // "move down" button at the boundary.
+  const lastIsPlaceholder =
+    steps.length > 0 && steps[steps.length - 1].title.trim() === "";
+  const lastCommittedIdx = steps.length - (lastIsPlaceholder ? 2 : 1);
+
   return (
     <div className="space-y-2">
       <p className="text-xs text-muted-foreground">
         Press Enter to jump to the description; press Enter again for the next
-        step. Paste a numbered list to fill multiple steps at once.
+        step. Paste a numbered list to fill multiple steps at once. Use the
+        arrows (or drag) to reorder.
       </p>
 
       <ul className="space-y-1.5">
@@ -197,7 +228,7 @@ export function StepEditor({
               className={cn(
                 "group flex items-start gap-2 rounded-md border p-2 transition-colors",
                 isPlaceholder
-                  ? "border-dashed border-border bg-muted/40/40"
+                  ? "border-dashed border-border bg-muted/40"
                   : "border-border bg-background hover:border-input",
                 dragKey === step.key && "opacity-40",
                 dragOverKey === step.key && "border-foreground",
@@ -206,7 +237,7 @@ export function StepEditor({
               <span
                 aria-hidden
                 className={cn(
-                  "mt-2 select-none font-mono text-[10px] tabular-nums text-muted-foreground",
+                  "mt-2 select-none font-mono text-xs tabular-nums text-muted-foreground",
                   isPlaceholder && "opacity-30",
                 )}
               >
@@ -225,6 +256,7 @@ export function StepEditor({
                   }
                   onKeyDown={(e) => handleTitleKey(step.key, e)}
                   onPaste={(e) => handlePaste(step.key, e)}
+                  aria-label={`Step ${number} title`}
                   placeholder={
                     isPlaceholder ? "Add the next step…" : "Step title"
                   }
@@ -242,6 +274,7 @@ export function StepEditor({
                       updateStep(step.key, { description: e.target.value })
                     }
                     onKeyDown={(e) => handleDescKey(step.key, e)}
+                    aria-label={`Step ${number} description`}
                     placeholder="Optional description"
                     rows={1}
                     maxLength={2000}
@@ -252,14 +285,34 @@ export function StepEditor({
 
               <div className="flex items-center gap-0.5 self-center">
                 {!isPlaceholder && (
-                  <button
-                    type="button"
-                    aria-label="Remove step"
-                    onClick={() => removeStep(step.key)}
-                    className="rounded p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-muted hover:text-foreground group-hover:opacity-100"
-                  >
-                    <X className="size-3.5" />
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      aria-label={`Move step ${number} up`}
+                      disabled={idx === 0}
+                      onClick={() => moveStep(step.key, "up")}
+                      className="rounded p-1 text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-30 disabled:hover:bg-transparent"
+                    >
+                      <ArrowUp className="size-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`Move step ${number} down`}
+                      disabled={idx >= lastCommittedIdx}
+                      onClick={() => moveStep(step.key, "down")}
+                      className="rounded p-1 text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-30 disabled:hover:bg-transparent"
+                    >
+                      <ArrowDown className="size-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`Remove step ${number}`}
+                      onClick={() => removeStep(step.key)}
+                      className="rounded p-1 text-muted-foreground opacity-0 outline-none transition-opacity hover:bg-muted hover:text-foreground focus-visible:opacity-100 focus-visible:ring-3 focus-visible:ring-ring/50 group-hover:opacity-100"
+                    >
+                      <X className="size-3.5" />
+                    </button>
+                  </>
                 )}
                 <span
                   aria-hidden

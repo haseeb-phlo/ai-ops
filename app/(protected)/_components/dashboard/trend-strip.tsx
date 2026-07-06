@@ -1,3 +1,6 @@
+import { TrendingUp } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
+
 type Point = { date: string; value: number };
 
 type Series = {
@@ -8,20 +11,25 @@ type Series = {
 
 /**
  * 3-up trend strip on the home dashboard. Each card is a small SVG line
- * over the last 90 days for one of the headline metrics (minutes saved /
- * GBP saved / revenue generated). Inline SVG keeps the bundle empty and
+ * over the last 12 weeks for one of the headline metrics (minutes saved /
+ * £ saved / revenue generated). Inline SVG keeps the bundle empty and
  * the visual weight low; the strip's job is to answer "is it trending up
  * or flat?" at a glance, not to be a precise analytics surface.
- *
- * Hidden when there's no data for any series so first-time users don't
- * see flat zeroes - same empty-state pattern the other dashboard rails
- * use.
  */
 export function TrendStrip({ series }: { series: Series[] }) {
   const hasAnyData = series.some((s) =>
     s.points.some((p) => p.value !== 0),
   );
-  if (!hasAnyData) return null;
+  if (!hasAnyData) {
+    return (
+      <EmptyState
+        className="py-8"
+        icon={<TrendingUp aria-hidden />}
+        title="No trends yet"
+        description="Weekly trend lines appear here once AI initiatives start logging impact."
+      />
+    );
+  }
 
   return (
     <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -51,7 +59,7 @@ function TrendCard({ series }: { series: Series }) {
       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
         {label}
       </p>
-      <Sparkline points={points} className="mt-2 h-20 w-full" />
+      <Sparkline series={series} className="mt-2 h-20 w-full" />
       <div className="mt-2 flex items-baseline justify-between">
         <span className="text-sm tabular-nums text-foreground">
           {format(last)}
@@ -70,7 +78,7 @@ function TrendCard({ series }: { series: Series }) {
           {deltaPct == null
             ? ""
             : ` (${deltaIsUp ? "+" : ""}${deltaPct}%)`}{" "}
-          vs 90d ago
+          vs 12 wks ago
         </span>
       </div>
       <p className="mt-2 border-t border-border pt-2 text-xs text-muted-foreground tabular-nums">
@@ -82,12 +90,13 @@ function TrendCard({ series }: { series: Series }) {
 }
 
 function Sparkline({
-  points,
+  series,
   className,
 }: {
-  points: Point[];
+  series: Series;
   className?: string;
 }) {
+  const { points, label, format } = series;
   const width = 280;
   const height = 80;
   const padding = 4;
@@ -102,19 +111,35 @@ function Sparkline({
   const range = max - min || 1;
 
   const xStep = (width - padding * 2) / Math.max(points.length - 1, 1);
+  const toY = (value: number) =>
+    padding + (1 - (value - min) / range) * (height - padding * 2);
   const coords = points.map((p, i) => {
     const x = padding + i * xStep;
     // Map value into chart space; flip y because SVG y grows downwards.
-    const y = padding + (1 - (p.value - min) / range) * (height - padding * 2);
-    return { x, y };
+    return { x, y: toY(p.value) };
   });
+
+  // True y of value=0 in chart space. min/max are clamped to include 0
+  // above, so it's always in range - but guard anyway so a future scale
+  // change can't silently draw the baseline in the wrong place.
+  const zeroInRange = min <= 0 && max >= 0;
+  const zeroY = toY(0);
 
   const linePath = coords
     .map((c, i) => `${i === 0 ? "M" : "L"} ${c.x.toFixed(2)} ${c.y.toFixed(2)}`)
     .join(" ");
   const last = coords[coords.length - 1];
   const first = coords[0];
-  const areaPath = `${linePath} L ${last.x.toFixed(2)} ${(height - padding).toFixed(2)} L ${first.x.toFixed(2)} ${(height - padding).toFixed(2)} Z`;
+  // Close the area against the zero baseline (not the chart bottom) so
+  // negative dips fill downwards-from-zero instead of pretending to be
+  // positive area.
+  const areaBaseY = zeroInRange ? zeroY : height - padding;
+  const areaPath = `${linePath} L ${last.x.toFixed(2)} ${areaBaseY.toFixed(2)} L ${first.x.toFixed(2)} ${areaBaseY.toFixed(2)} Z`;
+
+  const lastValue = points[points.length - 1].value;
+  const firstValue = points[0].value;
+  const direction =
+    lastValue > firstValue ? "up" : lastValue < firstValue ? "down" : "flat";
 
   return (
     <svg
@@ -122,33 +147,30 @@ function Sparkline({
       className={className}
       preserveAspectRatio="none"
       role="img"
-      aria-label={`Trend over ${points.length} weeks`}
+      aria-label={`${label} trend, currently ${format(lastValue)}, ${direction} over 12 weeks`}
     >
-      {/* Baseline grid line at value=0 (or chart bottom if all positive) */}
-      <line
-        x1={padding}
-        x2={width - padding}
-        y1={height - padding}
-        y2={height - padding}
-        stroke="rgb(228 228 231)"
-        strokeWidth="1"
-      />
-      <path d={areaPath} fill="rgb(24 24 27 / 0.05)" />
+      {/* Baseline grid line at value=0. */}
+      {zeroInRange && (
+        <line
+          x1={padding}
+          x2={width - padding}
+          y1={zeroY}
+          y2={zeroY}
+          stroke="var(--border)"
+          strokeWidth="1"
+        />
+      )}
+      <path d={areaPath} fill="var(--foreground)" fillOpacity="0.05" />
       <path
         d={linePath}
         fill="none"
-        stroke="rgb(24 24 27)"
+        stroke="var(--foreground)"
         strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
       {/* Last-point dot to anchor the eye on "today's value". */}
-      <circle
-        cx={last.x}
-        cy={last.y}
-        r="2.5"
-        fill="rgb(24 24 27)"
-      />
+      <circle cx={last.x} cy={last.y} r="2.5" fill="var(--foreground)" />
     </svg>
   );
 }

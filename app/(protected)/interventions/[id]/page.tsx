@@ -5,15 +5,22 @@ import { createClient } from "@/lib/supabase/server";
 import { getSessionUser } from "@/lib/auth";
 import { resolveDisplayName } from "@/lib/profile";
 import { Badge } from "@/components/ui/badge";
+import { Time } from "@/components/ui/time";
 import { DetailHeader } from "@/components/ui/detail-header";
+import { CommentForm } from "@/components/comments/comment-form";
+import { CommentRow } from "@/components/comments/comment-row";
 import { toTitle } from "@/lib/utils";
 import { formatCadence } from "@/lib/frequency";
+import { INTERVENTION_STATUS } from "@/lib/status";
 import { LogMetricSnapshotButton } from "./_components/log-metric-snapshot-button";
 import { EditInterventionDialog } from "./_components/edit-intervention-dialog";
 import { StatusButton } from "./_components/status-button";
 import { DeleteInterventionButton } from "./_components/delete-intervention-button";
-import { InterventionCommentForm } from "./_components/comment-form";
-import { InterventionCommentRow } from "./_components/comment-row";
+import { DismissableAlert } from "@/components/ui/dismissable-alert";
+import {
+  createInterventionComment,
+  deleteInterventionComment,
+} from "./actions";
 
 type InterventionType =
   | "tool"
@@ -54,6 +61,7 @@ type Intervention = {
 
 type EditRow = {
   id: string;
+  actor_id: string | null;
   actor_email: string | null;
   action: "edit" | "status_change";
   field: string | null;
@@ -102,17 +110,11 @@ type MetricRow = {
   notes: string | null;
 };
 
-type CommentRow = {
+type CommentRowData = {
   id: string;
   body: string;
   created_at: string;
   created_by: string | null;
-};
-
-const STATUS_DOT: Record<Status, string> = {
-  active: "bg-emerald-500",
-  paused: "bg-amber-500",
-  retired: "bg-muted-foreground/60",
 };
 
 export default async function InterventionDetailPage({
@@ -136,6 +138,7 @@ export default async function InterventionDetailPage({
     { data: edits },
     { data: addressedSuggestions },
     { data: comments },
+    { data: directoryPeople },
   ] = await Promise.all([
     supabase
       .from("ai_interventions")
@@ -166,7 +169,9 @@ export default async function InterventionDetailPage({
       .returns<MetricRow[]>(),
     supabase
       .from("intervention_edits")
-      .select("id, actor_email, action, field, old_value, new_value, created_at")
+      .select(
+        "id, actor_id, actor_email, action, field, old_value, new_value, created_at",
+      )
       .eq("intervention_id", id)
       .order("created_at", { ascending: false })
       .limit(20)
@@ -190,44 +195,95 @@ export default async function InterventionDetailPage({
       .select("id, body, created_at, created_by")
       .eq("intervention_id", id)
       .order("created_at", { ascending: true })
-      .returns<CommentRow[]>(),
+      .returns<CommentRowData[]>(),
+    // Company directory: powers the edit dialog's people picker and the
+    // people-name leg of every display-name resolution on this page.
+    supabase
+      .from("people")
+      .select("email, display_name, title, team")
+      .order("display_name", { ascending: true })
+      .returns<
+        {
+          email: string;
+          display_name: string;
+          title: string | null;
+          team: string | null;
+        }[]
+      >(),
   ]);
 
   if (!intervention) {
     notFound();
   }
 
-  // People picker source for the edit dialog. Cheap (~one row per
-  // employee); avoids prop-drilling people through the whole page tree.
-  const { data: directoryPeople } = await supabase
-    .from("people")
-    .select("email, display_name, title, team")
-    .order("display_name", { ascending: true })
-    .returns<
-      {
-        email: string;
-        display_name: string;
-        title: string | null;
-        team: string | null;
-      }[]
-    >();
   const pickerPeople = (directoryPeople ?? []).map((p) => ({
     email: p.email,
     displayName: p.display_name,
     title: p.title,
     team: p.team,
   }));
-
-  let ownerDisplayName: string | null = null;
-  if (intervention.created_by) {
-    const { data: ownerProfile } = await supabase
-      .from("profiles")
-      .select("display_name")
-      .eq("user_id", intervention.created_by)
-      .maybeSingle<{ display_name: string | null }>();
-    ownerDisplayName = ownerProfile?.display_name?.trim() || null;
+  const peopleByEmail = new Map<string, string>();
+  for (const p of directoryPeople ?? []) {
+    if (p.email && p.display_name) {
+      peopleByEmail.set(p.email.trim().toLowerCase(), p.display_name);
+    }
   }
-  const ownerLabel = ownerDisplayName ?? intervention.owner;
+
+  const commentRows = comments ?? [];
+  const editRows = edits ?? [];
+
+  // Resolve every user referenced on this page (creator, commenters, edit
+  // actors) through the same profile → people → email chain the rest of
+  // the app uses, in one batched pass.
+  const userIds = new Set<string>();
+  if (intervention.created_by) userIds.add(intervention.created_by);
+  for (const c of commentRows) {
+    if (c.created_by) userIds.add(c.created_by);
+  }
+  for (const e of editRows) {
+    if (e.actor_id) userIds.add(e.actor_id);
+  }
+
+  const profileById = new Map<string, string | null>();
+  const emailById = new Map<string, string | null>();
+  if (userIds.size > 0) {
+    const ids = Array.from(userIds);
+    const [{ data: profiles }, { data: emails }] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("user_id, display_name")
+        .in("user_id", ids)
+        .returns<{ user_id: string; display_name: string | null }[]>(),
+      supabase.rpc("user_emails", { p_user_ids: ids }),
+    ]);
+    for (const p of profiles ?? []) {
+      profileById.set(p.user_id, p.display_name);
+    }
+    for (const r of (emails ?? []) as {
+      user_id: string;
+      email: string | null;
+    }[]) {
+      emailById.set(r.user_id, r.email);
+    }
+  }
+
+  function labelFor(
+    userId: string | null,
+    fallbackEmail: string | null = null,
+  ): string | null {
+    const email = (userId ? emailById.get(userId) : null) ?? fallbackEmail;
+    const peopleName = email
+      ? peopleByEmail.get(email.trim().toLowerCase()) ?? null
+      : null;
+    const resolved = resolveDisplayName(
+      userId ? profileById.get(userId) : null,
+      peopleName,
+      email,
+    );
+    return resolved || null;
+  }
+
+  const ownerLabel = labelFor(intervention.created_by) ?? intervention.owner;
 
   // Mirror of public.can_edit_intervention(): super_admin / champion of
   // record (created_by) / a champion for any linked-workflow team.
@@ -282,60 +338,10 @@ export default async function InterventionDetailPage({
     (baselines ?? []).map((b) => [b.workflow_id, b]),
   );
   const metricRows = metrics ?? [];
-  const commentRows = comments ?? [];
 
-  // Resolve commenter names through the same profile -> people -> email
-  // chain the rest of the app uses. Only the commenters that actually
-  // appear on this thread are queried, in a single scoped RPC.
-  const commenterIds = Array.from(
-    new Set(
-      commentRows
-        .map((c) => c.created_by)
-        .filter((v): v is string => !!v),
-    ),
-  );
-  const commenterNameById = new Map<string, string>();
-  if (commenterIds.length > 0) {
-    const [{ data: commentProfiles }, { data: commentEmails }, { data: commentPeople }] =
-      await Promise.all([
-        supabase
-          .from("profiles")
-          .select("user_id, display_name")
-          .in("user_id", commenterIds)
-          .returns<{ user_id: string; display_name: string | null }[]>(),
-        supabase.rpc("user_emails", { p_user_ids: commenterIds }),
-        supabase
-          .from("people")
-          .select("email, display_name")
-          .returns<{ email: string; display_name: string }[]>(),
-      ]);
-    const profileById = new Map<string, string | null>();
-    for (const p of commentProfiles ?? []) {
-      profileById.set(p.user_id, p.display_name);
-    }
-    const emailById = new Map<string, string | null>();
-    for (const r of (commentEmails ?? []) as {
-      user_id: string;
-      email: string | null;
-    }[]) {
-      emailById.set(r.user_id, r.email);
-    }
-    const peopleByEmail = new Map<string, string>();
-    for (const p of commentPeople ?? []) {
-      if (p.email && p.display_name) {
-        peopleByEmail.set(p.email.trim().toLowerCase(), p.display_name);
-      }
-    }
-    for (const uid of commenterIds) {
-      const email = emailById.get(uid) ?? null;
-      const peopleName = email
-        ? peopleByEmail.get(email.trim().toLowerCase()) ?? null
-        : null;
-      const label = resolveDisplayName(profileById.get(uid), peopleName, email);
-      if (label) commenterNameById.set(uid, label);
-    }
-  }
-  const editRows = edits ?? [];
+  const statusStyle = intervention.status
+    ? INTERVENTION_STATUS[intervention.status]
+    : null;
 
   return (
     <div className="mx-auto w-full max-w-5xl px-6 py-6">
@@ -347,14 +353,14 @@ export default async function InterventionDetailPage({
       <div className="space-y-6">
 
       {deleteFailed && (
-        <p
-          role="alert"
-          className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800"
+        <DismissableAlert
+          param="deleteFailed"
+          variant={deleteFailed === "permission" ? "warning" : "destructive"}
         >
           {deleteFailed === "permission"
-            ? "Only super-admins can delete an AI initiative."
-            : "Could not delete this AI initiative. The database delete policy may not be applied yet - apply supabase/ai_interventions_delete_policy_migration.sql in the Supabase SQL editor and try again."}
-        </p>
+            ? "Only super admins can delete an AI initiative."
+            : "Couldn't delete this AI initiative — a database policy is missing. Contact an admin."}
+        </DismissableAlert>
       )}
 
       {/* Full card */}
@@ -365,20 +371,16 @@ export default async function InterventionDetailPage({
               <h1 className="text-2xl font-semibold tracking-tight text-foreground">
                 {intervention.name}
               </h1>
+              {statusStyle && (
+                <Badge className={statusStyle.badgeClassName}>
+                  {statusStyle.label}
+                </Badge>
+              )}
               {(intervention.types ?? []).map((t) => (
                 <Badge key={t} variant="secondary">
                   {toTitle(t)}
                 </Badge>
               ))}
-              {intervention.status && (
-                <span className="inline-flex items-center gap-1.5 text-xs text-foreground">
-                  <span
-                    aria-hidden
-                    className={`size-1.5 rounded-full ${STATUS_DOT[intervention.status]}`}
-                  />
-                  {toTitle(intervention.status)}
-                </span>
-              )}
             </div>
 
             {intervention.description && (
@@ -400,10 +402,14 @@ export default async function InterventionDetailPage({
                   )}
                 </dd>
               </div>
-              <Field
-                label="Logged on"
-                value={format(new Date(intervention.created_at), "d MMM yyyy")}
-              />
+              <div>
+                <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Logged on
+                </dt>
+                <dd className="text-foreground">
+                  <Time iso={intervention.created_at} />
+                </dd>
+              </div>
               <Field
                 label="Frequency"
                 value={formatCadence(
@@ -484,6 +490,7 @@ export default async function InterventionDetailPage({
                   interventionId={intervention.id}
                   status={intervention.status ?? "active"}
                 />
+                <LogMetricSnapshotButton interventionId={intervention.id} />
               </>
             )}
             {user.role === "super_admin" && (
@@ -492,7 +499,6 @@ export default async function InterventionDetailPage({
                 interventionName={intervention.name}
               />
             )}
-            <LogMetricSnapshotButton interventionId={intervention.id} />
           </div>
         </div>
       </section>
@@ -623,26 +629,29 @@ export default async function InterventionDetailPage({
           ) : (
             <ul className="divide-y divide-border">
               {commentRows.map((c) => (
-                <InterventionCommentRow
+                <CommentRow
                   key={c.id}
-                  id={c.id}
-                  interventionId={intervention.id}
+                  commentId={c.id}
                   body={c.body}
-                  authorName={
-                    (c.created_by && commenterNameById.get(c.created_by)) ??
-                    "Unknown"
-                  }
+                  authorName={labelFor(c.created_by) ?? "Someone"}
                   createdAt={c.created_at}
                   canDelete={
                     user.realRole === "super_admin" ||
                     c.created_by === user.id
                   }
+                  deleteAction={deleteInterventionComment}
+                  hiddenFieldName="intervention_id"
+                  hiddenFieldValue={intervention.id}
                 />
               ))}
             </ul>
           )}
           <div className="border-t border-border px-4 py-3">
-            <InterventionCommentForm interventionId={intervention.id} />
+            <CommentForm
+              action={createInterventionComment}
+              hiddenFieldName="intervention_id"
+              hiddenFieldValue={intervention.id}
+            />
           </div>
         </div>
       </section>
@@ -664,7 +673,7 @@ export default async function InterventionDetailPage({
                   <div className="flex items-baseline justify-between gap-2">
                     <span className="text-foreground">
                       <span className="font-medium">
-                        {e.actor_email ?? "Unknown"}
+                        {labelFor(e.actor_id, e.actor_email) ?? "Someone"}
                       </span>{" "}
                       <span className="text-muted-foreground">
                         {e.action === "status_change"
@@ -672,20 +681,13 @@ export default async function InterventionDetailPage({
                           : `edited ${e.field?.replaceAll("_", " ")}`}
                       </span>
                     </span>
-                    <span className="text-xs text-muted-foreground tabular-nums">
-                      {format(new Date(e.created_at), "d MMM yyyy, HH:mm")}
-                    </span>
+                    <Time
+                      iso={e.created_at}
+                      relative
+                      className="text-xs text-muted-foreground tabular-nums"
+                    />
                   </div>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    <span className="text-muted-foreground">from</span>{" "}
-                    <span className="text-foreground">
-                      {e.old_value ?? "-"}
-                    </span>{" "}
-                    <span className="text-muted-foreground">to</span>{" "}
-                    <span className="text-foreground">
-                      {e.new_value ?? "-"}
-                    </span>
-                  </p>
+                  <DiffChips oldValue={e.old_value} newValue={e.new_value} />
                 </li>
               ))}
             </ul>
@@ -693,6 +695,33 @@ export default async function InterventionDetailPage({
         </div>
       </section>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Old → new value rendered as colored diff chips - same treatment as the
+ * workflow Activity feed, so the two audit surfaces share one visual
+ * grammar.
+ */
+function DiffChips({
+  oldValue,
+  newValue,
+}: {
+  oldValue: string | null;
+  newValue: string | null;
+}) {
+  return (
+    <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
+      <span className="rounded bg-red-50 px-1.5 py-0.5 text-red-800 ring-1 ring-inset ring-red-200 line-through">
+        {oldValue ?? "-"}
+      </span>
+      <span className="text-muted-foreground" aria-hidden>
+        →
+      </span>
+      <span className="rounded bg-green-50 px-1.5 py-0.5 text-green-800 ring-1 ring-inset ring-green-200">
+        {newValue ?? "-"}
+      </span>
     </div>
   );
 }
@@ -769,7 +798,7 @@ function BreakdownLine({
   return (
     <div className="space-y-0.5">
       {label && (
-        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+        <p className="text-xs uppercase tracking-wide text-muted-foreground">
           {label}
         </p>
       )}

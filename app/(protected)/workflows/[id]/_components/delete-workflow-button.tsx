@@ -8,8 +8,12 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { softDeleteWorkflow } from "../../actions";
 
 export function DeleteWorkflowButton({
@@ -27,6 +31,7 @@ export function DeleteWorkflowButton({
   const canConfirm = confirmText.trim() === workflowName.trim();
 
   function handleOpenChange(next: boolean) {
+    if (isPending) return;
     setOpen(next);
     if (!next) {
       setConfirmText("");
@@ -46,73 +51,59 @@ export function DeleteWorkflowButton({
   }
 
   return (
-    <>
-      <Button
-        type="button"
-        variant="outline"
-        onClick={() => setOpen(true)}
-        className="border-red-200 text-red-700 hover:bg-red-50"
-      >
-        Delete
-      </Button>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogTrigger
+        render={
+          <Button type="button" variant="destructive">
+            Delete
+          </Button>
+        }
+      />
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Delete this workflow?</DialogTitle>
+          <DialogDescription>
+            <strong>{workflowName}</strong> and its history stay in the
+            database, but it is hidden everywhere in the app. A super admin
+            can restore it from the Admin tab.
+          </DialogDescription>
+        </DialogHeader>
 
-      <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Delete this workflow?</DialogTitle>
-            <DialogDescription>
-              The workflow and its history stay in the database, but it is
-              hidden everywhere in the app. A super admin can restore it from
-              the Admin tab.
-            </DialogDescription>
-          </DialogHeader>
+        <div className="space-y-1.5">
+          <Label htmlFor="confirm-workflow-name">
+            Type the workflow name to confirm
+          </Label>
+          <Input
+            id="confirm-workflow-name"
+            type="text"
+            value={confirmText}
+            onChange={(e) => setConfirmText(e.target.value)}
+            placeholder="Workflow name"
+            autoComplete="off"
+          />
+        </div>
 
-          <div className="space-y-2 text-sm">
-            <p className="text-foreground">
-              Type{" "}
-              <span className="rounded bg-muted px-1 font-medium text-foreground">
-                {workflowName}
-              </span>{" "}
-              to confirm.
-            </p>
-            <input
-              type="text"
-              value={confirmText}
-              onChange={(e) => setConfirmText(e.target.value)}
-              className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-              placeholder={workflowName}
-            />
-          </div>
+        {error && <Alert variant="destructive">{error}</Alert>}
 
-          {error && (
-            <p
-              role="alert"
-              className="rounded-md border border-red-200 bg-red-50 p-2 text-xs text-red-700"
-            >
-              {error}
-            </p>
-          )}
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => handleOpenChange(false)}
-              disabled={isPending}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              onClick={handleConfirm}
-              disabled={!canConfirm || isPending}
-              className="bg-red-600 text-white hover:bg-red-700"
-            >
-              {isPending ? "Deleting…" : "Delete workflow"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => handleOpenChange(false)}
+            disabled={isPending}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            variant="destructive"
+            onClick={handleConfirm}
+            disabled={!canConfirm || isPending}
+          >
+            {isPending ? "Deleting…" : "Delete workflow"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -1,5 +1,6 @@
-import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
+import { Time } from "@/components/ui/time";
+import type { PickerPerson } from "@/components/ui/people-picker";
 import { formatCadence } from "@/lib/frequency";
 import { DeleteWorkflowButton } from "./delete-workflow-button";
 import { EditWorkflowDialog } from "./edit-workflow-dialog";
@@ -37,6 +38,7 @@ const CRITICALITY_CLASSNAME: Record<number, string> = {
 export async function HeaderCard({
   workflow,
   teams,
+  people,
   canEdit,
   canDelete,
   loggedByLabel,
@@ -46,6 +48,7 @@ export async function HeaderCard({
 }: {
   workflow: WorkflowHeader;
   teams: string[];
+  people: PickerPerson[];
   canEdit: boolean;
   canDelete: boolean;
   loggedByLabel: string | null;
@@ -106,15 +109,8 @@ export async function HeaderCard({
                 {workflow.owner_names.length === 0 ? (
                   <span className="text-muted-foreground">-</span>
                 ) : (
-                  <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                    {workflow.owner_names.map((n, i) => (
-                      <span key={`${n}-${i}`} className="inline-flex">
-                        <span className="font-medium text-foreground">{n}</span>
-                        {i < workflow.owner_names.length - 1 && (
-                          <span className="text-muted-foreground/60">,</span>
-                        )}
-                      </span>
-                    ))}
+                  <span className="font-medium text-foreground">
+                    {workflow.owner_names.join(", ")}
                   </span>
                 )}
               </dd>
@@ -131,10 +127,14 @@ export async function HeaderCard({
                 )}
               </dd>
             </div>
-            <Field
-              label="Logged on"
-              value={format(new Date(createdAt), "d MMM yyyy")}
-            />
+            <div>
+              <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Logged on
+              </dt>
+              <dd className="text-foreground">
+                <Time iso={createdAt} />
+              </dd>
+            </div>
             <div className="col-span-2 sm:col-span-4">
               <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 Tools used
@@ -162,6 +162,7 @@ export async function HeaderCard({
             <EditWorkflowDialog
               workflow={workflow}
               teams={teams}
+              people={people}
               hoursPerWeek={hoursPerWeek}
               toolSuggestions={toolSuggestions}
             />

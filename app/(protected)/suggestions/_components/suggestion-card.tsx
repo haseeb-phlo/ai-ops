@@ -1,33 +1,10 @@
 import Link from "next/link";
 import { format } from "date-fns";
+import { MessageSquareIcon } from "lucide-react";
+import { SUGGESTION_STATUS, type SuggestionStatus } from "@/lib/status";
+import { Alert } from "@/components/ui/alert";
 import { StatusActions } from "./status-actions";
 import { LinkInterventionDialog } from "./link-intervention";
-
-type Status =
-  | "open"
-  | "under_review"
-  | "accepted"
-  | "in_progress"
-  | "declined"
-  | "shipped";
-
-const STATUS_DOT: Record<Status, string> = {
-  open: "bg-muted-foreground",
-  under_review: "bg-amber-500",
-  accepted: "bg-blue-500",
-  in_progress: "bg-blue-600",
-  shipped: "bg-emerald-500",
-  declined: "bg-red-500",
-};
-
-const STATUS_LABEL: Record<Status, string> = {
-  open: "Open",
-  under_review: "Under review",
-  accepted: "Accepted",
-  in_progress: "In progress",
-  shipped: "Shipped",
-  declined: "Declined",
-};
 
 export type SuggestionRow = {
   id: string;
@@ -36,7 +13,7 @@ export type SuggestionRow = {
   workflow_id: string | null;
   workflow_name: string | null;
   team: string | null;
-  status: Status;
+  status: SuggestionStatus;
   decline_reason: string | null;
   intervention_id: string | null;
   intervention_name: string | null;
@@ -44,6 +21,7 @@ export type SuggestionRow = {
   submitted_by: string | null;
   voteCount: number;
   voted: boolean;
+  commentCount: number;
 };
 
 export function SuggestionCard({
@@ -59,6 +37,7 @@ export function SuggestionCard({
   canCommit: boolean;
   activeInterventions: { id: string; name: string }[];
 }) {
+  const status = SUGGESTION_STATUS[suggestion.status];
   return (
     <li className="rounded-lg border border-border bg-background p-4">
       <div className="flex items-start gap-3">
@@ -74,9 +53,9 @@ export function SuggestionCard({
             <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
               <span
                 aria-hidden
-                className={`size-1.5 rounded-full ${STATUS_DOT[suggestion.status]}`}
+                className={`size-1.5 rounded-full ${status.dotClassName}`}
               />
-              {STATUS_LABEL[suggestion.status]}
+              {status.label}
             </span>
           </div>
           <p className="whitespace-pre-wrap text-sm text-foreground">
@@ -107,19 +86,34 @@ export function SuggestionCard({
             <span className="tabular-nums">
               {format(new Date(suggestion.created_at), "d MMM yyyy")}
             </span>
+            {suggestion.commentCount > 0 && (
+              <>
+                <span aria-hidden>·</span>
+                <Link
+                  href={`/suggestions/${suggestion.id}`}
+                  className="inline-flex items-center gap-1 tabular-nums hover:text-foreground"
+                >
+                  <MessageSquareIcon aria-hidden className="size-3" />
+                  {suggestion.commentCount}
+                  <span className="sr-only">
+                    {suggestion.commentCount === 1 ? "comment" : "comments"}
+                  </span>
+                </Link>
+              </>
+            )}
           </div>
 
           {suggestion.status === "declined" && suggestion.decline_reason && (
-            <p className="rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-foreground">
+            <Alert variant="info" className="text-xs">
               <span className="font-medium text-foreground">Declined:</span>{" "}
               {suggestion.decline_reason}
-            </p>
+            </Alert>
           )}
 
           {suggestion.status === "shipped" &&
             suggestion.intervention_id &&
             suggestion.intervention_name && (
-              <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
+              <Alert variant="success" className="text-xs">
                 Shipped via{" "}
                 <Link
                   href={`/interventions/${suggestion.intervention_id}`}
@@ -128,7 +122,7 @@ export function SuggestionCard({
                   {suggestion.intervention_name}
                 </Link>
                 .
-              </p>
+              </Alert>
             )}
 
           {(canTriage || canCommit) && suggestion.status !== "shipped" && (

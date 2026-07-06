@@ -102,29 +102,41 @@ export async function createSuggestion(
   return { kind: "ok", suggestionId: data.id };
 }
 
-export async function toggleSuggestionVote(formData: FormData): Promise<void> {
+// Returns a result so the optimistic vote button can revert + explain
+// itself on failure instead of silently snapping back.
+export async function toggleSuggestionVote(
+  formData: FormData,
+): Promise<{ ok: true } | { ok: false; message: string }> {
   const user = await getSessionUser();
   const id = formData.get("suggestion_id");
-  if (typeof id !== "string" || !id) return;
+  if (typeof id !== "string" || !id) {
+    return { ok: false, message: "Missing suggestion." };
+  }
   const supabase = await createClient();
-  const { data: existing } = await supabase
+  const { data: existing, error: readError } = await supabase
     .from("intervention_suggestion_votes")
     .select("suggestion_id")
     .eq("suggestion_id", id)
     .eq("user_id", user.id)
     .maybeSingle<{ suggestion_id: string }>();
+  if (readError) {
+    return { ok: false, message: `Vote failed: ${readError.message}` };
+  }
   if (existing) {
-    await supabase
+    const { error } = await supabase
       .from("intervention_suggestion_votes")
       .delete()
       .eq("suggestion_id", id)
       .eq("user_id", user.id);
+    if (error) return { ok: false, message: `Vote failed: ${error.message}` };
   } else {
-    await supabase
+    const { error } = await supabase
       .from("intervention_suggestion_votes")
       .insert({ suggestion_id: id, user_id: user.id });
+    if (error) return { ok: false, message: `Vote failed: ${error.message}` };
   }
   revalidatePath("/suggestions");
+  return { ok: true };
 }
 
 const StatusSchema = z.object({
@@ -442,15 +454,19 @@ const LaneSchema = z.object({
 
 export async function moveSuggestionLane(
   formData: FormData,
-): Promise<void> {
+): Promise<{ ok: true } | { ok: false; message: string }> {
   const gate = await requireWriter();
-  if (!gate.ok) return;
-  if (gate.user.role !== "super_admin") return;
+  if (!gate.ok) return { ok: false, message: gate.error };
+  if (gate.user.role !== "super_admin") {
+    return { ok: false, message: "Only super-admins can move cards." };
+  }
   const parsed = LaneSchema.safeParse({
     suggestion_id: formData.get("suggestion_id"),
     lane: formData.get("lane"),
   });
-  if (!parsed.success) return;
+  if (!parsed.success) {
+    return { ok: false, message: "Invalid move." };
+  }
   const supabase = await createClient();
 
   const update: Record<string, unknown> = {};
@@ -461,11 +477,15 @@ export async function moveSuggestionLane(
   } else if (parsed.data.lane === "shipped") {
     update.status = "shipped";
   }
-  await supabase
+  const { error } = await supabase
     .from("intervention_suggestions")
     .update(update)
     .eq("id", parsed.data.suggestion_id);
+  if (error) {
+    return { ok: false, message: `Could not move card: ${error.message}` };
+  }
   revalidatePath("/suggestions");
+  return { ok: true };
 }
 
 /**
@@ -495,15 +515,19 @@ const InitiativeLaneSchema = z.object({
 
 export async function moveInitiativeLane(
   formData: FormData,
-): Promise<void> {
+): Promise<{ ok: true } | { ok: false; message: string }> {
   const gate = await requireWriter();
-  if (!gate.ok) return;
-  if (gate.user.role !== "super_admin") return;
+  if (!gate.ok) return { ok: false, message: gate.error };
+  if (gate.user.role !== "super_admin") {
+    return { ok: false, message: "Only super-admins can move cards." };
+  }
   const parsed = InitiativeLaneSchema.safeParse({
     initiative_id: formData.get("initiative_id"),
     lane: formData.get("lane"),
   });
-  if (!parsed.success) return;
+  if (!parsed.success) {
+    return { ok: false, message: "Invalid move." };
+  }
   const supabase = await createClient();
 
   // Build the update so each lane move clears the "other" axis. Moving out
@@ -522,14 +546,18 @@ export async function moveInitiativeLane(
     update.shipped_at = new Date().toISOString();
   }
 
-  await supabase
+  const { error } = await supabase
     .from("ai_interventions")
     .update(update)
     .eq("id", parsed.data.initiative_id);
+  if (error) {
+    return { ok: false, message: `Could not move card: ${error.message}` };
+  }
   revalidatePath("/suggestions");
   revalidatePath("/interventions");
   revalidatePath(`/interventions/${parsed.data.initiative_id}`);
   revalidatePath("/");
+  return { ok: true };
 }
 
 const CommentSchema = z.object({
