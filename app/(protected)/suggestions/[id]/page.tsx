@@ -1,43 +1,27 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { format } from "date-fns";
+import { MessageSquareIcon } from "lucide-react";
 import { getSessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { resolveDisplayName } from "@/lib/profile";
+import { SUGGESTION_STATUS, type SuggestionStatus } from "@/lib/status";
 import { PageContainer } from "@/components/page-header";
+import { Alert } from "@/components/ui/alert";
 import { DetailHeader } from "@/components/ui/detail-header";
+import { EmptyState } from "@/components/ui/empty-state";
+import { CommentForm } from "@/components/comments/comment-form";
+import { CommentRow } from "@/components/comments/comment-row";
 import { StatusActions } from "../_components/status-actions";
 import { LinkInterventionDialog } from "../_components/link-intervention";
 import { VoteButton } from "../_components/vote-button";
-import { CommentForm } from "./_components/comment-form";
-import { CommentRow } from "./_components/comment-row";
 import { DeleteSuggestionButton } from "./_components/delete-suggestion";
+import {
+  createSuggestionComment,
+  deleteSuggestionComment,
+} from "../actions";
 
-type Status =
-  | "open"
-  | "under_review"
-  | "accepted"
-  | "in_progress"
-  | "declined"
-  | "shipped";
-
-const STATUS_DOT: Record<Status, string> = {
-  open: "bg-muted-foreground",
-  under_review: "bg-amber-500",
-  accepted: "bg-blue-500",
-  in_progress: "bg-blue-600",
-  shipped: "bg-emerald-500",
-  declined: "bg-red-500",
-};
-
-const STATUS_LABEL: Record<Status, string> = {
-  open: "Open",
-  under_review: "Under review",
-  accepted: "Accepted",
-  in_progress: "In progress",
-  shipped: "Shipped",
-  declined: "Declined",
-};
+type Status = SuggestionStatus;
 
 type Suggestion = {
   id: string;
@@ -205,9 +189,9 @@ export default async function SuggestionDetailPage({
           <span className="inline-flex items-center gap-1.5 text-sm text-foreground">
             <span
               aria-hidden
-              className={`size-1.5 rounded-full ${STATUS_DOT[suggestion.status]}`}
+              className={`size-1.5 rounded-full ${SUGGESTION_STATUS[suggestion.status].dotClassName}`}
             />
-            {STATUS_LABEL[suggestion.status]}
+            {SUGGESTION_STATUS[suggestion.status].label}
           </span>
         </div>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
@@ -249,14 +233,14 @@ export default async function SuggestionDetailPage({
             </p>
 
             {suggestion.status === "declined" && suggestion.decline_reason && (
-              <p className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-foreground">
+              <Alert variant="info">
                 <span className="font-medium text-foreground">Declined:</span>{" "}
                 {suggestion.decline_reason}
-              </p>
+              </Alert>
             )}
 
             {suggestion.status === "shipped" && linkedIntervention && (
-              <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+              <Alert variant="success">
                 Shipped via{" "}
                 <Link
                   href={`/interventions/${linkedIntervention.id}`}
@@ -265,7 +249,7 @@ export default async function SuggestionDetailPage({
                   {linkedIntervention.name}
                 </Link>
                 .
-              </p>
+              </Alert>
             )}
 
             {(canTriage || canCommit) && suggestion.status !== "shipped" && (
@@ -300,12 +284,15 @@ export default async function SuggestionDetailPage({
         <h2 className="text-sm font-semibold tracking-tight text-foreground">
           Comments
         </h2>
-        <div className="rounded-lg border border-border bg-background">
-          {(comments ?? []).length === 0 ? (
-            <p className="px-4 py-6 text-center text-xs text-muted-foreground">
-              No comments yet.
-            </p>
-          ) : (
+        {(comments ?? []).length === 0 ? (
+          <EmptyState
+            icon={<MessageSquareIcon aria-hidden />}
+            title="No comments yet"
+            description="Start the discussion below."
+            className="py-8"
+          />
+        ) : (
+          <div className="rounded-lg border border-border bg-background">
             <ul className="divide-y divide-border">
               {(comments ?? []).map((c) => {
                 const authorName = nameFor(c.created_by) ?? "Someone";
@@ -314,19 +301,25 @@ export default async function SuggestionDetailPage({
                 return (
                   <CommentRow
                     key={c.id}
-                    id={c.id}
-                    suggestionId={suggestion.id}
+                    commentId={c.id}
                     body={c.body}
                     authorName={authorName}
                     createdAt={c.created_at}
                     canDelete={!!canDelete}
+                    deleteAction={deleteSuggestionComment}
+                    hiddenFieldName="suggestion_id"
+                    hiddenFieldValue={suggestion.id}
                   />
                 );
               })}
             </ul>
-          )}
-        </div>
-        <CommentForm suggestionId={suggestion.id} />
+          </div>
+        )}
+        <CommentForm
+          action={createSuggestionComment}
+          hiddenFieldName="suggestion_id"
+          hiddenFieldValue={suggestion.id}
+        />
       </section>
     </PageContainer>
   );

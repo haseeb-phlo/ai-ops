@@ -45,22 +45,32 @@ export function loomShareUrl(id: string): string {
 
 // Loom's public oEmbed endpoint. Returns the authoritative thumbnail URL
 // for a share link (the CDN-pattern guess does not work reliably for newer
-// uploads, so we ask Loom directly). Returns null on any failure so the
-// UI can fall back to a gradient placeholder; we never block the user
-// over a missing thumbnail.
+// uploads, so we ask Loom directly) plus the video duration in seconds.
+// Returns nulls on any failure so the UI can fall back to a gradient
+// placeholder / no duration chip; we never block the user over missing
+// oEmbed data.
 export async function fetchLoomOembed(
   shareUrl: string,
-): Promise<{ thumbnailUrl: string | null }> {
+): Promise<{ thumbnailUrl: string | null; durationSeconds: number | null }> {
   try {
     const oembed = `https://www.loom.com/v1/oembed?format=json&url=${encodeURIComponent(shareUrl)}`;
     const res = await fetch(oembed, {
       // Cache aggressively - oEmbed responses are stable per video.
       next: { revalidate: 60 * 60 * 24 * 7 },
     });
-    if (!res.ok) return { thumbnailUrl: null };
-    const data = (await res.json()) as { thumbnail_url?: string };
-    return { thumbnailUrl: data.thumbnail_url ?? null };
+    if (!res.ok) return { thumbnailUrl: null, durationSeconds: null };
+    const data = (await res.json()) as {
+      thumbnail_url?: string;
+      duration?: number;
+    };
+    return {
+      thumbnailUrl: data.thumbnail_url ?? null,
+      durationSeconds:
+        typeof data.duration === "number" && Number.isFinite(data.duration)
+          ? Math.round(data.duration)
+          : null,
+    };
   } catch {
-    return { thumbnailUrl: null };
+    return { thumbnailUrl: null, durationSeconds: null };
   }
 }

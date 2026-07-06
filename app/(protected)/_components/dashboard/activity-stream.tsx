@@ -1,5 +1,13 @@
 import Link from "next/link";
-import { format } from "date-fns";
+import {
+  Lightbulb,
+  MessageSquare,
+  Play,
+  Sparkles,
+  Workflow,
+  type LucideIcon,
+} from "lucide-react";
+import { Time } from "@/components/ui/time";
 
 export type StreamItem =
   | {
@@ -105,6 +113,7 @@ export function ActivityStream({ items }: { items: StreamItem[] }) {
               }
               meta={[
                 "Regulatory event",
+                SEVERITY_LABEL[it.severity],
                 it.createdBy ? `by ${it.createdBy}` : null,
               ]
                 .filter(Boolean)
@@ -217,9 +226,11 @@ function Row({
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           {title}
-          <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-            {format(new Date(at), "d MMM")}
-          </span>
+          <Time
+            iso={at}
+            relative
+            className="shrink-0 text-xs text-muted-foreground tabular-nums"
+          />
         </div>
         <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{meta}</p>
       </div>
@@ -227,50 +238,45 @@ function Row({
   );
 }
 
-function Glyph({
-  kind,
-}: {
-  kind:
-    | "intervention"
-    | "workflow"
-    | "suggestion"
-    | "suggestion-comment"
-    | "learn-video";
-}) {
-  if (kind === "learn-video") {
-    return (
-      <span className="flex size-5 items-center justify-center rounded-full bg-rose-100 text-[10px] font-semibold text-rose-700">
-        ▶
-      </span>
-    );
-  }
-  if (kind === "intervention") {
-    return (
-      <span className="flex size-5 items-center justify-center rounded-full bg-blue-100 text-[10px] font-semibold text-blue-700">
-        +
-      </span>
-    );
-  }
-  if (kind === "workflow") {
-    return (
-      <span className="flex size-5 items-center justify-center rounded-full bg-emerald-100 text-[10px] font-semibold text-emerald-700">
-        W
-      </span>
-    );
-  }
-  if (kind === "suggestion") {
-    return (
-      <span className="flex size-5 items-center justify-center rounded-full bg-violet-100 text-[10px] font-semibold text-violet-700">
-        S
-      </span>
-    );
-  }
+type GlyphKind =
+  | "intervention"
+  | "workflow"
+  | "suggestion"
+  | "suggestion-comment"
+  | "learn-video";
+
+// Decorative entity icons - each row's meta text already names the entity
+// ("New workflow", "New suggestion", …), so the chips stay aria-hidden.
+const GLYPHS: Record<GlyphKind, { Icon: LucideIcon; className: string }> = {
+  intervention: { Icon: Sparkles, className: "bg-blue-100 text-blue-700" },
+  workflow: { Icon: Workflow, className: "bg-emerald-100 text-emerald-700" },
+  suggestion: { Icon: Lightbulb, className: "bg-violet-100 text-violet-700" },
+  "suggestion-comment": {
+    Icon: MessageSquare,
+    className: "bg-sky-100 text-sky-700",
+  },
+  "learn-video": { Icon: Play, className: "bg-rose-100 text-rose-700" },
+};
+
+function Glyph({ kind }: { kind: GlyphKind }) {
+  const { Icon, className } = GLYPHS[kind];
   return (
-    <span className="flex size-5 items-center justify-center rounded-full bg-sky-100 text-[10px] font-semibold text-sky-700">
-      C
+    <span
+      aria-hidden
+      className={`flex size-5 items-center justify-center rounded-full ${className}`}
+    >
+      <Icon className="size-3" />
     </span>
   );
 }
+
+// Text severity accompanies the colour dot so the signal survives
+// colour-blindness and screen readers.
+const SEVERITY_LABEL: Record<"red" | "amber" | "green", string> = {
+  red: "High severity",
+  amber: "Medium severity",
+  green: "Low severity",
+};
 
 function RegDot({ severity }: { severity: "red" | "amber" | "green" }) {
   const cls =

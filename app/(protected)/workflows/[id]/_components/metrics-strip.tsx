@@ -26,7 +26,7 @@ export function MetricsStrip({ metrics }: { metrics: WorkflowMetrics }) {
   const tiles: TileSpec[] = [
     {
       key: "time",
-      label: "Time (min)",
+      label: "Time / week (min)",
       unit: "",
       direction: "lower-better",
       baseline: metrics?.time_baseline ?? null,
@@ -100,10 +100,11 @@ function Tile({ tile }: { tile: TileSpec }) {
       : null;
 
   let deltaColor = "text-muted-foreground";
+  let isImprovement: boolean | null = null;
   if (delta != null && delta !== 0) {
-    const isImprovement =
+    isImprovement =
       tile.direction === "lower-better" ? delta < 0 : delta > 0;
-    deltaColor = isImprovement ? "text-green-700" : "text-red-700";
+    deltaColor = isImprovement ? "text-emerald-700" : "text-red-700";
   }
 
   const arrow = delta == null || delta === 0 ? "" : delta > 0 ? "▲" : "▼";
@@ -122,7 +123,13 @@ function Tile({ tile }: { tile: TileSpec }) {
         </span>
         {delta != null && (
           <span className={`font-medium tabular-nums ${deltaColor}`}>
-            {arrow} {formatDelta(delta, deltaPct, tile.unit)}
+            {arrow && <span aria-hidden>{arrow} </span>}
+            {isImprovement != null && (
+              <span className="sr-only">
+                {isImprovement ? "improved " : "worsened "}
+              </span>
+            )}
+            {formatDelta(delta, deltaPct, tile.unit)}
           </span>
         )}
       </div>

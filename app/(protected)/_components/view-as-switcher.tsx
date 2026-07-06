@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import {
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import {
   Select,
   SelectContent,
@@ -144,7 +151,7 @@ export function ViewAsSwitcher({
           type="button"
           onClick={exitImpersonation}
           disabled={isPending}
-          className="rounded-md bg-amber-900 px-2.5 py-1 text-xs font-medium text-white hover:bg-amber-950 disabled:opacity-50"
+          className="rounded-md bg-amber-900 px-2.5 py-1 text-xs font-medium text-white outline-none hover:bg-amber-950 focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50"
         >
           Exit view-as
         </button>
@@ -153,6 +160,13 @@ export function ViewAsSwitcher({
   );
 }
 
+/**
+ * Search-first single-select over impersonable users. The search input is
+ * a WAI-ARIA combobox (mirrors components/ui/people-picker.tsx):
+ * ArrowUp/ArrowDown move the active-row highlight, Enter picks the active
+ * row, Escape closes only this dropdown (stopping propagation so parent
+ * overlays stay open).
+ */
 function UserPicker({
   users,
   selectedUserId,
@@ -166,7 +180,9 @@ function UserPicker({
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [activeIndex, setActiveIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  const listboxId = useId();
 
   const selected = useMemo(
     () => users.find((u) => u.userId === selectedUserId) ?? null,
@@ -184,6 +200,17 @@ function UserPicker({
     );
   }, [users, search]);
 
+  // Clamp on render rather than resetting in an effect so a shrinking match
+  // list can't leave the highlight pointing past the end.
+  const clampedActiveIndex = Math.min(
+    Math.max(0, activeIndex),
+    Math.max(0, matches.length - 1),
+  );
+  const activeOptionId =
+    open && matches.length > 0
+      ? `${listboxId}-option-${clampedActiveIndex}`
+      : undefined;
+
   useEffect(() => {
     if (!open) return;
     function onDocClick(e: MouseEvent) {
@@ -193,6 +220,40 @@ function UserPicker({
     document.addEventListener("mousedown", onDocClick);
     return () => document.removeEventListener("mousedown", onDocClick);
   }, [open]);
+
+  // Keep the highlighted row visible while arrowing through the list.
+  useEffect(() => {
+    if (!open || !activeOptionId) return;
+    document
+      .getElementById(activeOptionId)
+      ?.scrollIntoView({ block: "nearest" });
+  }, [open, activeOptionId]);
+
+  function pick(userId: string) {
+    setOpen(false);
+    setSearch("");
+    onPick(userId);
+  }
+
+  function onSearchKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveIndex(Math.min(matches.length - 1, clampedActiveIndex + 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveIndex(Math.max(0, clampedActiveIndex - 1));
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      const active = matches[clampedActiveIndex];
+      if (active) pick(active.userId);
+    } else if (e.key === "Escape") {
+      // Close only our dropdown; stop the event so a parent overlay
+      // doesn't also close.
+      e.preventDefault();
+      e.stopPropagation();
+      setOpen(false);
+    }
+  }
 
   if (users.length === 0) {
     // Service role key not set on the server, or no eligible users. Hide the
@@ -208,8 +269,10 @@ function UserPicker({
         type="button"
         onClick={() => setOpen((v) => !v)}
         disabled={disabled}
+        aria-expanded={open}
+        aria-haspopup="listbox"
         className={cn(
-          "inline-flex h-7 items-center gap-1.5 rounded-md border border-input bg-background px-2 text-xs hover:bg-muted/40 disabled:opacity-50",
+          "inline-flex h-7 items-center gap-1.5 rounded-md border border-input bg-background px-2 text-xs outline-none hover:bg-muted/40 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50",
           selected && "border-amber-500/50 bg-amber-50/40",
         )}
       >
@@ -218,40 +281,56 @@ function UserPicker({
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-30 mt-1 w-72 overflow-hidden rounded-lg border border-border bg-popover shadow-md">
+        <div className="absolute right-0 top-full z-50 mt-1 w-72 overflow-hidden rounded-lg border border-border bg-popover shadow-md">
           <div className="border-b border-border p-2">
             <Input
               type="search"
+              role="combobox"
+              aria-expanded={open}
+              aria-controls={listboxId}
+              aria-activedescendant={activeOptionId}
+              aria-autocomplete="list"
               autoFocus
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setActiveIndex(0);
+              }}
+              onKeyDown={onSearchKeyDown}
               placeholder="Search by name, email, team"
               aria-label="Search users to impersonate"
               className="h-7 text-xs"
             />
           </div>
-          <ul className="max-h-64 divide-y divide-border overflow-y-auto">
-            {matches.length === 0 ? (
-              <li className="px-3 py-3 text-xs text-muted-foreground">
-                No matches.
-              </li>
-            ) : (
-              matches.map((u) => {
+          {matches.length === 0 ? (
+            <p className="px-3 py-3 text-xs text-muted-foreground">
+              No matches.
+            </p>
+          ) : (
+            <ul
+              id={listboxId}
+              role="listbox"
+              aria-label="Users to view as"
+              className="max-h-64 divide-y divide-border overflow-y-auto"
+            >
+              {matches.map((u, i) => {
                 const isSel = u.userId === selectedUserId;
+                const active = i === clampedActiveIndex;
                 return (
-                  <li key={u.userId}>
+                  <li key={u.userId} role="presentation">
                     <button
                       type="button"
-                      onClick={() => {
-                        setOpen(false);
-                        setSearch("");
-                        onPick(u.userId);
-                      }}
+                      id={`${listboxId}-option-${i}`}
+                      role="option"
+                      aria-selected={isSel}
+                      tabIndex={-1}
+                      onClick={() => pick(u.userId)}
+                      onMouseEnter={() => setActiveIndex(i)}
                       className={cn(
                         "flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-xs transition-colors",
-                        isSel
-                          ? "bg-muted/60 text-muted-foreground"
-                          : "hover:bg-muted/40",
+                        isSel && "bg-muted/60 text-muted-foreground",
+                        active && "bg-muted",
+                        !isSel && !active && "hover:bg-muted/40",
                       )}
                     >
                       <span className="min-w-0 flex-1">
@@ -274,9 +353,9 @@ function UserPicker({
                     </button>
                   </li>
                 );
-              })
-            )}
-          </ul>
+              })}
+            </ul>
+          )}
         </div>
       )}
     </div>

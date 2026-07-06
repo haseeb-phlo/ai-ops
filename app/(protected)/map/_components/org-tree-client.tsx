@@ -1,9 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import { format } from "date-fns";
+import { Users } from "lucide-react";
 import { resolveAvatar } from "@/lib/profile";
+import { Avatar } from "@/components/ui/avatar";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -34,6 +38,58 @@ export type OtherTeam = {
 
 const COLLAPSED_LABEL = "Show team";
 const EXPANDED_LABEL = "Hide team";
+
+// Collapse state survives navigations within the tab (sessionStorage) so
+// drilling into a person and coming back doesn't re-expand everything.
+// Modelled as a tiny external store (useSyncExternalStore) rather than
+// useState-plus-effect: the server snapshot is "fully expanded", and React
+// reconciles the persisted client value after hydration without a mismatch.
+const COLLAPSE_STORAGE_KEY = "org-tree-collapsed";
+const EMPTY_COLLAPSED: Set<string> = new Set();
+const collapseListeners = new Set<() => void>();
+let collapsedCacheRaw: string | null = null;
+let collapsedCache: Set<string> = EMPTY_COLLAPSED;
+
+function readCollapsed(): Set<string> {
+  let raw: string | null = null;
+  try {
+    raw = sessionStorage.getItem(COLLAPSE_STORAGE_KEY);
+  } catch {
+    // Storage unavailable - fall back to whatever is in memory.
+    return collapsedCache;
+  }
+  if (raw === collapsedCacheRaw) return collapsedCache;
+  collapsedCacheRaw = raw;
+  try {
+    const parsed: unknown = JSON.parse(raw ?? "[]");
+    collapsedCache = new Set(
+      Array.isArray(parsed)
+        ? parsed.filter((v): v is string => typeof v === "string")
+        : [],
+    );
+  } catch {
+    collapsedCache = EMPTY_COLLAPSED;
+  }
+  return collapsedCache;
+}
+
+function writeCollapsed(next: Set<string>) {
+  try {
+    sessionStorage.setItem(COLLAPSE_STORAGE_KEY, JSON.stringify([...next]));
+  } catch {
+    // Storage unavailable - keep an in-memory value so toggling still works.
+    collapsedCacheRaw = null;
+    collapsedCache = next;
+  }
+  for (const l of collapseListeners) l();
+}
+
+function subscribeCollapsed(cb: () => void) {
+  collapseListeners.add(cb);
+  return () => {
+    collapseListeners.delete(cb);
+  };
+}
 
 function personMatches(p: ResolvedPerson, needle: string): boolean {
   return (
@@ -81,13 +137,20 @@ function filterOtherTeam(
   return { team: cluster.team, members };
 }
 
+function anyNotSignedIn(nodes: ResolvedNode[]): boolean {
+  return nodes.some(
+    (n) =>
+      !n.person.isSignedIn ||
+      n.teamMembers.some((m) => !m.isSignedIn) ||
+      anyNotSignedIn(n.directs),
+  );
+}
+
 /**
  * Client component for the Org tree. The server pre-resolves everyone into
- * ResolvedNode; this component renders, tracks collapse state, and filters
- * by a free-text search across name/title/team/email.
- *
- * Each card with children (directs OR team members) gets a fold chevron
- * that hides everything below that node. Refresh = back to fully expanded.
+ * ResolvedNode; this component renders, tracks collapse state (persisted in
+ * sessionStorage), and filters by a free-text search across
+ * name/title/team/email.
  */
 export function OrgTreeClient({
   ceo,
@@ -98,7 +161,11 @@ export function OrgTreeClient({
   l1: ResolvedNode[];
   otherTeams: OtherTeam[];
 }) {
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const collapsed = useSyncExternalStore(
+    subscribeCollapsed,
+    readCollapsed,
+    () => EMPTY_COLLAPSED,
+  );
   const [query, setQuery] = useState("");
   const [openPerson, setOpenPerson] = useState<ResolvedPerson | null>(null);
 
@@ -123,13 +190,31 @@ export function OrgTreeClient({
     };
   }, [ceo, l1, otherTeams, needle]);
 
+  const hasFadedPeople = useMemo(
+    () =>
+      (ceo ? !ceo.isSignedIn : false) ||
+      anyNotSignedIn(l1) ||
+      otherTeams.some((t) => t.members.some((m) => !m.isSignedIn)),
+    [ceo, l1, otherTeams],
+  );
+
   function toggle(email: string) {
-    setCollapsed((prev) => {
-      const next = new Set(prev);
-      if (next.has(email)) next.delete(email);
-      else next.add(email);
-      return next;
-    });
+    const next = new Set(collapsed);
+    if (next.has(email)) next.delete(email);
+    else next.add(email);
+    writeCollapsed(next);
+  }
+
+  // Nothing in the directory at all (people table empty / not seeded yet).
+  const hasAnyData = !!ceo || l1.length > 0 || otherTeams.length > 0;
+  if (!hasAnyData) {
+    return (
+      <EmptyState
+        icon={<Users aria-hidden />}
+        title="No people yet"
+        description="The directory is empty. Ask an admin to load the people directory to see the reporting structure here."
+      />
+    );
   }
 
   const isSearching = needle.length > 0;
@@ -146,7 +231,7 @@ export function OrgTreeClient({
           aria-label="Search people"
           className="w-full max-w-md sm:w-80"
         />
-        {isSearching && (
+        {isSearching ? (
           <p className="text-xs text-muted-foreground">
             Showing matches for &ldquo;{query}&rdquo;.{" "}
             <button
@@ -157,6 +242,16 @@ export function OrgTreeClient({
               Clear
             </button>
           </p>
+        ) : (
+          hasFadedPeople && (
+            <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <span
+                aria-hidden
+                className="inline-block size-4 rounded-full bg-muted-foreground/40 grayscale"
+              />
+              Faded — hasn&apos;t signed in yet
+            </p>
+          )
         )}
       </div>
 
@@ -224,6 +319,26 @@ export function OrgTreeClient({
         }}
       />
     </div>
+  );
+}
+
+function PersonAvatar({
+  person,
+  className,
+}: {
+  person: ResolvedPerson;
+  className?: string;
+}) {
+  return (
+    <Avatar
+      src={resolveAvatar(person.avatarUrl, person.email)}
+      name={person.displayName}
+      className={cn(
+        "bg-muted/40 ring-1 ring-border",
+        !person.isSignedIn && "grayscale",
+        className,
+      )}
+    />
   );
 }
 
@@ -307,19 +422,7 @@ function BigCard({
         className={`relative flex w-44 flex-col items-center gap-2 rounded-lg border border-border bg-background p-4 text-left hover:border-input focus:outline-none focus-visible:ring-2 focus-visible:ring-ring ${dim}`}
         title={person.displayName}
       >
-        <span
-          className="relative inline-block shrink-0 self-center"
-          style={{ width: 56, height: 56 }}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={resolveAvatar(person.avatarUrl, person.email)}
-            alt={person.displayName}
-            className={`h-full w-full rounded-full bg-muted/40 object-cover ring-1 ring-border ${
-              person.isSignedIn ? "" : "grayscale"
-            }`}
-          />
-        </span>
+        <PersonAvatar person={person} className="size-14 self-center" />
         <div className="w-full text-center">
           <div className="truncate text-sm font-semibold text-foreground">
             {person.displayName}
@@ -359,19 +462,7 @@ function SmallCard({
         className={`relative flex w-36 flex-col items-center gap-2 rounded-lg border border-border bg-background p-3 text-left hover:border-input focus:outline-none focus-visible:ring-2 focus-visible:ring-ring ${dim}`}
         title={person.displayName}
       >
-        <span
-          className="relative inline-block shrink-0 self-center"
-          style={{ width: 40, height: 40 }}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={resolveAvatar(person.avatarUrl, person.email)}
-            alt={person.displayName}
-            className={`h-full w-full rounded-full bg-muted/40 object-cover ring-1 ring-border ${
-              person.isSignedIn ? "" : "grayscale"
-            }`}
-          />
-        </span>
+        <PersonAvatar person={person} className="size-10 self-center" />
         <div className="w-full text-center">
           <div className="truncate text-xs font-semibold text-foreground">
             {person.displayName}
@@ -428,23 +519,14 @@ function Chip({
       type="button"
       onClick={() => onOpen(person)}
       className={`flex w-44 items-center gap-2 rounded-md border border-border bg-background px-2 py-1.5 text-left hover:border-input focus:outline-none focus-visible:ring-2 focus-visible:ring-ring ${dim}`}
-      title={person.title}
+      title={person.title ? `${person.displayName} — ${person.title}` : person.displayName}
     >
-      <span
-        className="relative inline-block shrink-0"
-        style={{ width: 22, height: 22 }}
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={resolveAvatar(person.avatarUrl, person.email)}
-          alt={person.displayName}
-          className={`h-full w-full rounded-full bg-muted/40 object-cover ring-1 ring-border ${
-            person.isSignedIn ? "" : "grayscale"
-          }`}
-        />
-      </span>
+      <PersonAvatar person={person} className="size-[22px] text-[9px]" />
       <span className="min-w-0 flex-1 truncate text-xs text-foreground">
         {person.displayName}
+        {person.title && (
+          <span className="text-muted-foreground"> · {person.title}</span>
+        )}
       </span>
     </button>
   );
@@ -493,19 +575,7 @@ function PersonDialog({
           <>
             <DialogHeader>
               <div className="flex items-center gap-3">
-                <span
-                  className="relative inline-block shrink-0"
-                  style={{ width: 48, height: 48 }}
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={resolveAvatar(person.avatarUrl, person.email)}
-                    alt={person.displayName}
-                    className={`h-full w-full rounded-full bg-muted/40 object-cover ring-1 ring-border ${
-                      person.isSignedIn ? "" : "grayscale"
-                    }`}
-                  />
-                </span>
+                <PersonAvatar person={person} className="size-12" />
                 <div className="min-w-0">
                   <DialogTitle className="truncate">
                     {person.displayName}
@@ -553,7 +623,9 @@ function PersonDialog({
                     Signed in
                   </span>
                 ) : (
-                  <span className="text-muted-foreground">Not signed in yet</span>
+                  <span className="text-muted-foreground">
+                    Not signed in yet
+                  </span>
                 )}
               </dd>
             </dl>

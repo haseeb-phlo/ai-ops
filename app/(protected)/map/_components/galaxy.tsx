@@ -10,7 +10,31 @@ import {
   type SimulationLinkDatum,
   type SimulationNodeDatum,
 } from "d3-force";
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
+import Link from "next/link";
+import {
+  ChevronDown,
+  ChevronUp,
+  Maximize,
+  Minus,
+  Plus,
+  X,
+} from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 
 // =============================================================================
 // Types
@@ -57,7 +81,7 @@ type Node = SimulationNodeDatum & {
   meta: Record<string, unknown>;
 };
 
-type Link = SimulationLinkDatum<Node> & {
+type Link_ = SimulationLinkDatum<Node> & {
   kind: "company-team" | "team-person" | "person-workflow" | "team-workflow";
 };
 
@@ -86,6 +110,29 @@ type Heat = (typeof HEAT_OPTIONS)[number]["value"];
 const FRESH_DAYS = 14;
 const STALE_DAYS = 60;
 
+// Canvas colours resolved from the CSS token system at draw time, so the
+// galaxy follows globals.css instead of hardcoding hexes.
+type Theme = {
+  background: string;
+  foreground: string;
+  border: string;
+  mutedForeground: string;
+};
+
+function readTheme(): Theme {
+  const styles = getComputedStyle(document.documentElement);
+  const token = (name: string, fallback: string) => {
+    const v = styles.getPropertyValue(name).trim();
+    return v || fallback;
+  };
+  return {
+    background: token("--background", "#ffffff"),
+    foreground: token("--foreground", "#18181b"),
+    border: token("--border", "#e4e4e7"),
+    mutedForeground: token("--muted-foreground", "#71717a"),
+  };
+}
+
 // =============================================================================
 // Component
 // =============================================================================
@@ -96,10 +143,10 @@ export function Galaxy({ data }: { data: GalaxyData }) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  // Latest history snapshot date drives heat colour. The galaxy now always
-  // reflects the most recent state - the date scrubber was removed because
-  // it added a dense control without a clear "what changed?" payoff for
-  // users with limited history.
+  // Latest history snapshot date anchors the heat freshness window. The
+  // galaxy always reflects the most recent state - the date scrubber was
+  // removed because it added a dense control without a clear "what
+  // changed?" payoff for users with limited history.
   const latestDate = useMemo(() => {
     let max: string | null = null;
     for (const h of data.history) {
@@ -119,38 +166,80 @@ export function Galaxy({ data }: { data: GalaxyData }) {
     return idx;
   }, [data.history]);
 
-  // Per-metric min/max at each date, precomputed for fast colour scaling.
-  const heatRange = useMemo(() => {
-    const out: Record<string, Record<string, { min: number; max: number }>> = {};
-    for (const h of data.history) {
-      if (!out[h.metric]) out[h.metric] = {};
-      const slot = out[h.metric][h.date];
-      if (!slot) {
-        out[h.metric][h.date] = { min: h.value, max: h.value };
-      } else {
-        if (h.value < slot.min) slot.min = h.value;
-        if (h.value > slot.max) slot.max = h.value;
+  // Per-workflow heat value + freshness, precomputed once per heat/data
+  // change (NOT per animation frame). Heat reads each workflow's *own*
+  // latest measurement within the staleness window - the same window the
+  // freshness ring uses - so a workflow's fill and ring can't contradict
+  // each other, and workflows measured on different days all show colour.
+  const heatComputed = useMemo(() => {
+    const values = new Map<string, number | null>();
+    const freshness = new Map<string, "fresh" | "stale" | "none">();
+    let min = Infinity;
+    let max = -Infinity;
+    for (const w of data.workflows) {
+      let value: number | null = null;
+      let fresh: "fresh" | "stale" | "none" = "none";
+      if (heat === "criticality") {
+        value = w.criticality;
+        fresh = "fresh"; // static attribute - always current
+      } else if (heat === "interventions") {
+        value = w.activeInterventions > 0 ? 1 : 0;
+        fresh = "fresh"; // static attribute - always current
+      } else if (latestDate) {
+        const byDate = historyIndex[heat]?.[w.id];
+        let bestDate: string | null = null;
+        for (const d of Object.keys(byDate ?? {})) {
+          if (d > latestDate) continue;
+          if (bestDate === null || d > bestDate) bestDate = d;
+        }
+        if (bestDate) {
+          const ageDays =
+            (Date.parse(latestDate) - Date.parse(bestDate)) / 86_400_000;
+          if (ageDays <= FRESH_DAYS) fresh = "fresh";
+          else if (ageDays <= STALE_DAYS) fresh = "stale";
+          if (ageDays <= STALE_DAYS) value = byDate![bestDate];
+        }
+      }
+      values.set(w.id, value);
+      freshness.set(w.id, fresh);
+      if (value != null) {
+        if (value < min) min = value;
+        if (value > max) max = value;
       }
     }
-    return out;
-  }, [data.history]);
+
+    const scales: HeatScales =
+      heat === "criticality"
+        ? { min: 1, max: 5, better: "low" }
+        : heat === "interventions"
+          ? { min: 0, max: 1, better: "high" }
+          : min <= max
+            ? { min, max, better: heat === "revenue" ? "high" : "low" }
+            : { min: 0, max: 1, better: heat === "revenue" ? "high" : "low" };
+
+    const legendRange: { min: number; max: number } | null =
+      heat === "criticality"
+        ? { min: 1, max: 5 }
+        : heat === "interventions"
+          ? { min: 0, max: 1 }
+          : min <= max
+            ? { min, max }
+            : null;
+
+    return { values, freshness, scales, legendRange };
+  }, [heat, data.workflows, historyIndex, latestDate]);
 
   // --- Build graph (nodes + links) ----------------------------------------
   const { nodes, links } = useMemo(() => buildGraph(data), [data]);
 
-  // --- Avatar image preloading --------------------------------------------
-  const imagesRef = useRef<Map<string, HTMLImageElement>>(new Map());
-  useEffect(() => {
-    for (const p of data.people) {
-      if (imagesRef.current.has(p.id)) continue;
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.src = p.avatarUrl;
-      imagesRef.current.set(p.id, img);
-    }
-  }, [data.people]);
+  // Highlighted subgraph for the current hover/selection - id-based, so it
+  // only needs recomputing when focus changes, never per frame.
+  const subgraph = useMemo(
+    () => getHighlightedIds(selectedId ?? hoveredId, nodes, links),
+    [selectedId, hoveredId, nodes, links],
+  );
 
-  // --- Canvas setup -------------------------------------------------------
+  // --- Canvas / interaction refs -------------------------------------------
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   // Initial zoom is intentionally < 1 so the whole galaxy fits on screen on
@@ -163,7 +252,12 @@ export function Galaxy({ data }: { data: GalaxyData }) {
   // we never yank the camera away from a viewport the user is actively
   // exploring.
   const userInteractedRef = useRef(false);
-  const simRef = useRef<Simulation<Node, Link> | null>(null);
+  const simRef = useRef<Simulation<Node, Link_> | null>(null);
+  // Set by anything that mutates draw inputs outside React state (pan/zoom,
+  // avatar loads). The draw loop parks itself once the simulation cools;
+  // requestFrameRef.current() wakes it for exactly as long as needed.
+  const needsFrameRef = useRef(true);
+  const requestFrameRef = useRef<() => void>(() => {});
 
   const [size, setSize] = useState({ w: 800, h: 600 });
 
@@ -178,6 +272,20 @@ export function Galaxy({ data }: { data: GalaxyData }) {
     return () => ro.disconnect();
   }, []);
 
+  // --- Avatar image preloading --------------------------------------------
+  const imagesRef = useRef<Map<string, HTMLImageElement>>(new Map());
+  useEffect(() => {
+    for (const p of data.people) {
+      if (imagesRef.current.has(p.id)) continue;
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      // Wake the (possibly parked) draw loop when the avatar arrives.
+      img.onload = () => requestFrameRef.current();
+      img.src = p.avatarUrl;
+      imagesRef.current.set(p.id, img);
+    }
+  }, [data.people]);
+
   // --- Simulation lifecycle ------------------------------------------------
   useEffect(() => {
     // Stop previous sim if any
@@ -186,7 +294,7 @@ export function Galaxy({ data }: { data: GalaxyData }) {
     const sim = forceSimulation<Node>(nodes)
       .force(
         "link",
-        forceLink<Node, Link>(links)
+        forceLink<Node, Link_>(links)
           .id((d) => d.id)
           .distance((l) => {
             switch (l.kind) {
@@ -224,6 +332,7 @@ export function Galaxy({ data }: { data: GalaxyData }) {
     // New nodes/links → re-trigger the one-shot auto-fit on the next settle.
     hasAutoFitRef.current = false;
     userInteractedRef.current = false;
+    requestFrameRef.current();
     return () => {
       sim.stop();
     };
@@ -236,7 +345,16 @@ export function Galaxy({ data }: { data: GalaxyData }) {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    // Resolve the token palette once per effect run (the app is light-mode
+    // only, so tokens can't change underneath a mounted canvas).
+    const theme = readTheme();
+
+    let running = true;
     let raf = 0;
+    // Every effect re-run means some draw input changed (hover, filter,
+    // heat, size, …) - always paint at least one frame before parking.
+    needsFrameRef.current = true;
+
     const draw = () => {
       const dpr = window.devicePixelRatio || 1;
       const w = size.w;
@@ -288,35 +406,17 @@ export function Galaxy({ data }: { data: GalaxyData }) {
 
       const { x: tx, y: ty, k } = transformRef.current;
 
-      // White background to match the rest of the platform.
-      ctx.fillStyle = "#ffffff";
+      // Token background to match the rest of the platform.
+      ctx.fillStyle = theme.background;
       ctx.fillRect(0, 0, w, h);
 
       ctx.translate(w / 2 + tx, h / 2 + ty);
       ctx.scale(k, k);
 
-      const scrubDate = latestDate ?? undefined;
-      const heatScales = computeHeatScales(heat, scrubDate, heatRange);
-      const subgraph = getHighlightedIds(selectedId ?? hoveredId, nodes, links);
       const isFiltered = teamFilter !== "all";
 
-      // Per-frame: value of the active heat metric, per workflow, at the
-      // most-recent snapshot date. Drives workflow node colour.
-      const heatValues = new Map<string, number | null>();
-      const freshness = new Map<string, "fresh" | "stale" | "none">();
-      for (const n of nodes) {
-        if (n.kind !== "workflow") continue;
-        heatValues.set(
-          n.id,
-          heatValueForWorkflow(heat, n.id, scrubDate, n.meta, historyIndex),
-        );
-        freshness.set(
-          n.id,
-          freshnessFor(heat, n.id, scrubDate, historyIndex),
-        );
-      }
-
       // 1. Edges
+      ctx.lineWidth = 1;
       for (const link of links) {
         const s = link.source as Node;
         const t = link.target as Node;
@@ -330,13 +430,15 @@ export function Galaxy({ data }: { data: GalaxyData }) {
           : touchesTeam(s, teamFilter) && touchesTeam(t, teamFilter);
         const dim = !inSub || !inTeam;
 
-        ctx.strokeStyle = dim ? "rgba(24,24,27,0.06)" : "rgba(24,24,27,0.22)";
+        ctx.strokeStyle = theme.foreground;
+        ctx.globalAlpha = dim ? 0.06 : 0.22;
         ctx.lineWidth = dim ? 0.6 : 1;
         ctx.beginPath();
         ctx.moveTo(s.x!, s.y!);
         ctx.lineTo(t.x!, t.y!);
         ctx.stroke();
       }
+      ctx.globalAlpha = 1;
 
       // 2. Nodes
       for (const n of nodes) {
@@ -351,20 +453,24 @@ export function Galaxy({ data }: { data: GalaxyData }) {
 
         ctx.globalAlpha = dim ? 0.18 : 1;
         drawNode(ctx, n, {
-          heat,
-          heatScales,
-          heatValue: heatValues.get(n.id) ?? null,
-          freshness: freshness.get(n.id) ?? "none",
+          heatScales: heatComputed.scales,
+          heatValue: heatComputed.values.get(n.id) ?? null,
+          freshness: heatComputed.freshness.get(n.id) ?? "none",
           activeInterventions:
             (n.meta.activeInterventions as number | undefined) ?? 0,
           imageMap: imagesRef.current,
           isHover,
+          theme,
         });
         ctx.globalAlpha = 1;
       }
 
-      // 3. Labels for hovered/selected/teams
-      ctx.font = "12px ui-sans-serif, system-ui, -apple-system";
+      // 3. Labels for hovered/selected/teams. Counter-scale the font so
+      // labels never render below ~11px on screen no matter how far the
+      // camera is zoomed out (12px world × 0.65 default zoom ≈ 8px was
+      // unreadable).
+      const labelSize = Math.max(12, 11 / k);
+      ctx.font = `${labelSize}px ui-sans-serif, system-ui, -apple-system`;
       ctx.textAlign = "center";
       ctx.textBaseline = "top";
       for (const n of nodes) {
@@ -379,38 +485,59 @@ export function Galaxy({ data }: { data: GalaxyData }) {
         const inSub = subgraph ? subgraph.has(n.id) : true;
         const inTeam = !isFiltered ? true : touchesTeam(n, teamFilter);
         ctx.globalAlpha = !inSub || !inTeam ? 0.3 : 1;
-        ctx.fillStyle = "#18181b";
+        ctx.fillStyle = theme.foreground;
         ctx.fillText(n.label, n.x!, n.y! + n.radius + 6);
         ctx.globalAlpha = 1;
       }
 
       ctx.setTransform(1, 0, 0, 1, 0, 0);
-      raf = requestAnimationFrame(draw);
     };
-    raf = requestAnimationFrame(draw);
-    return () => cancelAnimationFrame(raf);
-  }, [
-    nodes,
-    links,
-    size,
-    heat,
-    heatRange,
-    historyIndex,
-    teamFilter,
-    hoveredId,
-    selectedId,
-    data,
-    latestDate,
-  ]);
 
-  // --- Pan / zoom / hover / click -----------------------------------------
+    const loop = () => {
+      if (!running) return;
+      const simHot = (simRef.current?.alpha() ?? 0) > 0.02;
+      const awaitingAutoFit =
+        !hasAutoFitRef.current && !userInteractedRef.current;
+      if (needsFrameRef.current || simHot || awaitingAutoFit) {
+        needsFrameRef.current = false;
+        draw();
+        raf = requestAnimationFrame(loop);
+      } else {
+        // Simulation cooled and nothing changed - park the loop. Any
+        // interaction calls requestFrameRef.current() to resume.
+        raf = 0;
+      }
+    };
+
+    requestFrameRef.current = () => {
+      needsFrameRef.current = true;
+      if (running && raf === 0) raf = requestAnimationFrame(loop);
+    };
+
+    raf = requestAnimationFrame(loop);
+    return () => {
+      running = false;
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [nodes, links, size, teamFilter, hoveredId, selectedId, heatComputed, subgraph]);
+
+  // --- Pan / zoom / hover / tap --------------------------------------------
+  // Pointer Events instead of mouse events: a single pointer (mouse drag OR
+  // touch drag) pans, a tap/click selects, two pointers pinch-zoom, and the
+  // wheel still zooms. touch-action: none on the canvas keeps the browser
+  // from hijacking the gestures.
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    let dragging = false;
+    const pointers = new Map<number, { x: number; y: number }>();
+    let panPointerId: number | null = null;
+    let moved = false;
+    let downX = 0;
+    let downY = 0;
     let lastX = 0;
     let lastY = 0;
+    let pinchDist = 0;
 
     function screenToWorld(sx: number, sy: number) {
       const { x: tx, y: ty, k } = transformRef.current;
@@ -437,110 +564,219 @@ export function Galaxy({ data }: { data: GalaxyData }) {
       return best;
     }
 
-    function onMouseDown(e: MouseEvent) {
-      dragging = true;
-      lastX = e.clientX;
-      lastY = e.clientY;
-      userInteractedRef.current = true;
-    }
-    function onMouseMove(e: MouseEvent) {
-      const rect = canvas!.getBoundingClientRect();
-      const sx = e.clientX - rect.left;
-      const sy = e.clientY - rect.top;
-      if (dragging) {
-        transformRef.current.x += e.clientX - lastX;
-        transformRef.current.y += e.clientY - lastY;
-        lastX = e.clientX;
-        lastY = e.clientY;
-      } else {
-        const node = pickNode(sx, sy);
-        const next = node?.id ?? null;
-        setHoveredId((prev) => (prev === next ? prev : next));
-      }
-    }
-    function onMouseUp() {
-      dragging = false;
-    }
-    function onClick(e: MouseEvent) {
-      const rect = canvas!.getBoundingClientRect();
-      const node = pickNode(e.clientX - rect.left, e.clientY - rect.top);
-      setSelectedId((prev) => {
-        if (!node) return null;
-        return prev === node.id ? null : node.id;
-      });
-    }
-    function onWheel(e: WheelEvent) {
-      e.preventDefault();
-      const delta = -e.deltaY * 0.0015;
+    function zoomAt(cx: number, cy: number, factor: number) {
       const t = transformRef.current;
-      const newK = Math.max(0.3, Math.min(3, t.k * (1 + delta)));
-      // Zoom toward cursor
-      const rect = canvas!.getBoundingClientRect();
-      const cx = e.clientX - rect.left - size.w / 2;
-      const cy = e.clientY - rect.top - size.h / 2;
+      const newK = Math.max(0.3, Math.min(3, t.k * factor));
       const ratio = newK / t.k;
       t.x = cx - (cx - t.x) * ratio;
       t.y = cy - (cy - t.y) * ratio;
       t.k = newK;
       userInteractedRef.current = true;
+      requestFrameRef.current();
     }
 
-    canvas.addEventListener("mousedown", onMouseDown);
-    window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("mouseup", onMouseUp);
-    canvas.addEventListener("click", onClick);
+    function onPointerDown(e: PointerEvent) {
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      canvas!.setPointerCapture(e.pointerId);
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pointers.size === 1) {
+        panPointerId = e.pointerId;
+        moved = false;
+        downX = lastX = e.clientX;
+        downY = lastY = e.clientY;
+      } else if (pointers.size === 2) {
+        // Second finger down → switch from pan to pinch.
+        panPointerId = null;
+        const [a, b] = [...pointers.values()];
+        pinchDist = Math.hypot(a.x - b.x, a.y - b.y);
+      }
+    }
+
+    function onPointerMove(e: PointerEvent) {
+      if (pointers.has(e.pointerId)) {
+        pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      }
+
+      if (pointers.size === 2) {
+        const [a, b] = [...pointers.values()];
+        const dist = Math.hypot(a.x - b.x, a.y - b.y);
+        if (pinchDist > 0 && dist > 0) {
+          const rect = canvas!.getBoundingClientRect();
+          const midX = (a.x + b.x) / 2 - rect.left - size.w / 2;
+          const midY = (a.y + b.y) / 2 - rect.top - size.h / 2;
+          zoomAt(midX, midY, dist / pinchDist);
+          moved = true;
+        }
+        pinchDist = dist;
+        return;
+      }
+
+      if (panPointerId === e.pointerId) {
+        const dx = e.clientX - lastX;
+        const dy = e.clientY - lastY;
+        lastX = e.clientX;
+        lastY = e.clientY;
+        if (
+          Math.abs(e.clientX - downX) + Math.abs(e.clientY - downY) > 5 &&
+          !moved
+        ) {
+          moved = true;
+          userInteractedRef.current = true;
+        }
+        transformRef.current.x += dx;
+        transformRef.current.y += dy;
+        requestFrameRef.current();
+        return;
+      }
+
+      // Hover preview only makes sense for a real cursor.
+      if (e.pointerType === "mouse" && pointers.size === 0) {
+        const rect = canvas!.getBoundingClientRect();
+        const node = pickNode(e.clientX - rect.left, e.clientY - rect.top);
+        const next = node?.id ?? null;
+        setHoveredId((prev) => (prev === next ? prev : next));
+      }
+    }
+
+    function onPointerEnd(e: PointerEvent) {
+      const wasPan = panPointerId === e.pointerId;
+      pointers.delete(e.pointerId);
+
+      if (wasPan) {
+        panPointerId = null;
+        if (!moved && e.type === "pointerup") {
+          // Tap / click without dragging → toggle selection.
+          const rect = canvas!.getBoundingClientRect();
+          const node = pickNode(e.clientX - rect.left, e.clientY - rect.top);
+          setSelectedId((prev) => {
+            if (!node) return null;
+            return prev === node.id ? null : node.id;
+          });
+        }
+      }
+
+      if (pointers.size < 2) pinchDist = 0;
+      if (pointers.size === 1) {
+        // One finger left after a pinch → resume panning with it, but don't
+        // let the release read as a tap.
+        const [remainingId] = pointers.keys();
+        const p = pointers.get(remainingId)!;
+        panPointerId = remainingId;
+        downX = lastX = p.x;
+        downY = lastY = p.y;
+        moved = true;
+      }
+    }
+
+    function onPointerLeave() {
+      if (pointers.size === 0) setHoveredId(null);
+    }
+
+    function onWheel(e: WheelEvent) {
+      e.preventDefault();
+      const delta = -e.deltaY * 0.0015;
+      const rect = canvas!.getBoundingClientRect();
+      const cx = e.clientX - rect.left - size.w / 2;
+      const cy = e.clientY - rect.top - size.h / 2;
+      zoomAt(cx, cy, 1 + delta);
+    }
+
+    canvas.addEventListener("pointerdown", onPointerDown);
+    canvas.addEventListener("pointermove", onPointerMove);
+    canvas.addEventListener("pointerup", onPointerEnd);
+    canvas.addEventListener("pointercancel", onPointerEnd);
+    canvas.addEventListener("pointerleave", onPointerLeave);
     canvas.addEventListener("wheel", onWheel, { passive: false });
 
     return () => {
-      canvas.removeEventListener("mousedown", onMouseDown);
-      window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("mouseup", onMouseUp);
-      canvas.removeEventListener("click", onClick);
+      canvas.removeEventListener("pointerdown", onPointerDown);
+      canvas.removeEventListener("pointermove", onPointerMove);
+      canvas.removeEventListener("pointerup", onPointerEnd);
+      canvas.removeEventListener("pointercancel", onPointerEnd);
+      canvas.removeEventListener("pointerleave", onPointerLeave);
       canvas.removeEventListener("wheel", onWheel);
     };
   }, [nodes, size]);
 
   // --- Detail card content -------------------------------------------------
-  const focusId = selectedId ?? hoveredId;
+  // Hover previews debounce ~150ms so skating across the galaxy doesn't
+  // strobe the card (clearing gets a shorter fuse so the card doesn't
+  // linger); a click pins immediately.
+  const [debouncedHoverId, setDebouncedHoverId] = useState<string | null>(null);
+  useEffect(() => {
+    const t = setTimeout(
+      () => setDebouncedHoverId(hoveredId),
+      hoveredId ? 150 : 75,
+    );
+    return () => clearTimeout(t);
+  }, [hoveredId]);
+
+  const isPinned = selectedId != null;
+  const focusId = selectedId ?? debouncedHoverId;
   const focusNode = focusId ? nodes.find((n) => n.id === focusId) ?? null : null;
 
   return (
     <div className="flex flex-col flex-1">
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-3 border-b bg-muted/40 px-6 py-2 text-xs">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b bg-muted/40 px-6 py-2 text-xs">
         <label className="flex items-center gap-2">
           <span className="text-muted-foreground">Colour by</span>
-          <select
+          <Select
             value={heat}
-            onChange={(e) => setHeat(e.target.value as Heat)}
-            className="h-7 rounded-md border border-input bg-background px-2"
+            onValueChange={(v: string | null) => {
+              if (v) setHeat(v as Heat);
+            }}
           >
-            {HEAT_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger size="sm" aria-label="Colour workflows by">
+              <SelectValue>
+                {(v: string | null) =>
+                  HEAT_OPTIONS.find((o) => o.value === v)?.label ?? ""
+                }
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {HEAT_OPTIONS.map((o) => (
+                <SelectItem key={o.value} value={o.value}>
+                  {o.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </label>
 
         <label className="flex items-center gap-2">
           <span className="text-muted-foreground">Team</span>
-          <select
+          <Select
             value={teamFilter}
-            onChange={(e) => setTeamFilter(e.target.value)}
-            className="h-7 rounded-md border border-input bg-background px-2"
+            onValueChange={(v: string | null) => {
+              if (v) setTeamFilter(v);
+            }}
           >
-            <option value="all">All teams</option>
-            {data.teams.map((t) => (
-              <option key={t.id} value={t.name}>
-                {t.name}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger size="sm" aria-label="Filter by team">
+              <SelectValue>
+                {(v: string | null) => (!v || v === "all" ? "All teams" : v)}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All teams</SelectItem>
+              {data.teams.map((t) => (
+                <SelectItem key={t.id} value={t.name}>
+                  {t.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </label>
 
-        <span className="ml-auto text-muted-foreground">
-          Drag to pan · Click a node to focus
+        <span className="ml-auto text-right text-muted-foreground">
+          Drag to pan · Scroll, pinch or the buttons to zoom · Click a node to
+          focus ·{" "}
+          <Link
+            href="/map?view=directory"
+            className="text-foreground underline-offset-2 hover:underline"
+          >
+            Prefer a list? Use the Directory view
+          </Link>
         </span>
       </div>
 
@@ -548,10 +784,13 @@ export function Galaxy({ data }: { data: GalaxyData }) {
       <div ref={containerRef} className="relative flex-1 overflow-hidden bg-background">
         <canvas
           ref={canvasRef}
+          role="img"
+          aria-label={`Interactive network map of ${data.teams.length} teams, ${data.people.length} people and ${data.workflows.length} workflows at Phlo. This visualisation is canvas-based; the Directory view on this page presents the same people as an accessible list.`}
           style={{
             width: size.w,
             height: size.h,
             cursor: hoveredId ? "pointer" : "grab",
+            touchAction: "none",
           }}
         />
 
@@ -568,9 +807,10 @@ export function Galaxy({ data }: { data: GalaxyData }) {
             onClick={() => {
               zoomBy(transformRef, 1.3);
               userInteractedRef.current = true;
+              requestFrameRef.current();
             }}
           >
-            +
+            <Plus aria-hidden className="size-4" />
           </ZoomButton>
           <span aria-hidden className="h-px bg-muted" />
           <ZoomButton
@@ -578,9 +818,10 @@ export function Galaxy({ data }: { data: GalaxyData }) {
             onClick={() => {
               zoomBy(transformRef, 1 / 1.3);
               userInteractedRef.current = true;
+              requestFrameRef.current();
             }}
           >
-            −
+            <Minus aria-hidden className="size-4" />
           </ZoomButton>
           <span aria-hidden className="h-px bg-muted" />
           <ZoomButton
@@ -589,40 +830,35 @@ export function Galaxy({ data }: { data: GalaxyData }) {
               resetZoom(transformRef);
               hasAutoFitRef.current = false;
               userInteractedRef.current = false;
+              requestFrameRef.current();
             }}
           >
-            ⌖
+            <Maximize aria-hidden className="size-4" />
           </ZoomButton>
         </div>
 
-        <Legend
-          heat={heat}
-          range={
-            (heat === "criticality"
-              ? { min: 1, max: 5 }
-              : heat === "interventions"
-                ? { min: 0, max: 1 }
-                : latestDate
-                  ? heatRange[heat]?.[latestDate]
-                  : null) ?? null
-          }
-        />
+        <Legend heat={heat} range={heatComputed.legendRange} />
 
         {/* Detail card */}
         {focusNode && (
-          <DetailCard node={focusNode} data={data} onClose={() => setSelectedId(null)} />
+          <DetailCard
+            node={focusNode}
+            data={data}
+            pinned={isPinned}
+            onClose={() => setSelectedId(null)}
+          />
         )}
 
-        {/* Empty state */}
+        {/* Empty state. (For developers: usually means supabase/seed.sql
+            hasn't been applied to this environment, or no workflows have
+            been created yet.) */}
         {data.workflows.length === 0 && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="rounded-lg border border-border bg-background p-6 text-center text-sm text-foreground shadow-sm max-w-sm">
-              <p className="font-medium">The galaxy is empty.</p>
-              <p className="mt-1 text-muted-foreground">
-                Apply <code>supabase/seed.sql</code> in the Supabase SQL Editor
-                or add a workflow at <code>/workflows</code>.
-              </p>
-            </div>
+          <div className="absolute inset-0 flex items-center justify-center p-6">
+            <EmptyState
+              className="max-w-sm bg-background shadow-sm"
+              title="Nothing on the map yet"
+              description="The map draws itself from workflows and their owners. Add a workflow, or ask an admin to set up the map data."
+            />
           </div>
         )}
       </div>
@@ -633,6 +869,13 @@ export function Galaxy({ data }: { data: GalaxyData }) {
 // =============================================================================
 // Legend
 // =============================================================================
+const LG_QUERY = "(min-width: 1024px)";
+function subscribeToLg(cb: () => void) {
+  const mql = window.matchMedia(LG_QUERY);
+  mql.addEventListener("change", cb);
+  return () => mql.removeEventListener("change", cb);
+}
+
 function Legend({
   heat,
   range,
@@ -640,40 +883,76 @@ function Legend({
   heat: Heat;
   range: { min: number; max: number } | null;
 }) {
+  // Collapsed by default on small screens - the 240px panel covers most of
+  // a phone-sized canvas - and open on lg+. An explicit user toggle wins
+  // over the breakpoint default.
+  const isLg = useSyncExternalStore(
+    subscribeToLg,
+    () => window.matchMedia(LG_QUERY).matches,
+    () => false,
+  );
+  const [userOpen, setUserOpen] = useState<boolean | null>(null);
+  const open = userOpen ?? isLg;
+  const setOpen = (v: boolean) => setUserOpen(v);
+
   const opt = HEAT_OPTIONS.find((o) => o.value === heat);
   const heatLabel = opt?.label ?? heat;
   const direction = opt?.direction ?? "lower";
   const unit = opt?.unit ?? "";
 
-  // Direction = "lower" means lower-is-better, so the green end labels the
-  // minimum and the red end labels the maximum. Reverse for "higher".
-  const lo = range
+  // Both gradients run min-value on the left to max-value on the right;
+  // direction only decides which end is green. So the left label is always
+  // the min and the right label always the max - for "higher" metrics that
+  // correctly puts the best (max) value on the green end.
+  const leftLabel = range
     ? formatRange(range.min, unit)
     : direction === "lower"
       ? "Good"
       : "Bad";
-  const hi = range
+  const rightLabel = range
     ? formatRange(range.max, unit)
     : direction === "lower"
       ? "Bad"
       : "Good";
-  const goodLabel = direction === "lower" ? lo : hi;
-  const badLabel = direction === "lower" ? hi : lo;
   const gradient =
     direction === "lower"
       ? "linear-gradient(to right, rgb(22,163,74), rgb(217,119,6), rgb(220,38,38))"
       : "linear-gradient(to right, rgb(220,38,38), rgb(217,119,6), rgb(22,163,74))";
 
+  if (!open) {
+    return (
+      <button
+        type="button"
+        aria-expanded={false}
+        onClick={() => setOpen(true)}
+        className="absolute right-4 top-4 flex items-center gap-1.5 rounded-lg border border-border bg-background/90 px-3 py-1.5 text-xs text-foreground shadow-sm backdrop-blur hover:bg-muted"
+      >
+        Legend
+        <ChevronDown aria-hidden className="size-3.5" />
+      </button>
+    );
+  }
+
   return (
     <div className="absolute right-4 top-4 w-[240px] rounded-lg border border-border bg-background/90 text-xs text-foreground shadow-sm backdrop-blur">
+      <button
+        type="button"
+        aria-expanded
+        onClick={() => setOpen(false)}
+        className="flex w-full items-center justify-between border-b border-border px-3 py-2 text-left text-[10px] font-medium uppercase tracking-wide text-muted-foreground hover:text-foreground"
+      >
+        Legend
+        <ChevronUp aria-hidden className="size-3.5" />
+      </button>
+
       <LegendSection title={heatLabel}>
         <div
           className="h-1.5 w-full rounded-full"
           style={{ background: gradient }}
         />
         <div className="mt-1.5 flex justify-between text-[10px] tabular-nums text-muted-foreground">
-          <span>{goodLabel}</span>
-          <span>{badLabel}</span>
+          <span>{leftLabel}</span>
+          <span>{rightLabel}</span>
         </div>
       </LegendSection>
 
@@ -688,8 +967,7 @@ function Legend({
           <LegendRow
             swatch={
               <span
-                className="inline-block size-2 rounded-full"
-                style={{ border: "1px dashed rgba(24,24,27,0.55)" }}
+                className="inline-block size-2 rounded-full border border-dashed border-foreground/55"
               />
             }
             label={`Stale (${FRESH_DAYS}-${STALE_DAYS}d)`}
@@ -704,22 +982,40 @@ function Legend({
       <LegendSection title="Nodes">
         <ul className="space-y-1">
           <LegendRow
-            swatch={<Swatch fill="#18181b" size={10} />}
+            swatch={<Swatch fill="var(--foreground)" size={10} />}
             label="Phlo"
           />
           <LegendRow
-            swatch={<Swatch fill="#e4e4e7" stroke="#52525b" size={10} />}
+            swatch={
+              <Swatch
+                fill="var(--border)"
+                stroke="var(--muted-foreground)"
+                size={10}
+              />
+            }
             label="Team"
           />
           <LegendRow
-            swatch={<Swatch fill="#a1a1aa" stroke="#71717a" size={9} />}
+            swatch={
+              <Swatch
+                fill="var(--muted-foreground)"
+                stroke="var(--muted-foreground)"
+                size={9}
+              />
+            }
             label="Person"
           />
+          {/* Neutral swatch on purpose: workflow fill is the heat scale, so
+              a green chip here would read as "good" rather than "workflow". */}
           <LegendRow
             swatch={
-              <Swatch fill="#16a34a" stroke="rgba(24,24,27,0.4)" size={9} />
+              <Swatch
+                fill="var(--background)"
+                stroke="var(--muted-foreground)"
+                size={9}
+              />
             }
-            label="Workflow"
+            label="Workflow (colour = scale above)"
           />
         </ul>
       </LegendSection>
@@ -727,12 +1023,20 @@ function Legend({
       <LegendSection title="Markers" last>
         <ul className="space-y-1">
           <LegendRow
-            swatch={<Swatch fill="#16a34a" ring="#9333ea" size={9} />}
+            swatch={
+              <Swatch fill="var(--background)" stroke="var(--muted-foreground)" ring="#9333ea" size={9} />
+            }
             label="Has active AI initiatives"
           />
           <LegendRow
             swatch={
-              <Swatch fill="#16a34a" ring="#dc2626" ringDashed size={9} />
+              <Swatch
+                fill="var(--background)"
+                stroke="var(--muted-foreground)"
+                ring="#dc2626"
+                ringDashed
+                size={9}
+              />
             }
             label="Regulatory"
           />
@@ -821,9 +1125,9 @@ function Swatch({
 // Helpers
 // =============================================================================
 
-function buildGraph(data: GalaxyData): { nodes: Node[]; links: Link[] } {
+function buildGraph(data: GalaxyData): { nodes: Node[]; links: Link_[] } {
   const nodes: Node[] = [];
-  const links: Link[] = [];
+  const links: Link_[] = [];
 
   nodes.push({
     id: COMPANY_ID,
@@ -917,7 +1221,7 @@ function touchesTeam(n: Node, team: string): boolean {
 function getHighlightedIds(
   focusId: string | null,
   nodes: Node[],
-  links: Link[],
+  links: Link_[],
 ): Set<string> | null {
   if (!focusId) return null;
   const ids = new Set<string>([focusId]);
@@ -944,65 +1248,9 @@ type HeatScales = {
   better: "low" | "high" | "n/a";
 };
 
-function computeHeatScales(
-  heat: Heat,
-  date: string | undefined,
-  heatRange: Record<string, Record<string, { min: number; max: number }>>,
-): HeatScales {
-  if (heat === "criticality") return { min: 1, max: 5, better: "low" };
-  if (heat === "interventions") return { min: 0, max: 1, better: "high" };
-  if (!date) return { min: 0, max: 1, better: "low" };
-  const r = heatRange[heat]?.[date];
-  if (!r) return { min: 0, max: 1, better: "low" };
-  return {
-    min: r.min,
-    max: r.max,
-    better: heat === "revenue" ? "high" : "low",
-  };
-}
-
-function heatValueForWorkflow(
-  heat: Heat,
-  workflowId: string,
-  date: string | undefined,
-  meta: Record<string, unknown>,
-  historyIndex: Record<string, Record<string, Record<string, number>>>,
-): number | null {
-  if (heat === "criticality") return (meta.criticality as number) ?? null;
-  if (heat === "interventions")
-    return (meta.activeInterventions as number) > 0 ? 1 : 0;
-  if (!date) return null;
-  return historyIndex[heat]?.[workflowId]?.[date] ?? null;
-}
-
-// "fresh" = a measurement exists within FRESH_DAYS of the scrubbed date,
-// "stale" = within STALE_DAYS, "none" = older than that or never measured.
-// criticality + interventions are static, so always treat them as fresh.
-function freshnessFor(
-  heat: Heat,
-  workflowId: string,
-  scrubDate: string | undefined,
-  historyIndex: Record<string, Record<string, Record<string, number>>>,
-): "fresh" | "stale" | "none" {
-  if (heat === "criticality" || heat === "interventions") return "fresh";
-  if (!scrubDate) return "none";
-  const byDate = historyIndex[heat]?.[workflowId];
-  if (!byDate) return "none";
-  let bestDate: string | null = null;
-  for (const d of Object.keys(byDate)) {
-    if (d > scrubDate) continue;
-    if (bestDate === null || d > bestDate) bestDate = d;
-  }
-  if (!bestDate) return "none";
-  const ageMs = Date.parse(scrubDate) - Date.parse(bestDate);
-  const ageDays = ageMs / 86_400_000;
-  if (ageDays <= FRESH_DAYS) return "fresh";
-  if (ageDays <= STALE_DAYS) return "stale";
-  return "none";
-}
-
 // Programmatic zoom helpers driven by the toolbar buttons. Mutating the ref
-// alone is enough - the requestAnimationFrame loop reads it every frame.
+// is not enough on its own now that the draw loop parks itself - callers
+// must also call requestFrameRef.current().
 type TransformRef = { current: { x: number; y: number; k: number } };
 function zoomBy(ref: TransformRef, factor: number) {
   const t = ref.current;
@@ -1049,7 +1297,7 @@ function ZoomButton({
       aria-label={label}
       title={label}
       onClick={onClick}
-      className="flex size-8 items-center justify-center text-base leading-none text-foreground hover:bg-muted"
+      className="flex size-8 items-center justify-center text-foreground hover:bg-muted"
     >
       {children}
     </button>
@@ -1066,13 +1314,18 @@ function lerpColor(a: [number, number, number], b: [number, number, number], t: 
 }
 
 // Conventional traffic-light scale: green = good, amber = warning, red = bad.
+// These are data-scale colours (they also appear in the legend gradient),
+// not chrome, so they stay literal rather than reading theme tokens.
 const COLOR_GOOD: [number, number, number] = [22, 163, 74]; // green-600
 const COLOR_WARN: [number, number, number] = [217, 119, 6]; // amber-600
 const COLOR_BAD: [number, number, number] = [220, 38, 38]; // red-600
-const COLOR_UNKNOWN = "#a1a1aa"; // zinc-400
 
-function workflowColor(value: number | null, scales: HeatScales): string {
-  if (value === null) return COLOR_UNKNOWN;
+function workflowColor(
+  value: number | null,
+  scales: HeatScales,
+  unknownColor: string,
+): string {
+  if (value === null) return unknownColor;
   const t = scales.max === scales.min ? 0.5 : (value - scales.min) / (scales.max - scales.min);
   const adjusted = scales.better === "high" ? 1 - t : t;
   const c = adjusted < 0.5
@@ -1085,40 +1338,40 @@ function workflowColor(value: number | null, scales: HeatScales): string {
 // Drawing
 // =============================================================================
 type DrawOpts = {
-  heat: Heat;
   heatScales: HeatScales;
   heatValue: number | null;
   freshness: "fresh" | "stale" | "none";
   activeInterventions: number;
   imageMap: Map<string, HTMLImageElement>;
   isHover: boolean;
+  theme: Theme;
 };
 
 function drawNode(ctx: CanvasRenderingContext2D, n: Node, opts: DrawOpts) {
-  if (n.kind === "company") return drawCompany(ctx, n);
-  if (n.kind === "team") return drawTeam(ctx, n);
+  if (n.kind === "company") return drawCompany(ctx, n, opts);
+  if (n.kind === "team") return drawTeam(ctx, n, opts);
   if (n.kind === "person") return drawPerson(ctx, n, opts);
   return drawWorkflow(ctx, n, opts);
 }
 
-function drawCompany(ctx: CanvasRenderingContext2D, n: Node) {
+function drawCompany(ctx: CanvasRenderingContext2D, n: Node, opts: DrawOpts) {
   const x = n.x!;
   const y = n.y!;
   const r = n.radius;
 
-  ctx.fillStyle = "#18181b";
+  ctx.fillStyle = opts.theme.foreground;
   ctx.beginPath();
   ctx.arc(x, y, r, 0, Math.PI * 2);
   ctx.fill();
 }
 
-function drawTeam(ctx: CanvasRenderingContext2D, n: Node) {
+function drawTeam(ctx: CanvasRenderingContext2D, n: Node, opts: DrawOpts) {
   const x = n.x!;
   const y = n.y!;
   const r = n.radius;
 
-  ctx.fillStyle = "#e4e4e7";
-  ctx.strokeStyle = "#52525b";
+  ctx.fillStyle = opts.theme.border;
+  ctx.strokeStyle = opts.theme.mutedForeground;
   ctx.lineWidth = 1.5;
   ctx.beginPath();
   ctx.arc(x, y, r, 0, Math.PI * 2);
@@ -1133,11 +1386,14 @@ function drawPerson(ctx: CanvasRenderingContext2D, n: Node, opts: DrawOpts) {
   const img = opts.imageMap.get(n.id);
   const isGhost = n.meta.kind === "ghost";
 
-  ctx.strokeStyle = isGhost ? "rgba(82,82,91,0.5)" : "#71717a";
+  const prevAlpha = ctx.globalAlpha;
+  ctx.strokeStyle = opts.theme.mutedForeground;
+  if (isGhost) ctx.globalAlpha = prevAlpha * 0.5;
   ctx.lineWidth = opts.isHover ? 2.5 : 1.2;
   ctx.beginPath();
   ctx.arc(x, y, r + 1, 0, Math.PI * 2);
   ctx.stroke();
+  ctx.globalAlpha = prevAlpha;
 
   if (img && img.complete && img.naturalWidth > 0) {
     ctx.save();
@@ -1151,7 +1407,7 @@ function drawPerson(ctx: CanvasRenderingContext2D, n: Node, opts: DrawOpts) {
     }
     ctx.restore();
   } else {
-    ctx.fillStyle = "#a1a1aa";
+    ctx.fillStyle = opts.theme.mutedForeground;
     ctx.beginPath();
     ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.fill();
@@ -1162,12 +1418,17 @@ function drawWorkflow(ctx: CanvasRenderingContext2D, n: Node, opts: DrawOpts) {
   const x = n.x!;
   const y = n.y!;
   const r = n.radius;
+  const prevAlpha = ctx.globalAlpha;
 
-  const color = workflowColor(opts.heatValue, opts.heatScales);
+  const color = workflowColor(
+    opts.heatValue,
+    opts.heatScales,
+    opts.theme.mutedForeground,
+  );
 
   // Halo around workflows with an active intervention.
   if (opts.activeInterventions > 0) {
-    ctx.strokeStyle = "#9333ea"; // purple-600
+    ctx.strokeStyle = "#9333ea"; // purple-600 (matches the legend marker)
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.arc(x, y, r + 4, 0, Math.PI * 2);
@@ -1175,26 +1436,23 @@ function drawWorkflow(ctx: CanvasRenderingContext2D, n: Node, opts: DrawOpts) {
   }
 
   ctx.fillStyle = color;
-  // Stroke style encodes data freshness:
-  //   fresh = solid dark ring, stale = dashed ring, none = no ring at all.
-  if (opts.freshness === "fresh") {
-    ctx.strokeStyle = "rgba(24,24,27,0.6)";
-    ctx.lineWidth = 1;
-    ctx.setLineDash([]);
-  } else if (opts.freshness === "stale") {
-    ctx.strokeStyle = "rgba(24,24,27,0.55)";
-    ctx.lineWidth = 1;
-    ctx.setLineDash([2, 2]);
-  } else {
-    ctx.strokeStyle = "rgba(24,24,27,0)";
-    ctx.lineWidth = 0;
-    ctx.setLineDash([]);
-  }
   ctx.beginPath();
   ctx.arc(x, y, r, 0, Math.PI * 2);
   ctx.fill();
-  if (opts.freshness !== "none") ctx.stroke();
-  ctx.setLineDash([]);
+
+  // Stroke style encodes data freshness:
+  //   fresh = solid dark ring, stale = dashed ring, none = no ring at all.
+  if (opts.freshness !== "none") {
+    ctx.strokeStyle = opts.theme.foreground;
+    ctx.globalAlpha = prevAlpha * (opts.freshness === "fresh" ? 0.6 : 0.55);
+    ctx.lineWidth = 1;
+    ctx.setLineDash(opts.freshness === "stale" ? [2, 2] : []);
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.globalAlpha = prevAlpha;
+  }
 
   if (n.meta.regulatory) {
     ctx.strokeStyle = "#dc2626";
@@ -1207,7 +1465,7 @@ function drawWorkflow(ctx: CanvasRenderingContext2D, n: Node, opts: DrawOpts) {
   }
 
   if (opts.isHover) {
-    ctx.strokeStyle = "#18181b";
+    ctx.strokeStyle = opts.theme.foreground;
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.arc(x, y, r + (n.meta.regulatory ? 10 : 6), 0, Math.PI * 2);
@@ -1221,14 +1479,25 @@ function drawWorkflow(ctx: CanvasRenderingContext2D, n: Node, opts: DrawOpts) {
 function DetailCard({
   node,
   data,
+  pinned,
   onClose,
 }: {
   node: Node;
   data: GalaxyData;
+  pinned: boolean;
   onClose: () => void;
 }) {
   return (
-    <div className="absolute bottom-4 left-4 max-w-xs rounded-lg border border-border bg-background p-4 text-sm text-foreground shadow-md">
+    <div
+      className={cn(
+        "absolute bottom-4 left-4 max-w-xs rounded-lg border bg-background p-4 text-sm text-foreground",
+        // A pinned card is interactive with a stronger border + shadow;
+        // a hover preview is lighter and never steals pointer events.
+        pinned
+          ? "border-foreground/25 shadow-md"
+          : "pointer-events-none border-border opacity-90 shadow-sm",
+      )}
+    >
       <div className="flex items-start justify-between gap-2">
         <div>
           <p className="text-xs uppercase tracking-wide text-muted-foreground">
@@ -1236,14 +1505,16 @@ function DetailCard({
           </p>
           <p className="mt-0.5 font-semibold">{node.label}</p>
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="text-xs text-muted-foreground hover:text-foreground"
-          aria-label="Close"
-        >
-          ✕
-        </button>
+        {pinned && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-muted-foreground hover:text-foreground"
+            aria-label="Close"
+          >
+            <X aria-hidden className="size-3.5" />
+          </button>
+        )}
       </div>
 
       {node.kind === "team" && <TeamDetail teamName={node.label} data={data} />}
@@ -1298,7 +1569,7 @@ function WorkflowDetail({ node }: { node: Node }) {
       <p>Frequency: {(m.frequencyLabel as string | null) ?? "-"}</p>
       <p>Criticality: {(m.criticality as number) ?? 3}/5</p>
       <p>
-        Active interventions: {(m.activeInterventions as number) ?? 0}
+        Active initiatives: {(m.activeInterventions as number) ?? 0}
       </p>
       {(m.regulatory as boolean) && (
         <p className="text-red-600">⚠ Regulatory</p>

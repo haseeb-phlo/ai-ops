@@ -1,9 +1,18 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import { X } from "lucide-react";
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -16,6 +25,7 @@ import {
   assignChampion,
   type AssignChampionState,
 } from "../_actions/champions";
+import { TRAFFIC_STYLE, trafficFor } from "./champions-freshness";
 
 const initial: AssignChampionState = { kind: "idle" };
 
@@ -31,6 +41,7 @@ export type ExistingChampion = {
   team: string;
   display_name: string;
   user_id: string | null;
+  last_check_in: string | null;
 };
 
 /**
@@ -49,11 +60,15 @@ export function ChampionsManager({
   people: Person[];
   existing: ExistingChampion[];
 }) {
-  const [team, setTeam] = useState<string>(teams[0] ?? "");
+  const [team, setTeam] = useState<string>("");
   const [picked, setPicked] = useState<Person | null>(null);
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  const listboxId = useId();
+  const teamSelectId = useId();
+  const searchInputId = useId();
 
   const championsByTeam = useMemo(() => {
     const m = new Map<string, ExistingChampion[]>();
@@ -70,13 +85,14 @@ export function ChampionsManager({
     [championsByTeam, team],
   );
 
-  // Already-a-champion lookups so the picker dedupes by display name.
+  // Already-a-champion hint for the picker. The champions table stores no
+  // email or people.id, so display name is the only client-side join key we
+  // have; the durable duplicate guard is server-side in assignChampion
+  // (user_id match + the (team, user_id) unique index).
   const existingNames = useMemo(
     () =>
       new Set(
-        championsForSelected.map((c) =>
-          c.display_name.trim().toLowerCase(),
-        ),
+        championsForSelected.map((c) => c.display_name.trim().toLowerCase()),
       ),
     [championsForSelected],
   );
@@ -107,6 +123,19 @@ export function ChampionsManager({
     );
   }, [allCandidates, search]);
 
+  const visibleMatches = useMemo(() => matches.slice(0, 50), [matches]);
+
+  // Clamp on render rather than resetting in an effect so a shrinking match
+  // list can't leave the highlight pointing past the end.
+  const clampedActiveIndex = Math.min(
+    Math.max(0, activeIndex),
+    Math.max(0, visibleMatches.length - 1),
+  );
+  const activeOptionId =
+    open && !picked && visibleMatches.length > 0
+      ? `${listboxId}-option-${clampedActiveIndex}`
+      : undefined;
+
   useEffect(() => {
     if (!open) return;
     function onDocClick(e: MouseEvent) {
@@ -117,12 +146,80 @@ export function ChampionsManager({
     return () => document.removeEventListener("mousedown", onDocClick);
   }, [open]);
 
-  const [state, action, pending] = useActionState(assignChampion, initial);
+  // Keep the highlighted row visible while arrowing through the list.
+  useEffect(() => {
+    if (!activeOptionId) return;
+    document
+      .getElementById(activeOptionId)
+      ?.scrollIntoView({ block: "nearest" });
+  }, [activeOptionId]);
+
+  // Submission runs through a transition so we can react to the result
+  // inline: success clears the picked person (the same submission can't be
+  // replayed into a duplicate-key error) and the confirmation expires on a
+  // timer or on the next interaction.
+  const [pending, startTransition] = useTransition();
+  const [notice, setNotice] = useState<AssignChampionState>(initial);
+  const expireTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (expireTimer.current) clearTimeout(expireTimer.current);
+    },
+    [],
+  );
+
+  function submit(formData: FormData) {
+    startTransition(async () => {
+      const result = await assignChampion(initial, formData);
+      setNotice(result);
+      if (result.kind === "ok") {
+        setPicked(null);
+        setSearch("");
+        if (expireTimer.current) clearTimeout(expireTimer.current);
+        expireTimer.current = setTimeout(
+          () => setNotice({ kind: "idle" }),
+          6000,
+        );
+      }
+    });
+  }
+
+  function clearNotice() {
+    if (expireTimer.current) clearTimeout(expireTimer.current);
+    setNotice((n) => (n.kind === "idle" ? n : { kind: "idle" }));
+  }
 
   function pick(p: Person) {
     setPicked(p);
     setSearch("");
     setOpen(false);
+    clearNotice();
+  }
+
+  function onSearchKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (!open) {
+        setOpen(true);
+        return;
+      }
+      setActiveIndex(Math.min(visibleMatches.length - 1, clampedActiveIndex + 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (!open) return;
+      setActiveIndex(Math.max(0, clampedActiveIndex - 1));
+    } else if (e.key === "Enter") {
+      if (!open) return;
+      e.preventDefault();
+      const active = visibleMatches[clampedActiveIndex];
+      if (active) pick(active);
+    } else if (e.key === "Escape") {
+      if (!open) return;
+      e.preventDefault();
+      e.stopPropagation();
+      setOpen(false);
+    }
   }
 
   return (
@@ -139,29 +236,39 @@ export function ChampionsManager({
       </div>
 
       <div className="space-y-1">
-        <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          Team
-        </label>
+        <Label
+          htmlFor={teamSelectId}
+          className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+        >
+          Team <span aria-hidden>*</span>
+        </Label>
         <Select
-          value={team}
+          value={team === "" ? null : team}
           onValueChange={(v) => {
-            setTeam(v ?? "");
+            setTeam(typeof v === "string" ? v : "");
             setPicked(null);
             setSearch("");
+            clearNotice();
           }}
         >
-          <SelectTrigger className="sm:max-w-sm">
-            <SelectValue placeholder="Pick a team" />
+          <SelectTrigger id={teamSelectId} className="sm:max-w-sm">
+            {/* Custom render so the "· n champions" annotation in the list
+                items never leaks into the closed trigger. */}
+            <SelectValue placeholder="Choose a team…">
+              {(value: string | null) => value || "Choose a team…"}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {teams.map((t) => {
               const count = championsByTeam.get(t)?.length ?? 0;
               return (
                 <SelectItem key={t} value={t}>
-                  {t}
-                  {count > 0
-                    ? `  ·  ${count} ${count === 1 ? "champion" : "champions"}`
-                    : ""}
+                  <span>{t}</span>
+                  {count > 0 && (
+                    <span className="text-xs text-muted-foreground">
+                      · {count} {count === 1 ? "champion" : "champions"}
+                    </span>
+                  )}
                 </SelectItem>
               );
             })}
@@ -169,13 +276,48 @@ export function ChampionsManager({
         </Select>
       </div>
 
-      <form action={action} className="space-y-3">
+      {team !== "" && (
+        <div className="space-y-1.5 rounded-lg border border-border bg-muted/30 px-3 py-2">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Current champions of {team}
+          </p>
+          {championsForSelected.length === 0 ? (
+            <p className="text-xs text-muted-foreground">
+              No champions yet - add the first one below.
+            </p>
+          ) : (
+            <ul className="space-y-1">
+              {championsForSelected.map((c) => {
+                const { traffic, label } = trafficFor(c.last_check_in);
+                return (
+                  <li
+                    key={c.id}
+                    className="flex items-center gap-2 text-xs text-foreground"
+                  >
+                    <span
+                      className={`inline-block size-2 shrink-0 rounded-full ${TRAFFIC_STYLE[traffic]}`}
+                      aria-label={label}
+                      role="img"
+                    />
+                    <span className="truncate">{c.display_name}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      )}
+
+      <form action={submit} className="space-y-3">
         <input type="hidden" name="team" value={team} />
         <input type="hidden" name="person_id" value={picked?.id ?? ""} />
 
-        <label className="block text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        <Label
+          htmlFor={searchInputId}
+          className="block text-xs font-medium uppercase tracking-wide text-muted-foreground"
+        >
           Add a champion
-        </label>
+        </Label>
 
         <div ref={containerRef} className="relative">
           {picked ? (
@@ -199,56 +341,78 @@ export function ChampionsManager({
             </div>
           ) : (
             <Input
-              type="search"
+              id={searchInputId}
+              type="text"
+              role="combobox"
+              aria-expanded={open}
+              aria-controls={listboxId}
+              aria-activedescendant={activeOptionId}
+              aria-autocomplete="list"
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
+                setActiveIndex(0);
                 setOpen(true);
+                clearNotice();
               }}
               onFocus={() => setOpen(true)}
+              onKeyDown={onSearchKeyDown}
               placeholder={
                 allCandidates.length === 0
                   ? "Everyone in the directory is already a champion"
                   : "Search by name, team, or email"
               }
-              aria-label="Search people"
             />
           )}
 
           {open && !picked && allCandidates.length > 0 && (
             <div className="absolute left-0 right-0 top-full z-20 mt-1 overflow-hidden rounded-lg border border-border bg-background shadow-md">
               <div className="max-h-60 overflow-y-auto">
-                {matches.length === 0 ? (
+                {visibleMatches.length === 0 ? (
                   <div className="px-3 py-3 text-sm text-muted-foreground">
                     No matches.
                   </div>
                 ) : (
-                  <ul className="divide-y divide-border">
-                    {matches.slice(0, 50).map((p) => (
-                      <li key={p.id}>
-                        <button
-                          type="button"
-                          onClick={() => pick(p)}
-                          className={cn(
-                            "flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors hover:bg-muted/40",
-                          )}
-                        >
-                          <span className="min-w-0 flex-1">
-                            <span className="block truncate text-foreground">
-                              {p.display_name}
+                  <ul
+                    id={listboxId}
+                    role="listbox"
+                    aria-label="People"
+                    className="divide-y divide-border"
+                  >
+                    {visibleMatches.map((p, i) => {
+                      const active = i === clampedActiveIndex;
+                      return (
+                        <li key={p.id}>
+                          <button
+                            type="button"
+                            id={`${listboxId}-option-${i}`}
+                            role="option"
+                            aria-selected={active}
+                            tabIndex={-1}
+                            onClick={() => pick(p)}
+                            onMouseEnter={() => setActiveIndex(i)}
+                            className={cn(
+                              "flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors hover:bg-muted/40",
+                              active && "bg-muted",
+                            )}
+                          >
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-foreground">
+                                {p.display_name}
+                              </span>
+                              <span className="block truncate text-xs text-muted-foreground">
+                                {[p.team, p.email].filter(Boolean).join(" · ")}
+                              </span>
                             </span>
-                            <span className="block truncate text-[11px] text-muted-foreground">
-                              {[p.team, p.email].filter(Boolean).join(" · ")}
-                            </span>
-                          </span>
-                        </button>
-                      </li>
-                    ))}
+                          </button>
+                        </li>
+                      );
+                    })}
                   </ul>
                 )}
               </div>
               {matches.length > 50 && (
-                <div className="border-t border-border bg-muted/40 px-3 py-1.5 text-[11px] text-muted-foreground">
+                <div className="border-t border-border bg-muted/40 px-3 py-1.5 text-xs text-muted-foreground">
                   Showing first 50 - keep typing to narrow.
                 </div>
               )}
@@ -256,30 +420,32 @@ export function ChampionsManager({
           )}
         </div>
 
-        <Button type="submit" disabled={pending || !team || !picked}>
-          {pending ? "Saving" : "Add champion"}
+        <Button
+          type="submit"
+          loading={pending}
+          disabled={pending || !team || !picked}
+        >
+          {pending ? "Saving…" : "Add champion"}
         </Button>
       </form>
 
-      {state.kind === "ok" && (
-        <p className="text-xs text-muted-foreground">
-          <span
-            aria-hidden
-            className="mr-1.5 inline-block size-1.5 rounded-full bg-emerald-500 align-middle"
-          />
-          Added a champion to{" "}
-          <strong className="text-foreground">{state.team}</strong>
-          {state.emailed ? ". Email sent." : "."}
-        </p>
+      {notice.kind === "ok" && (
+        <div className="space-y-2">
+          <Alert variant="success" className="text-xs">
+            Added a champion to <strong>{notice.team}</strong>
+            {notice.emailed ? ". Email sent." : "."}
+          </Alert>
+          {notice.emailNote && (
+            <Alert variant="warning" className="text-xs">
+              {notice.emailNote}
+            </Alert>
+          )}
+        </div>
       )}
-      {state.kind === "error" && (
-        <p className="text-xs text-red-700">
-          <span
-            aria-hidden
-            className="mr-1.5 inline-block size-1.5 rounded-full bg-red-500 align-middle"
-          />
-          {state.message}
-        </p>
+      {notice.kind === "error" && (
+        <Alert variant="destructive" className="text-xs">
+          {notice.message}
+        </Alert>
       )}
     </div>
   );

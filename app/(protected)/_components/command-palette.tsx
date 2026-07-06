@@ -5,8 +5,8 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useId,
   useMemo,
-  useRef,
   useState,
 } from "react";
 import { useRouter } from "next/navigation";
@@ -22,6 +22,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { NAV_ITEMS, ADMIN_NAV_ITEM } from "@/lib/navigation";
 import type { SearchHit } from "@/app/api/search/index/route";
 
 type StaticHit = {
@@ -34,49 +35,16 @@ type StaticHit = {
 
 type AnyHit = SearchHit | StaticHit;
 
+// "Go to …" entries derive from the canonical nav vocabulary so the
+// palette can never drift from the sidebar / mobile menu.
 const NAV_HITS: StaticHit[] = [
-  {
-    id: "nav:dashboard",
-    kind: "nav",
-    title: "Go to Dashboard",
-    subtitle: "Home",
-    href: "/",
-  },
-  {
-    id: "nav:workflows",
-    kind: "nav",
-    title: "Go to Workflows",
-    subtitle: null,
-    href: "/workflows",
-  },
-  {
-    id: "nav:interventions",
-    kind: "nav",
-    title: "Go to Initiatives",
-    subtitle: null,
-    href: "/interventions",
-  },
-  {
-    id: "nav:suggestions",
-    kind: "nav",
-    title: "Go to Suggestions",
-    subtitle: null,
-    href: "/suggestions",
-  },
-  {
-    id: "nav:learn",
-    kind: "nav",
-    title: "Go to Learn",
-    subtitle: null,
-    href: "/learn",
-  },
-  {
-    id: "nav:map",
-    kind: "nav",
-    title: "Go to People",
-    subtitle: null,
-    href: "/map",
-  },
+  ...NAV_ITEMS.map((item) => ({
+    id: `nav:${item.href}`,
+    kind: "nav" as const,
+    title: `Go to ${item.label}`,
+    subtitle: item.href === "/" ? "Home" : null,
+    href: item.href,
+  })),
   {
     id: "nav:profile",
     kind: "nav",
@@ -85,6 +53,14 @@ const NAV_HITS: StaticHit[] = [
     href: "/profile",
   },
 ];
+
+const ADMIN_NAV_HIT: StaticHit = {
+  id: `nav:${ADMIN_NAV_ITEM.href}`,
+  kind: "nav",
+  title: `Go to ${ADMIN_NAV_ITEM.label}`,
+  subtitle: null,
+  href: ADMIN_NAV_ITEM.href,
+};
 
 const KIND_LABEL: Record<AnyHit["kind"], string> = {
   nav: "Navigate",
@@ -129,6 +105,26 @@ export function useCommandPalette(): CommandPaletteContextValue {
   return ctx;
 }
 
+/**
+ * Platform detection for shortcut hints ("⌘K" on macOS/iOS, "Ctrl K"
+ * elsewhere). Defaults to macOS on the server render and corrects after
+ * mount - useEffect (not a state initializer) so the hydration pass
+ * matches the server HTML.
+ */
+export function useIsMac(): boolean {
+  const [isMac, setIsMac] = useState(true);
+  useEffect(() => {
+    const platform =
+      (navigator as { userAgentData?: { platform?: string } }).userAgentData
+        ?.platform ??
+      navigator.platform ??
+      "";
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsMac(/mac|iphone|ipad|ipod/i.test(platform));
+  }, []);
+  return isMac;
+}
+
 export function CommandPalette({
   canSeeAdmin,
   children,
@@ -139,14 +135,16 @@ export function CommandPalette({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<SearchHit[] | null>(null);
+  const [fetchFailed, setFetchFailed] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const router = useRouter();
-  const listRef = useRef<HTMLUListElement>(null);
+  const listboxId = useId();
+  const isMac = useIsMac();
 
   // Loading is derived rather than stored: the dialog is loading whenever
-  // it's open and we haven't yet received a hits payload. This sidesteps
-  // a setState-in-effect ahead of the fetch.
-  const loading = open && hits === null;
+  // it's open and we haven't yet received a hits payload (and the fetch
+  // hasn't failed). This sidesteps a setState-in-effect ahead of the fetch.
+  const loading = open && hits === null && !fetchFailed;
 
   // Reset transient state every time the dialog flips open. Doing this
   // here (rather than in an effect) keeps React 19's set-state-in-effect
@@ -159,8 +157,9 @@ export function CommandPalette({
     }
   }
 
-  // Stable callback exposed via context so other components can open the
-  // palette without synthesizing keystrokes.
+  // Stable callback exposed via context so other components (sidebar hint,
+  // mobile top bar search button) can open the palette without
+  // synthesizing keystrokes.
   const openPalette = useCallback(() => {
     setOpen(true);
     setQuery("");
@@ -188,45 +187,34 @@ export function CommandPalette({
   }, [open]);
 
   // Fetch the index lazily on first open. The browser cache (private,
-  // max-age=60) absorbs re-opens within the minute.
+  // max-age=60) absorbs re-opens within the minute. A failure flips
+  // `fetchFailed` (rather than caching an empty index for the session) so
+  // the Retry button below can clear it and re-run this effect.
   useEffect(() => {
-    if (!open || hits !== null) return;
+    if (!open || hits !== null || fetchFailed) return;
     let cancelled = false;
     fetch("/api/search/index", { credentials: "same-origin" })
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`search index ${r.status}`);
+        return r.json();
+      })
       .then((data: { hits: SearchHit[] }) => {
         if (cancelled) return;
         setHits(data.hits);
       })
       .catch(() => {
         if (cancelled) return;
-        setHits([]);
+        setFetchFailed(true);
       });
     return () => {
       cancelled = true;
     };
-  }, [open, hits]);
-
-  // Query + cursor reset happens in `handleOpenChange` below so we don't
-  // have to write a setState-in-effect. The input has autoFocus, which
-  // base-ui respects once the dialog mounts.
+  }, [open, hits, fetchFailed]);
 
   const filteredHits = useMemo(() => {
     const allHits: AnyHit[] = [
-      ...NAV_HITS.filter(
-        (h) => canSeeAdmin || h.href !== "/admin",
-      ),
-      ...(canSeeAdmin
-        ? [
-            {
-              id: "nav:admin",
-              kind: "nav" as const,
-              title: "Go to Admin",
-              subtitle: null,
-              href: "/admin",
-            },
-          ]
-        : []),
+      ...NAV_HITS,
+      ...(canSeeAdmin ? [ADMIN_NAV_HIT] : []),
       ...(hits ?? []),
     ];
     const q = query.trim().toLowerCase();
@@ -251,28 +239,35 @@ export function CommandPalette({
       .slice(0, 50);
   }, [hits, query, canSeeAdmin]);
 
-  // Group hits by kind, keeping the master ordering above.
-  const grouped = useMemo(() => {
+  // Group hits by kind (keeping the master ordering above), assigning each
+  // hit its flattened index as we go so the render loop and keyboard
+  // navigation never have to search for positions.
+  const { grouped, flat } = useMemo(() => {
     const byKind = new Map<AnyHit["kind"], AnyHit[]>();
     for (const h of filteredHits) {
       const list = byKind.get(h.kind) ?? [];
       list.push(h);
       byKind.set(h.kind, list);
     }
-    return KIND_ORDER.filter((k) => byKind.has(k)).map((k) => ({
+    let idx = 0;
+    const groups = KIND_ORDER.filter((k) => byKind.has(k)).map((k) => ({
       kind: k,
-      items: byKind.get(k)!,
+      items: byKind.get(k)!.map((hit) => ({ hit, idx: idx++ })),
     }));
+    return {
+      grouped: groups,
+      flat: groups.flatMap((g) => g.items.map((i) => i.hit)),
+    };
   }, [filteredHits]);
 
-  // Flattened order used for keyboard navigation. The clamp here is
-  // computed on render so typing into the input shrinking the result set
-  // doesn't leave activeIndex pointing past the end.
-  const flat = useMemo(() => grouped.flatMap((g) => g.items), [grouped]);
+  // The clamp is computed on render so typing into the input shrinking the
+  // result set doesn't leave activeIndex pointing past the end.
   const clampedActiveIndex = Math.min(
     Math.max(0, activeIndex),
     Math.max(0, flat.length - 1),
   );
+  const optionId = (idx: number) => `${listboxId}-option-${idx}`;
+  const activeOptionId = flat.length > 0 ? optionId(clampedActiveIndex) : undefined;
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === "ArrowDown") {
@@ -283,6 +278,12 @@ export function CommandPalette({
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setActiveIndex((i) => Math.max(0, Math.max(0, i) - 1));
+    } else if (e.key === "Home") {
+      // No preventDefault: let the caret jump to the start of the input
+      // too - both behaviors are what the key means in each context.
+      setActiveIndex(0);
+    } else if (e.key === "End") {
+      setActiveIndex(Math.max(0, flat.length - 1));
     } else if (e.key === "Enter") {
       e.preventDefault();
       const hit = flat[clampedActiveIndex];
@@ -298,13 +299,16 @@ export function CommandPalette({
   }
 
   // Scroll the active item into view as the user moves through the list.
+  // The options carry scroll-mt matching the sticky group-header height so
+  // arrowing upward never hides the active row underneath a header.
   useEffect(() => {
-    if (!listRef.current) return;
-    const node = listRef.current.querySelector<HTMLElement>(
-      `[data-hit-idx="${clampedActiveIndex}"]`,
-    );
-    node?.scrollIntoView({ block: "nearest" });
-  }, [clampedActiveIndex]);
+    if (!open || !activeOptionId) return;
+    document
+      .getElementById(activeOptionId)
+      ?.scrollIntoView({ block: "nearest" });
+  }, [open, activeOptionId]);
+
+  const modKeyLabel = isMac ? "⌘" : "Ctrl";
 
   return (
     <CommandPaletteContext.Provider value={contextValue}>
@@ -315,7 +319,7 @@ export function CommandPalette({
           className="fixed inset-0 z-50 bg-black/30 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0"
         />
         <DialogPrimitive.Popup
-          className="fixed left-1/2 top-[15vh] z-50 w-full max-w-xl -translate-x-1/2 overflow-hidden rounded-xl border border-border bg-popover text-popover-foreground shadow-xl outline-none data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0"
+          className="fixed left-1/2 top-[15vh] z-50 w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 overflow-hidden rounded-xl border border-border bg-popover text-popover-foreground shadow-xl outline-none data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0"
         >
           <DialogPrimitive.Title className="sr-only">
             Command palette
@@ -327,6 +331,12 @@ export function CommandPalette({
             />
             <input
               type="text"
+              role="combobox"
+              aria-expanded={open}
+              aria-controls={listboxId}
+              aria-activedescendant={activeOptionId}
+              aria-autocomplete="list"
+              aria-label="Search"
               autoFocus
               autoComplete="off"
               spellCheck={false}
@@ -344,47 +354,74 @@ export function CommandPalette({
             </kbd>
           </div>
 
+          {fetchFailed && (
+            <div
+              role="alert"
+              className="flex items-center justify-between gap-3 border-b border-border px-4 py-2 text-xs text-muted-foreground"
+            >
+              <span>Couldn&apos;t load search results.</span>
+              <button
+                type="button"
+                onClick={() => setFetchFailed(false)}
+                className="shrink-0 rounded-md border border-border px-2 py-1 font-medium text-foreground outline-none hover:bg-muted/60 focus-visible:ring-3 focus-visible:ring-ring/50"
+              >
+                Retry
+              </button>
+            </div>
+          )}
+
           <ul
-            ref={listRef}
-            className="max-h-[60vh] overflow-y-auto py-1"
+            id={listboxId}
+            className="max-h-[min(60vh,32rem)] overflow-y-auto py-1"
             role="listbox"
             aria-label="Search results"
           >
             {loading ? (
-              <li className="px-4 py-8 text-center text-xs text-muted-foreground">
+              <li
+                role="presentation"
+                className="px-4 py-8 text-center text-xs text-muted-foreground"
+              >
                 Loading…
               </li>
             ) : flat.length === 0 ? (
-              <li className="px-4 py-8 text-center text-xs text-muted-foreground">
+              <li
+                role="presentation"
+                className="px-4 py-8 text-center text-xs text-muted-foreground"
+              >
                 {query
                   ? `No matches for "${query}"`
-                  : "Type to search across the workshop."}
+                  : "Type to search workflows, initiatives, people, and more."}
               </li>
             ) : (
               grouped.map((group) => {
                 const Icon = KIND_ICON[group.kind];
+                const headerId = `${listboxId}-group-${group.kind}`;
                 return (
-                  <li key={group.kind}>
-                    <p className="sticky top-0 z-10 bg-popover px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  <li key={group.kind} role="presentation">
+                    <p
+                      id={headerId}
+                      className="sticky top-0 z-10 bg-popover px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
+                    >
                       {KIND_LABEL[group.kind]}
                     </p>
-                    <ul>
-                      {group.items.map((hit) => {
-                        const idx = flat.indexOf(hit);
+                    <ul role="group" aria-labelledby={headerId}>
+                      {group.items.map(({ hit, idx }) => {
                         const active = idx === clampedActiveIndex;
                         return (
-                          <li
-                            key={`${hit.kind}:${hit.id}`}
-                            data-hit-idx={idx}
-                            role="option"
-                            aria-selected={active}
-                          >
+                          <li key={`${hit.kind}:${hit.id}`} role="presentation">
                             <button
                               type="button"
+                              id={optionId(idx)}
+                              role="option"
+                              aria-selected={active}
+                              tabIndex={-1}
                               onMouseEnter={() => setActiveIndex(idx)}
                               onClick={() => navigateTo(hit.href)}
                               className={cn(
-                                "flex w-full items-center gap-3 px-3 py-2 text-left text-sm",
+                                // scroll-mt-7 ≈ the sticky group header
+                                // (py-1 + 10px line) so scrollIntoView
+                                // clears it when arrowing upward.
+                                "flex w-full scroll-mt-7 items-center gap-3 px-3 py-2 text-left text-sm",
                                 active
                                   ? "bg-muted text-foreground"
                                   : "text-foreground hover:bg-muted/60",
@@ -425,7 +462,7 @@ export function CommandPalette({
               <span>close</span>
             </span>
             <span className="hidden sm:inline">
-              Press <Kbd>⌘</Kbd>
+              Press <Kbd>{modKeyLabel}</Kbd>
               <Kbd>K</Kbd> anywhere to reopen
             </span>
           </div>
@@ -459,6 +496,7 @@ function Kbd({ children }: { children: React.ReactNode }) {
  */
 export function CommandPaletteHint() {
   const { open } = useCommandPalette();
+  const isMac = useIsMac();
   return (
     <button
       type="button"
@@ -469,7 +507,7 @@ export function CommandPaletteHint() {
       <SearchIcon className="size-3.5 shrink-0" aria-hidden />
       <span className="flex-1 truncate">Search AI Ops…</span>
       <kbd className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground">
-        <span>⌘</span>
+        <span>{isMac ? "⌘" : "Ctrl"}</span>
         <span>K</span>
       </kbd>
     </button>

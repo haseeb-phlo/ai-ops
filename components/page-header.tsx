@@ -1,15 +1,5 @@
 import { cn } from "@/lib/utils";
 
-export type SectionAccent = "workflows" | "none";
-
-// Subtle 2px top accent per section. Stays close to the muted base so the
-// product still reads as monochrome; the colour exists purely to give the
-// eye an orientation cue when moving between sections.
-const ACCENT_CLASS: Record<SectionAccent, string> = {
-  workflows: "before:bg-slate-400/70",
-  none: "before:bg-transparent",
-};
-
 export function PageHeader({
   title,
   description,
@@ -46,19 +36,14 @@ export function PageHeader({
 export function PageContainer({
   children,
   className,
-  accent = "none",
 }: {
   children: React.ReactNode;
   className?: string;
-  accent?: SectionAccent;
 }) {
   return (
     <div
       className={cn(
         "relative mx-auto w-full max-w-6xl space-y-6 px-6 py-8",
-        accent !== "none" &&
-          "before:absolute before:inset-x-0 before:top-0 before:h-[2px]",
-        ACCENT_CLASS[accent],
         className,
       )}
     >

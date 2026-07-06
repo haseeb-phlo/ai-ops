@@ -1,9 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { z } from "zod";
-import { getSessionUser } from "@/lib/auth";
+import { requireWriter } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { sendChampionAssignedEmail } from "@/lib/emails/champion-assigned";
 
@@ -21,8 +20,12 @@ export async function assignChampion(
   _prev: AssignChampionState,
   formData: FormData,
 ): Promise<AssignChampionState> {
-  const user = await getSessionUser();
-  if (user.role !== "super_admin") {
+  // requireWriter blocks impersonating super-admins (the DB would let the
+  // write through because auth.uid() is unchanged); then assert the real
+  // grant is super_admin.
+  const gate = await requireWriter();
+  if (!gate.ok) return { kind: "error", message: gate.error };
+  if (gate.user.realRole !== "super_admin") {
     return { kind: "error", message: "Only super-admins can assign champions." };
   }
 
@@ -61,13 +64,32 @@ export async function assignChampion(
   const { data: resolvedUserId } = await supabase.rpc("user_id_for_email", {
     p_email: person.email,
   });
+  const userId = (resolvedUserId as string | null) ?? null;
+
+  // Server-side duplicate check keyed on user id where we have one. The
+  // partial unique index on (team, user_id) also catches this as 23505, but
+  // it can't cover people who haven't signed in yet (user_id null).
+  if (userId) {
+    const { data: dup } = await supabase
+      .from("champions")
+      .select("id")
+      .eq("team", parsed.data.team)
+      .eq("user_id", userId)
+      .maybeSingle<{ id: string }>();
+    if (dup) {
+      return {
+        kind: "error",
+        message: `${person.display_name} is already a champion of ${parsed.data.team}.`,
+      };
+    }
+  }
 
   // With the team-unique constraint dropped (multi-champion teams), this
   // is now an insert. The partial unique index on (team, user_id) catches
   // the "same person assigned twice to the same team" case as 23505.
   const { error: insertError } = await supabase.from("champions").insert({
     team: parsed.data.team,
-    user_id: (resolvedUserId as string | null) ?? null,
+    user_id: userId,
     display_name: person.display_name,
   });
 
@@ -89,7 +111,7 @@ export async function assignChampion(
     to: person.email,
     recipientName: person.display_name,
     team: parsed.data.team,
-    assignedByName: user.displayName,
+    assignedByName: gate.user.displayName,
   });
 
   if ("ok" in sendResult && sendResult.ok) {
@@ -101,27 +123,35 @@ export async function assignChampion(
   }
 
   revalidatePath("/admin");
+  revalidatePath("/map");
 
   return { kind: "ok", team: parsed.data.team, emailed, emailNote };
 }
 
-export async function removeChampion(formData: FormData): Promise<void> {
-  const user = await getSessionUser();
-  if (user.role !== "super_admin") return;
+export type RemoveChampionResult =
+  | { ok: true }
+  | { ok: false; error: string };
 
-  const championId = (formData.get("champion_id") as string | null)?.trim();
-  const redirectTo = (formData.get("redirect_to") as string | null)?.trim();
-  if (!championId) return;
+export async function removeChampion(
+  championId: string,
+): Promise<RemoveChampionResult> {
+  const gate = await requireWriter();
+  if (!gate.ok) return { ok: false, error: gate.error };
+  if (gate.user.realRole !== "super_admin") {
+    return { ok: false, error: "Only super-admins can remove champions." };
+  }
+
+  const id = championId?.trim();
+  if (!id) return { ok: false, error: "Missing champion id." };
 
   const supabase = await createClient();
-  await supabase.from("champions").delete().eq("id", championId);
+  const { error } = await supabase.from("champions").delete().eq("id", id);
+  if (error) {
+    return { ok: false, error: `Could not remove champion: ${error.message}` };
+  }
 
   revalidatePath("/admin");
   revalidatePath("/map");
 
-  // Server Actions accept arbitrary FormData, so an unvalidated redirect target
-  // is a CSRF-shaped open-redirect — only honour same-origin relative paths.
-  if (redirectTo && redirectTo.startsWith("/") && !redirectTo.startsWith("//")) {
-    redirect(redirectTo);
-  }
+  return { ok: true };
 }

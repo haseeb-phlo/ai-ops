@@ -4,40 +4,37 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  LayoutDashboardIcon,
-  WorkflowIcon,
-  SparklesIcon,
-  LightbulbIcon,
-  GraduationCapIcon,
-  UsersIcon,
-  ShieldCheckIcon,
   ChevronsLeftIcon,
   ChevronsRightIcon,
   LogOutIcon,
   SearchIcon,
-  type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { SessionUser } from "@/lib/auth";
+import {
+  NAV_ITEMS,
+  ADMIN_NAV_ITEM,
+  isNavActive,
+  type NavItem,
+} from "@/lib/navigation";
+import { Avatar } from "@/components/ui/avatar";
 import { setSidebarCollapsed } from "@/lib/sidebar-actions";
-import { CommandPaletteHint, useCommandPalette } from "./command-palette";
+import {
+  CommandPaletteHint,
+  useCommandPalette,
+  useIsMac,
+} from "./command-palette";
 
-type Item = { href: string; label: string; icon: LucideIcon };
-
-const ITEMS: Item[] = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboardIcon },
-  { href: "/workflows", label: "Workflows", icon: WorkflowIcon },
-  { href: "/interventions", label: "Initiatives", icon: SparklesIcon },
-  { href: "/suggestions", label: "Suggestions", icon: LightbulbIcon },
-  { href: "/learn", label: "Learn", icon: GraduationCapIcon },
-  { href: "/map", label: "People", icon: UsersIcon },
-];
-
-const ADMIN_ITEM: Item = {
-  href: "/admin",
-  label: "Admin",
-  icon: ShieldCheckIcon,
-};
+/**
+ * Active test for a nav item. Beyond the shared prefix logic, the People
+ * item (href /map) also owns the /people/* detail routes, so browsing a
+ * person's page keeps People highlighted.
+ */
+function isItemActive(pathname: string, href: string): boolean {
+  if (isNavActive(pathname, href)) return true;
+  if (href === "/map") return isNavActive(pathname, "/people");
+  return false;
+}
 
 export function Sidebar({
   user,
@@ -55,11 +52,7 @@ export function Sidebar({
   const [collapsed, setCollapsed] = useState(initialCollapsed);
   const [, startTransition] = useTransition();
   const pathname = usePathname() ?? "/";
-
-  function isActive(href: string): boolean {
-    if (href === "/") return pathname === "/";
-    return pathname === href || pathname.startsWith(href + "/");
-  }
+  const profileActive = isNavActive(pathname, "/profile");
 
   function handleToggle() {
     const next = !collapsed;
@@ -73,16 +66,16 @@ export function Sidebar({
     <aside
       data-collapsed={collapsed ? "" : undefined}
       className={cn(
-        "group hidden md:flex shrink-0 flex-col border-r border-border bg-background transition-[width] duration-150 ease-out",
+        "group sticky top-0 hidden h-screen md:flex shrink-0 flex-col border-r border-border bg-background transition-[width] duration-150 ease-out",
         collapsed ? "w-[60px]" : "w-60",
       )}
     >
-      {/* Brand row - holds the logo and (when expanded) a hover-revealed
-          collapse toggle on the right. The expand affordance lives just
-          below this row when the sidebar is collapsed. */}
+      {/* Brand row - holds the logo and (when expanded) the collapse toggle
+          on the right. The expand affordance lives just below this row when
+          the sidebar is collapsed. */}
       <div
         className={cn(
-          "flex h-14 items-center border-b border-border",
+          "flex h-14 shrink-0 items-center border-b border-border",
           collapsed ? "justify-center px-2" : "gap-3 px-4",
         )}
       >
@@ -98,6 +91,8 @@ export function Sidebar({
           <img
             src="/phlo-mark.svg"
             alt="Phlo"
+            width={60}
+            height={20}
             className="h-5 w-auto shrink-0"
           />
           {!collapsed && (
@@ -114,8 +109,7 @@ export function Sidebar({
             type="button"
             onClick={handleToggle}
             aria-label="Collapse sidebar"
-            aria-pressed={collapsed}
-            className="rounded-md p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-muted/40 hover:text-foreground focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group-hover:opacity-100"
+            className="rounded-md p-1 text-muted-foreground opacity-60 outline-none transition-opacity hover:bg-muted/40 hover:text-foreground hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-3 focus-visible:ring-ring/50 group-hover:opacity-100"
           >
             <ChevronsLeftIcon className="size-4" aria-hidden />
           </button>
@@ -123,14 +117,13 @@ export function Sidebar({
       </div>
 
       {collapsed && (
-        <div className="px-2 pt-2">
+        <div className="shrink-0 px-2 pt-2">
           <button
             type="button"
             onClick={handleToggle}
             aria-label="Expand sidebar"
-            aria-pressed={collapsed}
             title="Expand sidebar"
-            className="flex w-full items-center justify-center rounded-md py-1.5 text-muted-foreground hover:bg-muted/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="flex w-full items-center justify-center rounded-md py-1.5 text-muted-foreground outline-none hover:bg-muted/40 hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
           >
             <ChevronsRightIcon className="size-4" aria-hidden />
           </button>
@@ -138,46 +131,46 @@ export function Sidebar({
       )}
 
       {/* Search hint - opens the command palette */}
-      <div className="px-2 pt-3">
+      <div className="shrink-0 px-2 pt-3">
         {collapsed ? <CommandPaletteIconButton /> : <CommandPaletteHint />}
       </div>
 
       {/* Nav */}
       <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-2 py-3">
-        {ITEMS.map((item) => (
+        {NAV_ITEMS.map((item) => (
           <SidebarLink
             key={item.href}
             item={item}
-            active={isActive(item.href)}
+            active={isItemActive(pathname, item.href)}
             collapsed={collapsed}
           />
         ))}
         {canSeeAdmin && (
           <SidebarLink
-            item={ADMIN_ITEM}
-            active={isActive(ADMIN_ITEM.href)}
+            item={ADMIN_NAV_ITEM}
+            active={isItemActive(pathname, ADMIN_NAV_ITEM.href)}
             collapsed={collapsed}
           />
         )}
       </nav>
 
       {/* User block */}
-      <div className="border-t border-border p-2">
+      <div className="shrink-0 border-t border-border p-2">
         <Link
           href="/profile"
+          aria-current={profileActive ? "page" : undefined}
           className={cn(
-            "flex items-center gap-3 rounded-md px-2 py-2 hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "flex items-center gap-3 rounded-md px-2 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            profileActive ? "bg-muted" : "hover:bg-muted/40",
             collapsed && "justify-center px-0",
           )}
           aria-label="Edit profile"
           title={collapsed ? `${user.displayName} · profile` : undefined}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <Avatar
             src={user.avatarUrl}
-            alt=""
-            aria-hidden
-            className="size-7 shrink-0 rounded-full ring-1 ring-border"
+            name={user.displayName}
+            className="size-7 ring-1 ring-border"
           />
           {!collapsed && (
             <div className="min-w-0 flex-1">
@@ -214,12 +207,13 @@ export function Sidebar({
 
 function CommandPaletteIconButton() {
   const { open } = useCommandPalette();
+  const isMac = useIsMac();
   return (
     <button
       type="button"
       onClick={open}
       aria-label="Open command palette"
-      title="Search (⌘K)"
+      title={`Search (${isMac ? "⌘K" : "Ctrl K"})`}
       className="flex w-full items-center justify-center rounded-md px-0 py-1.5 text-muted-foreground hover:bg-muted/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <SearchIcon className="size-4" aria-hidden />
@@ -232,7 +226,7 @@ function SidebarLink({
   active,
   collapsed,
 }: {
-  item: Item;
+  item: NavItem;
   active: boolean;
   collapsed: boolean;
 }) {
@@ -241,6 +235,7 @@ function SidebarLink({
     <Link
       href={item.href}
       title={collapsed ? item.label : undefined}
+      aria-current={active ? "page" : undefined}
       className={cn(
         "relative flex items-center gap-3 rounded-md px-2 py-2 text-sm transition-colors",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",

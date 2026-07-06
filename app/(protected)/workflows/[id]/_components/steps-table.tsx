@@ -2,6 +2,7 @@
 
 import { useOptimistic, useState, useTransition } from "react";
 import { Plus } from "lucide-react";
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   addStep,
@@ -166,12 +167,9 @@ export function StepsTable({
           </Button>
         )}
         {error && (
-          <div
-            role="alert"
-            className="rounded-md bg-red-50 px-3 py-1 text-xs text-red-800 ring-1 ring-inset ring-red-200"
-          >
+          <Alert variant="destructive" className="px-3 py-1 text-xs">
             {error}
-          </div>
+          </Alert>
         )}
       </div>
 
@@ -201,7 +199,7 @@ export function StepsTable({
               </tr>
             )}
             {optimisticSteps.map((step, idx) => (
-              <tr key={step.id} className="hover:bg-muted/40/50">
+              <tr key={step.id} className="hover:bg-muted/50">
                 <td className="px-3 py-2 text-muted-foreground tabular-nums">
                   {step.position}
                 </td>
@@ -252,21 +250,23 @@ export function StepsTable({
                   <td className="px-3 py-1.5 text-right">
                     {pendingDelete === step.id ? (
                       <div className="inline-flex items-center gap-1">
-                        <button
+                        <Button
                           type="button"
+                          size="xs"
+                          variant="destructive"
                           onClick={() => handleDelete(step.id)}
                           disabled={isPending}
-                          className="rounded border border-red-300 bg-red-50 px-2 py-0.5 text-[11px] font-medium text-red-700 hover:bg-red-100 disabled:opacity-50"
                         >
                           Delete
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                           type="button"
+                          size="xs"
+                          variant="ghost"
                           onClick={() => setPendingDelete(null)}
-                          className="rounded border border-border px-2 py-0.5 text-[11px] text-muted-foreground hover:bg-muted/40"
                         >
                           Cancel
-                        </button>
+                        </Button>
                       </div>
                     ) : (
                       <div className="inline-flex items-center gap-0.5">
@@ -290,7 +290,7 @@ export function StepsTable({
                           onClick={() => setPendingDelete(step.id)}
                           disabled={isPending}
                           aria-label="Delete step"
-                          className="hover:text-red-700"
+                          className="hover:text-destructive"
                         >
                           ✕
                         </ActionButton>
@@ -388,27 +388,49 @@ function Cell({
               setEditing(null);
             }
           }}
-          className={`w-full rounded border border-blue-400 px-2 py-1 text-sm outline-none ring-2 ring-blue-100 ${alignClass}`}
+          className={`w-full rounded border border-ring px-2 py-1 text-sm outline-none ring-3 ring-ring/50 ${alignClass}`}
         />
       </td>
     );
   }
 
   const empty = display === "";
-  const baseClass = `px-3 py-2 ${alignClass} ${
-    empty ? "text-muted-foreground" : "text-foreground"
-  } ${canEdit ? "cursor-pointer" : ""}`;
+  const textClass = empty ? "text-muted-foreground" : "text-foreground";
+  const content = (
+    <>
+      {empty ? "-" : display}
+      {!empty && suffix ? (
+        <span className="ml-1 text-muted-foreground">{suffix}</span>
+      ) : null}
+    </>
+  );
+
+  if (!canEdit) {
+    return <td className={`px-3 py-2 ${alignClass} ${textClass}`}>{content}</td>;
+  }
+
+  // Click-to-edit must also work from the keyboard: the cell content is a
+  // focusable button-like element - Enter or Space starts editing, with the
+  // canonical focus-visible ring.
+  const startEditing = () => setEditing({ stepId: step.id, field });
 
   return (
-    <td
-      className={baseClass}
-      onClick={
-        canEdit ? () => setEditing({ stepId: step.id, field }) : undefined
-      }
-      title={canEdit ? "Click to edit" : undefined}
-    >
-      {empty ? "-" : display}
-      {!empty && suffix ? <span className="ml-1 text-muted-foreground">{suffix}</span> : null}
+    <td className={`px-3 py-1.5 ${alignClass} ${textClass}`}>
+      <div
+        role="button"
+        tabIndex={0}
+        title="Click to edit"
+        onClick={startEditing}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            startEditing();
+          }
+        }}
+        className={`w-full cursor-pointer rounded px-0 py-0.5 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 ${alignClass}`}
+      >
+        {content}
+      </div>
     </td>
   );
 }
