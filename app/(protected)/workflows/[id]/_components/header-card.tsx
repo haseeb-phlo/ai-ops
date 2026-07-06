@@ -1,4 +1,5 @@
 import { format } from "date-fns";
+import { LockIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { formatCadence } from "@/lib/frequency";
 import { DeleteWorkflowButton } from "./delete-workflow-button";
@@ -9,6 +10,7 @@ export type WorkflowHeader = {
   name: string;
   team: string | null;
   regulatory: boolean;
+  visibility: string;
   frequency_per_week: number | null;
   frequency_cadence: string | null;
   criticality_score: number | null;
@@ -64,6 +66,15 @@ export async function HeaderCard({
             {workflow.regulatory && (
               <Badge className="border-purple-200 bg-purple-50 text-purple-800">
                 Regulatory
+              </Badge>
+            )}
+            {workflow.visibility === "team" && (
+              <Badge
+                className="border-slate-200 bg-slate-50 text-slate-700"
+                title="Only visible to the owner team and admins"
+              >
+                <LockIcon className="size-3" aria-hidden />
+                Confidential
               </Badge>
             )}
             {workflow.criticality_score != null && (

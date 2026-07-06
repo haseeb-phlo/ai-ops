@@ -40,6 +40,7 @@ type Workflow = {
   name: string;
   team: string | null;
   regulatory: boolean;
+  visibility: string;
   frequency_per_week: number | null;
   frequency_cadence: string | null;
   criticality_score: number | null;
@@ -85,6 +86,9 @@ export function EditWorkflowDialog({
   );
   const [cadence, setCadence] = useState<Cadence>(initialCadence);
   const [regulatory, setRegulatory] = useState(workflow.regulatory);
+  const [confidential, setConfidential] = useState(
+    workflow.visibility === "team",
+  );
   const [tools, setTools] = useState<string[]>(workflow.tools_used ?? []);
   const [state, setState] = useState<UpdateWorkflowState>({ kind: "idle" });
   const [pending, startTransition] = useTransition();
@@ -109,6 +113,7 @@ export function EditWorkflowDialog({
       );
       setCadence(initialCadence);
       setRegulatory(workflow.regulatory);
+      setConfidential(workflow.visibility === "team");
       setTools(workflow.tools_used ?? []);
     }
     setOpen(next);
@@ -296,6 +301,33 @@ export function EditWorkflowDialog({
               {workflow.regulatory && !regulatory && (
                 <p className="rounded-md bg-amber-50 p-2 text-xs text-amber-900 sm:col-span-2">
                   You&apos;re removing the regulatory flag.
+                </p>
+              )}
+
+              <div className="space-y-1 sm:col-span-2">
+                <div className="flex items-center gap-2">
+                  <input
+                    id="confidential"
+                    name="confidential"
+                    type="checkbox"
+                    checked={confidential}
+                    onChange={(e) => setConfidential(e.target.checked)}
+                    className="h-4 w-4 rounded border-input"
+                  />
+                  <Label htmlFor="confidential" className="font-normal">
+                    Confidential &mdash; only visible to the owner team
+                  </Label>
+                </div>
+                <p className="pl-6 text-xs text-muted-foreground">
+                  Hides this workflow (and its steps, metrics and activity)
+                  from everyone outside the owner team, except admins.
+                </p>
+              </div>
+
+              {workflow.visibility === "team" && !confidential && (
+                <p className="rounded-md bg-amber-50 p-2 text-xs text-amber-900 sm:col-span-2">
+                  You&apos;re making this workflow visible to the whole
+                  company.
                 </p>
               )}
 

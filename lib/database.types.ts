@@ -1182,6 +1182,7 @@ export type Database = {
           team: string | null
           tools_used: string[]
           updated_at: string
+          visibility: string
           walkthrough: string | null
         }
         Insert: {
@@ -1204,6 +1205,7 @@ export type Database = {
           team?: string | null
           tools_used?: string[]
           updated_at?: string
+          visibility?: string
           walkthrough?: string | null
         }
         Update: {
@@ -1226,6 +1228,7 @@ export type Database = {
           team?: string | null
           tools_used?: string[]
           updated_at?: string
+          visibility?: string
           walkthrough?: string | null
         }
         Relationships: []
