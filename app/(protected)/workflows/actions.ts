@@ -9,7 +9,7 @@ import { CADENCES, cadenceToPerWeek, type Cadence } from "@/lib/frequency";
 
 const FormSchema = z.object({
   name: z.string().min(1, "Name is required").max(200),
-  team: z.string().min(1, "Team is required"),
+  team: z.string().min(1, "Team is required").max(120),
   frequency_cadence: z.enum(CADENCES, {
     error: "Pick how often this workflow runs",
   }),
@@ -174,9 +174,10 @@ export async function createWorkflow(
     .single();
 
   if (insertError || !workflow) {
+    console.error("[workflows] create insert failed", insertError?.message);
     return {
       kind: "error",
-      message: `Could not save workflow: ${insertError?.message ?? "unknown error"}`,
+      message: "Could not save workflow. Please try again.",
     };
   }
 
@@ -261,7 +262,8 @@ export async function softDeleteWorkflow(
     .select("id");
 
   if (error) {
-    return { kind: "error", message: error.message };
+    console.error("[workflows] soft-delete failed", error.message);
+    return { kind: "error", message: "Could not delete workflow. Please try again." };
   }
   if (!data || data.length === 0) {
     return {
@@ -294,7 +296,8 @@ export async function restoreWorkflow(
     .select("id");
 
   if (error) {
-    return { kind: "error", message: error.message };
+    console.error("[workflows] restore failed", error.message);
+    return { kind: "error", message: "Could not restore workflow. Please try again." };
   }
   if (!data || data.length === 0) {
     return {

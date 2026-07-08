@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { getSessionUser, requireWriter } from "@/lib/auth";
+import { requireWriter } from "@/lib/auth";
 import { resolveDisplayName } from "@/lib/profile";
 import { appUrl } from "@/lib/app-url";
 import { sendSuggestionSubmittedEmail } from "@/lib/emails/suggestion-submitted";
@@ -47,7 +47,9 @@ export async function createSuggestion(
   _prev: SuggestionState,
   formData: FormData,
 ): Promise<SuggestionState> {
-  const user = await getSessionUser();
+  const gate = await requireWriter();
+  if (!gate.ok) return { kind: "error", message: gate.error };
+  const user = gate.user;
   const parsed = CreateSchema.safeParse({
     title: formData.get("title"),
     body: formData.get("body"),
@@ -73,9 +75,10 @@ export async function createSuggestion(
     .select("id")
     .single();
   if (error || !data) {
+    console.error("[suggestions] create failed:", error?.message);
     return {
       kind: "error",
-      message: `Could not save suggestion: ${error?.message ?? "unknown"}`,
+      message: "Could not save suggestion. Please try again.",
     };
   }
 
@@ -107,7 +110,9 @@ export async function createSuggestion(
 export async function toggleSuggestionVote(
   formData: FormData,
 ): Promise<{ ok: true } | { ok: false; message: string }> {
-  const user = await getSessionUser();
+  const gate = await requireWriter();
+  if (!gate.ok) return { ok: false, message: gate.error };
+  const user = gate.user;
   const id = formData.get("suggestion_id");
   if (typeof id !== "string" || !id) {
     return { ok: false, message: "Missing suggestion." };
@@ -241,7 +246,8 @@ export async function setSuggestionStatus(
     .update(update)
     .eq("id", parsed.data.suggestion_id);
   if (error) {
-    return { kind: "error", message: error.message };
+    console.error("[suggestions] status update failed:", error.message);
+    return { kind: "error", message: "Could not update status. Please try again." };
   }
 
   // Notify the suggestion's author when the decision matches one of the
@@ -357,9 +363,10 @@ export async function editSuggestion(
     .update({ title: parsed.data.title, body: parsed.data.body })
     .eq("id", parsed.data.suggestion_id);
   if (error) {
+    console.error("[suggestions] edit failed:", error.message);
     return {
       kind: "error",
-      message: `Could not save edit: ${error.message}`,
+      message: "Could not save edit. Please try again.",
     };
   }
   revalidatePath("/suggestions");
@@ -402,7 +409,8 @@ export async function linkSuggestionsToIntervention(
     })
     .in("id", parsed.data.suggestion_ids);
   if (error) {
-    return { kind: "error", message: error.message };
+    console.error("[suggestions] link failed:", error.message);
+    return { kind: "error", message: "Could not link suggestions. Please try again." };
   }
   revalidatePath("/suggestions");
   revalidatePath(`/interventions/${parsed.data.intervention_id}`);
@@ -410,8 +418,9 @@ export async function linkSuggestionsToIntervention(
 }
 
 export async function deleteSuggestion(formData: FormData): Promise<void> {
-  const user = await getSessionUser();
-  if (user.role !== "super_admin") return;
+  const gate = await requireWriter();
+  if (!gate.ok) return;
+  if (gate.user.realRole !== "super_admin") return;
   const id = formData.get("suggestion_id");
   if (typeof id !== "string") return;
   const supabase = await createClient();
@@ -569,7 +578,9 @@ export async function createSuggestionComment(
   _prev: SuggestionState,
   formData: FormData,
 ): Promise<SuggestionState> {
-  const user = await getSessionUser();
+  const gate = await requireWriter();
+  if (!gate.ok) return { kind: "error", message: gate.error };
+  const user = gate.user;
   const parsed = CommentSchema.safeParse({
     suggestion_id: formData.get("suggestion_id"),
     body: formData.get("body"),
@@ -588,7 +599,10 @@ export async function createSuggestionComment(
       body: parsed.data.body,
       created_by: user.id,
     });
-  if (error) return { kind: "error", message: error.message };
+  if (error) {
+    console.error("[suggestions] comment failed:", error.message);
+    return { kind: "error", message: "Could not post comment. Please try again." };
+  }
 
   // Fan out: notify the suggestion's author + every prior commenter,
   // minus the person who just commented (no self-pings). Failures log
@@ -707,9 +721,11 @@ async function notifyCommentThread(args: {
 }
 
 export async function deleteSuggestionComment(formData: FormData): Promise<void> {
-  // Gate on a real session - getSessionUser redirects to /login if absent.
+  // requireWriter blocks impersonating super-admins (auth.uid() is unchanged,
+  // so RLS would otherwise let a "view-as member" session delete any comment).
   // Author-or-super authorization is enforced by RLS on the delete itself.
-  await getSessionUser();
+  const gate = await requireWriter();
+  if (!gate.ok) return;
   const id = formData.get("comment_id");
   const suggestionId = formData.get("suggestion_id");
   if (typeof id !== "string" || typeof suggestionId !== "string") return;

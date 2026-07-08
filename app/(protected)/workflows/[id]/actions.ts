@@ -72,9 +72,30 @@ export async function updateStepField(
       if (!Number.isFinite(n) || n < 0) {
         return { ok: false, error: "Duration must be a non-negative number." };
       }
+      if (n > 100_000) {
+        return { ok: false, error: "Duration is too large (max 100000 minutes)." };
+      }
       newValue = Math.round(n);
     }
   } else {
+    // Mirror the length caps the creation schema enforces so an inline edit
+    // can't write an unbounded string into workflow_steps (and step_revisions,
+    // which stores both the old and new value).
+    const LIMITS: Record<
+      "title" | "description" | "owner",
+      { max: number; label: string }
+    > = {
+      title: { max: 200, label: "Title" },
+      description: { max: 2000, label: "Description" },
+      owner: { max: 200, label: "Owner" },
+    };
+    const limit = LIMITS[field];
+    if (trimmed.length > limit.max) {
+      return {
+        ok: false,
+        error: `${limit.label} is too long (max ${limit.max}).`,
+      };
+    }
     newValue = trimmed === "" ? null : trimmed;
   }
 
@@ -94,7 +115,8 @@ export async function updateStepField(
   });
 
   if (revErr) {
-    return { ok: false, error: `Could not record revision: ${revErr.message}` };
+    console.error("[workflows] step revision insert failed", revErr.message);
+    return { ok: false, error: "Could not record revision. Please try again." };
   }
 
   const { error: updErr } = await supabase
@@ -103,7 +125,8 @@ export async function updateStepField(
     .eq("id", step.id);
 
   if (updErr) {
-    return { ok: false, error: `Could not save change: ${updErr.message}` };
+    console.error("[workflows] step update failed", updErr.message);
+    return { ok: false, error: "Could not save change. Please try again." };
   }
 
   revalidatePath(`/workflows/${step.workflow_id}`);
@@ -160,7 +183,8 @@ export async function addStep(
     .single();
 
   if (error || !inserted) {
-    return { ok: false, error: error?.message ?? "Insert failed." };
+    console.error("[workflows] add step failed", error?.message);
+    return { ok: false, error: "Could not add step. Please try again." };
   }
 
   revalidatePath(`/workflows/${workflowId}`);
@@ -186,7 +210,10 @@ export async function deleteStep(
     .delete()
     .eq("id", stepId);
 
-  if (error) return { ok: false, error: error.message };
+  if (error) {
+    console.error("[workflows] delete step failed", error.message);
+    return { ok: false, error: "Could not delete step. Please try again." };
+  }
 
   revalidatePath(`/workflows/${step.workflow_id}`);
   return { ok: true };
@@ -232,7 +259,10 @@ export async function moveStep(
     "swap_step_positions",
     { p_step_a: step.id, p_step_b: neighbour.id },
   );
-  if (swapErr) return { ok: false, error: swapErr.message };
+  if (swapErr) {
+    console.error("[workflows] step swap failed", swapErr.message);
+    return { ok: false, error: "Could not reorder steps. Please try again." };
+  }
 
   revalidatePath(`/workflows/${step.workflow_id}`);
   return { ok: true };
@@ -256,7 +286,7 @@ const UpdateWorkflowSchema = z.object({
     .max(5)
     .nullable(),
   business_kpi: z.string().max(500).nullable(),
-  owner_names: z.array(z.string().min(1)).max(20),
+  owner_names: z.array(z.string().min(1).max(200)).max(20),
   tools_used: z
     .array(z.string().min(1).max(80))
     .max(20, "Twenty tools is the cap; trim to the most relevant."),
@@ -463,7 +493,8 @@ export async function updateWorkflow(
     .from("workflow_revisions")
     .insert(revisions);
   if (revErr) {
-    return { kind: "error", message: `Could not record revisions: ${revErr.message}` };
+    console.error("[workflows] revision insert failed", revErr.message);
+    return { kind: "error", message: "Could not save changes. Please try again." };
   }
 
   const { error: updErr } = await gate.supabase
@@ -485,7 +516,8 @@ export async function updateWorkflow(
     .eq("id", workflowId);
 
   if (updErr) {
-    return { kind: "error", message: `Could not save: ${updErr.message}` };
+    console.error("[workflows] workflow update failed", updErr.message);
+    return { kind: "error", message: "Could not save changes. Please try again." };
   }
 
   // Hours/wk → workflow_metrics.time_baseline (minutes). Update only when
@@ -506,9 +538,10 @@ export async function updateWorkflow(
         { onConflict: "workflow_id" },
       );
     if (metricsErr) {
+      console.error("[workflows] hours/week metrics upsert failed", metricsErr.message);
       return {
         kind: "error",
-        message: `Could not save hours/week: ${metricsErr.message}`,
+        message: "Could not save hours/week. Please try again.",
       };
     }
   }

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionUser, requireWriter } from "@/lib/auth";
+import { isAllowedEmail } from "@/lib/auth-domain";
 import { appUrl } from "@/lib/app-url";
 import { resolveDisplayName } from "@/lib/profile";
 import { sendInterventionCommentEmail } from "@/lib/emails/intervention-comment";
@@ -88,6 +89,22 @@ export async function logMetricSnapshot(
   const data = parsed.data;
   const supabase = await createClient();
 
+  // Only the initiative's owner, a champion of a linked workflow's team, or a
+  // super-admin may log metrics. RLS is the authoritative gate (the insert
+  // policy calls can_edit_intervention); this pre-check just turns a definite
+  // "no" into a clean message. Block only on an explicit `false` so a
+  // transient RPC error or null doesn't wrongly reject a legitimate owner -
+  // RLS still rejects a genuinely unauthorized insert below.
+  const { data: canEdit } = await supabase.rpc("can_edit_intervention", {
+    p_intervention_id: data.intervention_id,
+  });
+  if (canEdit === false) {
+    return {
+      kind: "error",
+      message: "You don't have permission to log metrics for this initiative.",
+    };
+  }
+
   const { error } = await supabase.from("intervention_metrics").insert({
     intervention_id: data.intervention_id,
     snapshot_date: data.snapshot_date,
@@ -101,9 +118,10 @@ export async function logMetricSnapshot(
   });
 
   if (error) {
+    console.error("[interventions] snapshot insert failed", error.message);
     return {
       kind: "error",
-      message: `Could not save snapshot: ${error.message}`,
+      message: "Could not save snapshot. Please try again.",
     };
   }
 
@@ -149,7 +167,15 @@ const UpdateSchema = z.object({
     .min(1, "Satisfaction is 1-5")
     .max(5, "Satisfaction is 1-5")
     .nullable(),
-  recipient_emails: z.array(z.string().email().toLowerCase()).max(500),
+  recipient_emails: z
+    .array(
+      z
+        .string()
+        .email()
+        .toLowerCase()
+        .refine(isAllowedEmail, "Recipients must be @wearephlo.com addresses"),
+    )
+    .max(500),
   // Notes write directly via UPDATE (update_intervention RPC doesn't accept
   // it yet), and the action writes an intervention_edits row to keep the
   // audit log honest. Nullable so a user can clear an existing note.
@@ -258,9 +284,10 @@ export async function updateIntervention(
     p_frequency_cadence: data.frequency_cadence,
   });
   if (rpcError) {
+    console.error("[interventions] update_intervention failed", rpcError.message);
     return {
       kind: "error",
-      message: `Could not save: ${rpcError.message}`,
+      message: "Could not save changes. Please try again.",
     };
   }
 
@@ -289,9 +316,10 @@ export async function updateIntervention(
     })
     .eq("id", data.id);
   if (directError) {
+    console.error("[interventions] extras update failed", directError.message);
     return {
       kind: "error",
-      message: `Saved core fields, but could not update extras: ${directError.message}`,
+      message: "Saved core fields, but could not update status/recipients/notes.",
     };
   }
 
@@ -357,7 +385,8 @@ export async function setInterventionStatus(
   });
 
   if (error) {
-    return { kind: "error", message: `Could not change status: ${error.message}` };
+    console.error("[interventions] set_intervention_status failed", error.message);
+    return { kind: "error", message: "Could not change status. Please try again." };
   }
 
   revalidatePath(`/interventions/${data.id}`);
@@ -423,7 +452,11 @@ export async function deleteIntervention(
 
   if (error) {
     console.error("deleteIntervention failed", error);
-    return { kind: "error", reason: "db", message: error.message };
+    return {
+      kind: "error",
+      reason: "db",
+      message: "Could not delete this AI initiative. Please try again.",
+    };
   }
   if (!deletedRows || deletedRows.length === 0) {
     return {
@@ -480,7 +513,10 @@ export async function createInterventionComment(
     body: parsed.data.body,
     created_by: user.id,
   });
-  if (error) return { kind: "error", message: error.message };
+  if (error) {
+    console.error("[interventions] comment insert failed", error.message);
+    return { kind: "error", message: "Could not post comment. Please try again." };
+  }
 
   // Fan out to the initiative owner + every prior commenter (minus self).
   // Failures log but don't fail the comment - in-app remains source of truth.

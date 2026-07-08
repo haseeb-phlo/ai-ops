@@ -251,7 +251,9 @@ const RecordPlaySchema = z.object({
 // caller. Returns silently - the UI doesn't need a response, and a failed
 // insert (e.g. transient network) shouldn't block the iframe from loading.
 export async function recordPlay(formData: FormData): Promise<void> {
-  const user = await getSessionUser();
+  const gate = await requireWriter();
+  if (!gate.ok) return;
+  const user = gate.user;
   const parsed = RecordPlaySchema.safeParse({
     video_id: formData.get("video_id"),
   });
@@ -278,7 +280,9 @@ const ToggleCompletionSchema = z.object({
 export async function toggleVideoCompletion(
   formData: FormData,
 ): Promise<ActionState> {
-  const user = await getSessionUser();
+  const gate = await requireWriter();
+  if (!gate.ok) return { kind: "error", message: gate.error };
+  const user = gate.user;
   const parsed = ToggleCompletionSchema.safeParse({
     video_id: formData.get("video_id"),
   });
