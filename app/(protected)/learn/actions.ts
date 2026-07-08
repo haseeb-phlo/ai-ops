@@ -251,7 +251,9 @@ const RecordPlaySchema = z.object({
 // caller. Returns silently - the UI doesn't need a response, and a failed
 // insert (e.g. transient network) shouldn't block the iframe from loading.
 export async function recordPlay(formData: FormData): Promise<void> {
-  const user = await getSessionUser();
+  const gate = await requireWriter();
+  if (!gate.ok) return;
+  const user = gate.user;
   const parsed = RecordPlaySchema.safeParse({
     video_id: formData.get("video_id"),
   });
@@ -275,7 +277,9 @@ const ToggleCompletionSchema = z.object({
 // One row per (video, user) is enforced by the table's unique constraint;
 // RLS limits inserts/deletes to the caller's own rows.
 export async function toggleVideoCompletion(formData: FormData): Promise<void> {
-  const user = await getSessionUser();
+  const gate = await requireWriter();
+  if (!gate.ok) return;
+  const user = gate.user;
   const parsed = ToggleCompletionSchema.safeParse({
     video_id: formData.get("video_id"),
   });

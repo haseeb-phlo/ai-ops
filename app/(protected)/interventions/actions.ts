@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { requireWriter } from "@/lib/auth";
+import { isAllowedEmail } from "@/lib/auth-domain";
 import { CADENCES, cadenceToPerWeek } from "@/lib/frequency";
 
 const INTERVENTION_TYPES = [
@@ -70,7 +71,13 @@ const FormSchema = z.object({
   // Required: every intervention reaches someone; "team-wide" gets logged
   // by adding the team's members explicitly.
   recipient_emails: z
-    .array(z.string().email().toLowerCase())
+    .array(
+      z
+        .string()
+        .email()
+        .toLowerCase()
+        .refine(isAllowedEmail, "Recipients must be @wearephlo.com addresses"),
+    )
     .min(1, "Pick at least one person affected by this AI initiative")
     .max(500, "Recipient list is unusually large; check the picker."),
   // Free-text tool names from the tag input. Optional; deduped server-side
@@ -167,9 +174,10 @@ export async function logIntervention(
   });
 
   if (error || !newId) {
+    console.error("[interventions] log_intervention failed", error?.message);
     return {
       kind: "error",
-      message: `Could not log AI initiative: ${error?.message ?? "unknown error"}`,
+      message: "Could not log AI initiative. Please try again.",
     };
   }
 
