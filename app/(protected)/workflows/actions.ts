@@ -16,6 +16,10 @@ const FormSchema = z.object({
   criticality_score: z.number().int().min(1).max(5),
   business_kpi: z.string().min(1, "Business KPI is required").max(500),
   regulatory_flag: z.boolean(),
+  // Confidential workflows are visible only to the owner team (matched via
+  // the admin-managed people directory), the creator, and super admins.
+  // Enforced by RLS; this flag just maps to workflows.visibility.
+  confidential: z.boolean(),
   hours_per_week: z
     .number({ error: "Hours per week is required" })
     .min(0, "Hours can't be negative")
@@ -99,6 +103,7 @@ export async function createWorkflow(
     criticality_score: Number(formData.get("criticality_score") ?? 3),
     business_kpi: (formData.get("business_kpi") as string) || undefined,
     regulatory_flag: formData.get("regulatory_flag") === "on",
+    confidential: formData.get("confidential") === "on",
     hours_per_week: numericField("hours_per_week"),
     cost_per_week: numericField("cost_per_week"),
     revenue_per_week: numericField("revenue_per_week"),
@@ -158,6 +163,7 @@ export async function createWorkflow(
       criticality_score: data.criticality_score,
       business_kpi: data.business_kpi ?? null,
       regulatory: data.regulatory_flag,
+      visibility: data.confidential ? "team" : "org",
       owner_names: ownerNames,
       tools_used: data.tools_used,
       notes: data.notes ?? null,

@@ -3,6 +3,9 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -10,6 +13,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { deleteIntervention } from "../actions";
 
@@ -18,6 +22,10 @@ import { deleteIntervention } from "../actions";
  * (snapshots, baselines, workflow links). Suggestion linkage is detached -
  * any suggestion that pointed here flips back to status `open` so it
  * doesn't dangle on the roadmap.
+ *
+ * Because the delete is permanent and cascading, it requires typing the
+ * initiative's name to confirm - deliberately more friction than the
+ * recoverable workflow soft-delete.
  *
  * Calls the action inside a transition and routes manually on success.
  * An earlier version posted to the action via <form action={...}> and
@@ -34,16 +42,23 @@ export function DeleteInterventionButton({
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [confirmText, setConfirmText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  const canConfirm = confirmText.trim() === interventionName.trim();
 
   function handleOpenChange(next: boolean) {
     if (isPending) return;
     setOpen(next);
-    if (!next) setError(null);
+    if (!next) {
+      setConfirmText("");
+      setError(null);
+    }
   }
 
   function handleConfirm() {
+    if (!canConfirm) return;
     setError(null);
     startTransition(async () => {
       try {
@@ -67,59 +82,65 @@ export function DeleteInterventionButton({
   }
 
   return (
-    <>
-      <Button
-        type="button"
-        variant="outline"
-        className="text-red-700"
-        onClick={() => setOpen(true)}
-      >
-        Delete
-      </Button>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogTrigger
+        render={
+          <Button type="button" variant="destructive">
+            Delete
+          </Button>
+        }
+      />
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Delete AI initiative?</DialogTitle>
+          <DialogDescription>
+            This <strong>permanently</strong> deletes{" "}
+            <strong>{interventionName}</strong>, along with its baselines,
+            metric snapshots, and workflow links. Any suggestions previously
+            marked as shipped by it flip back to open. This cannot be
+            undone.
+          </DialogDescription>
+        </DialogHeader>
+        <p className="text-sm text-muted-foreground">
+          To keep the history, set the status to <strong>Retired</strong>{" "}
+          instead.
+        </p>
 
-      <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Delete AI initiative?</DialogTitle>
-            <DialogDescription>
-              This permanently removes <strong>{interventionName}</strong>{" "}
-              along with its baselines, snapshots, and workflow links. Any
-              suggestions previously marked as shipped here will flip back to
-              open.
-            </DialogDescription>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            To keep the history, set the status to <strong>Retired</strong>{" "}
-            instead.
-          </p>
-          {error && (
-            <p
-              role="alert"
-              className="rounded-md border border-red-200 bg-red-50 p-2 text-xs text-red-700"
-            >
-              {error}
-            </p>
-          )}
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => handleOpenChange(false)}
-              disabled={isPending}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              onClick={handleConfirm}
-              disabled={isPending}
-              className="bg-red-700 text-white hover:bg-red-800"
-            >
-              {isPending ? "Deleting…" : "Delete permanently"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+        <div className="space-y-1.5">
+          <Label htmlFor="confirm-initiative-name">
+            Type the initiative name to confirm
+          </Label>
+          <Input
+            id="confirm-initiative-name"
+            type="text"
+            value={confirmText}
+            onChange={(e) => setConfirmText(e.target.value)}
+            placeholder="Initiative name"
+            autoComplete="off"
+          />
+        </div>
+
+        {error && <Alert variant="destructive">{error}</Alert>}
+
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => handleOpenChange(false)}
+            disabled={isPending}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            variant="destructive"
+            onClick={handleConfirm}
+            disabled={!canConfirm || isPending}
+          >
+            {isPending ? "Deleting…" : "Delete permanently"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

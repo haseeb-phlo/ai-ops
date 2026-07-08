@@ -7,7 +7,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { relativeTime } from "./format";
+import { Badge } from "@/components/ui/badge";
+import { Time } from "@/components/ui/time";
 
 type Step = {
   id: string;
@@ -33,6 +34,18 @@ type Props = {
   unresolvedCount: number;
 };
 
+const SEVERITY_DOT: Record<Event["severity"], string> = {
+  red: "bg-red-500",
+  amber: "bg-amber-500",
+  green: "bg-emerald-500",
+};
+
+const SEVERITY_LABEL: Record<Event["severity"], string> = {
+  red: "High severity",
+  amber: "Medium severity",
+  green: "Low severity",
+};
+
 export function RegulatoryRegister({ steps, events, unresolvedCount }: Props) {
   return (
     <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1fr_400px]">
@@ -42,7 +55,7 @@ export function RegulatoryRegister({ steps, events, unresolvedCount }: Props) {
             Red-flag steps
           </h2>
           <p className="text-xs text-muted-foreground">
-            Workflow steps with regulatory_flag = red. {steps.length} total.
+            Steps flagged red for regulatory risk. {steps.length} total.
           </p>
         </div>
         <Table>
@@ -77,8 +90,12 @@ export function RegulatoryRegister({ steps, events, unresolvedCount }: Props) {
                       {s.workflowName}
                     </Link>
                   </TableCell>
-                  <TableCell className="text-xs text-muted-foreground">
-                    {s.team ?? "-"}
+                  <TableCell className="text-xs">
+                    {s.team ? (
+                      <Badge variant="outline">{s.team}</Badge>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
                   </TableCell>
                 </TableRow>
               ))
@@ -106,20 +123,22 @@ export function RegulatoryRegister({ steps, events, unresolvedCount }: Props) {
               <li key={e.id} className="px-3 py-2 text-xs">
                 <div className="flex items-start gap-2">
                   <span
-                    className={`mt-0.5 inline-flex h-2 w-2 shrink-0 rounded-full ${
-                      e.severity === "red"
-                        ? "bg-red-500"
-                        : e.severity === "amber"
-                          ? "bg-amber-500"
-                          : "bg-emerald-500"
-                    }`}
+                    role="img"
+                    aria-label={SEVERITY_LABEL[e.severity]}
+                    className={`mt-0.5 inline-flex h-2 w-2 shrink-0 rounded-full ${SEVERITY_DOT[e.severity]}`}
                   />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-foreground">{e.summary}</p>
                     <p className="text-muted-foreground">
-                      {e.resolved_at
-                        ? `resolved ${relativeTime(e.resolved_at)}`
-                        : `open · raised ${relativeTime(e.created_at)}`}
+                      {e.resolved_at ? (
+                        <>
+                          resolved <Time iso={e.resolved_at} relative />
+                        </>
+                      ) : (
+                        <>
+                          open · raised <Time iso={e.created_at} relative />
+                        </>
+                      )}
                     </p>
                   </div>
                 </div>

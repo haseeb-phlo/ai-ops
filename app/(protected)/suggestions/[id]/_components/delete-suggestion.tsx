@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -22,11 +23,12 @@ export function DeleteSuggestionButton({
   title: string;
 }) {
   const [open, setOpen] = useState(false);
+  const router = useRouter();
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger
         render={
-          <Button type="button" variant="outline" className="text-red-700">
+          <Button type="button" variant="outline" className="text-destructive">
             Delete
           </Button>
         }
@@ -48,13 +50,10 @@ export function DeleteSuggestionButton({
             action={async (fd) => {
               fd.set("suggestion_id", suggestionId);
               await deleteSuggestion(fd);
-              window.location.href = "/suggestions";
+              router.push("/suggestions");
             }}
           >
-            <Button
-              type="submit"
-              className="bg-red-700 text-white hover:bg-red-800"
-            >
+            <Button type="submit" variant="destructive">
               Delete permanently
             </Button>
           </form>

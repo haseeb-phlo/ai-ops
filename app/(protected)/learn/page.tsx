@@ -1,7 +1,10 @@
+import { PlayIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionUser } from "@/lib/auth";
 import { fetchLoomOembed } from "@/lib/loom";
 import { PageContainer, PageHeader } from "@/components/page-header";
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { AddVideoDialog } from "./_components/add-video-dialog";
 import { VideoCard, type VideoAttachment } from "./_components/video-card";
 import {
@@ -81,27 +84,30 @@ export default async function LearnPage() {
       .returns<ResourceRow[]>(),
   ]);
 
-  // Backfill thumbnail_url for any rows that don't have one yet. Older
-  // videos predate the column; rather than ship a one-off script we just
-  // ask Loom's oEmbed endpoint at render time and persist the result. The
-  // updates fire in parallel and we patch the in-memory rows so the
-  // current render shows thumbnails immediately. Failures are silent -
-  // the gradient placeholder still covers the play surface.
+  // Ask Loom's oEmbed endpoint for each video's duration (not persisted in
+  // the DB; the fetch is cached for a week per URL so this is cheap after
+  // the first render) and, in the same pass, backfill thumbnail_url for any
+  // rows that don't have one yet - older videos predate the column. The
+  // updates fire in parallel and we patch the in-memory rows so the current
+  // render shows thumbnails immediately. Failures are silent - the gradient
+  // placeholder still covers the play surface and the duration chip is
+  // simply omitted.
   const videoRowsMutable = videos ?? [];
-  const missing = videoRowsMutable.filter((v) => !v.thumbnail_url);
-  if (missing.length > 0) {
-    await Promise.all(
-      missing.map(async (v) => {
-        const { thumbnailUrl } = await fetchLoomOembed(v.loom_share_url);
-        if (!thumbnailUrl) return;
-        v.thumbnail_url = thumbnailUrl;
-        await supabase
-          .from("learn_videos")
-          .update({ thumbnail_url: thumbnailUrl })
-          .eq("id", v.id);
-      }),
-    );
-  }
+  const durationByVideo = new Map<string, number>();
+  await Promise.all(
+    videoRowsMutable.map(async (v) => {
+      const { thumbnailUrl, durationSeconds } = await fetchLoomOembed(
+        v.loom_share_url,
+      );
+      if (durationSeconds != null) durationByVideo.set(v.id, durationSeconds);
+      if (v.thumbnail_url || !thumbnailUrl) return;
+      v.thumbnail_url = thumbnailUrl;
+      await supabase
+        .from("learn_videos")
+        .update({ thumbnail_url: thumbnailUrl })
+        .eq("id", v.id);
+    }),
+  );
 
   // Aggregate plays per video. We track both totals (every play, including
   // rewatches) and uniques (distinct viewers) so the card can show
@@ -169,6 +175,7 @@ export default async function LearnPage() {
 
   const toItem = (v: VideoRow): SortableItem => ({
     id: v.id,
+    title: v.title,
     node: (
       <VideoCard
         id={v.id}
@@ -179,6 +186,7 @@ export default async function LearnPage() {
         thumbnailUrl={v.thumbnail_url}
         topic={v.topic}
         subtopic={v.subtopic}
+        durationSeconds={durationByVideo.get(v.id) ?? null}
         totalPlays={totalPlays.get(v.id) ?? 0}
         uniqueViewers={uniqueViewers.get(v.id)?.size ?? 0}
         watchedAt={myWatchedAt.get(v.id) ?? null}
@@ -203,10 +211,29 @@ export default async function LearnPage() {
         total={videoRows.length}
       />
 
+      {canManageVideos && videoRows.length > 0 && (
+        <p className="text-xs text-muted-foreground">
+          Drag to reorder within a topic — use Edit to move a video to another
+          topic.
+        </p>
+      )}
+
+      {videoRows.length === 0 ? (
+        <EmptyState
+          icon={<PlayIcon aria-hidden />}
+          title="No videos yet"
+          description="Short Loom walkthroughs will appear here once they're added."
+          action={canManageVideos ? <AddVideoDialog /> : undefined}
+        />
+      ) : (
       <div className="space-y-10">
         {LEARN_TOPICS.map((topic) => {
           const items = videosByTopic.get(topic) ?? [];
           const subtopicKeys = LEARN_SUBTOPICS[topic] ?? [];
+
+          // Empty topics are only interesting to admins (who can fill
+          // them); everyone else just sees the topics that have content.
+          if (items.length === 0 && !canManageVideos) return null;
 
           // When a topic defines subtopics, split its videos into a
           // default (no-subtopic) bucket plus one bucket per defined
@@ -235,8 +262,16 @@ export default async function LearnPage() {
                 </span>
               </div>
               {items.length === 0 ? (
-                <div className="rounded-lg border border-dashed border-border bg-background px-6 py-8 text-center text-xs text-muted-foreground">
-                  No videos in this topic yet.
+                <div className="flex items-center justify-center gap-3 rounded-lg border border-dashed border-border bg-background px-6 py-4 text-xs text-muted-foreground">
+                  <span>No videos in this topic yet.</span>
+                  <AddVideoDialog
+                    defaultTopic={topic}
+                    trigger={
+                      <Button type="button" variant="outline" size="sm">
+                        Add video
+                      </Button>
+                    }
+                  />
                 </div>
               ) : subtopicKeys.length === 0 ? (
                 <SortableVideoGrid
@@ -290,6 +325,7 @@ export default async function LearnPage() {
           </section>
         )}
       </div>
+      )}
     </PageContainer>
   );
 }

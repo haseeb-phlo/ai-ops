@@ -1,6 +1,8 @@
 "use client";
 
-import { useActionState, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
+import { Alert } from "@/components/ui/alert";
+import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -32,6 +34,13 @@ type UploadState =
   | { kind: "idle" }
   | { kind: "uploading" }
   | { kind: "error"; message: string };
+
+type SavedSnapshot = {
+  displayName: string;
+  title: string;
+  avatarUrl: string;
+  team: string;
+};
 
 export function ProfileForm({
   defaultDisplayName,
@@ -66,12 +75,69 @@ export function ProfileForm({
   );
 
   const isCustomTeam = teamSelect === CUSTOM_TEAM;
-  const submittedTeam = isCustomTeam ? customTeam.trim() : teamSelect;
+  // Normalize free-text teams: trim, and reuse the canonical casing when the
+  // typed value case-insensitively matches an existing team - prevents
+  // "Tech" vs "technology" drift in the directory.
+  const trimmedCustom = customTeam.trim();
+  const canonicalCustom =
+    teams.find((t) => t.toLowerCase() === trimmedCustom.toLowerCase()) ??
+    trimmedCustom;
+  const submittedTeam = isCustomTeam ? canonicalCustom : teamSelect;
 
   const [state, action, pending] = useActionState<UpdateProfileState, FormData>(
     updateProfile,
     { kind: "idle" },
   );
+
+  // Dirty tracking against the last-saved snapshot: Save stays disabled
+  // until something changed, "Saved." disappears as soon as you edit again,
+  // and navigating away with unsaved edits warns first.
+  const [savedSnapshot, setSavedSnapshot] = useState<SavedSnapshot>({
+    displayName: defaultDisplayName,
+    title: defaultTitle,
+    avatarUrl: initialAvatarUrl,
+    team: defaultTeam ?? "",
+  });
+  const [showSaved, setShowSaved] = useState(false);
+  const pendingSnapshot = useRef<SavedSnapshot | null>(null);
+
+  const dirty =
+    displayName !== savedSnapshot.displayName ||
+    title !== savedSnapshot.title ||
+    avatarUrl !== savedSnapshot.avatarUrl ||
+    submittedTeam !== savedSnapshot.team;
+
+  const avatarUnsaved = avatarUrl !== savedSnapshot.avatarUrl;
+
+  function handleSubmit(formData: FormData) {
+    // Snapshot what's actually being sent so a keystroke during the round
+    // trip can't corrupt the dirty baseline.
+    pendingSnapshot.current = {
+      displayName: String(formData.get("display_name") ?? ""),
+      title: String(formData.get("title") ?? ""),
+      avatarUrl: String(formData.get("avatar_url") ?? ""),
+      team: String(formData.get("team") ?? ""),
+    };
+    action(formData);
+  }
+
+  useEffect(() => {
+    if (state.kind !== "ok") return;
+    const snapshot = pendingSnapshot.current;
+    if (snapshot) setSavedSnapshot(snapshot);
+    setShowSaved(true);
+    const timer = setTimeout(() => setShowSaved(false), 5000);
+    return () => clearTimeout(timer);
+  }, [state]);
+
+  useEffect(() => {
+    if (!dirty) return;
+    function onBeforeUnload(e: BeforeUnloadEvent) {
+      e.preventDefault();
+    }
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [dirty]);
 
   function useDefaultAvatar() {
     setAvatarUrl(defaultAvatarUrl(userId));
@@ -111,15 +177,34 @@ export function ProfileForm({
   }
 
   return (
-    <form action={action} className="space-y-6">
+    <form action={handleSubmit} className="space-y-6">
       <div className="flex items-center gap-4">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <Avatar
           src={avatarUrl || defaultAvatarUrl(userId)}
-          alt={defaultDisplayName}
-          className="size-20 rounded-full ring-1 ring-border object-cover bg-muted/40"
+          name={displayName || email}
+          alt={displayName}
+          className="size-20 text-xl ring-1 ring-border bg-muted/40"
         />
-        <p className="text-sm font-medium text-foreground">{email}</p>
+        {avatarUnsaved && (
+          <p className="text-xs text-amber-800">
+            New photo not saved yet - click <em>Save profile</em> to keep it.
+          </p>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="email">Email</Label>
+        <input
+          id="email"
+          value={email}
+          readOnly
+          disabled
+          className={cn(inputClass)}
+        />
+        <p className="text-xs text-muted-foreground">
+          Email is managed by your Google sign-in and can&apos;t be changed
+          here.
+        </p>
       </div>
 
       <div className="space-y-2">
@@ -150,14 +235,17 @@ export function ProfileForm({
           placeholder="e.g. Operations Lead"
           className={cn(inputClass)}
         />
+        <p className="text-xs text-muted-foreground">
+          Shown in the directory and on champion cards.
+        </p>
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="team">Team</Label>
         <input type="hidden" name="team" value={submittedTeam} />
         <Select
-          value={teamSelect}
-          onValueChange={(v) => setTeamSelect(v ?? "")}
+          value={teamSelect === "" ? null : teamSelect}
+          onValueChange={(v) => setTeamSelect(typeof v === "string" ? v : "")}
         >
           <SelectTrigger id="team" className="w-full">
             <SelectValue placeholder="Select a team" />
@@ -172,15 +260,21 @@ export function ProfileForm({
           </SelectContent>
         </Select>
         {isCustomTeam && (
-          <input
-            id="team_custom"
-            value={customTeam}
-            onChange={(e) => setCustomTeam(e.target.value)}
-            maxLength={100}
-            placeholder="Enter team name"
-            className={cn(inputClass)}
-          />
+          <div className="space-y-2">
+            <Label htmlFor="team_custom">New team name</Label>
+            <input
+              id="team_custom"
+              value={customTeam}
+              onChange={(e) => setCustomTeam(e.target.value)}
+              maxLength={100}
+              placeholder="Enter team name"
+              className={cn(inputClass)}
+            />
+          </div>
         )}
+        <p className="text-xs text-muted-foreground">
+          Used for team dashboards and filters.
+        </p>
       </div>
 
       <div className="space-y-2">
@@ -197,26 +291,26 @@ export function ProfileForm({
           <Button
             type="button"
             variant="outline"
+            loading={upload.kind === "uploading"}
             onClick={() => fileInputRef.current?.click()}
             disabled={upload.kind === "uploading" || pending}
           >
             {upload.kind === "uploading" ? "Uploading…" : "Upload photo"}
           </Button>
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="sm"
             onClick={useDefaultAvatar}
-            className="text-xs text-muted-foreground underline-offset-2 hover:underline"
+            className="text-muted-foreground"
           >
             Use generated avatar instead
-          </button>
+          </Button>
         </div>
         {upload.kind === "error" && (
-          <p
-            role="alert"
-            className="rounded-md border border-red-200 bg-red-50 p-2 text-xs text-red-700"
-          >
+          <Alert variant="destructive" className="text-xs">
             {upload.message}
-          </p>
+          </Alert>
         )}
         <p className="text-xs text-muted-foreground">
           PNG, JPEG, or WEBP. Up to 5 MB. Click <em>Save profile</em> to keep
@@ -225,29 +319,21 @@ export function ProfileForm({
       </div>
 
       {state.kind === "error" && (
-        <p
-          className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700"
-          role="alert"
-        >
-          {state.message}
-        </p>
+        <Alert variant="destructive">{state.message}</Alert>
       )}
-      {state.kind === "ok" && (
-        <p
-          className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700"
-          role="status"
-        >
-          Saved.
-        </p>
+      {showSaved && !dirty && state.kind === "ok" && (
+        <Alert variant="success">Saved.</Alert>
       )}
 
       <div className="flex justify-end">
         <Button
           type="submit"
+          loading={pending}
           disabled={
             pending ||
             upload.kind === "uploading" ||
-            submittedTeam.length === 0
+            submittedTeam.length === 0 ||
+            !dirty
           }
         >
           {pending ? "Saving…" : "Save profile"}

@@ -1,3 +1,9 @@
+import { Badge } from "@/components/ui/badge";
+import {
+  INTERVENTION_STATUS,
+  type InterventionStatus,
+} from "@/lib/status";
+
 export type LinkedIntervention = {
   id: string;
   name: string;
@@ -5,12 +11,9 @@ export type LinkedIntervention = {
   status: string | null;
 };
 
-const STATUS_STYLES: Record<string, string> = {
-  proposed: "bg-muted text-foreground ring-border",
-  in_progress: "bg-blue-50 text-blue-800 ring-blue-200",
-  shipped: "bg-green-50 text-green-800 ring-green-200",
-  blocked: "bg-red-50 text-red-800 ring-red-200",
-};
+function isInterventionStatus(v: string): v is InterventionStatus {
+  return v in INTERVENTION_STATUS;
+}
 
 export function LinkedInterventions({
   interventions,
@@ -30,9 +33,10 @@ export function LinkedInterventions({
         ) : (
           <ul className="divide-y divide-border">
             {interventions.map((iv) => {
-              const statusClass =
-                (iv.status && STATUS_STYLES[iv.status]) ??
-                "bg-muted text-foreground ring-border";
+              const style =
+                iv.status && isInterventionStatus(iv.status)
+                  ? INTERVENTION_STATUS[iv.status]
+                  : null;
               return (
                 <li key={iv.id} className="flex items-start gap-3 px-4 py-3">
                   <div className="min-w-0 flex-1">
@@ -40,13 +44,15 @@ export function LinkedInterventions({
                       <span className="font-medium text-foreground">
                         {iv.name}
                       </span>
-                      {iv.status && (
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${statusClass}`}
-                        >
+                      {style ? (
+                        <Badge className={style.badgeClassName}>
+                          {style.label}
+                        </Badge>
+                      ) : iv.status ? (
+                        <Badge variant="secondary">
                           {iv.status.replace("_", " ")}
-                        </span>
-                      )}
+                        </Badge>
+                      ) : null}
                     </div>
                     {iv.description && (
                       <p className="mt-1 text-sm text-muted-foreground">

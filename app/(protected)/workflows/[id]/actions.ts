@@ -272,6 +272,10 @@ const UpdateWorkflowSchema = z.object({
   name: z.string().min(1, "Name is required").max(200),
   team: z.string().max(120).nullable(),
   regulatory: z.boolean(),
+  // Confidential workflows are visible only to the owner team (matched via
+  // the admin-managed people directory), the creator, and super admins.
+  // Enforced by RLS; this maps to workflows.visibility.
+  visibility: z.enum(["org", "team"]),
   frequency_cadence: z.enum(CADENCES, {
     error: "Pick how often this workflow runs",
   }),
@@ -359,6 +363,7 @@ export async function updateWorkflow(
     name: (formData.get("name") as string | null)?.trim() ?? "",
     team: rawTeam,
     regulatory: formData.get("regulatory") === "on",
+    visibility: formData.get("confidential") === "on" ? "team" : "org",
     frequency_cadence: rawCadence,
     criticality_score: criticalityValue,
     business_kpi: rawKpi,
@@ -380,7 +385,7 @@ export async function updateWorkflow(
   const { data: current, error: curErr } = await gate.supabase
     .from("workflows")
     .select(
-      "id, name, team, regulatory, frequency_per_week, frequency_cadence, criticality_score, business_kpi, owner_names, tools_used, notes",
+      "id, name, team, regulatory, visibility, frequency_per_week, frequency_cadence, criticality_score, business_kpi, owner_names, tools_used, notes",
     )
     .eq("id", workflowId)
     .maybeSingle();
@@ -434,6 +439,8 @@ export async function updateWorkflow(
     record("team", current.team, next.team);
   if (Boolean(current.regulatory) !== next.regulatory)
     record("regulatory", current.regulatory, next.regulatory);
+  if ((current.visibility ?? "org") !== next.visibility)
+    record("visibility", current.visibility, next.visibility);
   if ((current.frequency_cadence ?? null) !== next.frequency_cadence) {
     record(
       "frequency_cadence",
@@ -496,6 +503,7 @@ export async function updateWorkflow(
       name: next.name,
       team: next.team,
       regulatory: next.regulatory,
+      visibility: next.visibility,
       frequency_per_week: nextFrequencyPerWeek,
       frequency_cadence: next.frequency_cadence,
       criticality_score: next.criticality_score,

@@ -7,9 +7,10 @@ import { AdminTabs } from "./_components/admin-tabs";
 import { Logins } from "./_components/logins";
 import { RegulatoryRegister } from "./_components/regulatory-register";
 import { CostSummary } from "./_components/cost-summary";
-import { AuditLog } from "./_components/audit-log";
+import { AuditLog, type AuditRow } from "./_components/audit-log";
 import { ChampionsFreshness } from "./_components/champions-freshness";
 import { ChampionsManager } from "./_components/champions-manager";
+import { InviteButton } from "./_components/invite-button";
 import { ViewAsSwitcher } from "../_components/view-as-switcher";
 import {
   DeletedWorkflows,
@@ -93,6 +94,7 @@ type Champion = {
   id: string;
   team: string;
   display_name: string;
+  email: string | null;
   last_check_in: string | null;
   user_id: string | null;
 };
@@ -102,6 +104,14 @@ type DirectoryPerson = {
   display_name: string;
   email: string;
   team: string;
+};
+
+type DeletedRow = {
+  id: string;
+  name: string;
+  team: string | null;
+  deleted_at: string;
+  deleted_by: string | null;
 };
 
 export default async function AdminPage() {
@@ -127,6 +137,7 @@ export default async function AdminPage() {
     { data: regulatorySteps },
     { data: champions },
     { data: directoryPeople },
+    { data: deletedRowsRaw },
   ] = await Promise.all([
     supabase
       .from("ai_interventions")
@@ -178,7 +189,7 @@ export default async function AdminPage() {
       .returns<RegulatoryStepRow[]>(),
     supabase
       .from("champions")
-      .select("id, team, display_name, last_check_in, user_id")
+      .select("id, team, display_name, email, last_check_in, user_id")
       .order("team")
       .returns<Champion[]>(),
     supabase
@@ -186,6 +197,12 @@ export default async function AdminPage() {
       .select("id, display_name, email, team")
       .order("display_name", { ascending: true })
       .returns<DirectoryPerson[]>(),
+    supabase
+      .from("workflows")
+      .select("id, name, team, deleted_at, deleted_by")
+      .not("deleted_at", "is", null)
+      .order("deleted_at", { ascending: false })
+      .returns<DeletedRow[]>(),
   ]);
 
   const interventionsList = interventions ?? [];
@@ -283,18 +300,8 @@ export default async function AdminPage() {
     byTeam: flattenCost(byTeam),
   };
 
-  // ---- Audit log: revisions + intervention status changes ------------
-  type AuditEntry = {
-    id: string;
-    when: string;
-    who: string;
-    kind: "workflow" | "step" | "intervention";
-    target: string;
-    field: string;
-    oldValue: string | null;
-    newValue: string | null;
-  };
-  const audit: AuditEntry[] = [];
+  // ---- Audit log: revisions + initiative creations --------------------
+  const audit: AuditRow[] = [];
   for (const r of workflowRevisions ?? []) {
     const wf = workflowsById.get(r.workflow_id);
     audit.push({
@@ -321,16 +328,19 @@ export default async function AdminPage() {
       newValue: r.new_value,
     });
   }
+  // Initiatives have no revision table; the only honest event we can derive
+  // is "created with this status". Don't fabricate an active→X transition -
+  // there was no prior value.
   for (const iv of interventionsList) {
     if (iv.status && iv.status !== "active") {
       audit.push({
         id: `iv:${iv.id}`,
         when: iv.created_at,
         who: iv.owner ?? "(unknown)",
-        kind: "intervention",
+        kind: "initiative",
         target: iv.name,
-        field: "status",
-        oldValue: "active",
+        field: "created",
+        oldValue: null,
         newValue: iv.status,
       });
     }
@@ -349,7 +359,9 @@ export default async function AdminPage() {
     id: c.id,
     team: c.team,
     display_name: c.display_name,
+    email: c.email,
     user_id: c.user_id,
+    last_check_in: c.last_check_in,
   }));
   const teamsForManager = Array.from(
     new Set([
@@ -361,20 +373,9 @@ export default async function AdminPage() {
     .sort();
 
   // ---- Deleted workflows ---------------------------------------------
-  type DeletedRow = {
-    id: string;
-    name: string;
-    team: string | null;
-    deleted_at: string;
-    deleted_by: string | null;
-  };
-  const { data: deletedRowsRaw } = await supabase
-    .from("workflows")
-    .select("id, name, team, deleted_at, deleted_by")
-    .not("deleted_at", "is", null)
-    .order("deleted_at", { ascending: false })
-    .returns<DeletedRow[]>();
-
+  // The rows themselves are fetched in the main Promise.all above; only the
+  // deleter-name lookup is a second round-trip because it depends on which
+  // deleted_by ids came back.
   const deletedUserIds = Array.from(
     new Set(
       (deletedRowsRaw ?? [])
@@ -425,17 +426,20 @@ export default async function AdminPage() {
         title="Admin"
         description="Cross-company controls. Company stats and rankings live on the home dashboard for everyone."
         actions={
-          <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-2.5 py-1.5">
-            <ViewAsSwitcher
-              role={user.role}
-              team={user.team}
-              isImpersonating={user.isImpersonating}
-              teams={viewAsTeams}
-              realRole={user.realRole}
-              impersonableUsers={impersonableUsers}
-              impersonatedUserId={user.impersonatedUserId}
-            />
-          </div>
+          <>
+            <InviteButton teams={teamsForManager} />
+            <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-2.5 py-1.5">
+              <ViewAsSwitcher
+                role={user.role}
+                team={user.team}
+                isImpersonating={user.isImpersonating}
+                teams={viewAsTeams}
+                realRole={user.realRole}
+                impersonableUsers={impersonableUsers}
+                impersonatedUserId={user.impersonatedUserId}
+              />
+            </div>
+          </>
         }
       />
 
@@ -462,14 +466,9 @@ export default async function AdminPage() {
           <div className="space-y-6">
             <Logins />
             <AuditLog rows={auditTop100} />
-            <section className="space-y-2">
-              <h2 className="text-sm font-semibold tracking-tight text-foreground">
-                Deleted workflows
-              </h2>
-              <DeletedWorkflows rows={deletedWorkflowRows} />
-            </section>
           </div>
         }
+        recovery={<DeletedWorkflows rows={deletedWorkflowRows} />}
       />
     </PageContainer>
   );

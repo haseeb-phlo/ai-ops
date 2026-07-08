@@ -275,38 +275,54 @@ const ToggleCompletionSchema = z.object({
 // automatic one-way event), completion is an explicit signal the user can
 // tick and untick: insert a row to mark complete, delete it to un-mark.
 // One row per (video, user) is enforced by the table's unique constraint;
-// RLS limits inserts/deletes to the caller's own rows.
-export async function toggleVideoCompletion(formData: FormData): Promise<void> {
+// RLS limits inserts/deletes to the caller's own rows. Returns an error
+// state so the optimistic checkbox in the UI can revert and explain itself.
+export async function toggleVideoCompletion(
+  formData: FormData,
+): Promise<ActionState> {
   const gate = await requireWriter();
-  if (!gate.ok) return;
+  if (!gate.ok) return { kind: "error", message: gate.error };
   const user = gate.user;
   const parsed = ToggleCompletionSchema.safeParse({
     video_id: formData.get("video_id"),
   });
-  if (!parsed.success) return;
+  if (!parsed.success) {
+    return { kind: "error", message: "Invalid video." };
+  }
 
   const supabase = await createClient();
-  const { data: existing } = await supabase
+  const { data: existing, error: readError } = await supabase
     .from("learn_video_completions")
     .select("id")
     .eq("video_id", parsed.data.video_id)
     .eq("user_id", user.id)
     .maybeSingle();
 
+  if (readError) {
+    return { kind: "error", message: `Could not save: ${readError.message}` };
+  }
+
   if (existing) {
-    await supabase
+    const { error } = await supabase
       .from("learn_video_completions")
       .delete()
       .eq("id", existing.id);
+    if (error) {
+      return { kind: "error", message: `Could not save: ${error.message}` };
+    }
   } else {
-    await supabase.from("learn_video_completions").insert({
+    const { error } = await supabase.from("learn_video_completions").insert({
       video_id: parsed.data.video_id,
       user_id: user.id,
     });
+    if (error) {
+      return { kind: "error", message: `Could not save: ${error.message}` };
+    }
   }
 
   revalidatePath("/learn");
   revalidatePath("/");
+  return { kind: "success" };
 }
 
 // =========================================================================

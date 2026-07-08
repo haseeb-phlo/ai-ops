@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { resolveDisplayName } from "@/lib/profile";
 import {
   ORG_TREE,
   namedEmails,
@@ -20,11 +21,24 @@ type PersonRow = {
   start_date: string | null;
 };
 
+type ProfileRow = {
+  user_id: string;
+  display_name: string | null;
+  avatar_url: string | null;
+  title: string | null;
+};
+
 /**
  * Tree-structured org view. Server resolves every person referenced in the
  * tree (CEO + L1s + their recursive directs) plus their team-member chips,
  * then hands the fully-built ResolvedNode shape to the client component
  * which renders + manages collapse state.
+ *
+ * Directory rows are the base, but a signed-in user's own profile edits win
+ * where they exist: `profiles.display_name`/`title` and the `role_grants`
+ * team (matched by email) overlay the seeded `people` values, mirroring the
+ * profile → people → email-local-part precedence in `resolveDisplayName`.
+ * Without this overlay, profile edits never reached the directory.
  */
 export async function OrgView() {
   const supabase = await createClient();
@@ -32,6 +46,7 @@ export async function OrgView() {
   const [
     { data: people },
     { data: profiles },
+    { data: grants },
     signedInRpc,
   ] = await Promise.all([
     supabase
@@ -41,29 +56,26 @@ export async function OrgView() {
       .returns<PersonRow[]>(),
     supabase
       .from("profiles")
-      .select("user_id, avatar_url")
-      .returns<{ user_id: string; avatar_url: string | null }[]>(),
+      .select("user_id, display_name, avatar_url, title")
+      .returns<ProfileRow[]>(),
+    supabase
+      .from("role_grants")
+      .select("user_id, team")
+      .returns<{ user_id: string; team: string | null }[]>(),
     supabase.rpc("signed_in_emails"),
   ]);
 
   // Resolve user_id → email for the profile user_ids we just loaded so the
-  // avatar-by-email map can be built. user_emails requires an explicit list.
+  // per-email overlay maps can be built. user_emails requires an explicit list.
   const profileUserIds = (profiles ?? []).map((p) => p.user_id);
   const userEmailsRpc =
     profileUserIds.length === 0
       ? { data: [] as Array<{ user_id: string; email: string | null }> }
       : await supabase.rpc("user_emails", { p_user_ids: profileUserIds });
 
-  const peopleRows = people ?? [];
-  const peopleByEmail = new Map(
-    peopleRows.map((p) => [p.email.toLowerCase(), p]),
-  );
-
-  // Resolve avatars by email → user_id → profiles.avatar_url. Keying by
-  // display_name (the old approach) silently dropped avatars for any user
-  // whose profile.display_name diverged from people.display_name - e.g.
-  // anyone still on the email-local default "neal.archbold" while the
-  // directory has "Neal Archbold".
+  // email → user_id → profile / grant. Keying by email (the canonical join
+  // key with the people directory) rather than display_name means edits
+  // survive users renaming themselves on the profile page.
   const userIdByEmail = new Map<string, string>();
   const userEmailsRows = (userEmailsRpc.data ?? []) as Array<{
     user_id: string;
@@ -72,13 +84,42 @@ export async function OrgView() {
   for (const row of userEmailsRows) {
     if (row.email) userIdByEmail.set(row.email.toLowerCase(), row.user_id);
   }
-  const avatarByUserId = new Map<string, string | null>();
+  const profileByUserId = new Map<string, ProfileRow>();
   for (const pr of profiles ?? []) {
-    avatarByUserId.set(pr.user_id, pr.avatar_url);
+    profileByUserId.set(pr.user_id, pr);
   }
+  const grantTeamByUserId = new Map<string, string | null>();
+  for (const g of grants ?? []) {
+    grantTeamByUserId.set(g.user_id, g.team ?? null);
+  }
+
+  // Overlay applied *before* any grouping so team-member chips and "other
+  // teams" clusters bucket people under their effective team.
+  function overlay(row: PersonRow): PersonRow {
+    const uid = userIdByEmail.get(row.email.toLowerCase());
+    if (!uid) return row;
+    const profile = profileByUserId.get(uid);
+    const grantTeam = grantTeamByUserId.get(uid);
+    return {
+      ...row,
+      display_name: resolveDisplayName(
+        profile?.display_name,
+        row.display_name,
+        row.email,
+      ),
+      title: profile?.title?.trim() ? profile.title.trim() : row.title,
+      team: grantTeam?.trim() ? grantTeam : row.team,
+    };
+  }
+
+  const peopleRows = (people ?? []).map(overlay);
+  const peopleByEmail = new Map(
+    peopleRows.map((p) => [p.email.toLowerCase(), p]),
+  );
+
   function avatarFor(email: string): string | null {
     const uid = userIdByEmail.get(email.toLowerCase());
-    return uid ? avatarByUserId.get(uid) ?? null : null;
+    return uid ? profileByUserId.get(uid)?.avatar_url ?? null : null;
   }
 
   const signedInEmails = new Set<string>(

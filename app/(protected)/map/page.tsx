@@ -1,6 +1,7 @@
 import { getSessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { resolveAvatar } from "@/lib/profile";
+import { Alert } from "@/components/ui/alert";
 import { loadTeamOptions } from "@/lib/teams";
 import { formatCadence } from "@/lib/frequency";
 import { Galaxy, type GalaxyData } from "./_components/galaxy";
@@ -181,17 +182,18 @@ export default async function MapPage({
   ].filter(Boolean);
 
   if (errors.length > 0) {
+    // Most often unapplied migrations (supabase/migrations) or missing seed
+    // data - surface the technical detail in the server log only.
+    console.warn("[map] failed to load map data:", errors[0]?.message);
     return (
       <div className="mx-auto max-w-6xl px-6 py-10 space-y-4">
-        <h1 className="text-2xl font-semibold tracking-tight">Map</h1>
-        <p className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-          Could not load map: {errors[0]?.message}
-        </p>
-        <p className="text-sm text-muted-foreground">
-          This usually means the migration files haven&apos;t been applied yet.
-          Run <code>supabase/profiles_and_history_migration.sql</code> and{" "}
-          <code>supabase/seed.sql</code> in the Supabase SQL Editor.
-        </p>
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+          People
+        </h1>
+        <Alert variant="destructive">
+          The map couldn&apos;t load right now. Try refreshing the page - if
+          it keeps happening, ask an admin to check the data setup.
+        </Alert>
       </div>
     );
   }

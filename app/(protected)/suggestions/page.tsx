@@ -1,7 +1,9 @@
+import { LightbulbIcon } from "lucide-react";
 import { getSessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { resolveDisplayName } from "@/lib/profile";
 import { PageContainer, PageHeader } from "@/components/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
 import { SubmitSuggestionDialog } from "./_components/submit-dialog";
 import { SuggestionTabs, type Tab } from "./_components/tabs";
 import {
@@ -60,6 +62,7 @@ export default async function SuggestionsPage({
     { data: interventions },
     { data: profileRows },
     { data: voteRows },
+    { data: commentRows },
     { data: peopleRows },
     { data: myChampionRows },
   ] = await Promise.all([
@@ -78,7 +81,7 @@ export default async function SuggestionsPage({
       .returns<{ id: string; name: string }[]>(),
     supabase
       .from("ai_interventions")
-      .select("id, name, status, shipped_at")
+      .select("id, name, status, shipped_at, owner")
       .order("name", { ascending: true })
       .returns<
         {
@@ -86,6 +89,7 @@ export default async function SuggestionsPage({
           name: string;
           status: string | null;
           shipped_at: string | null;
+          owner: string | null;
         }[]
       >(),
     supabase
@@ -96,6 +100,10 @@ export default async function SuggestionsPage({
       .from("intervention_suggestion_votes")
       .select("suggestion_id, user_id")
       .returns<{ suggestion_id: string; user_id: string }[]>(),
+    supabase
+      .from("intervention_suggestion_comments")
+      .select("suggestion_id")
+      .returns<{ suggestion_id: string }[]>(),
     supabase
       .from("people")
       .select("email, display_name")
@@ -161,6 +169,14 @@ export default async function SuggestionsPage({
     if (v.user_id === user.id) votedSet.add(v.suggestion_id);
   }
 
+  const commentsBySuggestion = new Map<string, number>();
+  for (const c of commentRows ?? []) {
+    commentsBySuggestion.set(
+      c.suggestion_id,
+      (commentsBySuggestion.get(c.suggestion_id) ?? 0) + 1,
+    );
+  }
+
   const isSuper = user.role === "super_admin";
 
   function decorate(s: RawSuggestion): SuggestionRow {
@@ -183,6 +199,7 @@ export default async function SuggestionsPage({
       submitted_by: nameFor(s.created_by),
       voteCount: votesBySuggestion.get(s.id) ?? 0,
       voted: votedSet.has(s.id),
+      commentCount: commentsBySuggestion.get(s.id) ?? 0,
     };
   }
 
@@ -249,12 +266,21 @@ export default async function SuggestionsPage({
       </div>
 
       {tab === "active" && (
-        <ActiveList
-          rows={activeRows}
-          isSuper={isSuper}
-          canTriageFor={canTriageFor}
-          activeInterventions={activeInterventions}
-        />
+        <>
+          {activeRows.length > 1 && (
+            <p className="text-xs text-muted-foreground">Sorted by votes</p>
+          )}
+          <ActiveList
+            rows={activeRows}
+            isSuper={isSuper}
+            canTriageFor={canTriageFor}
+            activeInterventions={activeInterventions}
+            emptyTitle="No active suggestions"
+            emptyDescription={
+              'Ideas land here for voting and triage. Use "Suggest something" to add the first one.'
+            }
+          />
+        </>
       )}
       {tab === "roadmap" &&
         (view === "board" ? (
@@ -265,17 +291,17 @@ export default async function SuggestionsPage({
               up_next: initiativeRoadmapGroups.up_next.map((i) => ({
                 id: i.id,
                 name: i.name,
-                team: null,
+                owner: i.owner,
               })),
               in_progress: initiativeRoadmapGroups.in_progress.map((i) => ({
                 id: i.id,
                 name: i.name,
-                team: null,
+                owner: i.owner,
               })),
               shipped: initiativeRoadmapGroups.shipped.map((i) => ({
                 id: i.id,
                 name: i.name,
-                team: null,
+                owner: i.owner,
               })),
             }}
           />
@@ -285,6 +311,8 @@ export default async function SuggestionsPage({
             isSuper={isSuper}
             canTriageFor={canTriageFor}
             activeInterventions={activeInterventions}
+            emptyTitle="Nothing on the roadmap yet"
+            emptyDescription="Suggestions show up here once they're accepted, in progress, or shipped."
           />
         ))}
       {tab === "declined" && (
@@ -293,6 +321,8 @@ export default async function SuggestionsPage({
           isSuper={isSuper}
           canTriageFor={canTriageFor}
           activeInterventions={activeInterventions}
+          emptyTitle="No declined suggestions"
+          emptyDescription="Suggestions declined during triage appear here, with the reason."
         />
       )}
     </PageContainer>
@@ -304,17 +334,23 @@ function ActiveList({
   isSuper,
   canTriageFor,
   activeInterventions,
+  emptyTitle,
+  emptyDescription,
 }: {
   rows: SuggestionRow[];
   isSuper: boolean;
   canTriageFor: (team: string | null) => boolean;
   activeInterventions: { id: string; name: string }[];
+  emptyTitle: string;
+  emptyDescription: string;
 }) {
   if (rows.length === 0) {
     return (
-      <p className="rounded-lg border border-dashed border-border bg-background px-6 py-12 text-center text-sm text-muted-foreground">
-        No suggestions yet.
-      </p>
+      <EmptyState
+        icon={<LightbulbIcon aria-hidden />}
+        title={emptyTitle}
+        description={emptyDescription}
+      />
     );
   }
   return (

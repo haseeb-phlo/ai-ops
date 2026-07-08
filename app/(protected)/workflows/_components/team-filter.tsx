@@ -32,7 +32,7 @@ export function TeamFilter({
 
   return (
     <div className="flex items-center gap-2 text-sm">
-      <span className="text-muted-foreground">Team:</span>
+      <span className="text-muted-foreground">Team</span>
       <Select value={value} onValueChange={handleChange}>
         <SelectTrigger className="w-[180px]">
           {/* Format the trigger label explicitly. base-ui's SelectValue

@@ -1,11 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { X } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const MESSAGES: Record<string, string> = {
-  "admin-only": "Admin only.",
+  "admin-only": "That page is for admins — you've been sent home.",
 };
+
+const AUTO_DISMISS_MS = 7000;
+const EXIT_MS = 200;
 
 // Params that Supabase's /verify endpoint dumps onto the Site URL when an
 // OTP magic-link fails (expired, reused, etc.). When an *already-signed-in*
@@ -23,7 +28,18 @@ export function RedirectToast() {
   const key = params.get("toast");
   const message = key ? MESSAGES[key] : null;
 
-  const [visible, setVisible] = useState(!!message);
+  // "init" renders the live-region container *empty*; the message is
+  // injected one frame later so role="status" actually announces it -
+  // content already present when a live region mounts is not read out.
+  const [phase, setPhase] = useState<"init" | "open" | "closing" | "closed">(
+    "init",
+  );
+  const exitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const dismiss = useCallback(() => {
+    setPhase((p) => (p === "open" || p === "init" ? "closing" : p));
+    exitTimer.current = setTimeout(() => setPhase("closed"), EXIT_MS);
+  }, []);
 
   useEffect(() => {
     const clean = new URLSearchParams(params.toString());
@@ -57,19 +73,43 @@ export function RedirectToast() {
     }
 
     if (!message) return;
-    const t = setTimeout(() => setVisible(false), 4000);
-    return () => clearTimeout(t);
+    const enter = requestAnimationFrame(() => setPhase("open"));
+    const auto = setTimeout(dismiss, AUTO_DISMISS_MS);
+    return () => {
+      cancelAnimationFrame(enter);
+      clearTimeout(auto);
+      if (exitTimer.current) clearTimeout(exitTimer.current);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  if (!message || !visible) return null;
+  if (!message || phase === "closed") return null;
 
   return (
     <div
       role="status"
-      className="fixed top-4 right-4 z-50 rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground shadow-md"
+      className={cn(
+        // Sits below the mobile top bar (h-14) on small screens; clears to
+        // the corner on md+ where the bar disappears.
+        "fixed right-4 top-16 z-50 flex items-center gap-2 rounded-md border border-border bg-background py-2 pl-3 pr-1.5 text-sm text-foreground shadow-md transition-all duration-200 md:top-4",
+        phase === "open"
+          ? "translate-y-0 opacity-100"
+          : "-translate-y-1 opacity-0",
+      )}
     >
-      {message}
+      {phase !== "init" && (
+        <>
+          <span>{message}</span>
+          <button
+            type="button"
+            onClick={dismiss}
+            aria-label="Dismiss notification"
+            className="rounded p-0.5 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <X aria-hidden className="size-3.5" />
+          </button>
+        </>
+      )}
     </div>
   );
 }

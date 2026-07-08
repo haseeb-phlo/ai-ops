@@ -140,7 +140,9 @@ const UpdateSchema = z.object({
   types: z
     .array(z.enum(INTERVENTION_TYPES))
     .min(1, "Pick at least one AI initiative type"),
-  status: z.enum(STATUSES),
+  // Status is deliberately absent: the StatusButton confirm flow (via
+  // setInterventionStatus) is the single status-change path. Editing must
+  // never silently flip a null status to "active".
   description: z.string().max(500).nullable(),
   frequency_cadence: z.enum(CADENCES, {
     error: "Pick how often this AI initiative runs",
@@ -238,7 +240,6 @@ export async function updateIntervention(
           ),
       ),
     ),
-    status: formData.get("status"),
     description,
     frequency_cadence: formData.get("frequency_cadence"),
     minutes_saved_per_use: numericField("minutes_saved_per_use"),
@@ -290,11 +291,12 @@ export async function updateIntervention(
     };
   }
 
-  // Status + recipients aren't audited by the RPC yet, so write them
-  // directly. Same pattern as before; audit coverage can be added in a
-  // follow-up migration that extends update_intervention. Notes joins
-  // them - written directly here, with an explicit intervention_edits row
-  // so the audit log still reflects the change.
+  // Recipients aren't audited by the RPC yet, so write them directly.
+  // Same pattern as before; audit coverage can be added in a follow-up
+  // migration that extends update_intervention. Notes joins them -
+  // written directly here, with an explicit intervention_edits row so the
+  // audit log still reflects the change. Status is untouched: the
+  // StatusButton flow is the only status-change path.
   //
   // Load the current notes value so we only audit + write when it changed.
   const { data: currentRow } = await supabase
@@ -309,7 +311,6 @@ export async function updateIntervention(
   const { error: directError } = await supabase
     .from("ai_interventions")
     .update({
-      status: data.status,
       recipient_emails: data.recipient_emails,
       notes: nextNotes,
     })
@@ -462,7 +463,7 @@ export async function deleteIntervention(
       kind: "error",
       reason: "not_found",
       message:
-        "Delete returned 0 rows. Apply supabase/ai_interventions_delete_policy_migration.sql in the SQL editor and try again.",
+        "Couldn't delete — a database policy is missing. Contact an admin.",
     };
   }
 

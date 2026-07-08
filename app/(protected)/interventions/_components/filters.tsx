@@ -2,7 +2,18 @@
 
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toTitle } from "@/lib/utils";
+
+// Select values can't be empty strings, so "all" is the sentinel for
+// "no filter" - it maps to deleting the URL param.
+const ALL = "all";
 
 export function Filters({
   type,
@@ -33,39 +44,63 @@ export function Filters({
 
   return (
     <div className="flex flex-wrap items-center gap-3 text-sm">
-      <label className="flex items-center gap-2">
+      <div className="flex items-center gap-2">
         <span className="text-muted-foreground">Type</span>
-        <select
-          value={type ?? ""}
-          onChange={(e) => updateParam("type", e.target.value)}
-          disabled={isPending}
-          className="h-8 rounded-lg border border-border bg-background px-2 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+        <Select
+          value={type ?? ALL}
+          onValueChange={(v) =>
+            updateParam("type", !v || v === ALL ? "" : v)
+          }
         >
-          <option value="">All</option>
-          {types.map((t) => (
-            <option key={t} value={t}>
-              {toTitle(t)}
-            </option>
-          ))}
-        </select>
-      </label>
+          <SelectTrigger
+            className="w-[150px]"
+            aria-label="Filter by type"
+            disabled={isPending}
+          >
+            <SelectValue>
+              {(v) => (!v || v === ALL ? "All types" : toTitle(v as string))}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>All types</SelectItem>
+            {types.map((t) => (
+              <SelectItem key={t} value={t}>
+                {toTitle(t)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
-      <label className="flex items-center gap-2">
+      <div className="flex items-center gap-2">
         <span className="text-muted-foreground">Status</span>
-        <select
-          value={status ?? ""}
-          onChange={(e) => updateParam("status", e.target.value)}
-          disabled={isPending}
-          className="h-8 rounded-lg border border-border bg-background px-2 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+        <Select
+          value={status ?? ALL}
+          onValueChange={(v) =>
+            updateParam("status", !v || v === ALL ? "" : v)
+          }
         >
-          <option value="">All</option>
-          {statuses.map((s) => (
-            <option key={s} value={s}>
-              {toTitle(s)}
-            </option>
-          ))}
-        </select>
-      </label>
+          <SelectTrigger
+            className="w-[150px]"
+            aria-label="Filter by status"
+            disabled={isPending}
+          >
+            <SelectValue>
+              {(v) =>
+                !v || v === ALL ? "All statuses" : toTitle(v as string)
+              }
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>All statuses</SelectItem>
+            {statuses.map((s) => (
+              <SelectItem key={s} value={s}>
+                {toTitle(s)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
       {(type || status) && (
         <button

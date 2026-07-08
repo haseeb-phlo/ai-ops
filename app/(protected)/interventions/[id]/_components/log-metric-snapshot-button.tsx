@@ -8,7 +8,9 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,6 +39,7 @@ export function LogMetricSnapshotButton({
   };
 
   const handleOpenChange = (next: boolean) => {
+    if (isPending) return;
     if (!next) setErrorMessage(null);
     setOpen(next);
   };
@@ -44,88 +47,80 @@ export function LogMetricSnapshotButton({
   const today = new Date().toISOString().slice(0, 10);
 
   return (
-    <>
-      <Button onClick={() => setOpen(true)}>Log metric snapshot</Button>
-      <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Log metric snapshot</DialogTitle>
-            <DialogDescription>
-              Today&apos;s values for each metric. Savings are calculated
-              against the baseline.
-            </DialogDescription>
-          </DialogHeader>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogTrigger render={<Button>Log metric snapshot</Button>} />
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Log metric snapshot</DialogTitle>
+          <DialogDescription>
+            Today&apos;s values for each metric. Savings are calculated
+            against the baseline.
+          </DialogDescription>
+        </DialogHeader>
 
-          <form action={handleSubmit} className="space-y-4">
-            <input type="hidden" name="intervention_id" value={interventionId} />
+        <form action={handleSubmit} className="space-y-4">
+          <input type="hidden" name="intervention_id" value={interventionId} />
 
-            <div className="space-y-1.5">
-              <Label htmlFor="snapshot_date">Date</Label>
-              <Input
-                id="snapshot_date"
-                name="snapshot_date"
-                type="date"
-                defaultValue={today}
-                required
-              />
-            </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="snapshot_date">Date</Label>
+            <Input
+              id="snapshot_date"
+              name="snapshot_date"
+              type="date"
+              defaultValue={today}
+              required
+            />
+          </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <NumField
-                label="Time per week (min)"
-                name="time_value"
-                hint="Lower than baseline saves time"
-              />
-              <NumField
-                label="Cost per week (£)"
-                name="cost_value"
-                hint="Lower than baseline saves cost"
-              />
-              <NumField label="People involved" name="people_value" />
-              <NumField label="Errors per week" name="errors_value" />
-              <NumField
-                label="Revenue per week (£)"
-                name="revenue_value"
-                hint="Higher than baseline lifts revenue"
-              />
-            </div>
+          <div className="grid grid-cols-2 gap-3">
+            <NumField
+              label="Time per week (min)"
+              name="time_value"
+              hint="Lower than baseline saves time"
+            />
+            <NumField
+              label="Cost per week (£)"
+              name="cost_value"
+              hint="Lower than baseline saves cost"
+            />
+            <NumField label="People involved" name="people_value" />
+            <NumField label="Errors per week" name="errors_value" />
+            <NumField
+              label="Revenue per week (£)"
+              name="revenue_value"
+              hint="Higher than baseline lifts revenue"
+            />
+          </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="notes">Notes</Label>
-              <Textarea
-                id="notes"
-                name="notes"
-                rows={2}
-                maxLength={500}
-                placeholder="Optional"
-              />
-            </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="notes">Notes</Label>
+            <Textarea
+              id="notes"
+              name="notes"
+              rows={2}
+              maxLength={500}
+              placeholder="Optional"
+            />
+          </div>
 
-            {errorMessage && (
-              <p
-                role="alert"
-                className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800 ring-1 ring-inset ring-red-200"
-              >
-                {errorMessage}
-              </p>
-            )}
+          {errorMessage && <Alert variant="destructive">{errorMessage}</Alert>}
 
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => handleOpenChange(false)}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isPending}>
-                {isPending ? "Saving…" : "Save snapshot"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-    </>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={isPending}
+              onClick={() => handleOpenChange(false)}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isPending}>
+              {isPending ? "Saving…" : "Save snapshot"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -142,7 +137,7 @@ function NumField({
     <div className="space-y-1.5">
       <Label htmlFor={name}>{label}</Label>
       <Input id={name} name={name} type="number" step="any" placeholder="-" />
-      {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
+      {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
     </div>
   );
 }

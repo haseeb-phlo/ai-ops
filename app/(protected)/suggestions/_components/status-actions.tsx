@@ -18,8 +18,9 @@ type Status =
  * permission - the parent decides what to render.
  *
  *   - Champion of submitter's team: under_review / declined
- *   - Super admin: any of the above PLUS accepted (commits to building)
- *     and back-to-open (reopen a declined suggestion)
+ *   - Super admin: any of the above PLUS accepted (commits to building),
+ *     in_progress ("Start progress" once accepted), and back-to-open
+ *     (reopen a declined suggestion)
  */
 export function StatusActions({
   suggestionId,
@@ -67,7 +68,7 @@ export function StatusActions({
           maxLength={500}
           placeholder="e.g. owned by the Clinical platform, out of scope for AI Ops."
         />
-        {error && <p className="text-xs text-red-600">{error}</p>}
+        {error && <p className="text-xs text-destructive">{error}</p>}
         <div className="flex items-center gap-2">
           <Button
             type="button"
@@ -118,12 +119,22 @@ export function StatusActions({
           Accept
         </Button>
       )}
+      {canCommit && status === "accepted" && (
+        <Button
+          type="button"
+          size="sm"
+          disabled={pending}
+          onClick={() => setStatus("in_progress")}
+        >
+          Start progress
+        </Button>
+      )}
       {canTriage && status !== "declined" && status !== "shipped" && (
         <Button
           type="button"
           size="sm"
           variant="outline"
-          className="text-red-700"
+          className="text-destructive"
           disabled={pending}
           onClick={() => setShowDecline(true)}
         >
@@ -141,7 +152,7 @@ export function StatusActions({
           Reopen
         </Button>
       )}
-      {error && <span className="text-xs text-red-600">{error}</span>}
+      {error && <span className="text-xs text-destructive">{error}</span>}
     </div>
   );
 }
