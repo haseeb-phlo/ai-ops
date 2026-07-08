@@ -191,6 +191,7 @@ export type Database = {
           chewing_on: string | null
           created_at: string
           display_name: string
+          email: string | null
           id: string
           last_check_in: string | null
           team: string
@@ -202,6 +203,7 @@ export type Database = {
           chewing_on?: string | null
           created_at?: string
           display_name: string
+          email?: string | null
           id?: string
           last_check_in?: string | null
           team: string
@@ -213,6 +215,7 @@ export type Database = {
           chewing_on?: string | null
           created_at?: string
           display_name?: string
+          email?: string | null
           id?: string
           last_check_in?: string | null
           team?: string

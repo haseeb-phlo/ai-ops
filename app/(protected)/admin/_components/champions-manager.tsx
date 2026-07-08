@@ -40,6 +40,7 @@ export type ExistingChampion = {
   id: string;
   team: string;
   display_name: string;
+  email: string | null;
   user_id: string | null;
   last_check_in: string | null;
 };
@@ -85,14 +86,26 @@ export function ChampionsManager({
     [championsByTeam, team],
   );
 
-  // Already-a-champion hint for the picker. The champions table stores no
-  // email or people.id, so display name is the only client-side join key we
-  // have; the durable duplicate guard is server-side in assignChampion
-  // (user_id match + the (team, user_id) unique index).
-  const existingNames = useMemo(
+  // Already-a-champion guard for the picker, keyed on email now that the
+  // champions table stores it. Rows saved before the email column existed
+  // (and not covered by the migration backfill) fall back to a display-name
+  // match; the durable guard is server-side in assignChampion (email match
+  // + the (team, lower(email)) unique index).
+  const existingEmails = useMemo(
     () =>
       new Set(
-        championsForSelected.map((c) => c.display_name.trim().toLowerCase()),
+        championsForSelected
+          .map((c) => c.email?.trim().toLowerCase())
+          .filter((e): e is string => Boolean(e)),
+      ),
+    [championsForSelected],
+  );
+  const legacyNames = useMemo(
+    () =>
+      new Set(
+        championsForSelected
+          .filter((c) => !c.email)
+          .map((c) => c.display_name.trim().toLowerCase()),
       ),
     [championsForSelected],
   );
@@ -104,13 +117,15 @@ export function ChampionsManager({
     const lowerTeam = team.toLowerCase();
     const isOnTeam = (p: Person) => p.team.toLowerCase() === lowerTeam;
     const filtered = people.filter(
-      (p) => !existingNames.has(p.display_name.trim().toLowerCase()),
+      (p) =>
+        !existingEmails.has(p.email.trim().toLowerCase()) &&
+        !legacyNames.has(p.display_name.trim().toLowerCase()),
     );
     return [
       ...filtered.filter(isOnTeam),
       ...filtered.filter((p) => !isOnTeam(p)),
     ];
-  }, [people, team, existingNames]);
+  }, [people, team, existingEmails, legacyNames]);
 
   const matches = useMemo(() => {
     const q = search.trim().toLowerCase();

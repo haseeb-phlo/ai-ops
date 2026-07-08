@@ -66,30 +66,31 @@ export async function assignChampion(
   });
   const userId = (resolvedUserId as string | null) ?? null;
 
-  // Server-side duplicate check keyed on user id where we have one. The
-  // partial unique index on (team, user_id) also catches this as 23505, but
-  // it can't cover people who haven't signed in yet (user_id null).
-  if (userId) {
-    const { data: dup } = await supabase
-      .from("champions")
-      .select("id")
-      .eq("team", parsed.data.team)
-      .eq("user_id", userId)
-      .maybeSingle<{ id: string }>();
-    if (dup) {
-      return {
-        kind: "error",
-        message: `${person.display_name} is already a champion of ${parsed.data.team}.`,
-      };
-    }
+  // Server-side duplicate check keyed on email, which every directory
+  // person has - unlike user_id, which is null until first sign-in. The
+  // partial unique indexes on (team, user_id) and (team, lower(email))
+  // also catch races as 23505.
+  const email = person.email.trim().toLowerCase();
+  const { data: dup } = await supabase
+    .from("champions")
+    .select("id")
+    .eq("team", parsed.data.team)
+    .eq("email", email)
+    .maybeSingle<{ id: string }>();
+  if (dup) {
+    return {
+      kind: "error",
+      message: `${person.display_name} is already a champion of ${parsed.data.team}.`,
+    };
   }
 
   // With the team-unique constraint dropped (multi-champion teams), this
-  // is now an insert. The partial unique index on (team, user_id) catches
-  // the "same person assigned twice to the same team" case as 23505.
+  // is now an insert. The partial unique indexes catch the "same person
+  // assigned twice to the same team" race as 23505.
   const { error: insertError } = await supabase.from("champions").insert({
     team: parsed.data.team,
     user_id: userId,
+    email,
     display_name: person.display_name,
   });
 

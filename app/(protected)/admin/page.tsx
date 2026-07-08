@@ -94,6 +94,7 @@ type Champion = {
   id: string;
   team: string;
   display_name: string;
+  email: string | null;
   last_check_in: string | null;
   user_id: string | null;
 };
@@ -188,7 +189,7 @@ export default async function AdminPage() {
       .returns<RegulatoryStepRow[]>(),
     supabase
       .from("champions")
-      .select("id, team, display_name, last_check_in, user_id")
+      .select("id, team, display_name, email, last_check_in, user_id")
       .order("team")
       .returns<Champion[]>(),
     supabase
@@ -358,6 +359,7 @@ export default async function AdminPage() {
     id: c.id,
     team: c.team,
     display_name: c.display_name,
+    email: c.email,
     user_id: c.user_id,
     last_check_in: c.last_check_in,
   }));
