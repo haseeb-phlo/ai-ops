@@ -10,8 +10,7 @@ export type SuggestionRow = {
   id: string;
   title: string;
   body: string;
-  workflow_id: string | null;
-  workflow_name: string | null;
+  workflows: { id: string; name: string }[];
   team: string | null;
   status: SuggestionStatus;
   decline_reason: string | null;
@@ -71,17 +70,17 @@ export function SuggestionCard({
                 <span>{suggestion.team}</span>
               </>
             )}
-            {suggestion.workflow_id && suggestion.workflow_name && (
-              <>
+            {suggestion.workflows.map((w) => (
+              <span key={w.id} className="inline-flex items-center gap-x-3">
                 <span aria-hidden>·</span>
                 <Link
-                  href={`/workflows/${suggestion.workflow_id}`}
+                  href={`/workflows/${w.id}`}
                   className="hover:text-foreground hover:underline"
                 >
-                  {suggestion.workflow_name}
+                  {w.name}
                 </Link>
-              </>
-            )}
+              </span>
+            ))}
             <span aria-hidden>·</span>
             <span className="tabular-nums">
               {format(new Date(suggestion.created_at), "d MMM yyyy")}

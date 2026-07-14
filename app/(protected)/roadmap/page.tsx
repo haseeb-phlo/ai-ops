@@ -10,7 +10,6 @@ type RawSuggestion = {
   id: string;
   title: string;
   body: string;
-  workflow_id: string | null;
   team: string | null;
   status: SuggestionStatus;
   intervention_id: string | null;
@@ -40,27 +39,35 @@ export default async function RoadmapPage() {
   const user = await getSessionUser();
   const supabase = await createClient();
 
-  const [{ data: rows }, { data: interventions }, { data: workflows }] =
-    await Promise.all([
-      supabase
-        .from("intervention_suggestions")
-        .select(
-          "id, title, body, workflow_id, team, status, intervention_id, queue_rank, created_at",
-        )
-        .in("status", [...ROADMAP_STATUSES])
-        .returns<RawSuggestion[]>(),
-      supabase
-        .from("ai_interventions")
-        .select("id, name, status, shipped_at, owner, queue_rank, created_at")
-        .order("name", { ascending: true })
-        .returns<RawInitiative[]>(),
-      supabase
-        .from("workflows")
-        .select("id, name")
-        .is("deleted_at", null)
-        .order("name", { ascending: true })
-        .returns<{ id: string; name: string }[]>(),
-    ]);
+  const [
+    { data: rows },
+    { data: interventions },
+    { data: workflows },
+    { data: workflowLinks },
+  ] = await Promise.all([
+    supabase
+      .from("intervention_suggestions")
+      .select(
+        "id, title, body, team, status, intervention_id, queue_rank, created_at",
+      )
+      .in("status", [...ROADMAP_STATUSES])
+      .returns<RawSuggestion[]>(),
+    supabase
+      .from("ai_interventions")
+      .select("id, name, status, shipped_at, owner, queue_rank, created_at")
+      .order("name", { ascending: true })
+      .returns<RawInitiative[]>(),
+    supabase
+      .from("workflows")
+      .select("id, name")
+      .is("deleted_at", null)
+      .order("name", { ascending: true })
+      .returns<{ id: string; name: string }[]>(),
+    supabase
+      .from("suggestion_workflows")
+      .select("suggestion_id, workflow_id")
+      .returns<{ suggestion_id: string; workflow_id: string }[]>(),
+  ]);
 
   const suggestions = rows ?? [];
   const interventionsList = interventions ?? [];
@@ -70,10 +77,20 @@ export default async function RoadmapPage() {
     interventionsList.map((i) => [i.id, i.name]),
   );
 
+  // Workflow links per suggestion; only non-deleted workflows resolve to a
+  // name (workflowNameById is built from the deleted_at-filtered list).
+  const workflowIdsBySuggestion = new Map<string, string[]>();
+  for (const link of workflowLinks ?? []) {
+    const arr = workflowIdsBySuggestion.get(link.suggestion_id);
+    if (arr) arr.push(link.workflow_id);
+    else workflowIdsBySuggestion.set(link.suggestion_id, [link.workflow_id]);
+  }
+
   function suggestionCard(s: RawSuggestion): BoardCard {
-    const workflowName = s.workflow_id
-      ? workflowNameById.get(s.workflow_id)
-      : null;
+    const workflowIds = workflowIdsBySuggestion.get(s.id) ?? [];
+    const workflowNames = workflowIds
+      .map((id) => workflowNameById.get(id))
+      .filter((n): n is string => !!n);
     const interventionName = s.intervention_id
       ? interventionNameById.get(s.intervention_id)
       : null;
@@ -83,9 +100,10 @@ export default async function RoadmapPage() {
       title: s.title,
       href: `/suggestions/${s.id}`,
       body: s.body,
-      meta: [s.team, workflowName, interventionName].filter(
+      meta: [s.team, ...workflowNames, interventionName].filter(
         (m): m is string => !!m,
       ),
+      editable: { suggestionId: s.id, workflowIds },
     };
   }
 
@@ -167,7 +185,7 @@ export default async function RoadmapPage() {
         description="What's being built across the company - from committed ideas, through the prioritised queue, to shipped."
         actions={isSuper ? <AddRoadmapItemDialog workflows={workflowsList} /> : undefined}
       />
-      <RoadmapBoard groups={groups} canMove={isSuper} />
+      <RoadmapBoard groups={groups} canMove={isSuper} workflows={workflowsList} />
     </PageContainer>
   );
 }

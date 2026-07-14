@@ -17,7 +17,6 @@ type RawSuggestion = {
   id: string;
   title: string;
   body: string;
-  workflow_id: string | null;
   team: string | null;
   status: SuggestionRow["status"];
   decline_reason: string | null;
@@ -54,11 +53,12 @@ export default async function SuggestionsPage({
     { data: commentRows },
     { data: peopleRows },
     { data: myChampionRows },
+    { data: workflowLinks },
   ] = await Promise.all([
     supabase
       .from("intervention_suggestions")
       .select(
-        "id, title, body, workflow_id, team, status, decline_reason, intervention_id, created_by, created_at",
+        "id, title, body, team, status, decline_reason, intervention_id, created_by, created_at",
       )
       .order("created_at", { ascending: false })
       .returns<RawSuggestion[]>(),
@@ -94,6 +94,10 @@ export default async function SuggestionsPage({
       .select("team")
       .eq("user_id", user.id)
       .returns<{ team: string }[]>(),
+    supabase
+      .from("suggestion_workflows")
+      .select("suggestion_id, workflow_id")
+      .returns<{ suggestion_id: string; workflow_id: string }[]>(),
   ]);
 
   // Resolve user_id → email only for the authors that actually appear on
@@ -160,15 +164,24 @@ export default async function SuggestionsPage({
 
   const isSuper = user.role === "super_admin";
 
+  // Workflow links per suggestion; only non-deleted workflows resolve to a
+  // name, so links to soft-deleted workflows drop off the card.
+  const workflowsBySuggestion = new Map<string, { id: string; name: string }[]>();
+  for (const link of workflowLinks ?? []) {
+    const name = workflowNameById.get(link.workflow_id);
+    if (!name) continue;
+    const arr = workflowsBySuggestion.get(link.suggestion_id);
+    const entry = { id: link.workflow_id, name };
+    if (arr) arr.push(entry);
+    else workflowsBySuggestion.set(link.suggestion_id, [entry]);
+  }
+
   function decorate(s: RawSuggestion): SuggestionRow {
     return {
       id: s.id,
       title: s.title,
       body: s.body,
-      workflow_id: s.workflow_id,
-      workflow_name: s.workflow_id
-        ? workflowNameById.get(s.workflow_id) ?? null
-        : null,
+      workflows: workflowsBySuggestion.get(s.id) ?? [],
       team: s.team,
       status: s.status,
       decline_reason: s.decline_reason,

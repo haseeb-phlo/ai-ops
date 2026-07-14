@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { WorkflowMultiSelect } from "@/components/workflow-multi-select";
 import { createRoadmapItem, type RoadmapState } from "../actions";
 
 const initial: RoadmapState = { kind: "idle" };
@@ -82,7 +83,6 @@ function AddRoadmapItemForm({
   onSuccess: () => void;
   onCancel: () => void;
 }) {
-  const [workflowId, setWorkflowId] = useState<string>("");
   const [lane, setLane] = useState<string>("queued");
   const [state, action, pending] = useActionState(createRoadmapItem, initial);
 
@@ -136,25 +136,8 @@ function AddRoadmapItemForm({
           </Select>
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="workflow_id">Workflow this helps (optional)</Label>
-          <input type="hidden" name="workflow_id" value={workflowId} />
-          <Select
-            value={workflowId}
-            onValueChange={(v) => setWorkflowId(v ?? "")}
-          >
-            <SelectTrigger id="workflow_id" className="w-full">
-              <SelectValue placeholder="Pick a workflow">
-                {(v) => workflows.find((w) => w.id === v)?.name ?? ""}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {workflows.map((w) => (
-                <SelectItem key={w.id} value={w.id}>
-                  {w.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Label>Workflows this helps (optional)</Label>
+          <WorkflowMultiSelect workflows={workflows} />
         </div>
         {state.kind === "error" && (
           <Alert variant="destructive">{state.message}</Alert>

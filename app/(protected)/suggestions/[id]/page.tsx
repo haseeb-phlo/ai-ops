@@ -27,7 +27,6 @@ type Suggestion = {
   id: string;
   title: string;
   body: string;
-  workflow_id: string | null;
   team: string | null;
   status: Status;
   decline_reason: string | null;
@@ -61,11 +60,12 @@ export default async function SuggestionDetailPage({
     { data: interventions },
     { data: peopleRows },
     { data: myChampionRows },
+    { data: workflowLinks },
   ] = await Promise.all([
     supabase
       .from("intervention_suggestions")
       .select(
-        "id, title, body, workflow_id, team, status, decline_reason, intervention_id, created_by, created_at",
+        "id, title, body, team, status, decline_reason, intervention_id, created_by, created_at",
       )
       .eq("id", id)
       .maybeSingle<Suggestion>(),
@@ -103,6 +103,11 @@ export default async function SuggestionDetailPage({
       .select("team")
       .eq("user_id", user.id)
       .returns<{ team: string }[]>(),
+    supabase
+      .from("suggestion_workflows")
+      .select("workflow_id")
+      .eq("suggestion_id", id)
+      .returns<{ workflow_id: string }[]>(),
   ]);
 
   if (!suggestion) {
@@ -150,10 +155,9 @@ export default async function SuggestionDetailPage({
     );
   }
   const submittedBy = nameFor(suggestion.created_by);
-  const workflowName = suggestion.workflow_id
-    ? (workflows ?? []).find((w) => w.id === suggestion.workflow_id)?.name ??
-      null
-    : null;
+  const linkedWorkflows = (workflowLinks ?? [])
+    .map((l) => (workflows ?? []).find((w) => w.id === l.workflow_id))
+    .filter((w): w is { id: string; name: string } => !!w);
   const linkedIntervention = suggestion.intervention_id
     ? (interventions ?? []).find((i) => i.id === suggestion.intervention_id) ??
       null
@@ -202,17 +206,17 @@ export default async function SuggestionDetailPage({
               <span>{suggestion.team}</span>
             </>
           )}
-          {workflowName && suggestion.workflow_id && (
-            <>
+          {linkedWorkflows.map((w) => (
+            <span key={w.id} className="inline-flex items-center gap-x-3">
               <span aria-hidden>·</span>
               <Link
-                href={`/workflows/${suggestion.workflow_id}`}
+                href={`/workflows/${w.id}`}
                 className="hover:text-foreground hover:underline"
               >
-                {workflowName}
+                {w.name}
               </Link>
-            </>
-          )}
+            </span>
+          ))}
           <span aria-hidden>·</span>
           <span className="tabular-nums">
             {format(new Date(suggestion.created_at), "d MMM yyyy")}

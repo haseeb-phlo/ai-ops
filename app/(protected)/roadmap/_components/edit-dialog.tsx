@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
+import { PencilIcon } from "lucide-react";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,19 +17,29 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { WorkflowMultiSelect } from "@/components/workflow-multi-select";
-import { createSuggestion, type SuggestionState } from "../actions";
+import {
+  editSuggestion,
+  type SuggestionState,
+} from "../../suggestions/actions";
 
 const initial: SuggestionState = { kind: "idle" };
 
 /**
- * Dialog shell. The form (and its useActionState) lives in a keyed child:
- * the key is bumped on every open so the action state resets to idle. That
- * means a previous success can never instantly re-close the dialog on
- * reopen, stale errors never resurface, and "submit two in a row" works.
+ * In-place edit for a suggestion card on the board: title, pitch, and
+ * workflow links. Lane changes stay with drag-drop and status actions.
+ * Same keyed-form-reset shell as the add dialog.
  */
-export function SubmitSuggestionDialog({
+export function EditRoadmapItemDialog({
+  suggestionId,
+  title,
+  body,
+  workflowIds,
   workflows,
 }: {
+  suggestionId: string;
+  title: string;
+  body: string;
+  workflowIds: string[];
   workflows: { id: string; name: string }[];
 }) {
   const [open, setOpen] = useState(false);
@@ -41,17 +52,30 @@ export function SubmitSuggestionDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger render={<Button>Suggest something</Button>} />
+      <DialogTrigger
+        render={
+          <button
+            type="button"
+            aria-label={`Edit ${title}`}
+            className="flex shrink-0 cursor-pointer items-start rounded-r-md px-1.5 py-2 text-muted-foreground/50 outline-none transition-colors hover:bg-muted/40 hover:text-foreground focus-visible:bg-muted/40 focus-visible:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+          >
+            <PencilIcon aria-hidden className="size-3" />
+          </button>
+        }
+      />
       <DialogContent className="gap-0 p-0 sm:max-w-lg">
         <DialogHeader className="gap-2 px-6 pt-5 pb-5">
-          <DialogTitle>Suggest an AI initiative</DialogTitle>
+          <DialogTitle>Edit roadmap item</DialogTitle>
           <DialogDescription>
-            Pitch an idea. Suggestions are triaged by team leads;
-            super-admins decide what gets built.
+            Changes show everywhere this item appears.
           </DialogDescription>
         </DialogHeader>
-        <SubmitSuggestionForm
+        <EditRoadmapItemForm
           key={formKey}
+          suggestionId={suggestionId}
+          title={title}
+          body={body}
+          workflowIds={workflowIds}
           workflows={workflows}
           onSuccess={() => setOpen(false)}
           onCancel={() => setOpen(false)}
@@ -61,16 +85,24 @@ export function SubmitSuggestionDialog({
   );
 }
 
-function SubmitSuggestionForm({
+function EditRoadmapItemForm({
+  suggestionId,
+  title,
+  body,
+  workflowIds,
   workflows,
   onSuccess,
   onCancel,
 }: {
+  suggestionId: string;
+  title: string;
+  body: string;
+  workflowIds: string[];
   workflows: { id: string; name: string }[];
   onSuccess: () => void;
   onCancel: () => void;
 }) {
-  const [state, action, pending] = useActionState(createSuggestion, initial);
+  const [state, action, pending] = useActionState(editSuggestion, initial);
 
   useEffect(() => {
     if (state.kind === "ok") onSuccess();
@@ -78,32 +110,36 @@ function SubmitSuggestionForm({
 
   return (
     <form action={action} className="flex min-h-0 flex-1 flex-col">
+      <input type="hidden" name="suggestion_id" value={suggestionId} />
       <div className="flex-1 space-y-4 overflow-y-auto border-t border-border px-6 py-5">
         <div className="space-y-1.5">
-          <Label htmlFor="title">Title</Label>
+          <Label htmlFor="edit-title">Title</Label>
           <Input
-            id="title"
+            id="edit-title"
             name="title"
             required
             maxLength={200}
-            placeholder="e.g. Auto-summarise prescription queries"
+            defaultValue={title}
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="body">What you&apos;d want it to do</Label>
+          <Label htmlFor="edit-body">What it is</Label>
           <Textarea
-            id="body"
+            id="edit-body"
             name="body"
             required
             minLength={5}
             maxLength={2000}
             rows={5}
-            placeholder="Describe the problem and how AI could help. Anyone on the team can read this, so paint the picture."
+            defaultValue={body}
           />
         </div>
         <div className="space-y-1.5">
-          <Label>Workflows this would help (optional)</Label>
-          <WorkflowMultiSelect workflows={workflows} />
+          <Label>Workflows this helps (optional)</Label>
+          <WorkflowMultiSelect
+            workflows={workflows}
+            defaultSelected={workflowIds}
+          />
         </div>
         {state.kind === "error" && (
           <Alert variant="destructive">{state.message}</Alert>
@@ -119,7 +155,7 @@ function SubmitSuggestionForm({
           Cancel
         </Button>
         <Button type="submit" loading={pending}>
-          {pending ? "Submitting" : "Submit suggestion"}
+          {pending ? "Saving" : "Save changes"}
         </Button>
       </DialogFooter>
     </form>
