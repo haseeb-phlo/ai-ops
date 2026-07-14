@@ -40,6 +40,7 @@ import {
   moveSuggestionLane,
   reorderQueue,
 } from "../actions";
+import { EditRoadmapItemDialog } from "./edit-dialog";
 
 type LaneKey = (typeof ROADMAP_STATUSES)[number];
 
@@ -93,6 +94,8 @@ export type BoardCard = {
   /** Suggestion pitch, absent on initiatives. */
   body?: string;
   meta: string[];
+  /** Present on suggestion cards; powers the board's edit dialog. */
+  editable?: { suggestionId: string; workflowIds: string[] };
 };
 
 type Groups = Record<LaneKey, BoardCard[]>;
@@ -193,9 +196,12 @@ const cardsThenLanes: CollisionDetection = (args) => {
 export function RoadmapBoard({
   groups: serverGroups,
   canMove,
+  workflows,
 }: {
   groups: Groups;
   canMove: boolean;
+  /** Options for the edit dialog's workflow picker. */
+  workflows: { id: string; name: string }[];
 }) {
   const [, startTransition] = useTransition();
   const [moveError, setMoveError] = useState<string | null>(null);
@@ -377,6 +383,7 @@ export function RoadmapBoard({
             canMove={canMove}
             dragging={dragging}
             cards={groups[lane.key]}
+            workflows={workflows}
           />
         ))}
       </section>
@@ -389,11 +396,13 @@ function LaneColumn({
   canMove,
   dragging,
   cards,
+  workflows,
 }: {
   lane: Lane;
   canMove: boolean;
   dragging: boolean;
   cards: BoardCard[];
+  workflows: { id: string; name: string }[];
 }) {
   const { isOver, setNodeRef } = useDroppable({
     id: lane.key,
@@ -410,6 +419,7 @@ function LaneColumn({
           canMove={canMove}
           sortable={isQueue}
           ordinal={isQueue ? index + 1 : undefined}
+          workflows={workflows}
         />
       ))}
     </ul>
@@ -594,11 +604,13 @@ function CardItem({
   canMove,
   sortable,
   ordinal,
+  workflows,
 }: {
   card: BoardCard;
   canMove: boolean;
   sortable: boolean;
   ordinal?: number;
+  workflows: { id: string; name: string }[];
 }) {
   const Wrapper = sortable ? SortableCard : DraggableCard;
   return (
@@ -631,6 +643,15 @@ function CardItem({
           </div>
         )}
       </Link>
+      {canMove && card.editable && (
+        <EditRoadmapItemDialog
+          suggestionId={card.editable.suggestionId}
+          title={card.title}
+          body={card.body ?? ""}
+          workflowIds={card.editable.workflowIds}
+          workflows={workflows}
+        />
+      )}
     </Wrapper>
   );
 }

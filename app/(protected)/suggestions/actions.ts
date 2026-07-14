@@ -30,11 +30,7 @@ export type SuggestionState =
 const CreateSchema = z.object({
   title: z.string().trim().min(3).max(200),
   body: z.string().trim().min(5).max(2000),
-  workflow_id: z
-    .string()
-    .uuid()
-    .optional()
-    .or(z.literal("").transform(() => undefined)),
+  workflow_ids: z.array(z.string().uuid()).max(50),
 });
 
 export async function createSuggestion(
@@ -47,7 +43,7 @@ export async function createSuggestion(
   const parsed = CreateSchema.safeParse({
     title: formData.get("title"),
     body: formData.get("body"),
-    workflow_id: formData.get("workflow_id") || undefined,
+    workflow_ids: formData.getAll("workflow_ids"),
   });
   if (!parsed.success) {
     return {
@@ -62,7 +58,6 @@ export async function createSuggestion(
     .insert({
       title: parsed.data.title,
       body: parsed.data.body,
-      workflow_id: parsed.data.workflow_id ?? null,
       team: user.team ?? null,
       created_by: user.id,
     })
@@ -74,6 +69,22 @@ export async function createSuggestion(
       kind: "error",
       message: "Could not save suggestion. Please try again.",
     };
+  }
+
+  // Workflow links are best-effort: the suggestion is already saved, so a
+  // failed link insert logs rather than erroring the whole submission.
+  if (parsed.data.workflow_ids.length > 0) {
+    const { error: linkError } = await supabase
+      .from("suggestion_workflows")
+      .insert(
+        parsed.data.workflow_ids.map((workflow_id) => ({
+          suggestion_id: data.id,
+          workflow_id,
+        })),
+      );
+    if (linkError) {
+      console.warn("[suggestions] workflow links failed:", linkError.message);
+    }
   }
 
   // Notify the reviewer. Failures are logged but don't roll back the
@@ -338,8 +349,16 @@ const EditSchema = z.object({
   suggestion_id: z.string().uuid(),
   title: z.string().trim().min(3).max(200),
   body: z.string().trim().min(5).max(2000),
+  workflow_ids: z.array(z.string().uuid()).max(50),
 });
 
+/**
+ * Edit a suggestion's title, body, and workflow links (links are replaced
+ * with the submitted set). Used by the roadmap board's edit dialog. RLS
+ * decides who may write - super-admins, team champions, and the creator
+ * while the suggestion is still open - on both the row update and the
+ * suggestion_workflows changes (can_edit_suggestion).
+ */
 export async function editSuggestion(
   _prev: SuggestionState,
   formData: FormData,
@@ -351,6 +370,7 @@ export async function editSuggestion(
     suggestion_id: formData.get("suggestion_id"),
     title: formData.get("title"),
     body: formData.get("body"),
+    workflow_ids: formData.getAll("workflow_ids"),
   });
   if (!parsed.success) {
     return {
@@ -359,7 +379,6 @@ export async function editSuggestion(
     };
   }
   const supabase = await createClient();
-  // RLS already blocks unauthorised writes; we surface friendly errors.
   const { error } = await supabase
     .from("intervention_suggestions")
     .update({ title: parsed.data.title, body: parsed.data.body })
@@ -371,7 +390,39 @@ export async function editSuggestion(
       message: "Could not save edit. Please try again.",
     };
   }
+
+  // Replace the workflow links with the submitted set.
+  const { error: clearError } = await supabase
+    .from("suggestion_workflows")
+    .delete()
+    .eq("suggestion_id", parsed.data.suggestion_id);
+  if (!clearError && parsed.data.workflow_ids.length > 0) {
+    const { error: linkError } = await supabase
+      .from("suggestion_workflows")
+      .insert(
+        parsed.data.workflow_ids.map((workflow_id) => ({
+          suggestion_id: parsed.data.suggestion_id,
+          workflow_id,
+        })),
+      );
+    if (linkError) {
+      console.error("[suggestions] workflow relink failed:", linkError.message);
+      return {
+        kind: "error",
+        message: "Saved the text, but could not update workflow links.",
+      };
+    }
+  }
+  if (clearError) {
+    console.error("[suggestions] workflow unlink failed:", clearError.message);
+    return {
+      kind: "error",
+      message: "Saved the text, but could not update workflow links.",
+    };
+  }
+
   revalidatePath("/suggestions");
+  revalidatePath(`/suggestions/${parsed.data.suggestion_id}`);
   revalidatePath("/roadmap");
   revalidatePath("/");
   return { kind: "ok" };

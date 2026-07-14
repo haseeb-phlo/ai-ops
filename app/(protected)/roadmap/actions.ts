@@ -35,11 +35,7 @@ function revalidateRoadmap() {
 const CreateSchema = z.object({
   title: z.string().trim().min(3).max(200),
   body: z.string().trim().min(5).max(2000),
-  workflow_id: z
-    .string()
-    .uuid()
-    .optional()
-    .or(z.literal("").transform(() => undefined)),
+  workflow_ids: z.array(z.string().uuid()).max(50),
   lane: z.enum(["accepted", "queued", "in_progress"]),
 });
 
@@ -59,7 +55,7 @@ export async function createRoadmapItem(
   const parsed = CreateSchema.safeParse({
     title: formData.get("title"),
     body: formData.get("body"),
-    workflow_id: formData.get("workflow_id") || undefined,
+    workflow_ids: formData.getAll("workflow_ids"),
     lane: formData.get("lane"),
   });
   if (!parsed.success) {
@@ -80,7 +76,6 @@ export async function createRoadmapItem(
     .insert({
       title: parsed.data.title,
       body: parsed.data.body,
-      workflow_id: parsed.data.workflow_id ?? null,
       team: null,
       status: parsed.data.lane,
       queue_rank: queueRank,
@@ -95,6 +90,23 @@ export async function createRoadmapItem(
       message: "Could not add to the roadmap. Please try again.",
     };
   }
+
+  // Workflow links are best-effort: the item is already on the roadmap, so
+  // a failed link insert logs rather than erroring the whole add.
+  if (parsed.data.workflow_ids.length > 0) {
+    const { error: linkError } = await supabase
+      .from("suggestion_workflows")
+      .insert(
+        parsed.data.workflow_ids.map((workflow_id) => ({
+          suggestion_id: data.id,
+          workflow_id,
+        })),
+      );
+    if (linkError) {
+      console.warn("[roadmap] workflow links failed:", linkError.message);
+    }
+  }
+
   revalidateRoadmap();
   return { kind: "ok", suggestionId: data.id };
 }

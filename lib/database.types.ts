@@ -451,7 +451,6 @@ export type Database = {
           team: string | null
           title: string
           updated_at: string
-          workflow_id: string | null
         }
         Insert: {
           body: string
@@ -465,7 +464,6 @@ export type Database = {
           team?: string | null
           title: string
           updated_at?: string
-          workflow_id?: string | null
         }
         Update: {
           body?: string
@@ -479,7 +477,6 @@ export type Database = {
           team?: string | null
           title?: string
           updated_at?: string
-          workflow_id?: string | null
         }
         Relationships: [
           {
@@ -487,13 +484,6 @@ export type Database = {
             columns: ["intervention_id"]
             isOneToOne: false
             referencedRelation: "ai_interventions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "intervention_suggestions_workflow_id_fkey"
-            columns: ["workflow_id"]
-            isOneToOne: false
-            referencedRelation: "workflows"
             referencedColumns: ["id"]
           },
         ]
@@ -946,6 +936,36 @@ export type Database = {
           },
         ]
       }
+      suggestion_workflows: {
+        Row: {
+          suggestion_id: string
+          workflow_id: string
+        }
+        Insert: {
+          suggestion_id: string
+          workflow_id: string
+        }
+        Update: {
+          suggestion_id?: string
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suggestion_workflows_suggestion_id_fkey"
+            columns: ["suggestion_id"]
+            isOneToOne: false
+            referencedRelation: "intervention_suggestions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suggestion_workflows_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workflow_baselines: {
         Row: {
           captured_at: string
@@ -1250,6 +1270,10 @@ export type Database = {
       can_delete_workflow: { Args: { p_workflow_id: string }; Returns: boolean }
       can_edit_intervention: {
         Args: { p_intervention_id: string }
+        Returns: boolean
+      }
+      can_edit_suggestion: {
+        Args: { p_suggestion_id: string }
         Returns: boolean
       }
       delete_intervention: { Args: { p_id: string }; Returns: string }
