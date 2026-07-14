@@ -54,7 +54,7 @@ export function RoadmapSnapshot({
         <SnapshotColumn
           label="In progress"
           items={inProgress}
-          dotClassName="bg-blue-500"
+          dotClassName="bg-cyan-500"
           emptyText="Nothing underway."
         />
         <SnapshotColumn
