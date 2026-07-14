@@ -48,6 +48,7 @@ export const SUGGESTION_STATUSES = [
   "open",
   "under_review",
   "accepted",
+  "queued",
   "in_progress",
   "shipped",
   "declined",
@@ -74,6 +75,15 @@ export const SUGGESTION_STATUS: Record<SuggestionStatus, StatusStyle> = {
     label: "Accepted",
     dotClassName: "bg-violet-500",
     badgeClassName: "border-violet-200 bg-violet-50 text-violet-700",
+  },
+  // Indigo sits between accepted's violet and in_progress's blue, matching
+  // queued's position in the pipeline (committed and prioritised, not yet
+  // started). The three never render adjacent on one card, so the close
+  // hues stay tellable-apart in context.
+  queued: {
+    label: "Queued",
+    dotClassName: "bg-indigo-500",
+    badgeClassName: "border-indigo-200 bg-indigo-50 text-indigo-700",
   },
   in_progress: {
     label: "In progress",

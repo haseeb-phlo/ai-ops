@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { LightbulbIcon } from "lucide-react";
 import { getSessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -10,9 +11,7 @@ import {
   SuggestionCard,
   type SuggestionRow,
 } from "./_components/suggestion-card";
-import { RoadmapBoard } from "./_components/roadmap";
 import { VoteButton } from "./_components/vote-button";
-import { ViewToggle, type ViewMode } from "./_components/view-toggle";
 
 type RawSuggestion = {
   id: string;
@@ -27,31 +26,21 @@ type RawSuggestion = {
   created_at: string;
 };
 
-const VALID_TABS: Tab[] = ["active", "roadmap", "declined"];
-
-const ROADMAP_STATUSES = new Set<SuggestionRow["status"]>([
-  "accepted",
-  "in_progress",
-  "shipped",
-]);
+const VALID_TABS: Tab[] = ["active", "declined"];
 
 export default async function SuggestionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; view?: string }>;
+  searchParams: Promise<{ tab?: string }>;
 }) {
   const sp = await searchParams;
+  // The roadmap graduated from a tab here to its own section; keep old
+  // links working.
+  if (sp.tab === "roadmap") redirect("/roadmap");
   const tab: Tab =
     typeof sp.tab === "string" && VALID_TABS.includes(sp.tab as Tab)
       ? (sp.tab as Tab)
       : "active";
-
-  const view: ViewMode =
-    sp.view === "list" || sp.view === "board"
-      ? sp.view
-      : tab === "roadmap"
-        ? "board"
-        : "list";
 
   const user = await getSessionUser();
   const supabase = await createClient();
@@ -81,17 +70,9 @@ export default async function SuggestionsPage({
       .returns<{ id: string; name: string }[]>(),
     supabase
       .from("ai_interventions")
-      .select("id, name, status, shipped_at, owner")
+      .select("id, name, status")
       .order("name", { ascending: true })
-      .returns<
-        {
-          id: string;
-          name: string;
-          status: string | null;
-          shipped_at: string | null;
-          owner: string | null;
-        }[]
-      >(),
+      .returns<{ id: string; name: string; status: string | null }[]>(),
     supabase
       .from("profiles")
       .select("user_id, display_name")
@@ -205,32 +186,6 @@ export default async function SuggestionsPage({
 
   const decorated = allRows.map(decorate);
 
-  // Lane groupings for the roadmap. Status-only mapping after the
-  // in_progress migration: each suggestion sits in exactly one lane and
-  // moves between them by status alone.
-  const roadmapGroups = {
-    up_next: decorated.filter((s) => s.status === "accepted"),
-    in_progress: decorated.filter((s) => s.status === "in_progress"),
-    shipped: decorated.filter((s) => s.status === "shipped"),
-  };
-
-  // Initiative lane mapping is 2D over status + shipped_at:
-  //   shipped_at set                  -> "Shipped"     (live and done)
-  //   shipped_at null + status paused -> "Up next"     (planned / on hold)
-  //   shipped_at null + status active -> "In progress" (the default)
-  // Status='retired' is a separate lifecycle state (decommissioned) set via
-  // the status button / edit dialog - those rows don't appear on the board.
-  // Dragging a card writes back via moveInitiativeLane.
-  const initiativeRoadmapGroups = {
-    up_next: interventionsList.filter(
-      (i) => !i.shipped_at && i.status === "paused",
-    ),
-    in_progress: interventionsList.filter(
-      (i) => !i.shipped_at && i.status === "active",
-    ),
-    shipped: interventionsList.filter((i) => !!i.shipped_at),
-  };
-
   const activeRows = decorated.filter(
     (s) => s.status === "open" || s.status === "under_review",
   );
@@ -240,9 +195,6 @@ export default async function SuggestionsPage({
     return b.created_at.localeCompare(a.created_at);
   });
   const declinedRows = decorated.filter((s) => s.status === "declined");
-  const roadmapList = decorated
-    .filter((s) => ROADMAP_STATUSES.has(s.status))
-    .sort((a, b) => b.created_at.localeCompare(a.created_at));
 
   const myChampionTeams = new Set(
     (myChampionRows ?? []).map((r) => r.team),
@@ -256,13 +208,12 @@ export default async function SuggestionsPage({
     <PageContainer>
       <PageHeader
         title="Suggestions"
-        description="Submit ideas, triage them, and promote the winners to AI initiatives."
+        description="Submit ideas and vote on them. Accepted ideas move to the Roadmap."
         actions={<SubmitSuggestionDialog workflows={workflowsList} />}
       />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <SuggestionTabs active={tab} />
-        {tab === "roadmap" && <ViewToggle active={view} />}
       </div>
 
       {tab === "active" && (
@@ -282,39 +233,6 @@ export default async function SuggestionsPage({
           />
         </>
       )}
-      {tab === "roadmap" &&
-        (view === "board" ? (
-          <RoadmapBoard
-            groups={roadmapGroups}
-            canMove={isSuper}
-            initiativeGroups={{
-              up_next: initiativeRoadmapGroups.up_next.map((i) => ({
-                id: i.id,
-                name: i.name,
-                owner: i.owner,
-              })),
-              in_progress: initiativeRoadmapGroups.in_progress.map((i) => ({
-                id: i.id,
-                name: i.name,
-                owner: i.owner,
-              })),
-              shipped: initiativeRoadmapGroups.shipped.map((i) => ({
-                id: i.id,
-                name: i.name,
-                owner: i.owner,
-              })),
-            }}
-          />
-        ) : (
-          <ActiveList
-            rows={roadmapList}
-            isSuper={isSuper}
-            canTriageFor={canTriageFor}
-            activeInterventions={activeInterventions}
-            emptyTitle="Nothing on the roadmap yet"
-            emptyDescription="Suggestions show up here once they're accepted, in progress, or shipped."
-          />
-        ))}
       {tab === "declined" && (
         <ActiveList
           rows={declinedRows}
