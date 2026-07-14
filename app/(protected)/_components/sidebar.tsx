@@ -66,7 +66,7 @@ export function Sidebar({
     <aside
       data-collapsed={collapsed ? "" : undefined}
       className={cn(
-        "group sticky top-0 hidden h-screen md:flex shrink-0 flex-col border-r border-border bg-background transition-[width] duration-150 ease-out",
+        "group sticky top-0 hidden h-screen md:flex shrink-0 flex-col border-r border-sidebar-border bg-sidebar transition-[width] duration-150 ease-out",
         collapsed ? "w-[60px]" : "w-60",
       )}
     >
@@ -161,7 +161,7 @@ export function Sidebar({
           aria-current={profileActive ? "page" : undefined}
           className={cn(
             "flex items-center gap-3 rounded-md px-2 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-            profileActive ? "bg-muted" : "hover:bg-muted/40",
+            profileActive ? "bg-sidebar-accent/60" : "hover:bg-sidebar-accent/40",
             collapsed && "justify-center px-0",
           )}
           aria-label="Edit profile"
@@ -240,8 +240,8 @@ function SidebarLink({
         "relative flex items-center gap-3 rounded-md px-2 py-2 text-sm transition-colors",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         active
-          ? "bg-muted font-medium text-foreground before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-r-full before:bg-foreground"
-          : "text-muted-foreground hover:bg-muted/40 hover:text-foreground",
+          ? "bg-sidebar-accent/60 font-medium text-sidebar-primary before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-r-full before:bg-sidebar-primary"
+          : "text-muted-foreground hover:bg-sidebar-accent/40 hover:text-foreground",
         collapsed && "justify-center px-0",
       )}
     >

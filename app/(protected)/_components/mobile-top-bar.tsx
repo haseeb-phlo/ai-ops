@@ -115,8 +115,8 @@ export function MobileTopBar({
                     className={cn(
                       "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm",
                       active
-                        ? "bg-muted font-medium text-foreground"
-                        : "text-muted-foreground hover:bg-muted/40 hover:text-foreground",
+                        ? "bg-secondary/60 font-medium text-primary"
+                        : "text-muted-foreground hover:bg-secondary/40 hover:text-foreground",
                     )}
                   >
                     <Icon className="size-4 shrink-0" aria-hidden />
@@ -133,8 +133,8 @@ export function MobileTopBar({
                 className={cn(
                   "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm",
                   profileActive
-                    ? "bg-muted font-medium text-foreground"
-                    : "text-muted-foreground hover:bg-muted/40 hover:text-foreground",
+                    ? "bg-secondary/60 font-medium text-primary"
+                    : "text-muted-foreground hover:bg-secondary/40 hover:text-foreground",
                 )}
               >
                 <Avatar

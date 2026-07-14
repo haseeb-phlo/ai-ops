@@ -248,9 +248,9 @@ type GlyphKind =
 // Decorative entity icons - each row's meta text already names the entity
 // ("New workflow", "New suggestion", …), so the chips stay aria-hidden.
 const GLYPHS: Record<GlyphKind, { Icon: LucideIcon; className: string }> = {
-  intervention: { Icon: Sparkles, className: "bg-blue-100 text-blue-700" },
+  intervention: { Icon: Sparkles, className: "bg-cyan-100 text-cyan-700" },
   workflow: { Icon: Workflow, className: "bg-emerald-100 text-emerald-700" },
-  suggestion: { Icon: Lightbulb, className: "bg-violet-100 text-violet-700" },
+  suggestion: { Icon: Lightbulb, className: "bg-indigo-100 text-indigo-700" },
   "suggestion-comment": {
     Icon: MessageSquare,
     className: "bg-sky-100 text-sky-700",
@@ -281,7 +281,7 @@ const SEVERITY_LABEL: Record<"red" | "amber" | "green", string> = {
 function RegDot({ severity }: { severity: "red" | "amber" | "green" }) {
   const cls =
     severity === "red"
-      ? "bg-red-500"
+      ? "bg-rose-500"
       : severity === "amber"
       ? "bg-amber-500"
       : "bg-emerald-500";

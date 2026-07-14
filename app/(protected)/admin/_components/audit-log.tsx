@@ -27,7 +27,7 @@ export type AuditRow = {
 const KIND_DOT: Record<AuditRow["kind"], string> = {
   workflow: "bg-muted-foreground",
   step: "bg-amber-500",
-  initiative: "bg-blue-500",
+  initiative: "bg-cyan-500",
 };
 
 // Column names that don't read well when naively title-cased.

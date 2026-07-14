@@ -151,7 +151,7 @@ export function ViewAsSwitcher({
           type="button"
           onClick={exitImpersonation}
           disabled={isPending}
-          className="rounded-md bg-amber-900 px-2.5 py-1 text-xs font-medium text-white outline-none hover:bg-amber-950 focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50"
+          className="rounded-md bg-foreground px-2.5 py-1 text-xs font-medium text-background outline-none hover:bg-foreground/90 focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50"
         >
           Exit view-as
         </button>
@@ -273,7 +273,7 @@ function UserPicker({
         aria-haspopup="listbox"
         className={cn(
           "inline-flex h-7 items-center gap-1.5 rounded-md border border-input bg-background px-2 text-xs outline-none hover:bg-muted/40 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50",
-          selected && "border-amber-500/50 bg-amber-50/40",
+          selected && "border-warning/50 bg-warning/10",
         )}
       >
         <span className="truncate max-w-[180px]">{triggerLabel}</span>
