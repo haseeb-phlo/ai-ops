@@ -1,18 +1,21 @@
 /**
  * Single source for status vocabulary + colours.
  *
- * Every list/detail surface that renders a status dot or pill should import
- * from here instead of re-declaring local Record maps. Palette classes are
- * deliberate (the app is light-mode only); the point of this module is one
- * definition site, not token purity.
+ * Every list/detail surface that renders a status should import from here
+ * instead of re-declaring local Record maps. The rendering grammar is: the
+ * semantic hue lives ONLY in a solid 6px dot (`dotClassName`); labels and
+ * pill surfaces stay ink-on-card. Render inline as
+ * `<span className={cn("size-1.5 rounded-full", dotClassName)} />` + label,
+ * or as a pill via `<StatusPill status={...} />` from
+ * `components/ui/status-pill.tsx`. Never reintroduce tinted-wash pills
+ * (bg-x-50 text-x-800 border-x-200) - colour washes are reserved for the
+ * brand aqua (`secondary`) on brand moments, not for status.
  */
 
 export type StatusStyle = {
   label: string;
   /** For the 6px dot treatment: `<span className={cn("size-1.5 rounded-full", dotClassName)} />` */
   dotClassName: string;
-  /** For badge/pill treatments: border + bg + text classes. */
-  badgeClassName: string;
 };
 
 /* ------------------------------------------------------------------ */
@@ -26,17 +29,14 @@ export const INTERVENTION_STATUS: Record<InterventionStatus, StatusStyle> = {
   active: {
     label: "Active",
     dotClassName: "bg-emerald-500",
-    badgeClassName: "border-emerald-200 bg-emerald-50 text-emerald-700",
   },
   paused: {
     label: "Paused",
     dotClassName: "bg-amber-500",
-    badgeClassName: "border-amber-200 bg-amber-50 text-amber-800",
   },
   retired: {
     label: "Retired",
     dotClassName: "bg-muted-foreground/60",
-    badgeClassName: "border-border bg-muted text-muted-foreground",
   },
 };
 
@@ -55,48 +55,39 @@ export const SUGGESTION_STATUSES = [
 ] as const;
 export type SuggestionStatus = (typeof SUGGESTION_STATUSES)[number];
 
-// Colour note: "accepted" used to be bg-blue-500 and "in_progress"
-// bg-blue-600 - indistinguishable at the 6px dot size. "accepted" is now
-// violet (a decision has been made, work not yet started) while
-// "in_progress" keeps the blue family (actively being worked), so the two
-// read as clearly different hues at any size.
+// Colour note: "accepted" and "in_progress" used to share the blue family -
+// indistinguishable at the 6px dot size. "accepted" is violet (a decision
+// has been made, work not yet started), "queued" sits between it as indigo
+// (committed and prioritised), and "in_progress" is the brand cyan (actively
+// being worked - the same hue the dashboard roadmap snapshot uses), so the
+// pipeline stages read as clearly different hues at any size.
 export const SUGGESTION_STATUS: Record<SuggestionStatus, StatusStyle> = {
   open: {
     label: "Open",
     dotClassName: "bg-muted-foreground",
-    badgeClassName: "border-border bg-muted text-foreground",
   },
   under_review: {
     label: "Under review",
     dotClassName: "bg-amber-500",
-    badgeClassName: "border-amber-200 bg-amber-50 text-amber-800",
   },
   accepted: {
     label: "Accepted",
     dotClassName: "bg-violet-500",
-    badgeClassName: "border-violet-200 bg-violet-50 text-violet-700",
   },
-  // Indigo sits between accepted's violet and in_progress's blue, matching
-  // queued's place in the pipeline. A card only ever shows one of the
-  // three, so the close hues never compete.
   queued: {
     label: "Queued",
     dotClassName: "bg-indigo-500",
-    badgeClassName: "border-indigo-200 bg-indigo-50 text-indigo-700",
   },
   in_progress: {
     label: "In progress",
-    dotClassName: "bg-blue-500",
-    badgeClassName: "border-blue-200 bg-blue-50 text-blue-700",
+    dotClassName: "bg-cyan-500",
   },
   shipped: {
     label: "Shipped",
     dotClassName: "bg-emerald-500",
-    badgeClassName: "border-emerald-200 bg-emerald-50 text-emerald-700",
   },
   declined: {
     label: "Declined",
-    dotClassName: "bg-red-500",
-    badgeClassName: "border-red-200 bg-red-50 text-red-700",
+    dotClassName: "bg-rose-500",
   },
 };

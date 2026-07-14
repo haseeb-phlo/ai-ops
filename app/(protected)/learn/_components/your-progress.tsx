@@ -27,7 +27,7 @@ export function YourProgress({
           {done && (
             <CheckIcon
               aria-hidden
-              className="size-3.5 text-emerald-600"
+              className="size-3.5 text-primary"
               strokeWidth={3}
             />
           )}
@@ -43,7 +43,7 @@ export function YourProgress({
         aria-label="Videos completed"
       >
         <div
-          className="h-full bg-emerald-500 transition-all"
+          className="h-full bg-primary transition-all"
           style={{ width: `${pct}%` }}
         />
       </div>

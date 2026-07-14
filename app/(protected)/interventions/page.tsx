@@ -5,6 +5,7 @@ import { getSessionUser } from "@/lib/auth";
 import { resolveDisplayName } from "@/lib/profile";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { StatusPill } from "@/components/ui/status-pill";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Time } from "@/components/ui/time";
@@ -323,13 +324,7 @@ export default async function InterventionsListPage({
                       </TableCell>
                       <TableCell>
                         {row.status ? (
-                          <Badge
-                            className={
-                              INTERVENTION_STATUS[row.status].badgeClassName
-                            }
-                          >
-                            {INTERVENTION_STATUS[row.status].label}
-                          </Badge>
+                          <StatusPill status={INTERVENTION_STATUS[row.status]} />
                         ) : (
                           <span className="text-muted-foreground">-</span>
                         )}

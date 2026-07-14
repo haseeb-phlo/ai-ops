@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/badge";
+import { StatusPill } from "@/components/ui/status-pill";
 import {
   INTERVENTION_STATUS,
   type InterventionStatus,
@@ -45,9 +46,7 @@ export function LinkedInterventions({
                         {iv.name}
                       </span>
                       {style ? (
-                        <Badge className={style.badgeClassName}>
-                          {style.label}
-                        </Badge>
+                        <StatusPill status={style} />
                       ) : iv.status ? (
                         <Badge variant="secondary">
                           {iv.status.replace("_", " ")}

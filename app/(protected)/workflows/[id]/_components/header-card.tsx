@@ -1,6 +1,7 @@
 import { LockIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Time } from "@/components/ui/time";
+import { cn } from "@/lib/utils";
 import type { PickerPerson } from "@/components/ui/people-picker";
 import { formatCadence } from "@/lib/frequency";
 import { DeleteWorkflowButton } from "./delete-workflow-button";
@@ -29,13 +30,41 @@ const CRITICALITY_LABEL: Record<number, string> = {
   5: "Critical",
 };
 
-const CRITICALITY_CLASSNAME: Record<number, string> = {
-  1: "bg-muted text-foreground border-border",
-  2: "bg-muted text-foreground border-border",
-  3: "bg-amber-50 text-amber-800 border-amber-200",
-  4: "bg-orange-50 text-orange-800 border-orange-200",
-  5: "bg-rose-50 text-rose-800 border-rose-200",
+const CRITICALITY_TONE: Record<number, string> = {
+  1: "bg-muted-foreground/50",
+  2: "bg-muted-foreground/50",
+  3: "bg-amber-500",
+  4: "bg-orange-500",
+  5: "bg-rose-500",
 };
+
+// Ascending tick heights, one per criticality step. Filled count + height
+// double-encode the 1-5 score, so it survives colour-blindness.
+const METER_HEIGHTS = ["h-1", "h-1.5", "h-2", "h-2.5", "h-3"] as const;
+
+function CriticalityMeter({ score }: { score: number }) {
+  return (
+    <Badge
+      variant="outline"
+      className="gap-1.5 bg-card"
+      title={`Criticality ${score} of 5`}
+    >
+      <span aria-hidden className="flex items-end gap-[2px]">
+        {METER_HEIGHTS.map((h, i) => (
+          <span
+            key={h}
+            className={cn(
+              "w-[3px] rounded-full",
+              h,
+              i < score ? CRITICALITY_TONE[score] : "bg-border",
+            )}
+          />
+        ))}
+      </span>
+      {CRITICALITY_LABEL[score] ?? "-"}
+    </Badge>
+  );
+}
 
 export async function HeaderCard({
   workflow,
@@ -67,7 +96,12 @@ export async function HeaderCard({
               {workflow.name}
             </h1>
             {workflow.regulatory && (
-              <Badge className="border-indigo-200 bg-indigo-50 text-indigo-800">
+              // Rose dot echoes the galaxy map's pink regulatory ring.
+              <Badge variant="outline" className="gap-1.5 bg-card">
+                <span
+                  aria-hidden
+                  className="size-1.5 shrink-0 rounded-full bg-rose-500"
+                />
                 Regulatory
               </Badge>
             )}
@@ -81,11 +115,7 @@ export async function HeaderCard({
               </Badge>
             )}
             {workflow.criticality_score != null && (
-              <Badge
-                className={CRITICALITY_CLASSNAME[workflow.criticality_score]}
-              >
-                {CRITICALITY_LABEL[workflow.criticality_score] ?? "-"}
-              </Badge>
+              <CriticalityMeter score={workflow.criticality_score} />
             )}
           </div>
 

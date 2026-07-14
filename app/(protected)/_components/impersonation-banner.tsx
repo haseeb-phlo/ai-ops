@@ -1,6 +1,4 @@
 import type { SessionUser } from "@/lib/auth";
-import { alertVariants } from "@/components/ui/alert";
-import { cn } from "@/lib/utils";
 import { ViewAsSwitcher, type ImpersonableOption } from "./view-as-switcher";
 
 const ROLE_LABEL: Record<string, string> = {
@@ -22,16 +20,14 @@ export function ImpersonationBanner({
   const isUserMode = user.viewAsMode === "user";
 
   return (
-    // Composes the Alert warning variant's tokens onto a full-width,
-    // sticky banner: it stays visible while scrolled (the "writes are
-    // blocked" warning must not scroll away) at z-40 - above page content,
-    // below dialogs/palette (z-50).
+    // A global-mode banner, not an inline alert: it earns the app's one
+    // ambient tint (sand at 10%) because impersonation recolours the whole
+    // session, while the text stays ink. Sticky so the "writes are blocked"
+    // warning can't scroll away; z-40 - above page content, below
+    // dialogs/palette (z-50).
     <div
       role="status"
-      className={cn(
-        alertVariants({ variant: "warning" }),
-        "sticky top-0 z-40 flex flex-wrap items-center justify-between gap-3 rounded-none border-x-0 border-t-0 px-4 py-2 sm:px-6",
-      )}
+      className="sticky top-0 z-40 flex flex-wrap items-center justify-between gap-3 border-b border-warning/25 bg-warning/10 px-4 py-2 text-sm text-foreground sm:px-6"
     >
       <span className="flex items-center gap-2">
         <span aria-hidden className="size-1.5 rounded-full bg-warning" />

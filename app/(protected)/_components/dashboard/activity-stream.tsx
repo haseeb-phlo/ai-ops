@@ -247,23 +247,22 @@ type GlyphKind =
 
 // Decorative entity icons - each row's meta text already names the entity
 // ("New workflow", "New suggestion", …), so the chips stay aria-hidden.
-const GLYPHS: Record<GlyphKind, { Icon: LucideIcon; className: string }> = {
-  intervention: { Icon: Sparkles, className: "bg-cyan-100 text-cyan-700" },
-  workflow: { Icon: Workflow, className: "bg-emerald-100 text-emerald-700" },
-  suggestion: { Icon: Lightbulb, className: "bg-indigo-100 text-indigo-700" },
-  "suggestion-comment": {
-    Icon: MessageSquare,
-    className: "bg-sky-100 text-sky-700",
-  },
-  "learn-video": { Icon: Play, className: "bg-rose-100 text-rose-700" },
+// One brand hue for every kind: identity is carried by the icon's shape,
+// not a per-kind colour, so the stream reads calm instead of confetti.
+const GLYPHS: Record<GlyphKind, LucideIcon> = {
+  intervention: Sparkles,
+  workflow: Workflow,
+  suggestion: Lightbulb,
+  "suggestion-comment": MessageSquare,
+  "learn-video": Play,
 };
 
 function Glyph({ kind }: { kind: GlyphKind }) {
-  const { Icon, className } = GLYPHS[kind];
+  const Icon = GLYPHS[kind];
   return (
     <span
       aria-hidden
-      className={`flex size-5 items-center justify-center rounded-full ${className}`}
+      className="flex size-5 items-center justify-center rounded-full bg-secondary/60 text-primary"
     >
       <Icon className="size-3" />
     </span>
