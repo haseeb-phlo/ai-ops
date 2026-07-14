@@ -77,9 +77,8 @@ export const SUGGESTION_STATUS: Record<SuggestionStatus, StatusStyle> = {
     badgeClassName: "border-violet-200 bg-violet-50 text-violet-700",
   },
   // Indigo sits between accepted's violet and in_progress's blue, matching
-  // queued's position in the pipeline (committed and prioritised, not yet
-  // started). The three never render adjacent on one card, so the close
-  // hues stay tellable-apart in context.
+  // queued's place in the pipeline. A card only ever shows one of the
+  // three, so the close hues never compete.
   queued: {
     label: "Queued",
     dotClassName: "bg-indigo-500",

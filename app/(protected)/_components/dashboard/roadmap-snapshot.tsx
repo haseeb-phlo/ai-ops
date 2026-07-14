@@ -14,12 +14,11 @@ export type SnapshotItem = {
 const SHOWN = 4;
 
 /**
- * Compact, read-only glance at the roadmap for the dashboard: the three
- * lanes worth checking daily (what's next, what's underway, what just
- * shipped), each capped at four rows with an honest "+N more" overflow
- * link. Everything routes to /roadmap or the item itself - no actions
- * here, the board owns those. Dot colours reuse the suggestion status
- * palette (lib/status.ts) so a lane means the same colour everywhere.
+ * Read-only roadmap glance for the dashboard: what's next, what's
+ * underway, what just shipped. Each column caps at four rows with a
+ * "+N more" overflow link; all actions live on the board. Dot colours
+ * reuse the suggestion status palette (lib/status.ts) so a lane means the
+ * same colour everywhere.
  */
 export function RoadmapSnapshot({
   upNext,

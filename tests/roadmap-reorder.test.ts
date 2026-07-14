@@ -3,6 +3,7 @@ import {
   renumberQueue,
   type QueuedRow,
 } from "@/app/(protected)/roadmap/reorder";
+import { compareQueueOrder } from "@/lib/roadmap";
 
 describe("renumberQueue", () => {
   it("renumbers the queue 1..n in the client's order", () => {
@@ -46,6 +47,35 @@ describe("renumberQueue", () => {
     expect(renumberQueue(rows, ["a", "b"])).toEqual([
       { id: "a", queue_rank: 1 },
       { id: "b", queue_rank: 2 },
+    ]);
+  });
+});
+
+describe("compareQueueOrder", () => {
+  it("orders by rank, then unranked rows oldest-first", () => {
+    const rows = [
+      { id: "unranked-new", queue_rank: null, created_at: "2026-07-10" },
+      { id: "second", queue_rank: 2, created_at: "2026-07-01" },
+      { id: "unranked-old", queue_rank: null, created_at: "2026-07-05" },
+      { id: "first", queue_rank: 1, created_at: "2026-07-09" },
+    ];
+    expect(rows.sort(compareQueueOrder).map((r) => r.id)).toEqual([
+      "first",
+      "second",
+      "unranked-old",
+      "unranked-new",
+    ]);
+  });
+
+  it("interleaves rows regardless of source table (shared rank line)", () => {
+    // A queued initiative (rank 1) outranks a queued suggestion (rank 3).
+    const rows = [
+      { id: "suggestion:a", queue_rank: 3, created_at: "2026-06-01" },
+      { id: "initiative:b", queue_rank: 1, created_at: "2026-07-01" },
+    ];
+    expect(rows.sort(compareQueueOrder).map((r) => r.id)).toEqual([
+      "initiative:b",
+      "suggestion:a",
     ]);
   });
 });

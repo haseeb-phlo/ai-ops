@@ -3,18 +3,20 @@
 // Server Action).
 //
 // Unlike Learn's slot-reusing redeal (positions there are global and
-// interleaved across topic buckets), queue_rank is scoped to the queue: only
-// status='queued' rows carry one. So a reorder can simply renumber the whole
-// queue 1..n — no other rows can collide.
+// interleaved across topic buckets), queue_rank is scoped to the queue, so
+// a reorder can simply renumber the whole queue 1..n - no rows outside it
+// can collide.
 
 export type QueuedRow = { id: string };
 
 /**
  * Given the queue's current rows (in their current server order) and the
  * client's desired id order, return the queue_rank to write for each row.
- * Ids the server doesn't know about are dropped (stale client state); rows
- * the client didn't mention (e.g. queued concurrently by someone else) are
- * appended after the ordered ones, keeping their current relative order.
+ * Ids are opaque - the caller passes "suggestion:<uuid>" / "initiative:<uuid>"
+ * drag ids and splits them back per table. Ids the server doesn't know
+ * about are dropped (stale client state); rows the client didn't mention
+ * (e.g. queued concurrently by someone else) are appended after the ordered
+ * ones, keeping their current relative order.
  */
 export function renumberQueue(
   rows: QueuedRow[],

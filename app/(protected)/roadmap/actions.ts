@@ -4,8 +4,8 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { requireWriter } from "@/lib/auth";
-import { ROADMAP_STATUSES } from "@/lib/roadmap";
-import { nextQueueRank } from "@/lib/roadmap-server";
+import { ROADMAP_STATUSES, compareQueueOrder } from "@/lib/roadmap";
+import { bottomQueueRank, topQueueRank } from "@/lib/roadmap-server";
 import { renumberQueue } from "./reorder";
 
 export type RoadmapState =
@@ -24,7 +24,7 @@ function revalidateRoadmap() {
 }
 
 /**
- * Add an item straight onto the roadmap without the suggestion→triage
+ * Add an item straight onto the roadmap without the suggestion-to-triage
  * funnel. Super-admin only: this is the "I decided we're building this"
  * path, so it lands directly in a committed status. Reuses the suggestions
  * table (same card, comments, and audit surface as an accepted suggestion)
@@ -73,7 +73,7 @@ export async function createRoadmapItem(
 
   // Queued items join the bottom of the queue; everything else is unranked.
   const queueRank =
-    parsed.data.lane === "queued" ? await nextQueueRank(supabase) : null;
+    parsed.data.lane === "queued" ? await bottomQueueRank(supabase) : null;
 
   const { data, error } = await supabase
     .from("intervention_suggestions")
@@ -104,9 +104,9 @@ export async function createRoadmapItem(
  * only - members can't yank suggestions across lanes via DnD because the
  * lane semantics double as commit decisions.
  *
- * Lane mapping is status-only; dropping into Queued additionally puts the
- * card at the top of the queue (rank min-1, matching the board's optimistic
- * insert-at-top), and leaving Queued clears the rank.
+ * Lane mapping is status-only. Dropping into Queued additionally puts the
+ * card at the top of the queue (matching the board's optimistic
+ * insert-at-top); leaving Queued clears the rank.
  */
 const LaneSchema = z.object({
   suggestion_id: z.string().uuid(),
@@ -132,19 +132,9 @@ export async function moveSuggestionLane(
 
   const update: Record<string, unknown> = {
     status: parsed.data.lane,
-    queue_rank: null,
+    queue_rank:
+      parsed.data.lane === "queued" ? await topQueueRank(supabase) : null,
   };
-  if (parsed.data.lane === "queued") {
-    const { data: first } = await supabase
-      .from("intervention_suggestions")
-      .select("queue_rank")
-      .eq("status", "queued")
-      .not("queue_rank", "is", null)
-      .order("queue_rank", { ascending: true })
-      .limit(1)
-      .maybeSingle<{ queue_rank: number | null }>();
-    update.queue_rank = (first?.queue_rank ?? 1) - 1;
-  }
 
   const { error } = await supabase
     .from("intervention_suggestions")
@@ -158,12 +148,16 @@ export async function moveSuggestionLane(
 }
 
 /**
- * Persist a drag-to-reorder of the Queued lane. `ids` is the lane's
- * suggestions in their new visual order; the whole queue is renumbered 1..n
- * (see renumberQueue for how stale/concurrent rows are handled).
+ * Persist a drag-to-reorder of the Queued lane. `ids` is the lane's cards
+ * in their new visual order as "suggestion:<uuid>" / "initiative:<uuid>"
+ * drag ids - the queue interleaves both kinds on one shared rank line. The
+ * whole queue is renumbered 1..n (see renumberQueue for how
+ * stale/concurrent rows are handled).
  */
+const DRAG_ID = /^(suggestion|initiative):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
 const ReorderSchema = z.object({
-  ids: z.array(z.string().uuid()).min(1),
+  ids: z.array(z.string().regex(DRAG_ID)).min(1),
 });
 
 export async function reorderQueue(
@@ -179,23 +173,43 @@ export async function reorderQueue(
     return { ok: false, message: "Invalid reorder request." };
   }
   const supabase = await createClient();
-  const { data: rows, error } = await supabase
-    .from("intervention_suggestions")
-    .select("id")
-    .eq("status", "queued")
-    .order("queue_rank", { ascending: true, nullsFirst: false })
-    .order("created_at", { ascending: true })
-    .returns<{ id: string }[]>();
-  if (error || !rows) {
+  const [{ data: suggestionRows, error: sErr }, { data: initiativeRows, error: iErr }] =
+    await Promise.all([
+      supabase
+        .from("intervention_suggestions")
+        .select("id, queue_rank, created_at")
+        .eq("status", "queued")
+        .returns<{ id: string; queue_rank: number | null; created_at: string }[]>(),
+      supabase
+        .from("ai_interventions")
+        .select("id, queue_rank, created_at")
+        .eq("status", "paused")
+        .is("shipped_at", null)
+        .not("queue_rank", "is", null)
+        .returns<{ id: string; queue_rank: number | null; created_at: string }[]>(),
+    ]);
+  if (sErr || iErr || !suggestionRows || !initiativeRows) {
     return { ok: false, message: "Could not load the queue to reorder." };
   }
 
-  const updates = renumberQueue(rows, parsed.data.ids).map(
-    ({ id, queue_rank }) =>
-      supabase
-        .from("intervention_suggestions")
-        .update({ queue_rank })
-        .eq("id", id),
+  const current = [
+    ...suggestionRows.map((r) => ({ ...r, id: `suggestion:${r.id}` })),
+    ...initiativeRows.map((r) => ({ ...r, id: `initiative:${r.id}` })),
+  ].sort(compareQueueOrder);
+
+  const updates = renumberQueue(current, parsed.data.ids).map(
+    ({ id, queue_rank }) => {
+      const [kind, rowId] = id.split(":");
+      return kind === "suggestion"
+        ? supabase
+            .from("intervention_suggestions")
+            .update({ queue_rank })
+            .eq("id", rowId)
+        : supabase
+            .from("ai_interventions")
+            .update({ queue_rank })
+            .eq("id", rowId);
+    },
   );
   const results = await Promise.all(updates);
   const failed = results.find((r) => r.error);
@@ -211,13 +225,13 @@ export async function reorderQueue(
 
 /**
  * Move an AI initiative across roadmap lanes. Same super-admin gate as
- * suggestion moves. Initiatives have no queued state, so the Queued lane
- * only ever accepts suggestions. Lane membership is a 2D mapping over
- * status and shipped_at:
+ * suggestion moves. Lane membership is a mapping over status, shipped_at,
+ * and queue_rank:
  *
- *   accepted     = shipped_at null + status `paused`  (planned / on hold)
- *   in_progress  = shipped_at null + status `active`  (currently running)
- *   shipped      = shipped_at set                     (live and done)
+ *   accepted     = paused, unshipped, unranked   (planned / on hold)
+ *   queued       = paused, unshipped, ranked     (prioritised, top of queue on drop)
+ *   in_progress  = active, unshipped             (currently running)
+ *   shipped      = shipped_at set                (live and done)
  *
  * Crucially, "shipped" is orthogonal to status: an initiative dropped into
  * the Shipped lane stays `active` and keeps counting in dashboard metrics.
@@ -227,7 +241,7 @@ export async function reorderQueue(
  */
 const InitiativeLaneSchema = z.object({
   initiative_id: z.string().uuid(),
-  lane: z.enum(["accepted", "in_progress", "shipped"]),
+  lane: z.enum(ROADMAP_STATUSES),
 });
 
 export async function moveInitiativeLane(
@@ -247,14 +261,18 @@ export async function moveInitiativeLane(
   }
   const supabase = await createClient();
 
-  // Build the update so each lane move clears the "other" axis. Moving out
-  // of Shipped clears shipped_at; moving into Shipped sets it and forces
-  // status back to active (so paused-then-shipped doesn't leave the row
-  // counted as paused).
-  const update: Record<string, unknown> = {};
+  // Each lane move clears the axes it doesn't own: moving out of Shipped
+  // clears shipped_at, moving into Shipped sets it and forces status back
+  // to active (so paused-then-shipped doesn't leave the row counted as
+  // paused), and only Queued carries a rank.
+  const update: Record<string, unknown> = { queue_rank: null };
   if (parsed.data.lane === "accepted") {
     update.status = "paused";
     update.shipped_at = null;
+  } else if (parsed.data.lane === "queued") {
+    update.status = "paused";
+    update.shipped_at = null;
+    update.queue_rank = await topQueueRank(supabase);
   } else if (parsed.data.lane === "in_progress") {
     update.status = "active";
     update.shipped_at = null;
