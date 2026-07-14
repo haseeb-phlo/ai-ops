@@ -88,6 +88,7 @@ export type Database = {
           name: string
           notes: string | null
           owner: string | null
+          queue_rank: number | null
           recipient_emails: string[]
           revenue_per_use: number | null
           satisfaction: number | null
@@ -114,6 +115,7 @@ export type Database = {
           name: string
           notes?: string | null
           owner?: string | null
+          queue_rank?: number | null
           recipient_emails?: string[]
           revenue_per_use?: number | null
           satisfaction?: number | null
@@ -140,6 +142,7 @@ export type Database = {
           name?: string
           notes?: string | null
           owner?: string | null
+          queue_rank?: number | null
           recipient_emails?: string[]
           revenue_per_use?: number | null
           satisfaction?: number | null

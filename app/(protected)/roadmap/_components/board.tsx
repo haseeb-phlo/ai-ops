@@ -42,7 +42,6 @@ import {
 } from "../actions";
 
 type LaneKey = (typeof ROADMAP_STATUSES)[number];
-type InitiativeLaneKey = Exclude<LaneKey, "queued">;
 
 type Lane = {
   key: LaneKey;
@@ -62,7 +61,7 @@ const LANES: Lane[] = [
   {
     key: "queued",
     title: "Queued",
-    hint: "Prioritised build queue — top is next.",
+    hint: "Prioritised build queue - top is next.",
   },
   {
     key: "in_progress",
@@ -80,36 +79,30 @@ const LANE_KEYS = new Set<string>(LANES.map((l) => l.key));
 const LANE_TITLE = new Map(LANES.map((l) => [l.key as string, l.title]));
 
 /**
- * Lighter than the suggestions list's SuggestionRow: board cards don't show
- * votes or comment counts, so the page doesn't have to fetch them.
+ * One card model for both kinds. Suggestions and initiatives share lanes,
+ * the queue, and drag behaviour; they differ only in link target and which
+ * meta line renders. `dragId` ("suggestion:<id>" / "initiative:<id>") is
+ * the identity everywhere: dnd-kit ids, React keys, and the reorder
+ * action's payload.
  */
-export type RoadmapCard = {
-  id: string;
+export type BoardCard = {
+  dragId: string;
+  kind: "suggestion" | "initiative";
   title: string;
-  body: string;
-  team: string | null;
-  workflow_id: string | null;
-  workflow_name: string | null;
-  intervention_id: string | null;
-  intervention_name: string | null;
+  href: string;
+  /** Suggestion pitch, absent on initiatives. */
+  body?: string;
+  meta: string[];
 };
 
-type Groups = Record<LaneKey, RoadmapCard[]>;
-
-export type RoadmapInitiative = {
-  id: string;
-  name: string;
-  owner: string | null;
-};
-
-type InitiativeGroups = Record<InitiativeLaneKey, RoadmapInitiative[]>;
+type Groups = Record<LaneKey, BoardCard[]>;
 
 /**
- * Trello-style four-column roadmap. Lane membership is computed from the
- * suggestion's `status` (status alone decides the lane), so dropping a card
- * is a one-field update; the Queued lane is additionally ordered by
- * queue_rank, and dragging within it persists the new priority order via
- * reorderQueue.
+ * Trello-style four-column roadmap. A card's lane is derived from its row
+ * (suggestions: status; initiatives: status + shipped_at + queue_rank), so
+ * dropping a card is a small row update. The Queued lane is ordered by
+ * queue_rank across both kinds, and dragging within it persists the new
+ * priority via reorderQueue.
  *
  * Drag is super-admin only and runs on dnd-kit so it works with a pointer,
  * touch (PointerSensor), and the keyboard (KeyboardSensor: left/right
@@ -117,14 +110,8 @@ type InitiativeGroups = Record<InitiativeLaneKey, RoadmapInitiative[]>;
  * queue positions via the sortable coordinate getter). Announcements
  * narrate the move using the card's title. Drops apply optimistically
  * through useOptimistic so the card reaches its destination before the
- * server round-trip; if the server rejects, the optimistic state reverts on
- * revalidation and an inline error explains the snap-back.
- *
- * AI initiatives also surface on the board (except in Queued — they have no
- * queue state). Lane membership is 2D over (shipped_at, status): shipped_at
- * set -> shipped (status stays active so dashboard metrics keep counting
- * it); otherwise paused -> accepted, active -> in_progress. Drag-write goes
- * through moveInitiativeLane.
+ * server round-trip; if the server rejects, the optimistic state reverts
+ * on revalidation and an inline error explains the snap-back.
  */
 
 const SCREEN_READER_INSTRUCTIONS: ScreenReaderInstructions = {
@@ -206,11 +193,9 @@ const cardsThenLanes: CollisionDetection = (args) => {
 export function RoadmapBoard({
   groups: serverGroups,
   canMove,
-  initiativeGroups: serverInitiativeGroups,
 }: {
   groups: Groups;
   canMove: boolean;
-  initiativeGroups?: InitiativeGroups;
 }) {
   const [, startTransition] = useTransition();
   const [moveError, setMoveError] = useState<string | null>(null);
@@ -219,8 +204,8 @@ export function RoadmapBoard({
     (
       state: Groups,
       action:
-        | { type: "move"; id: string; toLane: LaneKey }
-        | { type: "reorder"; orderedIds: string[] },
+        | { type: "move"; dragId: string; toLane: LaneKey }
+        | { type: "reorder"; orderedDragIds: string[] },
     ) => {
       const next: Groups = {
         accepted: [...state.accepted],
@@ -229,48 +214,18 @@ export function RoadmapBoard({
         shipped: [...state.shipped],
       };
       if (action.type === "reorder") {
-        const byId = new Map(next.queued.map((s) => [s.id, s]));
-        next.queued = action.orderedIds
-          .map((id) => byId.get(id))
-          .filter((s): s is RoadmapCard => !!s);
+        const byDragId = new Map(next.queued.map((c) => [c.dragId, c]));
+        next.queued = action.orderedDragIds
+          .map((id) => byDragId.get(id))
+          .filter((c): c is BoardCard => !!c);
         return next;
       }
-      let card: RoadmapCard | undefined;
+      let card: BoardCard | undefined;
       for (const lane of LANES) {
-        const idx = next[lane.key].findIndex((s) => s.id === action.id);
+        const idx = next[lane.key].findIndex((c) => c.dragId === action.dragId);
         if (idx >= 0) {
           card = next[lane.key][idx];
           next[lane.key].splice(idx, 1);
-          break;
-        }
-      }
-      if (card) next[action.toLane] = [card, ...next[action.toLane]];
-      return next;
-    },
-  );
-
-  const emptyInitiativeGroups: InitiativeGroups = {
-    accepted: [],
-    in_progress: [],
-    shipped: [],
-  };
-  const [initiativeGroups, applyOptimisticInitiative] = useOptimistic(
-    serverInitiativeGroups ?? emptyInitiativeGroups,
-    (
-      state: InitiativeGroups,
-      action: { id: string; toLane: InitiativeLaneKey },
-    ) => {
-      const next: InitiativeGroups = {
-        accepted: [...state.accepted],
-        in_progress: [...state.in_progress],
-        shipped: [...state.shipped],
-      };
-      let card: RoadmapInitiative | undefined;
-      for (const key of Object.keys(next) as InitiativeLaneKey[]) {
-        const idx = next[key].findIndex((i) => i.id === action.id);
-        if (idx >= 0) {
-          card = next[key][idx];
-          next[key].splice(idx, 1);
           break;
         }
       }
@@ -284,7 +239,7 @@ export function RoadmapBoard({
   // options every render, and the sensor instantiates the getter at drag
   // start, so it always sees the queue as of pick-up (membership of the
   // active card can't change mid-drag).
-  const queuedDragIds = new Set(groups.queued.map((s) => `suggestion:${s.id}`));
+  const queuedDragIds = new Set(groups.queued.map((c) => c.dragId));
 
   const coordinateGetter: KeyboardCoordinateGetter = (event, args) => {
     const inQueue = queuedDragIds.has(String(args.active));
@@ -299,18 +254,22 @@ export function RoadmapBoard({
     useSensor(KeyboardSensor, { coordinateGetter }),
   );
 
+  function laneOf(dragId: string): LaneKey | null {
+    for (const lane of LANES) {
+      if (groups[lane.key].some((c) => c.dragId === dragId)) return lane.key;
+    }
+    return null;
+  }
+
   function describeOver(overId: string): string {
     if (LANE_KEYS.has(overId)) {
       return `the ${LANE_TITLE.get(overId) ?? overId} lane`;
     }
-    const [kind, id] = overId.split(":");
-    if (kind === "suggestion") {
-      const queueIndex = groups.queued.findIndex((s) => s.id === id);
-      if (queueIndex >= 0) {
-        return `position ${queueIndex + 1} of ${groups.queued.length} in the Queued lane`;
-      }
+    const queueIndex = groups.queued.findIndex((c) => c.dragId === overId);
+    if (queueIndex >= 0) {
+      return `position ${queueIndex + 1} of ${groups.queued.length} in the Queued lane`;
     }
-    const lane = laneOf(id, kind === "initiative" ? "initiative" : "suggestion");
+    const lane = laneOf(overId);
     return lane ? `the ${LANE_TITLE.get(lane) ?? lane} lane` : "a lane";
   }
 
@@ -333,78 +292,42 @@ export function RoadmapBoard({
 
   const [dragging, setDragging] = useState(false);
 
-  function laneOf(id: string, kind: "suggestion" | "initiative"): LaneKey | null {
-    for (const lane of LANES) {
-      const found =
-        kind === "suggestion"
-          ? groups[lane.key].some((s) => s.id === id)
-          : lane.key !== "queued" &&
-            initiativeGroups[lane.key].some((i) => i.id === id);
-      if (found) return lane.key;
-    }
-    return null;
-  }
-
   function handleDragEnd(event: DragEndEvent) {
     setDragging(false);
     const { active, over } = event;
     if (!over || !canMove) return;
-    const [kind, id] = String(active.id).split(":");
+    const dragId = String(active.id);
+    const kind = dragId.split(":")[0];
     if (kind !== "suggestion" && kind !== "initiative") return;
 
     // The drop target is either a lane or another card (queued cards are
-    // sortable, so rectIntersection often lands on a card). Resolve cards
-    // to their lane; remember the card so an in-queue drop knows its slot.
+    // sortable, so collisions often land on a card). Resolve cards to
+    // their lane; remember the card so an in-queue drop knows its slot.
     const overStr = String(over.id);
     let targetLane: LaneKey | null = null;
-    let overSuggestionId: string | null = null;
+    let overDragId: string | null = null;
     if (LANE_KEYS.has(overStr)) {
       targetLane = overStr as LaneKey;
     } else {
-      const [overKind, overId] = overStr.split(":");
-      if (overKind !== "suggestion" && overKind !== "initiative") return;
-      targetLane = laneOf(overId, overKind);
-      if (overKind === "suggestion") overSuggestionId = overId;
+      targetLane = laneOf(overStr);
+      overDragId = overStr;
     }
     if (!targetLane) return;
 
-    const fromLane = laneOf(id, kind);
+    const fromLane = laneOf(dragId);
 
-    if (kind === "initiative") {
-      if (targetLane === "queued") {
-        setMoveError(
-          "Initiatives can't be queued — only suggestions carry a queue priority. Drop it in Accepted or In progress instead.",
-        );
-        return;
-      }
-      if (fromLane === targetLane) return;
-      setMoveError(null);
-      startTransition(async () => {
-        applyOptimisticInitiative({
-          id,
-          toLane: targetLane as InitiativeLaneKey,
-        });
-        const fd = new FormData();
-        fd.set("initiative_id", id);
-        fd.set("lane", targetLane);
-        const result = await moveInitiativeLane(fd);
-        if (!result.ok) setMoveError(result.message);
-      });
-      return;
-    }
-
-    // Suggestion dropped within the queue: persist the new priority order.
+    // Drop within the queue: persist the new priority order.
     if (fromLane === "queued" && targetLane === "queued") {
-      const ids = groups.queued.map((s) => s.id);
-      const from = ids.indexOf(id);
-      const to = overSuggestionId
-        ? ids.indexOf(overSuggestionId)
-        : ids.length - 1; // dropped on lane whitespace -> end of queue
+      const dragIds = groups.queued.map((c) => c.dragId);
+      const from = dragIds.indexOf(dragId);
+      const to = overDragId
+        ? dragIds.indexOf(overDragId)
+        : dragIds.length - 1; // dropped on lane whitespace: end of queue
       if (from === -1 || to === -1 || from === to) return;
-      const next = arrayMove(ids, from, to);
+      const next = arrayMove(dragIds, from, to);
       setMoveError(null);
       startTransition(async () => {
-        applyOptimistic({ type: "reorder", orderedIds: next });
+        applyOptimistic({ type: "reorder", orderedDragIds: next });
         const result = await reorderQueue(next);
         if (!result.ok) setMoveError(result.message);
       });
@@ -414,11 +337,17 @@ export function RoadmapBoard({
     if (fromLane === targetLane) return;
     setMoveError(null);
     startTransition(async () => {
-      applyOptimistic({ type: "move", id, toLane: targetLane as LaneKey });
+      applyOptimistic({ type: "move", dragId, toLane: targetLane as LaneKey });
       const fd = new FormData();
-      fd.set("suggestion_id", id);
       fd.set("lane", targetLane as LaneKey);
-      const result = await moveSuggestionLane(fd);
+      let result: { ok: true } | { ok: false; message: string };
+      if (kind === "suggestion") {
+        fd.set("suggestion_id", dragId.slice("suggestion:".length));
+        result = await moveSuggestionLane(fd);
+      } else {
+        fd.set("initiative_id", dragId.slice("initiative:".length));
+        result = await moveInitiativeLane(fd);
+      }
       if (!result.ok) setMoveError(result.message);
     });
   }
@@ -437,7 +366,7 @@ export function RoadmapBoard({
     >
       {moveError && (
         <Alert variant="destructive" className="mb-3">
-          Move failed — the card snapped back. {moveError}
+          Move failed - the card snapped back. {moveError}
         </Alert>
       )}
       <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -447,10 +376,7 @@ export function RoadmapBoard({
             lane={lane}
             canMove={canMove}
             dragging={dragging}
-            suggestions={groups[lane.key]}
-            initiatives={
-              lane.key === "queued" ? [] : initiativeGroups[lane.key]
-            }
+            cards={groups[lane.key]}
           />
         ))}
       </section>
@@ -462,35 +388,25 @@ function LaneColumn({
   lane,
   canMove,
   dragging,
-  suggestions,
-  initiatives,
+  cards,
 }: {
   lane: Lane;
   canMove: boolean;
   dragging: boolean;
-  suggestions: RoadmapCard[];
-  initiatives: RoadmapInitiative[];
+  cards: BoardCard[];
 }) {
   const { isOver, setNodeRef } = useDroppable({
     id: lane.key,
     disabled: !canMove,
   });
-  const totalCount = suggestions.length + initiatives.length;
   const isQueue = lane.key === "queued";
 
-  const cards = (
+  const list = (
     <ul className="space-y-2">
-      {initiatives.map((iv) => (
-        <InitiativeCardItem
-          key={`initiative:${iv.id}`}
-          initiative={iv}
-          canMove={canMove}
-        />
-      ))}
-      {suggestions.map((s, index) => (
-        <SuggestionCardItem
-          key={s.id}
-          suggestion={s}
+      {cards.map((card, index) => (
+        <CardItem
+          key={card.dragId}
+          card={card}
           canMove={canMove}
           sortable={isQueue}
           ordinal={isQueue ? index + 1 : undefined}
@@ -519,29 +435,29 @@ function LaneColumn({
           </p>
         </div>
         <span className="rounded-full border border-border bg-background px-1.5 py-px text-[11px] tabular-nums text-muted-foreground">
-          {totalCount}
+          {cards.length}
         </span>
       </div>
-      {totalCount === 0 ? (
+      {cards.length === 0 ? (
         <p className="rounded-md border border-dashed border-border bg-background px-3 py-6 text-center text-xs text-muted-foreground">
           {canMove ? "Drag cards here." : "Nothing here yet."}
         </p>
       ) : isQueue ? (
         <SortableContext
-          items={suggestions.map((s) => `suggestion:${s.id}`)}
+          items={cards.map((c) => c.dragId)}
           strategy={verticalListSortingStrategy}
         >
-          {cards}
+          {list}
         </SortableContext>
       ) : (
-        cards
+        list
       )}
     </div>
   );
 }
 
 /**
- * Card chrome shared by both card types: a dedicated grip handle column
+ * Card chrome shared by both wrappers: a dedicated grip handle column
  * (the dnd-kit activator) next to a Link body, so the body's Link is never
  * the drag source. Pattern mirrors Linear / Asana / Trello boards.
  */
@@ -589,7 +505,7 @@ function CardShell({
   );
 }
 
-/** Plain draggable wrapper for cards in unordered lanes. */
+/** Wrapper for cards in unordered lanes. */
 function DraggableCard({
   dragId,
   title,
@@ -630,8 +546,8 @@ function DraggableCard({
 }
 
 /**
- * Sortable wrapper for Queued-lane cards: same chrome, but siblings shift
- * out of the way during a drag and dropping persists the queue order.
+ * Wrapper for Queued-lane cards: same chrome, but siblings shift out of
+ * the way during a drag and dropping persists the queue order.
  */
 function SortableCard({
   dragId,
@@ -673,22 +589,22 @@ function SortableCard({
   );
 }
 
-function SuggestionCardItem({
-  suggestion: s,
+function CardItem({
+  card,
   canMove,
   sortable,
   ordinal,
 }: {
-  suggestion: RoadmapCard;
+  card: BoardCard;
   canMove: boolean;
   sortable: boolean;
   ordinal?: number;
 }) {
   const Wrapper = sortable ? SortableCard : DraggableCard;
   return (
-    <Wrapper dragId={`suggestion:${s.id}`} title={s.title} canMove={canMove}>
+    <Wrapper dragId={card.dragId} title={card.title} canMove={canMove}>
       <Link
-        href={`/suggestions/${s.id}`}
+        href={card.href}
         className="block min-w-0 flex-1 p-3 transition-colors hover:bg-muted/40"
       >
         <p className="text-sm font-medium leading-snug text-foreground">
@@ -697,62 +613,24 @@ function SuggestionCardItem({
               {ordinal}.
             </span>
           )}
-          {s.title}
+          {card.title}
         </p>
-        <p className="mt-1 line-clamp-2 text-xs leading-4 text-muted-foreground">
-          {s.body}
-        </p>
-        {(s.team || (s.workflow_id && s.workflow_name) || (s.intervention_id && s.intervention_name)) && (
+        {card.body && (
+          <p className="mt-1 line-clamp-2 text-xs leading-4 text-muted-foreground">
+            {card.body}
+          </p>
+        )}
+        {card.meta.length > 0 && (
           <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
-            {s.team && <span>{s.team}</span>}
-            {s.team && s.workflow_name && <span aria-hidden>·</span>}
-            {s.workflow_id && s.workflow_name && (
-              <span className="truncate">{s.workflow_name}</span>
-            )}
-            {s.intervention_id && s.intervention_name && (
-              <>
-                <span aria-hidden>·</span>
-                <span className="truncate">{s.intervention_name}</span>
-              </>
-            )}
+            {card.meta.map((m, i) => (
+              <span key={m} className="inline-flex min-w-0 items-center gap-2">
+                {i > 0 && <span aria-hidden>·</span>}
+                <span className="truncate">{m}</span>
+              </span>
+            ))}
           </div>
         )}
       </Link>
     </Wrapper>
-  );
-}
-
-/**
- * Initiative card: same chrome as a suggestion card, linking to the AI
- * initiative detail page. No type badge - on the board an item is an item;
- * the detail page it opens says what it is.
- */
-function InitiativeCardItem({
-  initiative: iv,
-  canMove,
-}: {
-  initiative: RoadmapInitiative;
-  canMove: boolean;
-}) {
-  return (
-    <DraggableCard
-      dragId={`initiative:${iv.id}`}
-      title={iv.name}
-      canMove={canMove}
-    >
-      <Link
-        href={`/interventions/${iv.id}`}
-        className="block min-w-0 flex-1 p-3 transition-colors hover:bg-muted/40"
-      >
-        <p className="truncate text-sm font-medium leading-snug text-foreground">
-          {iv.name}
-        </p>
-        {iv.owner && (
-          <p className="mt-1 truncate text-[11px] text-muted-foreground">
-            {iv.owner}
-          </p>
-        )}
-      </Link>
-    </DraggableCard>
   );
 }

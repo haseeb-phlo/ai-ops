@@ -26,6 +26,7 @@ type Intervention = {
   recipient_emails: string[] | null;
   created_at: string;
   shipped_at: string | null;
+  queue_rank: number | null;
   minutes_saved_per_week: number | null;
   estimated_gbp_saved_per_week: number | null;
   estimated_revenue_per_week: number | null;
@@ -171,7 +172,7 @@ export default async function Home() {
     supabase
       .from("ai_interventions")
       .select(
-        "id, name, status, recipient_emails, created_at, shipped_at, minutes_saved_per_week, estimated_gbp_saved_per_week, estimated_revenue_per_week",
+        "id, name, status, recipient_emails, created_at, shipped_at, queue_rank, minutes_saved_per_week, estimated_gbp_saved_per_week, estimated_revenue_per_week",
       )
       .returns<Intervention[]>(),
     supabase
@@ -339,21 +340,34 @@ export default async function Home() {
   }
 
   // Roadmap snapshot: the same lane vocabulary as /roadmap, cut down to
-  // the three lanes worth glancing at daily. Queued is ordered by queue
-  // priority (rank asc, unranked last, oldest-first tiebreak - matching
-  // the board); the other two lanes interleave suggestions and AI
-  // initiatives newest-first. Accepted-but-unprioritised items live on the
-  // full board only.
+  // the three lanes worth glancing at daily. The queue interleaves
+  // suggestions and AI initiatives in the canonical order shared with the
+  // board (compareQueueOrder); the other two lanes sort newest-first.
+  // Accepted-but-unprioritised items live on the full board only.
   const roadmapRows = roadmapSuggestions ?? [];
-  const queuedRows = roadmapRows
-    .filter((s) => s.status === "queued")
-    .sort(compareQueueOrder);
-  const upNext: SnapshotItem[] = queuedRows.map((s, i) => ({
-    id: `suggestion:${s.id}`,
-    title: s.title,
-    href: `/suggestions/${s.id}`,
-    ordinal: i + 1,
-  }));
+  const upNext: SnapshotItem[] = [
+    ...roadmapRows
+      .filter((s) => s.status === "queued")
+      .map((s) => ({
+        order: s,
+        id: `suggestion:${s.id}`,
+        title: s.title,
+        href: `/suggestions/${s.id}`,
+      })),
+    ...interventionsList
+      .filter(
+        (i) =>
+          !i.shipped_at && i.status === "paused" && i.queue_rank !== null,
+      )
+      .map((i) => ({
+        order: i,
+        id: `initiative:${i.id}`,
+        title: i.name,
+        href: `/interventions/${i.id}`,
+      })),
+  ]
+    .sort((a, b) => compareQueueOrder(a.order, b.order))
+    .map((x, i) => ({ id: x.id, title: x.title, href: x.href, ordinal: i + 1 }));
 
   // updated_at is the closest thing to "when it entered this lane" for a
   // suggestion (the touch trigger bumps it on every status change);

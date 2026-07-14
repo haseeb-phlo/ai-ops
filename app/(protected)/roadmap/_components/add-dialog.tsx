@@ -27,14 +27,14 @@ import { createRoadmapItem, type RoadmapState } from "../actions";
 const initial: RoadmapState = { kind: "idle" };
 
 const LANE_OPTIONS = [
-  { value: "accepted", label: "Accepted — committed, not yet prioritised" },
-  { value: "queued", label: "Queued — joins the bottom of the queue" },
-  { value: "in_progress", label: "In progress — already underway" },
+  { value: "accepted", label: "Accepted - committed, not yet prioritised" },
+  { value: "queued", label: "Queued - joins the bottom of the queue" },
+  { value: "in_progress", label: "In progress - already underway" },
 ] as const;
 
 /**
- * Super-admin shortcut past the suggestion→triage funnel: adds an item
- * straight onto the roadmap in a committed lane. Dialog shell mirrors the
+ * Super-admin shortcut past the suggestion funnel: adds an item straight
+ * onto the roadmap in a committed lane. Dialog shell mirrors the
  * suggestions submit dialog - the form lives in a keyed child so action
  * state resets on every open.
  */
@@ -58,8 +58,8 @@ export function AddRoadmapItemDialog({
         <DialogHeader className="gap-2 px-6 pt-5 pb-5">
           <DialogTitle>Add to the roadmap</DialogTitle>
           <DialogDescription>
-            Put a piece of work on the roadmap directly, skipping the
-            suggestion funnel. Everyone can see it and comment on it.
+            Add work directly to the roadmap, skipping the suggestion
+            funnel. Visible to everyone.
           </DialogDescription>
         </DialogHeader>
         <AddRoadmapItemForm

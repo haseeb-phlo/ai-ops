@@ -6,7 +6,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { requireWriter } from "@/lib/auth";
 import { SUGGESTION_STATUSES, type SuggestionStatus } from "@/lib/status";
-import { nextQueueRank } from "@/lib/roadmap-server";
+import { bottomQueueRank } from "@/lib/roadmap-server";
 import { resolveDisplayName } from "@/lib/profile";
 import { appUrl } from "@/lib/app-url";
 import { sendSuggestionSubmittedEmail } from "@/lib/emails/suggestion-submitted";
@@ -239,7 +239,7 @@ export async function setSuggestionStatus(
   // queue appends to the bottom; leaving it clears the rank so a later
   // re-queue doesn't resurrect a stale priority.
   update.queue_rank =
-    target === "queued" ? await nextQueueRank(supabase) : null;
+    target === "queued" ? await bottomQueueRank(supabase) : null;
 
   const { error } = await supabase
     .from("intervention_suggestions")
