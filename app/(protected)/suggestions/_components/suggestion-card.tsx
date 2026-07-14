@@ -135,6 +135,7 @@ export function SuggestionCard({
               />
               {canCommit &&
                 (suggestion.status === "accepted" ||
+                  suggestion.status === "queued" ||
                   suggestion.status === "in_progress") && (
                 <LinkInterventionDialog
                   suggestionId={suggestion.id}

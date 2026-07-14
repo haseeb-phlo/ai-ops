@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { requireWriter } from "@/lib/auth";
+import { SUGGESTION_STATUSES, type SuggestionStatus } from "@/lib/status";
+import { nextQueueRank } from "@/lib/roadmap-server";
 import { resolveDisplayName } from "@/lib/profile";
 import { appUrl } from "@/lib/app-url";
 import { sendSuggestionSubmittedEmail } from "@/lib/emails/suggestion-submitted";
@@ -13,15 +15,7 @@ import { sendSuggestionCommentEmail } from "@/lib/emails/suggestion-comment";
 
 const REVIEWER_EMAIL = "haseeb.hamid@wearephlo.com";
 
-const STATUSES = [
-  "open",
-  "under_review",
-  "accepted",
-  "in_progress",
-  "declined",
-  "shipped",
-] as const;
-type Status = (typeof STATUSES)[number];
+type Status = SuggestionStatus;
 
 // Champions can move suggestions through a triage subset; only super-admins
 // can commit ("accepted") or close out ("shipped" via link). This is the
@@ -146,7 +140,7 @@ export async function toggleSuggestionVote(
 
 const StatusSchema = z.object({
   suggestion_id: z.string().uuid(),
-  status: z.enum(STATUSES),
+  status: z.enum(SUGGESTION_STATUSES),
   decline_reason: z.string().trim().max(500).optional().or(z.literal("")),
 });
 
@@ -241,6 +235,12 @@ export async function setSuggestionStatus(
     update.decline_reason = null;
   }
 
+  // queue_rank only means something while status='queued': entering the
+  // queue appends to the bottom; leaving it clears the rank so a later
+  // re-queue doesn't resurrect a stale priority.
+  update.queue_rank =
+    target === "queued" ? await nextQueueRank(supabase) : null;
+
   const { error } = await supabase
     .from("intervention_suggestions")
     .update(update)
@@ -276,6 +276,8 @@ export async function setSuggestionStatus(
   }
 
   revalidatePath("/suggestions");
+  revalidatePath("/roadmap");
+  revalidatePath("/");
   return { kind: "ok" };
 }
 
@@ -370,6 +372,8 @@ export async function editSuggestion(
     };
   }
   revalidatePath("/suggestions");
+  revalidatePath("/roadmap");
+  revalidatePath("/");
   return { kind: "ok" };
 }
 
@@ -406,6 +410,7 @@ export async function linkSuggestionsToIntervention(
     .update({
       intervention_id: parsed.data.intervention_id,
       status: "shipped",
+      queue_rank: null,
     })
     .in("id", parsed.data.suggestion_ids);
   if (error) {
@@ -413,6 +418,8 @@ export async function linkSuggestionsToIntervention(
     return { kind: "error", message: "Could not link suggestions. Please try again." };
   }
   revalidatePath("/suggestions");
+  revalidatePath("/roadmap");
+  revalidatePath("/");
   revalidatePath(`/interventions/${parsed.data.intervention_id}`);
   return { kind: "ok" };
 }
@@ -426,6 +433,8 @@ export async function deleteSuggestion(formData: FormData): Promise<void> {
   const supabase = await createClient();
   await supabase.from("intervention_suggestions").delete().eq("id", id);
   revalidatePath("/suggestions");
+  revalidatePath("/roadmap");
+  revalidatePath("/");
 }
 
 /**
@@ -443,131 +452,8 @@ export async function openInterventionFromSuggestion(
   redirect(`/interventions?from_suggestion=${encodeURIComponent(id)}`);
 }
 
-/**
- * Move a single suggestion to a roadmap lane via drag-drop. Super-admin
- * only - members can't yank suggestions across lanes via DnD because the
- * lane semantics double as commit decisions.
- *
- * Lane mapping is now status-only (after the in_progress migration):
- *   up_next      = status `accepted`
- *   in_progress  = status `in_progress`
- *   shipped      = status `shipped`
- *
- * No intervention_id required to move into in_progress. Use "Mark shipped"
- * to additionally link the closing intervention.
- */
-const LaneSchema = z.object({
-  suggestion_id: z.string().uuid(),
-  lane: z.enum(["up_next", "in_progress", "shipped"]),
-});
-
-export async function moveSuggestionLane(
-  formData: FormData,
-): Promise<{ ok: true } | { ok: false; message: string }> {
-  const gate = await requireWriter();
-  if (!gate.ok) return { ok: false, message: gate.error };
-  if (gate.user.role !== "super_admin") {
-    return { ok: false, message: "Only super-admins can move cards." };
-  }
-  const parsed = LaneSchema.safeParse({
-    suggestion_id: formData.get("suggestion_id"),
-    lane: formData.get("lane"),
-  });
-  if (!parsed.success) {
-    return { ok: false, message: "Invalid move." };
-  }
-  const supabase = await createClient();
-
-  const update: Record<string, unknown> = {};
-  if (parsed.data.lane === "up_next") {
-    update.status = "accepted";
-  } else if (parsed.data.lane === "in_progress") {
-    update.status = "in_progress";
-  } else if (parsed.data.lane === "shipped") {
-    update.status = "shipped";
-  }
-  const { error } = await supabase
-    .from("intervention_suggestions")
-    .update(update)
-    .eq("id", parsed.data.suggestion_id);
-  if (error) {
-    return { ok: false, message: `Could not move card: ${error.message}` };
-  }
-  revalidatePath("/suggestions");
-  return { ok: true };
-}
-
-/**
- * Move an AI initiative across roadmap lanes. Same super-admin gate as
- * suggestion moves. Lane membership is a 2D mapping over status and
- * shipped_at:
- *
- *   up_next      = shipped_at null + status `paused`  (planned / on hold)
- *   in_progress  = shipped_at null + status `active`  (currently running)
- *   shipped      = shipped_at set                     (live and done)
- *
- * Crucially, "shipped" is orthogonal to status: an initiative dropped into
- * the Shipped lane stays `active` and keeps counting in dashboard metrics.
- * `retired` remains a real lifecycle state, set explicitly via the status
- * button / edit dialog when an initiative is decommissioned - the roadmap
- * never writes it.
- *
- * Used by the roadmap board's DnD when the dragged card is an initiative
- * rather than a suggestion. Revalidates both the suggestions page (so the
- * roadmap re-renders) and the initiatives list (so the status badge there
- * stays in sync).
- */
-const InitiativeLaneSchema = z.object({
-  initiative_id: z.string().uuid(),
-  lane: z.enum(["up_next", "in_progress", "shipped"]),
-});
-
-export async function moveInitiativeLane(
-  formData: FormData,
-): Promise<{ ok: true } | { ok: false; message: string }> {
-  const gate = await requireWriter();
-  if (!gate.ok) return { ok: false, message: gate.error };
-  if (gate.user.role !== "super_admin") {
-    return { ok: false, message: "Only super-admins can move cards." };
-  }
-  const parsed = InitiativeLaneSchema.safeParse({
-    initiative_id: formData.get("initiative_id"),
-    lane: formData.get("lane"),
-  });
-  if (!parsed.success) {
-    return { ok: false, message: "Invalid move." };
-  }
-  const supabase = await createClient();
-
-  // Build the update so each lane move clears the "other" axis. Moving out
-  // of Shipped clears shipped_at; moving into Shipped sets it and forces
-  // status back to active (so paused-then-shipped doesn't leave the row
-  // counted as paused).
-  const update: Record<string, unknown> = {};
-  if (parsed.data.lane === "up_next") {
-    update.status = "paused";
-    update.shipped_at = null;
-  } else if (parsed.data.lane === "in_progress") {
-    update.status = "active";
-    update.shipped_at = null;
-  } else if (parsed.data.lane === "shipped") {
-    update.status = "active";
-    update.shipped_at = new Date().toISOString();
-  }
-
-  const { error } = await supabase
-    .from("ai_interventions")
-    .update(update)
-    .eq("id", parsed.data.initiative_id);
-  if (error) {
-    return { ok: false, message: `Could not move card: ${error.message}` };
-  }
-  revalidatePath("/suggestions");
-  revalidatePath("/interventions");
-  revalidatePath(`/interventions/${parsed.data.initiative_id}`);
-  revalidatePath("/");
-  return { ok: true };
-}
+// Roadmap lane moves and queue reordering live in
+// app/(protected)/roadmap/actions.ts alongside the board that uses them.
 
 const CommentSchema = z.object({
   suggestion_id: z.string().uuid(),

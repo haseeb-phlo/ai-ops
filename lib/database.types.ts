@@ -443,6 +443,7 @@ export type Database = {
           decline_reason: string | null
           id: string
           intervention_id: string | null
+          queue_rank: number | null
           status: string
           team: string | null
           title: string
@@ -456,6 +457,7 @@ export type Database = {
           decline_reason?: string | null
           id?: string
           intervention_id?: string | null
+          queue_rank?: number | null
           status?: string
           team?: string | null
           title: string
@@ -469,6 +471,7 @@ export type Database = {
           decline_reason?: string | null
           id?: string
           intervention_id?: string | null
+          queue_rank?: number | null
           status?: string
           team?: string | null
           title?: string

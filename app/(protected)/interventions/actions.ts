@@ -197,6 +197,7 @@ export async function logIntervention(
   }
 
   revalidatePath("/interventions");
+  revalidatePath("/roadmap");
   revalidatePath("/");
   redirect(`/interventions/${newId}`);
 }

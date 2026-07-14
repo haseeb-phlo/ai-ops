@@ -3,6 +3,7 @@ import {
   WorkflowIcon,
   SparklesIcon,
   LightbulbIcon,
+  KanbanSquareIcon,
   GraduationCapIcon,
   UsersIcon,
   ShieldCheckIcon,
@@ -25,6 +26,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { href: "/workflows", label: "Workflows", icon: WorkflowIcon },
   { href: "/interventions", label: "Initiatives", icon: SparklesIcon },
   { href: "/suggestions", label: "Suggestions", icon: LightbulbIcon },
+  { href: "/roadmap", label: "Roadmap", icon: KanbanSquareIcon },
   { href: "/learn", label: "Learn", icon: GraduationCapIcon },
   { href: "/map", label: "People", icon: UsersIcon },
 ];

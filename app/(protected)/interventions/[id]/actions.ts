@@ -343,6 +343,7 @@ export async function updateIntervention(
 
   revalidatePath(`/interventions/${data.id}`);
   revalidatePath("/interventions");
+  revalidatePath("/roadmap");
   revalidatePath("/");
   return { kind: "success" };
 }
@@ -391,6 +392,7 @@ export async function setInterventionStatus(
 
   revalidatePath(`/interventions/${data.id}`);
   revalidatePath("/interventions");
+  revalidatePath("/roadmap");
   revalidatePath("/");
   return { kind: "success" };
 }
@@ -468,6 +470,7 @@ export async function deleteIntervention(
   }
 
   revalidatePath("/interventions");
+  revalidatePath("/roadmap");
   revalidatePath("/");
   return { kind: "ok" };
 }

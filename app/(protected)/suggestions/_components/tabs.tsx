@@ -3,11 +3,12 @@
 import { useSearchParams } from "next/navigation";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 
-// Shipped is intentionally not its own tab - it lives as the third lane on
-// the roadmap board, so a separate Shipped tab would just duplicate that.
+// Accepted/queued/in-progress/shipped suggestions aren't tabs here - they
+// live on the /roadmap board (its own nav section), so tabs here only cover
+// the intake funnel: ideas being voted on and triaged, plus the declined
+// record.
 const TABS = [
   { value: "active", label: "Active" },
-  { value: "roadmap", label: "Roadmap" },
   { value: "declined", label: "Declined" },
 ] as const;
 
