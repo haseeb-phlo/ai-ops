@@ -5,7 +5,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-inter-tight), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+  --font-sans: var(--font-work-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
   --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace, "Apple Color Emoji", "Segoe UI Emoji";
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -25,6 +25,8 @@
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -46,42 +48,47 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* Phlo brand palette, lifted from wearephlo.com: warm cream canvas,
+   navy ink, deep-teal primary, pale-aqua tints, pink for destructive.
+   Status/text colors hold >= 4.5:1 on the cream surface. */
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  /* Monochrome chart ramp. Every step must stay readable against the white
-     background - the lightest step sits at ~L 0.65 (roughly 3:1) rather than
-     the near-invisible L 0.87 it used to be. */
-  --chart-1: oklch(0.65 0 0);
-  --chart-2: oklch(0.55 0 0);
-  --chart-3: oklch(0.45 0 0);
-  --chart-4: oklch(0.36 0 0);
-  --chart-5: oklch(0.27 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --background: #fcfaf6;
+  --foreground: #07073d;
+  --card: #ffffff;
+  --card-foreground: #07073d;
+  --popover: #ffffff;
+  --popover-foreground: #07073d;
+  --primary: #086a74;
+  --primary-foreground: #ffffff;
+  --secondary: #def4f7;
+  --secondary-foreground: #065059;
+  --muted: #ecf0f1;
+  --muted-foreground: #5b6285;
+  --accent: #def4f7;
+  --accent-foreground: #065059;
+  --destructive: #d81e5b;
+  --success: #087a53;
+  --warning: #9a6700;
+  --border: #e4e6ee;
+  --input: #e4e6ee;
+  --ring: #00a9be;
+  /* Brand categorical ramp - validated for the lightness band, chroma
+     floor, adjacent-pair CVD separation, and 3:1 contrast on the cream
+     surface. Assign in fixed order; never cycle. */
+  --chart-1: #0784a2;
+  --chart-2: #2f9e63;
+  --chart-3: #5560b8;
+  --chart-4: #d81e5b;
+  --chart-5: #b17a1a;
+  --radius: 0.5rem;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #07073d;
+  --sidebar-primary: #086a74;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #def4f7;
+  --sidebar-accent-foreground: #065059;
+  --sidebar-border: #e4e6ee;
+  --sidebar-ring: #00a9be;
 }
 
 @layer base {
@@ -93,5 +100,8 @@
   }
   html {
     @apply font-sans;
+  }
+  ::selection {
+    @apply bg-secondary text-secondary-foreground;
   }
 }

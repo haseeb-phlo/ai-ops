@@ -34,7 +34,7 @@ const CRITICALITY_CLASSNAME: Record<number, string> = {
   2: "bg-muted text-foreground border-border",
   3: "bg-amber-50 text-amber-800 border-amber-200",
   4: "bg-orange-50 text-orange-800 border-orange-200",
-  5: "bg-red-50 text-red-800 border-red-200",
+  5: "bg-rose-50 text-rose-800 border-rose-200",
 };
 
 export async function HeaderCard({
@@ -67,7 +67,7 @@ export async function HeaderCard({
               {workflow.name}
             </h1>
             {workflow.regulatory && (
-              <Badge className="border-purple-200 bg-purple-50 text-purple-800">
+              <Badge className="border-indigo-200 bg-indigo-50 text-indigo-800">
                 Regulatory
               </Badge>
             )}

@@ -35,7 +35,7 @@ type Props = {
 };
 
 const SEVERITY_DOT: Record<Event["severity"], string> = {
-  red: "bg-red-500",
+  red: "bg-rose-500",
   amber: "bg-amber-500",
   green: "bg-emerald-500",
 };

@@ -104,7 +104,7 @@ function Tile({ tile }: { tile: TileSpec }) {
   if (delta != null && delta !== 0) {
     isImprovement =
       tile.direction === "lower-better" ? delta < 0 : delta > 0;
-    deltaColor = isImprovement ? "text-emerald-700" : "text-red-700";
+    deltaColor = isImprovement ? "text-emerald-700" : "text-rose-700";
   }
 
   const arrow = delta == null || delta === 0 ? "" : delta > 0 ? "▲" : "▼";

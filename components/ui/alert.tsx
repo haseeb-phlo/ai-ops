@@ -5,9 +5,9 @@ import { cn } from "@/lib/utils";
 const alertVariants = cva("rounded-md border px-3 py-2 text-sm", {
   variants: {
     variant: {
-      destructive: "border-red-200 bg-red-50 text-red-700",
-      warning: "border-amber-200 bg-amber-50 text-amber-800",
-      success: "border-emerald-200 bg-emerald-50 text-emerald-800",
+      destructive: "border-destructive/25 bg-destructive/10 text-destructive",
+      warning: "border-warning/25 bg-warning/10 text-warning",
+      success: "border-success/25 bg-success/10 text-success",
       info: "border-border bg-muted/40 text-foreground",
     },
   },

@@ -24,7 +24,7 @@ type Row = {
 export const TRAFFIC_STYLE = {
   green: "bg-emerald-500",
   amber: "bg-amber-500",
-  red: "bg-red-500",
+  red: "bg-rose-500",
 } as const;
 
 type Traffic = keyof typeof TRAFFIC_STYLE;

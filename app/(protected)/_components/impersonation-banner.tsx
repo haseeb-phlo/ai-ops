@@ -34,7 +34,7 @@ export function ImpersonationBanner({
       )}
     >
       <span className="flex items-center gap-2">
-        <span aria-hidden className="size-1.5 rounded-full bg-amber-500" />
+        <span aria-hidden className="size-1.5 rounded-full bg-warning" />
         <span>
           {isUserMode ? (
             <>

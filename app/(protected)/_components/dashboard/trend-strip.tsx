@@ -69,7 +69,7 @@ function TrendCard({ series }: { series: Series }) {
             deltaIsUp
               ? "text-emerald-600"
               : deltaIsDown
-                ? "text-red-600"
+                ? "text-rose-600"
                 : "text-muted-foreground"
           }`}
         >

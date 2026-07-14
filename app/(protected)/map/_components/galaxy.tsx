@@ -1024,7 +1024,7 @@ function Legend({
         <ul className="space-y-1">
           <LegendRow
             swatch={
-              <Swatch fill="var(--background)" stroke="var(--muted-foreground)" ring="#9333ea" size={9} />
+              <Swatch fill="var(--background)" stroke="var(--muted-foreground)" ring="#00a9be" size={9} />
             }
             label="Has active AI initiatives"
           />
@@ -1033,7 +1033,7 @@ function Legend({
               <Swatch
                 fill="var(--background)"
                 stroke="var(--muted-foreground)"
-                ring="#dc2626"
+                ring="#d81e5b"
                 ringDashed
                 size={9}
               />
@@ -1428,7 +1428,7 @@ function drawWorkflow(ctx: CanvasRenderingContext2D, n: Node, opts: DrawOpts) {
 
   // Halo around workflows with an active intervention.
   if (opts.activeInterventions > 0) {
-    ctx.strokeStyle = "#9333ea"; // purple-600 (matches the legend marker)
+    ctx.strokeStyle = "#00a9be"; // brand cyan (matches the legend marker)
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.arc(x, y, r + 4, 0, Math.PI * 2);
@@ -1455,7 +1455,7 @@ function drawWorkflow(ctx: CanvasRenderingContext2D, n: Node, opts: DrawOpts) {
   }
 
   if (n.meta.regulatory) {
-    ctx.strokeStyle = "#dc2626";
+    ctx.strokeStyle = "#d81e5b";
     ctx.setLineDash([3, 3]);
     ctx.lineWidth = 1.5;
     ctx.beginPath();
@@ -1572,7 +1572,7 @@ function WorkflowDetail({ node }: { node: Node }) {
         Active initiatives: {(m.activeInterventions as number) ?? 0}
       </p>
       {(m.regulatory as boolean) && (
-        <p className="text-red-600">⚠ Regulatory</p>
+        <p className="text-rose-600">⚠ Regulatory</p>
       )}
     </div>
   );
