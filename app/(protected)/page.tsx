@@ -3,12 +3,14 @@ import { getSessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { resolveDisplayName } from "@/lib/profile";
 import { gbp, fmtMinutes } from "@/lib/format";
+import { compareQueueOrder } from "@/lib/roadmap";
 import { PageContainer, PageHeader } from "@/components/page-header";
 import { cn } from "@/lib/utils";
 import { RedirectToast } from "./_components/dashboard/redirect-toast";
-import { TrendStrip } from "./_components/dashboard/trend-strip";
-import { TopWins, type Win } from "./_components/dashboard/top-wins";
-import { AllTimeRail } from "./_components/dashboard/all-time-rail";
+import {
+  RoadmapSnapshot,
+  type SnapshotItem,
+} from "./_components/dashboard/roadmap-snapshot";
 import {
   ActivityStream,
   type StreamItem,
@@ -16,22 +18,17 @@ import {
 
 // Attribution confidence is no longer applied to dashboard math - it stays
 // on each AI initiative as an editorial signal for reviewers, but the
-// headline tiles, trend strip, and Top Wins all sum the raw run-rate.
+// headline tiles sum the raw run-rate.
 type Intervention = {
   id: string;
   name: string;
   status: "active" | "paused" | "retired" | null;
-  adoption_status: "daily" | "weekly" | "occasional" | "abandoned" | null;
   recipient_emails: string[] | null;
   created_at: string;
+  shipped_at: string | null;
   minutes_saved_per_week: number | null;
   estimated_gbp_saved_per_week: number | null;
   estimated_revenue_per_week: number | null;
-};
-
-type InterventionTeamLink = {
-  intervention_id: string;
-  workflows: { team: string | null } | null;
 };
 
 type Baseline = {
@@ -47,6 +44,15 @@ type Metric = {
   time_value: number | null;
   cost_value: number | null;
   revenue_value: number | null;
+};
+
+type RoadmapSuggestion = {
+  id: string;
+  title: string;
+  status: "queued" | "in_progress" | "shipped";
+  queue_rank: number | null;
+  created_at: string;
+  updated_at: string;
 };
 
 type RecentIntervention = {
@@ -104,57 +110,43 @@ function sevenDaysAgoIso(): string {
 }
 
 /**
- * Per-week impact for one intervention as of a given date (or "now" when
- * omitted): prefer the metric-vs-baseline delta once a snapshot has been
- * logged; until then fall back to the at-log estimate so a freshly entered
- * initiative banks against its projected weekly run-rate immediately.
- * Revenue is higher-better, so positive = uplift since baseline.
+ * Current per-week impact for one intervention: prefer the metric-vs-
+ * baseline delta once a snapshot has been logged; until then fall back to
+ * the at-log estimate so a freshly entered initiative banks against its
+ * projected weekly run-rate immediately. Revenue is higher-better, so
+ * positive = uplift since baseline.
  *
- * This is the single source of "current weekly impact" - the headline stat
- * tiles AND every trend-strip point run through it, so the two surfaces can
- * never disagree about the same label.
+ * This is the single source of "current weekly impact" for the headline
+ * stat tiles.
  */
 function weeklyImpact(
   iv: Intervention,
   baseline: { time: number; cost: number; revenue: number },
   ivMetrics: Metric[] | undefined,
-  asOfIso?: string,
 ): { minutes: number; gbp: number; revenue: number } {
-  // ivMetrics is newest-first; find the latest snapshot per field at or
-  // before the as-of date.
+  // ivMetrics is newest-first; find the latest snapshot per field.
   let lt: Metric | undefined;
   let lc: Metric | undefined;
   let lr: Metric | undefined;
   for (const m of ivMetrics ?? []) {
-    if (asOfIso && m.snapshot_date > asOfIso) continue;
     if (!lt && m.time_value != null) lt = m;
     if (!lc && m.cost_value != null) lc = m;
     if (!lr && m.revenue_value != null) lr = m;
     if (lt && lc && lr) break;
   }
-  // The estimate fallback only applies once the initiative existed at the
-  // as-of date - otherwise historical trend points would back-fill impact
-  // from before the initiative was logged.
-  const existed = !asOfIso || iv.created_at.slice(0, 10) <= asOfIso;
   return {
     minutes:
       lt?.time_value != null
         ? baseline.time - lt.time_value
-        : existed
-          ? iv.minutes_saved_per_week ?? 0
-          : 0,
+        : iv.minutes_saved_per_week ?? 0,
     gbp:
       lc?.cost_value != null
         ? baseline.cost - lc.cost_value
-        : existed
-          ? iv.estimated_gbp_saved_per_week ?? 0
-          : 0,
+        : iv.estimated_gbp_saved_per_week ?? 0,
     revenue:
       lr?.revenue_value != null
         ? lr.revenue_value - baseline.revenue
-        : existed
-          ? iv.estimated_revenue_per_week ?? 0
-          : 0,
+        : iv.estimated_revenue_per_week ?? 0,
   };
 }
 
@@ -168,6 +160,7 @@ export default async function Home() {
     { data: interventions },
     { data: baselines },
     { data: metrics },
+    { data: roadmapSuggestions },
     { data: recentInterventions },
     { data: regEvents },
     { data: recentWorkflows },
@@ -178,7 +171,7 @@ export default async function Home() {
     supabase
       .from("ai_interventions")
       .select(
-        "id, name, status, adoption_status, recipient_emails, created_at, minutes_saved_per_week, estimated_gbp_saved_per_week, estimated_revenue_per_week",
+        "id, name, status, recipient_emails, created_at, shipped_at, minutes_saved_per_week, estimated_gbp_saved_per_week, estimated_revenue_per_week",
       )
       .returns<Intervention[]>(),
     supabase
@@ -192,9 +185,14 @@ export default async function Home() {
       )
       .order("snapshot_date", { ascending: false })
       // Safety cap only - newest-first ordering means the rows we'd drop at
-      // this ceiling are ancient snapshots that no tile or trend point reads.
+      // this ceiling are ancient snapshots that no tile reads.
       .limit(5000)
       .returns<Metric[]>(),
+    supabase
+      .from("intervention_suggestions")
+      .select("id, title, status, queue_rank, created_at, updated_at")
+      .in("status", ["queued", "in_progress", "shipped"])
+      .returns<RoadmapSuggestion[]>(),
     supabase
       .from("ai_interventions")
       .select("id, name, status, created_at, created_by")
@@ -286,23 +284,6 @@ export default async function Home() {
     .from("people")
     .select("*", { count: "exact", head: true });
 
-  // Per-intervention team lookup so the Top wins rail can attribute each
-  // win to a team. An intervention can affect multiple workflows on
-  // different teams - use the first linked team's name as the label.
-  // Soft-deleted workflows are excluded so retired-workflow teams don't
-  // linger on the wins rail.
-  const { data: teamLinks } = await supabase
-    .from("intervention_workflows")
-    .select("intervention_id, workflows!inner(team)")
-    .is("workflows.deleted_at", null)
-    .returns<InterventionTeamLink[]>();
-  const teamByInterventionId = new Map<string, string>();
-  for (const link of teamLinks ?? []) {
-    if (link.workflows?.team && !teamByInterventionId.has(link.intervention_id)) {
-      teamByInterventionId.set(link.intervention_id, link.workflows.team);
-    }
-  }
-
   const interventionsList = interventions ?? [];
 
   const baselineSums = new Map<
@@ -332,29 +313,18 @@ export default async function Home() {
   let totalMinutes = 0;
   let totalGbp = 0;
   let totalRevenue = 0;
-  // All-time totals include retired interventions so the historical
-  // "banked" value never drops when something is sunset - retirement
-  // freezes the intervention's last-known savings level on the books.
-  let allTimeMinutes = 0;
-  let allTimeGbp = 0;
-  let allTimeRevenue = 0;
-  let allTimeInterventionCount = 0;
   let activeCount = 0;
-  // Single render = single request; one wall-clock read is fine here.
-  // eslint-disable-next-line react-hooks/purity
-  const renderNow = Date.now();
   // Reach: unique people covered by any active intervention.
   const reachedEmails = new Set<string>();
-  // Per-intervention impact, used to rank Top wins.
-  const winsAccum: Win[] = [];
   for (const iv of interventionsList) {
-    if (iv.status === "active") activeCount += 1;
     if (iv.status === "active") {
+      activeCount += 1;
       for (const raw of iv.recipient_emails ?? []) {
         const email = raw.toLowerCase().trim();
         if (email) reachedEmails.add(email);
       }
     }
+    if (iv.status === "retired") continue;
     const baseline =
       baselineSums.get(iv.id) ?? { time: 0, cost: 0, revenue: 0 };
     // No confidence weighting - the raw number is what we report.
@@ -363,109 +333,74 @@ export default async function Home() {
       baseline,
       metricsByIntervention.get(iv.id),
     );
-    const ivMins = impact.minutes;
-    const ivGbp = impact.gbp;
-    const ivRev = impact.revenue;
-
-    // All-time projection multiplies the per-week run-rate by weeks since
-    // the initiative was logged. Step up in whole weeks so a freshly
-    // logged 60 min/wk initiative reads 60 min in week 1, 120 in week 2.
-    const rawMinsPerWeek = ivMins;
-    const rawGbpPerWeek = ivGbp;
-    const rawRevPerWeek = ivRev;
-    const weeksElapsed = Math.max(
-      0,
-      (renderNow - new Date(iv.created_at).getTime()) / (7 * 86_400_000),
-    );
-    const weekNumber = Math.max(1, Math.floor(weeksElapsed) + 1);
-    allTimeMinutes += rawMinsPerWeek * weekNumber;
-    allTimeGbp += rawGbpPerWeek * weekNumber;
-    allTimeRevenue += rawRevPerWeek * weekNumber;
-    allTimeInterventionCount += 1;
-    if (iv.status === "retired") continue;
-    totalMinutes += ivMins;
-    totalGbp += ivGbp;
-    totalRevenue += ivRev;
-
-    if (iv.status === "active" && (ivMins > 0 || ivGbp > 0 || ivRev > 0)) {
-      winsAccum.push({
-        id: iv.id,
-        name: iv.name,
-        team: teamByInterventionId.get(iv.id) ?? null,
-        weeklyGbp: ivGbp + ivRev,
-        weeklyMinutes: ivMins,
-        recipients: (iv.recipient_emails ?? []).length,
-        adoption: iv.adoption_status,
-      });
-    }
+    totalMinutes += impact.minutes;
+    totalGbp += impact.gbp;
+    totalRevenue += impact.revenue;
   }
 
-  // Top wins: highest weighted weekly impact first. Combines £ saved +
-  // revenue generated since both flow to the bottom line; minutes saved
-  // is shown as a secondary signal so volunteer-time wins still surface.
-  const topWins = winsAccum
-    .sort((a, b) => {
-      const aScore = a.weeklyGbp + a.weeklyMinutes / 60;
-      const bScore = b.weeklyGbp + b.weeklyMinutes / 60;
-      return bScore - aScore;
-    })
-    .slice(0, 5);
+  // Roadmap snapshot: the same lane vocabulary as /roadmap, cut down to
+  // the three lanes worth glancing at daily. Queued is ordered by queue
+  // priority (rank asc, unranked last, oldest-first tiebreak - matching
+  // the board); the other two lanes interleave suggestions and AI
+  // initiatives newest-first. Accepted-but-unprioritised items live on the
+  // full board only.
+  const roadmapRows = roadmapSuggestions ?? [];
+  const queuedRows = roadmapRows
+    .filter((s) => s.status === "queued")
+    .sort(compareQueueOrder);
+  const upNext: SnapshotItem[] = queuedRows.map((s, i) => ({
+    id: `suggestion:${s.id}`,
+    title: s.title,
+    href: `/suggestions/${s.id}`,
+    ordinal: i + 1,
+  }));
 
-  // Trend buckets: 13 weekly snapshots covering the last 12 weeks. Each
-  // point runs the SAME weeklyImpact computation as the headline tiles
-  // (metric-vs-baseline once measured, at-log estimate until then), just
-  // capped at "as of this week-end" - so the trend's newest point always
-  // matches the tiles exactly.
-  function totalsAsOf(asOfIso: string) {
-    let mins = 0;
-    let gbpAccum = 0;
-    let rev = 0;
-    for (const iv of interventionsList) {
-      if (iv.status === "retired") continue;
-      const baseline =
-        baselineSums.get(iv.id) ?? { time: 0, cost: 0, revenue: 0 };
-      const impact = weeklyImpact(
-        iv,
-        baseline,
-        metricsByIntervention.get(iv.id),
-        asOfIso,
-      );
-      mins += impact.minutes;
-      gbpAccum += impact.gbp;
-      rev += impact.revenue;
-    }
-    return { minutes: mins, gbp: gbpAccum, revenue: rev };
-  }
+  // updated_at is the closest thing to "when it entered this lane" for a
+  // suggestion (the touch trigger bumps it on every status change);
+  // initiatives use created_at / shipped_at for the same role.
+  const inProgress: SnapshotItem[] = [
+    ...roadmapRows
+      .filter((s) => s.status === "in_progress")
+      .map((s) => ({
+        id: `suggestion:${s.id}`,
+        title: s.title,
+        href: `/suggestions/${s.id}`,
+        at: s.updated_at,
+      })),
+    ...interventionsList
+      .filter((i) => !i.shipped_at && i.status === "active")
+      .map((i) => ({
+        id: `initiative:${i.id}`,
+        title: i.name,
+        href: `/interventions/${i.id}`,
+        at: i.created_at,
+      })),
+  ]
+    .sort((a, b) => b.at.localeCompare(a.at))
+    .map((x) => ({ id: x.id, title: x.title, href: x.href }));
 
-  const weekEnds: string[] = (() => {
-    const out: string[] = [];
-    const today = new Date();
-    for (let i = 12; i >= 0; i--) {
-      const d = new Date(today);
-      d.setDate(today.getDate() - i * 7);
-      out.push(d.toISOString().slice(0, 10));
-    }
-    return out;
-  })();
-
-  const trendPoints = weekEnds.map((d) => ({ date: d, ...totalsAsOf(d) }));
-  const trendSeries = [
-    {
-      label: "Minutes saved / week",
-      points: trendPoints.map((p) => ({ date: p.date, value: p.minutes })),
-      format: fmtMinutes,
-    },
-    {
-      label: "£ saved / week",
-      points: trendPoints.map((p) => ({ date: p.date, value: p.gbp })),
-      format: gbp,
-    },
-    {
-      label: "Revenue generated / week",
-      points: trendPoints.map((p) => ({ date: p.date, value: p.revenue })),
-      format: gbp,
-    },
-  ];
+  const shipped: SnapshotItem[] = [
+    ...roadmapRows
+      .filter((s) => s.status === "shipped")
+      .map((s) => ({
+        id: `suggestion:${s.id}`,
+        title: s.title,
+        href: `/suggestions/${s.id}`,
+        at: s.updated_at,
+      })),
+    ...interventionsList
+      // Retired initiatives drop off the roadmap even when they shipped -
+      // same rule as the /roadmap board's Shipped lane.
+      .filter((i) => !!i.shipped_at && i.status !== "retired")
+      .map((i) => ({
+        id: `initiative:${i.id}`,
+        title: i.name,
+        href: `/interventions/${i.id}`,
+        at: i.shipped_at as string,
+      })),
+  ]
+    .sort((a, b) => b.at.localeCompare(a.at))
+    .map((x) => ({ id: x.id, title: x.title, href: x.href }));
 
   // Resolve created_by display names through the same profile -> people ->
   // email-local chain the rest of the app uses, so the stream shows
@@ -611,16 +546,11 @@ export default async function Home() {
         />
       </section>
 
-      <TrendStrip series={trendSeries} />
-
-      <AllTimeRail
-        minutes={allTimeMinutes}
-        gbpSaved={allTimeGbp}
-        revenue={allTimeRevenue}
-        interventionCount={allTimeInterventionCount}
+      <RoadmapSnapshot
+        upNext={upNext}
+        inProgress={inProgress}
+        shipped={shipped}
       />
-
-      <TopWins wins={topWins} />
 
       <section className="rounded-lg border border-border bg-background">
         <div className="flex items-baseline justify-between border-b border-border px-4 py-2.5">

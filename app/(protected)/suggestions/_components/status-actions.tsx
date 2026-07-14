@@ -3,15 +3,8 @@
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import type { SuggestionStatus as Status } from "@/lib/status";
 import { setSuggestionStatus } from "../actions";
-
-type Status =
-  | "open"
-  | "under_review"
-  | "accepted"
-  | "in_progress"
-  | "declined"
-  | "shipped";
 
 /**
  * Inline status-change controls for a suggestion. Action set is gated on
@@ -19,8 +12,9 @@ type Status =
  *
  *   - Champion of submitter's team: under_review / declined
  *   - Super admin: any of the above PLUS accepted (commits to building),
- *     in_progress ("Start progress" once accepted), and back-to-open
- *     (reopen a declined suggestion)
+ *     queued ("Add to queue" - joins the roadmap's prioritised queue),
+ *     in_progress ("Start progress"), and back-to-open (reopen a declined
+ *     suggestion)
  */
 export function StatusActions({
   suggestionId,
@@ -123,6 +117,17 @@ export function StatusActions({
         <Button
           type="button"
           size="sm"
+          disabled={pending}
+          onClick={() => setStatus("queued")}
+        >
+          Add to queue
+        </Button>
+      )}
+      {canCommit && (status === "accepted" || status === "queued") && (
+        <Button
+          type="button"
+          size="sm"
+          variant={status === "queued" ? "default" : "outline"}
           disabled={pending}
           onClick={() => setStatus("in_progress")}
         >

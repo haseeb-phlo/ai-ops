@@ -1,9 +1,9 @@
 /**
  * Single source for number/date formatting across the app.
  *
- * Replaces the four duplicated copies that lived in the dashboard page,
- * top-wins, all-time-rail, and admin/_components/format.ts. Feature areas
- * should import from here rather than re-declaring local helpers.
+ * Replaces the duplicated copies that used to live in the dashboard page
+ * and admin/_components/format.ts. Feature areas should import from here
+ * rather than re-declaring local helpers.
  */
 
 /** Whole-pound GBP with en-GB grouping, sign preserved: -1234.5 → "-£1,235". */
