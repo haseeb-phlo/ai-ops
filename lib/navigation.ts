@@ -21,12 +21,19 @@ import {
  */
 export type NavItem = { href: string; label: string; icon: LucideIcon };
 
+// Ordered by a descending maturity gradient - realized value first, raw
+// potential later, context last: impact (Dashboard), the register it's
+// measured against (Workflows), work that's live (Initiatives), committed
+// (Roadmap), proposed (Suggestions), then enablement (Learn) and reference
+// (People). Roadmap sits above Suggestions deliberately: a curated,
+// prioritised queue outranks an unfiltered inbox, and the two stay
+// adjacent because accepted ideas flow between them.
 export const NAV_ITEMS: readonly NavItem[] = [
   { href: "/", label: "Dashboard", icon: LayoutDashboardIcon },
   { href: "/workflows", label: "Workflows", icon: WorkflowIcon },
   { href: "/interventions", label: "Initiatives", icon: SparklesIcon },
-  { href: "/suggestions", label: "Suggestions", icon: LightbulbIcon },
   { href: "/roadmap", label: "Roadmap", icon: KanbanSquareIcon },
+  { href: "/suggestions", label: "Suggestions", icon: LightbulbIcon },
   { href: "/learn", label: "Learn", icon: GraduationCapIcon },
   { href: "/map", label: "People", icon: UsersIcon },
 ];
