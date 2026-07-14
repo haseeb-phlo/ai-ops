@@ -55,13 +55,13 @@ export function Activity({ revisions }: { revisions: ActivityRevision[] }) {
                   />
                 </div>
                 <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
-                  <span className="rounded bg-rose-50 px-1.5 py-0.5 text-rose-800 ring-1 ring-inset ring-rose-200 line-through">
+                  <span className="rounded border border-border bg-muted/40 px-1.5 py-0.5 text-muted-foreground line-through">
                     {rev.old_value ?? "-"}
                   </span>
                   <span className="text-muted-foreground" aria-hidden>
                     →
                   </span>
-                  <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-emerald-800 ring-1 ring-inset ring-emerald-200">
+                  <span className="rounded border border-border bg-card px-1.5 py-0.5 font-medium text-foreground">
                     {rev.new_value ?? "-"}
                   </span>
                 </div>

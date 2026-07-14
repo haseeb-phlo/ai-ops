@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getSessionUser } from "@/lib/auth";
 import { resolveDisplayName } from "@/lib/profile";
 import { Badge } from "@/components/ui/badge";
+import { StatusPill } from "@/components/ui/status-pill";
 import { Time } from "@/components/ui/time";
 import { DetailHeader } from "@/components/ui/detail-header";
 import { CommentForm } from "@/components/comments/comment-form";
@@ -371,11 +372,7 @@ export default async function InterventionDetailPage({
               <h1 className="text-2xl font-semibold tracking-tight text-foreground">
                 {intervention.name}
               </h1>
-              {statusStyle && (
-                <Badge className={statusStyle.badgeClassName}>
-                  {statusStyle.label}
-                </Badge>
-              )}
+              {statusStyle && <StatusPill status={statusStyle} />}
               {(intervention.types ?? []).map((t) => (
                 <Badge key={t} variant="secondary">
                   {toTitle(t)}
@@ -713,13 +710,13 @@ function DiffChips({
 }) {
   return (
     <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
-      <span className="rounded bg-rose-50 px-1.5 py-0.5 text-rose-800 ring-1 ring-inset ring-rose-200 line-through">
+      <span className="rounded border border-border bg-muted/40 px-1.5 py-0.5 text-muted-foreground line-through">
         {oldValue ?? "-"}
       </span>
       <span className="text-muted-foreground" aria-hidden>
         →
       </span>
-      <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-emerald-800 ring-1 ring-inset ring-emerald-200">
+      <span className="rounded border border-border bg-card px-1.5 py-0.5 font-medium text-foreground">
         {newValue ?? "-"}
       </span>
     </div>

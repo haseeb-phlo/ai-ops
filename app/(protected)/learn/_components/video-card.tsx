@@ -292,8 +292,8 @@ function CompletionToggle({
         aria-hidden
         className={`inline-flex size-5 items-center justify-center rounded-full border transition-colors ${
           completed
-            ? "border-emerald-500 bg-emerald-500 text-white"
-            : "border-muted-foreground/40 text-transparent hover:border-emerald-500"
+            ? "border-primary bg-primary text-primary-foreground"
+            : "border-muted-foreground/40 text-transparent hover:border-primary"
         }`}
       >
         <CheckIcon className={completed ? "size-3" : "hidden"} strokeWidth={3} />
