@@ -5,8 +5,8 @@
  * schema overhead for a tree this shape rarely changes.
  *
  * Lookups are keyed on lowercased email so display_name stays sourced from
- * the `public.people` directory and small spelling fixes (e.g. Khushboo)
- * don't break the tree.
+ * the `public.people` directory and small spelling fixes don't break the
+ * tree.
  *
  * Shape is recursive: every node may own zero or more `teams` (members of
  * those `people.team` values render as chips below) and zero or more named
@@ -75,8 +75,8 @@ export const ORG_TREE: OrgTree = {
           ],
         },
         {
-          // Khushboo has no team or directs beneath her in the tree per
-          // product direction; the email keeps the seed's spelling.
+          // Khusboo has no team or directs beneath her in the tree per
+          // product direction.
           email: "khusboo.patel@wearephlo.com",
           teams: [],
           directs: [],
@@ -103,6 +103,12 @@ export const ORG_TREE: OrgTree = {
       teams: ["Finance"],
       directs: [],
     },
+    // Non-Executive Director - board-level, no teams or reports.
+    {
+      email: "jason.mcgibbon@wearephlo.com",
+      teams: [],
+      directs: [],
+    },
     {
       email: "jonathan.forbes@wearephlo.com",
       teams: ["Data & Automation"],
@@ -113,11 +119,18 @@ export const ORG_TREE: OrgTree = {
       teams: ["People"],
       directs: [],
     },
-    // Neal has nobody below him.
     {
       email: "neal.archbold@wearephlo.com",
       teams: [],
-      directs: [],
+      directs: [
+        // Named direct rather than a team chip: her `people.team` is
+        // Product, which Eva owns, but she reports to Neal.
+        {
+          email: "sofiia.yevmenkina@wearephlo.com",
+          teams: [],
+          directs: [],
+        },
+      ],
     },
   ],
 };
