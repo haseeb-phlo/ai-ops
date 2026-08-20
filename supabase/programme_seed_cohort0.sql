@@ -34,13 +34,14 @@ select 'When to use AI and when not to',
    select 1 from public.learn_videos where lower(title) = lower('When to use AI and when not to')
  );
 
--- Bind any track item whose title matches, now the video exists.
+-- Bind the matching VIDEO item, now the video exists. Video items only - a
+-- use_example stays unbound so watching can't auto-complete the exercise.
 update public.programme_track_items i
    set learn_video_id = v.id
   from public.learn_videos v
  where i.learn_video_id is null
-   and i.type in ('video', 'use_example')
-   and lower(v.title) = lower(split_part(i.title, ' — ', 1))
+   and i.type = 'video'
+   and lower(v.title) = lower(i.title)
    and i.track_id = (select id from public.programme_tracks where slug = 'core-programme');
 
 -- 2. The cohort -----------------------------------------------------------
@@ -82,15 +83,25 @@ update public.programme_cohorts c
 --
 -- These inserts fire on_auth_user_created (creating profiles) and
 -- enforce_phlo_email_trigger, which is exactly what we want to exercise.
+--
+-- The empty-string token columns are load-bearing, not noise. GoTrue scans
+-- confirmation_token / recovery_token / email_change / email_change_token_new
+-- into Go `string` rather than `*string`, so leaving them NULL makes every
+-- lookup fail with "Database error finding user" - dev-login included, which
+-- would make these fixture users unusable.
 insert into auth.users (
   id, instance_id, aud, role, email, encrypted_password,
   email_confirmed_at, created_at, updated_at,
-  raw_app_meta_data, raw_user_meta_data
+  raw_app_meta_data, raw_user_meta_data,
+  confirmation_token, recovery_token, email_change, email_change_token_new,
+  email_change_token_current, reauthentication_token, phone_change,
+  phone_change_token
 )
 select v.id, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
        v.email, '', now(), now(), now(),
        '{"provider":"email","providers":["email"]}'::jsonb,
-       jsonb_build_object('display_name', v.display_name)
+       jsonb_build_object('display_name', v.display_name),
+       '', '', '', '', '', '', '', ''
   from (values
     ('c0000000-0000-4000-8000-000000000001'::uuid, 'cohort0.returner@wearephlo.com',   'Cohort0 Returner'),
     ('c0000000-0000-4000-8000-000000000002'::uuid, 'cohort0.firsttimer@wearephlo.com', 'Cohort0 First-timer'),

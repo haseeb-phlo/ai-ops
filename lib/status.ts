@@ -91,3 +91,66 @@ export const SUGGESTION_STATUS: Record<SuggestionStatus, StatusStyle> = {
     dotClassName: "bg-rose-500",
   },
 };
+
+/* ------------------------------------------------------------------ */
+/* Core Programme                                                      */
+/* ------------------------------------------------------------------ */
+
+// RAG is a health signal, so it uses the same three hues the rest of the app
+// reserves for good/warning/bad - emerald, amber, rose. Rendered as a dot like
+// everything else: a members-x-days heatmap of colour washes would be a wall
+// of confetti and would break the grammar the whole app follows.
+
+export const PROGRAMME_RAG_STATUSES = ["green", "amber", "red"] as const;
+export type ProgrammeRagStatus = (typeof PROGRAMME_RAG_STATUSES)[number];
+
+export const PROGRAMME_RAG: Record<ProgrammeRagStatus, StatusStyle> = {
+  green: { label: "On track", dotClassName: "bg-emerald-500" },
+  amber: { label: "Slipping", dotClassName: "bg-amber-500" },
+  red: { label: "Behind", dotClassName: "bg-rose-500" },
+};
+
+// Item state on the member's timeline. "Locked" and "available" are states of
+// the programme rather than of the member, so they stay neutral ink; only
+// finished work earns a colour.
+export const PROGRAMME_ITEM_STATES = [
+  "locked",
+  "available",
+  "started",
+  "complete",
+] as const;
+export type ProgrammeItemState = (typeof PROGRAMME_ITEM_STATES)[number];
+
+export const PROGRAMME_ITEM_STATE: Record<ProgrammeItemState, StatusStyle> = {
+  locked: { label: "Locked", dotClassName: "bg-muted-foreground/40" },
+  available: { label: "To do", dotClassName: "bg-muted-foreground" },
+  started: { label: "In progress", dotClassName: "bg-cyan-500" },
+  complete: { label: "Complete", dotClassName: "bg-emerald-500" },
+};
+
+// Gate chips. A gate is binary, so there are only two styles - passed, or not
+// yet. "Not yet" is deliberately neutral rather than red: a member on day 3
+// has failed nothing.
+export const PROGRAMME_GATE_PASSED: StatusStyle = {
+  label: "Passed",
+  dotClassName: "bg-emerald-500",
+};
+export const PROGRAMME_GATE_PENDING: StatusStyle = {
+  label: "Not yet",
+  dotClassName: "bg-muted-foreground/40",
+};
+
+// Sign-off state on a submission (rendered from Part 3 onward).
+export const PROGRAMME_SIGNOFF_STATUSES = [
+  "pending",
+  "approved",
+  "rejected",
+] as const;
+export type ProgrammeSignoffStatus =
+  (typeof PROGRAMME_SIGNOFF_STATUSES)[number];
+
+export const PROGRAMME_SIGNOFF: Record<ProgrammeSignoffStatus, StatusStyle> = {
+  pending: { label: "Awaiting sign-off", dotClassName: "bg-amber-500" },
+  approved: { label: "Approved", dotClassName: "bg-emerald-500" },
+  rejected: { label: "Needs another go", dotClassName: "bg-rose-500" },
+};

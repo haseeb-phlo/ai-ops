@@ -89,12 +89,16 @@ lines.push(` );`);
 lines.push("");
 lines.push(`-- Re-bind any day whose Learn video has since been added. Only fills nulls,`);
 lines.push(`-- so an admin's manual binding is never overwritten.`);
+lines.push(`--`);
+lines.push(`-- VIDEO ITEMS ONLY. A use_example is the "now go do it" half of the day and`);
+lines.push(`-- stays unbound: if it shared the video, one tick on /learn would complete`);
+lines.push(`-- both items and G1 would be reachable without doing any exercise.`);
 lines.push(`update public.programme_track_items i`);
 lines.push(`   set learn_video_id = v.id`);
 lines.push(`  from public.learn_videos v`);
 lines.push(` where i.learn_video_id is null`);
-lines.push(`   and i.type in ('video', 'use_example')`);
-lines.push(`   and lower(v.title) = lower(split_part(i.title, ' — ', 1))`);
+lines.push(`   and i.type = 'video'`);
+lines.push(`   and lower(v.title) = lower(i.title)`);
 lines.push(`   and i.track_id = (select id from public.programme_tracks where slug = ${q(TRACK_SLUG)});`);
 lines.push("");
 

@@ -12,6 +12,9 @@ import {
   type SortableItem,
 } from "./_components/sortable-video-grid";
 import { YourProgress } from "./_components/your-progress";
+import { ProgrammeBanner } from "./_components/programme-banner";
+import { BaselineGateCard } from "./track/_components/baseline-gate-card";
+import { loadTrackState } from "@/lib/programme/track-data";
 import {
   LEARN_SUBTOPICS,
   LEARN_SUBTOPIC_LABEL,
@@ -53,6 +56,10 @@ type ResourceRow = {
 export default async function LearnPage() {
   const user = await getSessionUser();
   const supabase = await createClient();
+
+  // Null for anyone not enrolled in a live cohort, which is most people until
+  // their cohort starts - Learn stays an open library for them.
+  const track = await loadTrackState(user.id, user.email);
 
   const [
     { data: videos },
@@ -204,6 +211,19 @@ export default async function LearnPage() {
         description="Short Loom walkthroughs and supporting materials for getting better at AI."
         actions={canManageVideos ? <AddVideoDialog /> : null}
       />
+
+      {track &&
+        (track.hasBaseline ? (
+          <ProgrammeBanner
+            cohortName={track.cohort.name}
+            completed={track.gates.g1.current}
+            total={track.gates.g1.target}
+            rag={track.rag}
+            outstandingCount={track.outstandingCount}
+          />
+        ) : (
+          <BaselineGateCard compact />
+        ))}
 
       <YourProgress
         completed={myCompletedVideoIds.size}
