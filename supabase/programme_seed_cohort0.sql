@@ -111,6 +111,21 @@ select v.id, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authentic
   ) as v(id, email, display_name)
  where not exists (select 1 from auth.users u where u.id = v.id);
 
+-- handle_new_user seeds profiles.display_name from the email local part, so
+-- these would read "cohort0.returner" on the roster. Give them real names -
+-- the admin grid is meant to be scannable.
+update public.profiles p
+   set display_name = v.display_name
+  from (values
+    ('c0000000-0000-4000-8000-000000000001'::uuid, 'Cohort0 Returner'),
+    ('c0000000-0000-4000-8000-000000000002'::uuid, 'Cohort0 First-timer'),
+    ('c0000000-0000-4000-8000-000000000003'::uuid, 'Cohort0 Lead-and-member'),
+    ('c0000000-0000-4000-8000-000000000004'::uuid, 'Cohort0 Senior lead'),
+    ('c0000000-0000-4000-8000-000000000005'::uuid, 'Cohort0 Mid-cohort joiner')
+  ) as v(user_id, display_name)
+ where p.user_id = v.user_id
+   and p.display_name is distinct from v.display_name;
+
 -- 5. Members ---------------------------------------------------------------
 -- Lead routing:
 --   returner, first-timer, joiner -> lead-and-member (ord 3)

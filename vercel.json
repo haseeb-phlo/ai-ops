@@ -4,6 +4,10 @@
     {
       "path": "/api/cron/digest",
       "schedule": "0 7 * * 3"
+    },
+    {
+      "path": "/api/cron/programme-rag",
+      "schedule": "0 6 * * *"
     }
   ]
 }
