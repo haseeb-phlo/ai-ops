@@ -155,6 +155,59 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_score_responses: {
+        Row: {
+          answers_json: Json
+          cohort_id: string | null
+          created_at: string
+          duration_seconds: number | null
+          email: string
+          flow: string | null
+          id: string
+          source: string
+          submitted_at: string
+          updated_at: string
+          user_id: string | null
+          wave: string
+        }
+        Insert: {
+          answers_json?: Json
+          cohort_id?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          email: string
+          flow?: string | null
+          id?: string
+          source?: string
+          submitted_at?: string
+          updated_at?: string
+          user_id?: string | null
+          wave: string
+        }
+        Update: {
+          answers_json?: Json
+          cohort_id?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          email?: string
+          flow?: string | null
+          id?: string
+          source?: string
+          submitted_at?: string
+          updated_at?: string
+          user_id?: string | null
+          wave?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_score_responses_cohort_id_fkey"
+            columns: ["cohort_id"]
+            isOneToOne: false
+            referencedRelation: "programme_cohorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       champion_notes: {
         Row: {
           body: string
@@ -816,6 +869,416 @@ export type Database = {
         }
         Relationships: []
       }
+      programme_cohort_members: {
+        Row: {
+          cohort_id: string
+          completed_at: string | null
+          created_at: string
+          id: string
+          is_champion: boolean
+          joined_at: string
+          notification_opt_out: boolean
+          rag_computed_at: string | null
+          rag_status: string | null
+          team_lead_user_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cohort_id: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          is_champion?: boolean
+          joined_at?: string
+          notification_opt_out?: boolean
+          rag_computed_at?: string | null
+          rag_status?: string | null
+          team_lead_user_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cohort_id?: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          is_champion?: boolean
+          joined_at?: string
+          notification_opt_out?: boolean
+          rag_computed_at?: string | null
+          rag_status?: string | null
+          team_lead_user_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "programme_cohort_members_cohort_id_fkey"
+            columns: ["cohort_id"]
+            isOneToOne: false
+            referencedRelation: "programme_cohorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      programme_cohorts: {
+        Row: {
+          created_at: string
+          id: string
+          is_test: boolean
+          name: string
+          session_dates: Json
+          slack_channel: string | null
+          start_date: string
+          status: string
+          track_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_test?: boolean
+          name: string
+          session_dates?: Json
+          slack_channel?: string | null
+          start_date: string
+          status?: string
+          track_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_test?: boolean
+          name?: string
+          session_dates?: Json
+          slack_channel?: string | null
+          start_date?: string
+          status?: string
+          track_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "programme_cohorts_track_id_fkey"
+            columns: ["track_id"]
+            isOneToOne: false
+            referencedRelation: "programme_tracks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      programme_item_progress: {
+        Row: {
+          cohort_member_id: string
+          completed_at: string | null
+          created_at: string
+          id: string
+          meta_json: Json
+          status: string
+          track_item_id: string
+          updated_at: string
+        }
+        Insert: {
+          cohort_member_id: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          meta_json?: Json
+          status?: string
+          track_item_id: string
+          updated_at?: string
+        }
+        Update: {
+          cohort_member_id?: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          meta_json?: Json
+          status?: string
+          track_item_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "programme_item_progress_cohort_member_id_fkey"
+            columns: ["cohort_member_id"]
+            isOneToOne: false
+            referencedRelation: "programme_cohort_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "programme_item_progress_track_item_id_fkey"
+            columns: ["track_item_id"]
+            isOneToOne: false
+            referencedRelation: "programme_track_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      programme_quiz_attempts: {
+        Row: {
+          answers_json: Json
+          cohort_member_id: string
+          created_at: string
+          id: string
+          score: number
+          track_item_id: string
+        }
+        Insert: {
+          answers_json?: Json
+          cohort_member_id: string
+          created_at?: string
+          id?: string
+          score: number
+          track_item_id: string
+        }
+        Update: {
+          answers_json?: Json
+          cohort_member_id?: string
+          created_at?: string
+          id?: string
+          score?: number
+          track_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "programme_quiz_attempts_cohort_member_id_fkey"
+            columns: ["cohort_member_id"]
+            isOneToOne: false
+            referencedRelation: "programme_cohort_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "programme_quiz_attempts_track_item_id_fkey"
+            columns: ["track_item_id"]
+            isOneToOne: false
+            referencedRelation: "programme_track_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      programme_session_attendance: {
+        Row: {
+          cohort_id: string
+          created_at: string
+          id: string
+          marked_by: string | null
+          meta_json: Json
+          slot: number | null
+          status: string
+          track_item_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cohort_id: string
+          created_at?: string
+          id?: string
+          marked_by?: string | null
+          meta_json?: Json
+          slot?: number | null
+          status: string
+          track_item_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cohort_id?: string
+          created_at?: string
+          id?: string
+          marked_by?: string | null
+          meta_json?: Json
+          slot?: number | null
+          status?: string
+          track_item_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "programme_session_attendance_cohort_id_fkey"
+            columns: ["cohort_id"]
+            isOneToOne: false
+            referencedRelation: "programme_cohorts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "programme_session_attendance_track_item_id_fkey"
+            columns: ["track_item_id"]
+            isOneToOne: false
+            referencedRelation: "programme_track_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      programme_submissions: {
+        Row: {
+          artefact_url: string | null
+          cohort_member_id: string
+          created_at: string
+          id: string
+          kind: string
+          prompt_text: string | null
+          signed_at: string | null
+          signed_by: string | null
+          signoff_comment: string | null
+          signoff_rubric_json: Json
+          signoff_status: string
+          superseded_by: string | null
+          task_solved: string | null
+          time_saved_estimate: string | null
+          track_item_id: string | null
+          updated_at: string
+          visibility: string
+        }
+        Insert: {
+          artefact_url?: string | null
+          cohort_member_id: string
+          created_at?: string
+          id?: string
+          kind: string
+          prompt_text?: string | null
+          signed_at?: string | null
+          signed_by?: string | null
+          signoff_comment?: string | null
+          signoff_rubric_json?: Json
+          signoff_status?: string
+          superseded_by?: string | null
+          task_solved?: string | null
+          time_saved_estimate?: string | null
+          track_item_id?: string | null
+          updated_at?: string
+          visibility?: string
+        }
+        Update: {
+          artefact_url?: string | null
+          cohort_member_id?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          prompt_text?: string | null
+          signed_at?: string | null
+          signed_by?: string | null
+          signoff_comment?: string | null
+          signoff_rubric_json?: Json
+          signoff_status?: string
+          superseded_by?: string | null
+          task_solved?: string | null
+          time_saved_estimate?: string | null
+          track_item_id?: string | null
+          updated_at?: string
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "programme_submissions_cohort_member_id_fkey"
+            columns: ["cohort_member_id"]
+            isOneToOne: false
+            referencedRelation: "programme_cohort_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "programme_submissions_superseded_by_fkey"
+            columns: ["superseded_by"]
+            isOneToOne: false
+            referencedRelation: "programme_submissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "programme_submissions_track_item_id_fkey"
+            columns: ["track_item_id"]
+            isOneToOne: false
+            referencedRelation: "programme_track_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      programme_track_items: {
+        Row: {
+          config_json: Json
+          created_at: string
+          day_index: number
+          description: string | null
+          id: string
+          learn_video_id: string | null
+          sort_order: number
+          title: string
+          track_id: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          config_json?: Json
+          created_at?: string
+          day_index: number
+          description?: string | null
+          id?: string
+          learn_video_id?: string | null
+          sort_order?: number
+          title: string
+          track_id: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          config_json?: Json
+          created_at?: string
+          day_index?: number
+          description?: string | null
+          id?: string
+          learn_video_id?: string | null
+          sort_order?: number
+          title?: string
+          track_id?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "programme_track_items_learn_video_id_fkey"
+            columns: ["learn_video_id"]
+            isOneToOne: false
+            referencedRelation: "learn_videos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "programme_track_items_track_id_fkey"
+            columns: ["track_id"]
+            isOneToOne: false
+            referencedRelation: "programme_tracks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      programme_tracks: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       regulatory_events: {
         Row: {
           created_at: string
@@ -1267,6 +1730,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      ai_score_company_average: { Args: never; Returns: number }
       can_delete_workflow: { Args: { p_workflow_id: string }; Returns: boolean }
       can_edit_intervention: {
         Args: { p_intervention_id: string }
@@ -1276,9 +1740,19 @@ export type Database = {
         Args: { p_suggestion_id: string }
         Returns: boolean
       }
+      can_view_cohort_member: {
+        Args: { p_cohort_member_id: string }
+        Returns: boolean
+      }
+      current_user_email: { Args: never; Returns: string }
       delete_intervention: { Args: { p_id: string }; Returns: string }
+      is_super_admin: { Args: never; Returns: boolean }
       is_workflow_name_owner: {
         Args: { p_workflow_id: string }
+        Returns: boolean
+      }
+      leads_user_in_cohort: {
+        Args: { p_cohort_id: string; p_user_id: string }
         Returns: boolean
       }
       log_intervention: {
@@ -1299,6 +1773,10 @@ export type Database = {
           p_workflow_ids: string[]
         }
         Returns: string
+      }
+      owns_cohort_member: {
+        Args: { p_cohort_member_id: string }
+        Returns: boolean
       }
       recent_logins: {
         Args: never
@@ -1477,3 +1955,4 @@ export const Constants = {
     Enums: {},
   },
 } as const
+

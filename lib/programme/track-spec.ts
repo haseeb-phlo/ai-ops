@@ -1,0 +1,195 @@
+/**
+ * The Core Programme track definition - the single source of truth for what
+ * the 15-day programme contains.
+ *
+ * `supabase/programme_seed.sql` is GENERATED from this file
+ * (`npm run seed:programme`); do not hand-edit the SQL. Keeping one
+ * definition means the shape test below and the seeded rows cannot drift.
+ *
+ * Day numbering: day 0 is the entry gate (the baseline "Your AI Score"
+ * check-in). Days 1-15 are working days - day 1 is the cohort's start Monday,
+ * day 5 the Friday of week 1, day 15 the Friday of week 3.
+ */
+
+export type TrackItemType =
+  | "questionnaire_baseline"
+  | "video"
+  | "use_example"
+  | "session"
+  | "quiz"
+  | "questionnaire_post"
+  | "submission_slot";
+
+export type TrackItemSpec = {
+  type: TrackItemType;
+  title: string;
+  description?: string;
+  dayIndex: number;
+  sortOrder: number;
+  /**
+   * For `video` / `use_example`: the Learn video title to bind to at seed
+   * time. Bound by exact (normalised) title match against `learn_videos`,
+   * left null when there's no match, and bindable afterwards in the admin
+   * Track-items screen. The track only ever REFERENCES Learn.
+   */
+  learnVideoTitle?: string;
+  config?: Record<string, unknown>;
+};
+
+/** The 15 daily topics, verbatim from the programme playbook. */
+export const DAY_TOPICS: readonly string[] = [
+  "When to use AI and when not to",
+  "CRISP Framework",
+  "Connectors & MCP",
+  "Projects",
+  "Catching confident wrong answers",
+  "Research, Memory & files out",
+  "Cowork",
+  "Skills",
+  "Scheduled Tasks",
+  "Reverse Prompting",
+  "Artifacts",
+  "Design",
+  "Dispatch + Plugins",
+  "Claude everywhere",
+  "Choosing the right tool + measuring time saved",
+] as const;
+
+/** Live sessions land mid-week in each of the three weeks. */
+export const SESSION_DAYS = [3, 8, 13] as const;
+
+/**
+ * One quiz at the end of each week. Weeks 1 and 2 are short formative checks;
+ * week 3 is the longer summative quiz that gate G4 reads.
+ *
+ * `passMark` lives in config rather than code so the quiz can be retuned
+ * without a deploy - and so G4 never hardcodes "8".
+ */
+export const QUIZ_SPECS = [
+  { dayIndex: 5, title: "Week 1 check", questionCount: 5, passMark: 4, summative: false },
+  { dayIndex: 10, title: "Week 2 check", questionCount: 5, passMark: 4, summative: false },
+  { dayIndex: 15, title: "Final quiz", questionCount: 10, passMark: 8, summative: true },
+] as const;
+
+/**
+ * Submission slots, deliberately SPREAD across the programme rather than all
+ * unlocked on day 1.
+ *
+ * This is a RAG consequence, not a stylistic choice: red is ">=5 unlocked
+ * items incomplete", so opening all five signed_example slots at once would
+ * put every member straight into red on their first day.
+ */
+export const SUBMISSION_SLOT_SPECS = [
+  { kind: "work_sample_pre", dayIndex: 1, title: "Work sample (before)", visibility: "private" },
+  { kind: "signed_example", dayIndex: 3, title: "Signed example 1", visibility: "cohort" },
+  { kind: "signed_example", dayIndex: 6, title: "Signed example 2", visibility: "cohort" },
+  { kind: "signed_example", dayIndex: 9, title: "Signed example 3", visibility: "cohort" },
+  { kind: "signed_example", dayIndex: 12, title: "Signed example 4", visibility: "cohort" },
+  { kind: "signed_example", dayIndex: 14, title: "Signed example 5", visibility: "cohort" },
+  { kind: "capstone", dayIndex: 13, title: "Capstone", visibility: "cohort" },
+  { kind: "work_sample_post", dayIndex: 15, title: "Work sample (after)", visibility: "private" },
+] as const;
+
+/** Render order within a single day. */
+const SORT = {
+  video: 0,
+  use_example: 1,
+  session: 2,
+  quiz: 3,
+  submission_slot: 4,
+  questionnaire_post: 5,
+} as const;
+
+export const TRACK_SLUG = "core-programme";
+export const TRACK_NAME = "Core Programme";
+
+/**
+ * Builds the full ordered item list. Pure - takes no arguments and touches
+ * nothing external, so the shape test can assert on it directly.
+ */
+export function buildTrackItems(): TrackItemSpec[] {
+  const items: TrackItemSpec[] = [];
+
+  // Day 0 - the entry gate. Nothing else unlocks until this is submitted.
+  items.push({
+    type: "questionnaire_baseline",
+    title: "Your AI Score — 3-minute check-in",
+    description:
+      "A quick self-assessment. It sets your starting point and unlocks the programme.",
+    dayIndex: 0,
+    sortOrder: 0,
+  });
+
+  // Days 1-15 - a video plus a worked example for each topic.
+  DAY_TOPICS.forEach((topic, i) => {
+    const dayIndex = i + 1;
+    items.push({
+      type: "video",
+      title: topic,
+      dayIndex,
+      sortOrder: SORT.video,
+      learnVideoTitle: topic,
+    });
+    items.push({
+      type: "use_example",
+      title: `${topic} — try it yourself`,
+      description: "Apply the day's technique to something on your own desk.",
+      dayIndex,
+      sortOrder: SORT.use_example,
+      learnVideoTitle: topic,
+    });
+  });
+
+  for (const [i, dayIndex] of SESSION_DAYS.entries()) {
+    items.push({
+      type: "session",
+      title: `Live session ${i + 1}`,
+      dayIndex,
+      sortOrder: SORT.session,
+      // Populated per cohort via programme_cohorts.session_dates; two dates
+      // there means a dual slot and attending either satisfies the item.
+      config: { slots: 2 },
+    });
+  }
+
+  for (const quiz of QUIZ_SPECS) {
+    items.push({
+      type: "quiz",
+      title: quiz.title,
+      dayIndex: quiz.dayIndex,
+      sortOrder: SORT.quiz,
+      config: {
+        pass_mark: quiz.passMark,
+        question_count: quiz.questionCount,
+        summative: quiz.summative,
+        // Filled in by an admin before the quiz unlocks; the engine reads
+        // questions from here so content changes need no deploy.
+        questions: [],
+      },
+    });
+  }
+
+  for (const slot of SUBMISSION_SLOT_SPECS) {
+    items.push({
+      type: "submission_slot",
+      title: slot.title,
+      dayIndex: slot.dayIndex,
+      sortOrder: SORT.submission_slot,
+      config: { kind: slot.kind, visibility: slot.visibility },
+    });
+  }
+
+  items.push({
+    type: "questionnaire_post",
+    title: "Your AI Score — see what three weeks did",
+    dayIndex: 15,
+    sortOrder: SORT.questionnaire_post,
+  });
+
+  return items.sort(
+    (a, b) => a.dayIndex - b.dayIndex || a.sortOrder - b.sortOrder,
+  );
+}
+
+/** The quiz whose score gate G4 reads. */
+export const SUMMATIVE_QUIZ_DAY = QUIZ_SPECS.find((q) => q.summative)!.dayIndex;

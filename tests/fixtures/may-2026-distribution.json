@@ -1,0 +1,176 @@
+{
+  "source": "Phlo AI Baseline Capability Questionnaire (1-108).xlsx",
+  "rowCount": 108,
+  "headers": {
+    "q1": "Writing effective prompts",
+    "q2": "Using Claude Projects",
+    "q3": "Using Claude Artefacts",
+    "q4": "Using Claude Scheduled Tasks",
+    "q5": "Using MCP / Connectors",
+    "q6": "Using Skills.",
+    "q7": "Using AI Ops",
+    "q8": "Name any other AI tools you use and your confidence with them.",
+    "q9": "I feel confident using AI for my core work tasks",
+    "q10": "I feel confident explaining what AI can and can't do to a colleague",
+    "q11": "I feel confident designing an AI workflow from scratch",
+    "q12": "I feel confident keeping up with AI changes",
+    "q13": "I feel confident pushing back when AI gives a wrong or weak answer",
+    "q14": "I feel confident teaching a teammate to use an AI tool I know well.",
+    "q15": "I feel confident choosing the right AI tool or model for a given task.",
+    "q16": "How do you currently feel about using AI at work?",
+    "q17": "How do you feel about Phlo's pace and approach to AI?",
+    "q18": "How many days per week do you use AI for work?",
+    "q19": "How many hours per week does AI save you (rough estimate)?",
+    "q20": "What's the biggest thing blocking you from using AI at work?",
+    "q21": "Where would AI training make the most difference to you?",
+    "q22": "What's one thing you wish AI could help with?",
+    "q23": "Any other comments?"
+  },
+  "distributions": {
+    "q1": {
+      "I write structured prompts with context, role and clear instructions. Most prompts work first time.": 41,
+      "I wrote one-line prompts and sometimes add more context if the answer is bad.": 33,
+      "I don't really write prompts - I ask questions in plain English and accept the answer I get.": 19,
+      "I write prompts using a framework and iterate when needed. I have prompts I reuse.": 13,
+      "I've designed a bank of prompts with variations and examples. Others on my team have used prompts I've written.": 2
+    },
+    "q2": {
+      "I've heard of them but haven't used one.": 43,
+      "I don't know what Claude Projects are.": 29,
+      "I have 2+ active Projects I use weekly with relevant documents uploaded.": 17,
+      "I've created one or two which I use it occasionally. I mostly still paste context into chats.": 17,
+      "I've designed Projects that other people on my team now use.": 2
+    },
+    "q3": {
+      "I don't know what Artefacts are.": 58,
+      "I've heard of them but don't know how to use them.": 32,
+      "I've created an Artefact a few times.": 12,
+      "I regularly use Artefacts when they fit the task.": 5,
+      "I deliberately design AI work to produce shareable Artefacts.": 1
+    },
+    "q4": {
+      "I don't know what scheduled tasks are.": 44,
+      "I've heard of them but don't know how to set one up.": 40,
+      "I've set one up but I'm not sure I'm using it well.": 16,
+      "I have 2+ scheduled tasks running which save me time and give me good outputs.": 7,
+      "Others use the scheduled tasks I've designed.": 1
+    },
+    "q5": {
+      "I don't know what MCP or Connectors are.": 52,
+      "I actively choose connectors based on the task.": 26,
+      "I've heard of them but haven't connected anything.": 12,
+      "I have 1-2 connectors enabled but haven't touched them since connecting them.": 10,
+      "I've helped my team set up connectors.": 8
+    },
+    "q6": {
+      "I don't know what Skills are.": 44,
+      "I've heard of them but haven't added one.": 36,
+      "I'm actively writing new skills when the opportunity arises.": 12,
+      "I have 1-2 skills which I use when needed.": 9,
+      "Others in my team use the skills I've made.": 7
+    },
+    "q7": {
+      "I haven't logged into AI Ops yet.": 54,
+      "I have logged in but don't know how to use it.": 25,
+      "I've added a workflow, suggestion or watch an AI training video.": 24,
+      "I have added something to AI Ops and want to use it more.": 3,
+      "I use it as my go to resource for everything AI at Phlo.": 2
+    },
+    "q9": {
+      "Agree": 52,
+      "Neutral": 26,
+      "Strongly Agree": 20,
+      "Disagree": 7,
+      "Strongly Disagree": 3
+    },
+    "q10": {
+      "Neutral": 39,
+      "Agree": 35,
+      "Disagree": 17,
+      "Strongly Agree": 12,
+      "Strongly Disagree": 5
+    },
+    "q11": {
+      "Disagree": 34,
+      "Strongly Disagree": 27,
+      "Neutral": 24,
+      "Agree": 17,
+      "Strongly Agree": 6
+    },
+    "q12": {
+      "Neutral": 33,
+      "Agree": 28,
+      "Disagree": 25,
+      "Strongly Disagree": 12,
+      "Strongly Agree": 10
+    },
+    "q13": {
+      "Agree": 49,
+      "Strongly Agree": 40,
+      "Neutral": 13,
+      "Disagree": 4,
+      "Strongly Disagree": 2
+    },
+    "q14": {
+      "Agree": 38,
+      "Disagree": 25,
+      "Neutral": 24,
+      "Strongly Agree": 15,
+      "Strongly Disagree": 6
+    },
+    "q15": {
+      "Neutral": 33,
+      "Agree": 29,
+      "Disagree": 26,
+      "Strongly Disagree": 13,
+      "Strongly Agree": 7
+    },
+    "q16": {
+      "Interested & learning the basics": 51,
+      "Energised & building things": 22,
+      "Neutral ": 22,
+      "Curious but stuck": 10,
+      "Anxious & over-whelmed": 3
+    },
+    "q17": {
+      "The pace and approach is right - it feels sustainable.": 52,
+      "I don't know enough about Phlo's AI strategy to have a view.": 35,
+      "Moving too fast - I would like more time to consolidate before the next step.": 11,
+      "Moving too slow - I want more support, faster.": 10
+    },
+    "q18": {
+      "5": 60,
+      "1": 20,
+      "3": 14,
+      "4": 9,
+      "2": 5
+    }
+  },
+  "answered": {
+    "q1": 108,
+    "q2": 108,
+    "q3": 108,
+    "q4": 108,
+    "q5": 108,
+    "q6": 108,
+    "q7": 108,
+    "q8": 108,
+    "q9": 108,
+    "q10": 108,
+    "q11": 108,
+    "q12": 108,
+    "q13": 108,
+    "q14": 108,
+    "q15": 108,
+    "q16": 108,
+    "q17": 108,
+    "q18": 108,
+    "q19": 108,
+    "q20": 108,
+    "q21": 108,
+    "q22": 108,
+    "q23": 43
+  },
+  "emailCount": 108,
+  "uniqueEmailCount": 108
+}
