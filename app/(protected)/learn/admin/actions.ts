@@ -8,6 +8,13 @@ import {
   buildImportPreview,
   type ImportPreview,
 } from "@/lib/programme/may-import";
+import { z } from "zod";
+import {
+  ATTENDANCE_STATUSES,
+  type AttendanceStatus,
+} from "@/lib/programme/attendance";
+import { buildWorkSampleCsv } from "@/lib/programme/anonymise";
+import { loadCohortAdminView } from "@/lib/programme/cohort-admin";
 
 /**
  * May 2026 import.
@@ -188,4 +195,145 @@ function parseCompletionTime(raw: string): string {
   return Number.isNaN(parsed)
     ? new Date().toISOString()
     : new Date(parsed).toISOString();
+}
+
+/* ------------------------------------------------------------------ */
+/* Attendance roster                                                   */
+/* ------------------------------------------------------------------ */
+
+
+const MarkAttendanceSchema = z.object({
+  cohort_id: z.string().uuid(),
+  track_item_id: z.string().uuid(),
+  user_id: z.string().uuid(),
+  // null clears the mark, which is what the fourth tap does.
+  status: z.enum(ATTENDANCE_STATUSES).nullable(),
+  slot: z.number().int().min(1).max(2).nullable(),
+  make_up: z.boolean(),
+});
+
+export type MarkAttendanceResult =
+  | { ok: true; status: AttendanceStatus | null }
+  | { ok: false; message: string };
+
+/**
+ * Marks one roster cell. Called on every tap, so it stays a single upsert or
+ * delete - the grid is meant to be filled in during a session, at speed.
+ */
+export async function markAttendance(input: {
+  cohortId: string;
+  trackItemId: string;
+  userId: string;
+  status: AttendanceStatus | null;
+  slot: number | null;
+  makeUp: boolean;
+}): Promise<MarkAttendanceResult> {
+  const gate = await requireWriter();
+  if (!gate.ok) return { ok: false, message: gate.error };
+  if (gate.user.realRole !== "super_admin") {
+    return { ok: false, message: "Only super admins can mark attendance." };
+  }
+
+  const parsed = MarkAttendanceSchema.safeParse({
+    cohort_id: input.cohortId,
+    track_item_id: input.trackItemId,
+    user_id: input.userId,
+    status: input.status,
+    slot: input.slot,
+    make_up: input.makeUp,
+  });
+  if (!parsed.success) return { ok: false, message: "Invalid mark." };
+
+  const supabase = await createClient();
+
+  if (parsed.data.status === null) {
+    const { error } = await supabase
+      .from("programme_session_attendance")
+      .delete()
+      .eq("cohort_id", parsed.data.cohort_id)
+      .eq("track_item_id", parsed.data.track_item_id)
+      .eq("user_id", parsed.data.user_id);
+    if (error) return { ok: false, message: error.message };
+  } else {
+    const { error } = await supabase
+      .from("programme_session_attendance")
+      .upsert(
+        {
+          cohort_id: parsed.data.cohort_id,
+          track_item_id: parsed.data.track_item_id,
+          user_id: parsed.data.user_id,
+          status: parsed.data.status,
+          slot: parsed.data.slot,
+          marked_by: gate.user.id,
+          // make_up only means anything alongside an excusal.
+          meta_json:
+            parsed.data.status === "excused" && parsed.data.make_up
+              ? { make_up: true }
+              : {},
+        },
+        { onConflict: "cohort_id,track_item_id,user_id" },
+      );
+    if (error) return { ok: false, message: error.message };
+  }
+
+  // Attendance can flip G2, and therefore RAG. Recompute now rather than
+  // waiting for the nightly job.
+  await recomputeCohortRag(parsed.data.cohort_id);
+
+  revalidatePath("/learn/admin");
+  revalidatePath("/learn/track");
+  return { ok: true, status: parsed.data.status };
+}
+
+/**
+ * Recomputes and stores rag_status for every member of a cohort.
+ *
+ * Shared by the nightly cron and by any event that can change a gate. The
+ * arithmetic lives in the pure modules; this is just the write.
+ */
+export async function recomputeCohortRag(cohortId: string): Promise<number> {
+  const view = await loadCohortAdminView(cohortId);
+  if (!view) return 0;
+
+  const supabase = await createClient();
+  const now = new Date().toISOString();
+
+  const updates = view.members.map((member) =>
+    supabase
+      .from("programme_cohort_members")
+      .update({ rag_status: member.rag, rag_computed_at: now })
+      .eq("id", member.cohortMemberId),
+  );
+  await Promise.all(updates);
+  return view.members.length;
+}
+
+/**
+ * CSV of work-sample pairs for external blind scoring.
+ *
+ * Returns the text rather than streaming a file so this stays a Server Action
+ * (app/api is reserved for system endpoints); the client turns it into a
+ * download.
+ *
+ * The member key is a hash of a random UUID - there is no name, email or team
+ * in the output, because the scorer must not be able to tell whose work they
+ * are reading and the file leaves our control on download.
+ */
+export async function exportWorkSamplePairs(
+  cohortId: string,
+): Promise<{ ok: true; csv: string; filename: string } | { ok: false; message: string }> {
+  const gate = await requireWriter();
+  if (!gate.ok) return { ok: false, message: gate.error };
+  if (gate.user.realRole !== "super_admin") {
+    return { ok: false, message: "Only super admins can export." };
+  }
+
+  const view = await loadCohortAdminView(cohortId);
+  if (!view) return { ok: false, message: "Cohort not found." };
+
+  return {
+    ok: true,
+    csv: buildWorkSampleCsv(view.workSamplePairs),
+    filename: `work-samples-${view.cohort.name.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.csv`,
+  };
 }
