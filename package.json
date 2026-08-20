@@ -10,7 +10,8 @@
     "test": "vitest",
     "db:types": "supabase gen types typescript --linked > lib/database.types.ts",
     "db:diff": "supabase db diff --linked",
-    "db:new": "supabase migration new"
+    "db:new": "supabase migration new",
+    "seed:programme": "node scripts/generate-programme-seed.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.92.0",
