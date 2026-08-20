@@ -1,4 +1,5 @@
 {
+  "_comment": "Ground truth from the original May 2026 export: per-question answer counts across all 108 responses. Two consumers: tests/programme-questions.test.ts asserts the question bank still offers exactly the options people chose, and the admin import preview compares an uploaded file against these counts. A column shift in a re-export cannot survive that comparison. Counts only - no names, emails, or free-text answers.",
   "source": "Phlo AI Baseline Capability Questionnaire (1-108).xlsx",
   "rowCount": 108,
   "headers": {

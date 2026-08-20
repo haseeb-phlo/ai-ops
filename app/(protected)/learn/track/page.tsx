@@ -9,7 +9,10 @@ import { BaselineGateCard } from "./_components/baseline-gate-card";
 import { GateStrip } from "./_components/gate-strip";
 import { DayRow } from "./_components/day-row";
 import type { TrackItemView } from "./_components/track-item-card";
-import type { ProgrammeItemState } from "@/lib/status";
+import type {
+  ProgrammeItemState,
+  ProgrammeSignoffStatus,
+} from "@/lib/status";
 
 export const metadata = { title: "Core Programme" };
 
@@ -57,6 +60,20 @@ export default async function TrackPage() {
       video: resolved.item.learn_video_id
         ? (state.videosById.get(resolved.item.learn_video_id) ?? null)
         : null,
+      submission:
+        resolved.item.type === "submission_slot"
+          ? {
+              kind:
+                (resolved.item.config_json?.kind as string) ??
+                "signed_example",
+              signoffStatus:
+                (state.submissionByItemId.get(resolved.item.id)
+                  ?.signoffStatus as ProgrammeSignoffStatus) ?? null,
+              signoffComment:
+                state.submissionByItemId.get(resolved.item.id)
+                  ?.signoffComment ?? null,
+            }
+          : null,
     });
     byDay.set(resolved.item.day_index, list);
   }

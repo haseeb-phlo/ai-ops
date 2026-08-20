@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import fixture from "./fixtures/may-2026-distribution.json";
+import fixture from "@/lib/programme/may-2026-distribution.json";
 import {
   CAPABILITY_AXIS_LABEL,
   CAPABILITY_QUESTION_IDS,

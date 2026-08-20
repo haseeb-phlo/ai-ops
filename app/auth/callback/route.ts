@@ -34,5 +34,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${origin}/login?error=domain_blocked`);
   }
 
+  // Bind any "Your AI Score" responses stored against this person's email but
+  // not yet to their account - the May 2026 wave predates cohorts, and some
+  // respondents are signing in here for the first time. Cheap (indexed on
+  // unlinked rows) and idempotent, so running it on every sign-in is fine.
+  // Failure is non-fatal: it just retries next time, and nothing downstream
+  // joins on user_id.
+  const { error: linkError } = await supabase.rpc("link_ai_score_responses");
+  if (linkError) {
+    console.warn("[auth-callback] AI Score link failed", linkError.message);
+  }
+
   return NextResponse.redirect(`${origin}${next}`);
 }

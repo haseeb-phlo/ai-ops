@@ -1,4 +1,5 @@
-import { PlayIcon } from "lucide-react";
+import Link from "next/link";
+import { ArrowRightIcon, PlayIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionUser } from "@/lib/auth";
 import { fetchLoomOembed } from "@/lib/loom";
@@ -209,7 +210,27 @@ export default async function LearnPage() {
       <PageHeader
         title="Learn"
         description="Short Loom walkthroughs and supporting materials for getting better at AI."
-        actions={canManageVideos ? <AddVideoDialog /> : null}
+        actions={
+          <>
+            <Link
+              href="/learn/gallery"
+              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Prompt library
+              <ArrowRightIcon aria-hidden className="size-3.5" />
+            </Link>
+            {canManageVideos && (
+              <Link
+                href="/learn/admin"
+                className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+              >
+                Programme admin
+                <ArrowRightIcon aria-hidden className="size-3.5" />
+              </Link>
+            )}
+            {canManageVideos ? <AddVideoDialog /> : null}
+          </>
+        }
       />
 
       {track &&

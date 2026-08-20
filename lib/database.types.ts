@@ -1755,6 +1755,7 @@ export type Database = {
         Args: { p_cohort_id: string; p_user_id: string }
         Returns: boolean
       }
+      link_ai_score_responses: { Args: never; Returns: number }
       log_intervention: {
         Args: {
           p_adoption_status?: string
