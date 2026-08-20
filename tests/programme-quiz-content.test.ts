@@ -66,11 +66,30 @@ describe("quiz content", () => {
     }
   });
 
+  it("uses no em dashes anywhere", () => {
+    // House style: hyphens, not em dashes. Checked rather than trusted, since
+    // an em dash is easy to reintroduce without noticing.
+    for (const [day, questions] of Object.entries(QUIZ_CONTENT_BY_DAY)) {
+      for (const q of questions) {
+        const text = [q.question, ...q.options, q.explanation].join(" ");
+        expect(text, `day ${day}: "${q.question.slice(0, 40)}..."`).not.toMatch(
+          /[\u2014\u2013]/,
+        );
+      }
+    }
+  });
+
+  it("asks ten questions in every quiz", () => {
+    for (const questions of Object.values(QUIZ_CONTENT_BY_DAY)) {
+      expect(questions).toHaveLength(10);
+    }
+  });
+
   it("covers week 1's days in the week 1 quiz, and week 2's in week 2", () => {
-    const week1 = QUIZ_CONTENT_BY_DAY[5].map((q) => q.day).sort((a, b) => a - b);
-    const week2 = QUIZ_CONTENT_BY_DAY[10].map((q) => q.day).sort((a, b) => a - b);
-    expect(week1).toEqual([1, 2, 3, 4, 5]);
-    expect(week2).toEqual([6, 7, 8, 9, 10]);
+    const week1 = new Set(QUIZ_CONTENT_BY_DAY[5].map((q) => q.day));
+    const week2 = new Set(QUIZ_CONTENT_BY_DAY[10].map((q) => q.day));
+    expect([...week1].sort((a, b) => a - b)).toEqual([1, 2, 3, 4, 5]);
+    expect([...week2].sort((a, b) => a - b)).toEqual([6, 7, 8, 9, 10]);
   });
 
   it("makes the final quiz span all three weeks, not just week 3", () => {

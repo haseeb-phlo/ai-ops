@@ -12,6 +12,8 @@ import { ProgrammeTabs } from "./_components/programme-tabs";
 import { RosterGrid } from "./_components/roster-grid";
 import { CohortDashboard } from "./_components/cohort-dashboard";
 import { CohortPicker } from "./_components/cohort-picker";
+import { CohortManager } from "./_components/cohort-manager";
+import { todayInLondon } from "@/lib/programme/working-days";
 
 export const metadata = { title: "Programme admin" };
 
@@ -37,7 +39,9 @@ export default async function ProgrammeAdminPage({
     await Promise.all([
       supabase
         .from("programme_cohorts")
-        .select("id, name, status, start_date, is_test")
+        .select(
+          "id, name, status, start_date, is_test, join_code, join_open, slack_channel",
+        )
         .order("start_date", { ascending: false })
         .returns<
           {
@@ -46,6 +50,9 @@ export default async function ProgrammeAdminPage({
             status: string;
             start_date: string;
             is_test: boolean;
+            join_code: string | null;
+            join_open: boolean;
+            slack_channel: string | null;
           }[]
         >(),
       supabase
@@ -60,6 +67,30 @@ export default async function ProgrammeAdminPage({
     ]);
 
   const cohortList = cohorts ?? [];
+
+  // The create form needs the track's session items so it can derive dates,
+  // and the list shows how many people have enrolled on each cohort.
+  const [{ data: sessionRows }, { data: memberRows }] = await Promise.all([
+    supabase
+      .from("programme_track_items")
+      .select("id, title, day_index, programme_tracks!inner(slug)")
+      .eq("type", "session")
+      .eq("programme_tracks.slug", "core-programme")
+      .order("day_index")
+      .returns<{ id: string; title: string; day_index: number }[]>(),
+    supabase
+      .from("programme_cohort_members")
+      .select("cohort_id")
+      .returns<{ cohort_id: string }[]>(),
+  ]);
+  const sessionItems = sessionRows ?? [];
+  const memberCountByCohort = new Map<string, number>();
+  for (const m of memberRows ?? []) {
+    memberCountByCohort.set(
+      m.cohort_id,
+      (memberCountByCohort.get(m.cohort_id) ?? 0) + 1,
+    );
+  }
   // Default to the first live cohort, falling back to the most recent.
   const selectedId =
     cohortParam ??
@@ -154,30 +185,25 @@ export default async function ProgrammeAdminPage({
           )
         }
         cohorts={
-          cohortList.length === 0 ? (
-            noCohorts
-          ) : (
-            <ul className="divide-y divide-border rounded-lg border border-border bg-card">
-              {cohortList.map((c) => (
-                <li
-                  key={c.id}
-                  className="flex flex-wrap items-baseline justify-between gap-2 px-4 py-3"
-                >
-                  <span className="text-sm font-medium text-foreground">
-                    {c.name}
-                    {c.is_test && (
-                      <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
-                        test
-                      </span>
-                    )}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {c.status} · starts {c.start_date}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )
+          <CohortManager
+            today={todayInLondon()}
+            sessions={sessionItems.map((i) => ({
+              trackItemId: i.id,
+              title: i.title,
+              dayIndex: i.day_index,
+            }))}
+            cohorts={cohortList.map((c) => ({
+              id: c.id,
+              name: c.name,
+              status: c.status,
+              startDate: c.start_date,
+              isTest: c.is_test,
+              joinCode: c.join_code,
+              joinOpen: c.join_open,
+              slackChannel: c.slack_channel,
+              memberCount: memberCountByCohort.get(c.id) ?? 0,
+            }))}
+          />
         }
         importPanel={
           <div className="space-y-3">

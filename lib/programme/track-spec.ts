@@ -66,9 +66,12 @@ export const SESSION_DAYS = [3, 8, 13] as const;
  * without a deploy - and so G4 never hardcodes "8".
  */
 export const QUIZ_SPECS = [
-  { dayIndex: 5, title: "Week 1 check", questionCount: 5, passMark: 4, summative: false },
-  { dayIndex: 10, title: "Week 2 check", questionCount: 5, passMark: 4, summative: false },
+  { dayIndex: 5, title: "Week 1 check", questionCount: 10, passMark: 7, summative: false },
+  { dayIndex: 10, title: "Week 2 check", questionCount: 10, passMark: 7, summative: false },
   { dayIndex: 15, title: "Final quiz", questionCount: 10, passMark: 8, summative: true },
+  // Weekly checks pass at 7/10 rather than 8/10: they are formative and gate
+  // nothing, so the bar is "you were paying attention" rather than the
+  // certificate standard. The final keeps the playbook's 8/10.
 ] as const;
 
 /**

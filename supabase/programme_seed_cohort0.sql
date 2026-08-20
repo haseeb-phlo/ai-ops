@@ -53,6 +53,12 @@ select 'Cohort 0 — Test', t.id, date '2026-08-03', 'live', true, 'PHLO-C0'
  where t.slug = 'core-programme'
    and not exists (select 1 from public.programme_cohorts where name = 'Cohort 0 — Test');
 
+-- Backfill the join code on a cohort that already exists, so re-running this
+-- after the join-code migration actually gives Cohort 0 one.
+update public.programme_cohorts
+   set join_code = 'PHLO-C0'
+ where name = 'Cohort 0 — Test' and join_code is null;
+
 -- 3. Session dates --------------------------------------------------------
 -- Keyed by track_item id. Session 1 gets TWO dates (a dual slot) so the
 -- roster's slot handling and "attending either satisfies the item" rule are

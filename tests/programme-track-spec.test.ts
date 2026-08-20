@@ -71,11 +71,15 @@ describe("Core Programme track shape", () => {
     expect(quizzes.map((q) => q.dayIndex)).toEqual([5, 10, 15]);
   });
 
-  it("makes weeks 1 and 2 short formative checks and week 3 the long one", () => {
+  it("sets a lower bar on the formative checks than on the certificate quiz", () => {
+    // All three ask ten questions. Weeks 1 and 2 gate nothing, so they pass at
+    // 7/10 - "were you paying attention". The final gates the certificate and
+    // keeps the playbook's 8/10.
     const byDay = new Map(QUIZ_SPECS.map((q) => [q.dayIndex, q]));
-    expect(byDay.get(5)).toMatchObject({ questionCount: 5, passMark: 4, summative: false });
-    expect(byDay.get(10)).toMatchObject({ questionCount: 5, passMark: 4, summative: false });
+    expect(byDay.get(5)).toMatchObject({ questionCount: 10, passMark: 7, summative: false });
+    expect(byDay.get(10)).toMatchObject({ questionCount: 10, passMark: 7, summative: false });
     expect(byDay.get(15)).toMatchObject({ questionCount: 10, passMark: 8, summative: true });
+    expect(byDay.get(15)!.passMark).toBeGreaterThan(byDay.get(5)!.passMark);
   });
 
   it("marks exactly one quiz summative, and it is the one G4 reads", () => {
