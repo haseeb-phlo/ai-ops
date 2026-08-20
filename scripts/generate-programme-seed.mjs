@@ -20,6 +20,7 @@ import {
   TRACK_NAME,
   TRACK_SLUG,
 } from "../lib/programme/track-spec.ts";
+import { QUIZ_CONTENT_BY_DAY } from "../lib/programme/quiz-content.ts";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -28,6 +29,29 @@ const jsonb = (o) =>
   o == null ? `'{}'::jsonb` : `'${JSON.stringify(o).replace(/'/g, "''")}'::jsonb`;
 
 const items = buildTrackItems();
+
+// Fill each quiz's questions from the content module. Done here rather than in
+// track-spec so that module stays dependency-free.
+for (const item of items) {
+  if (item.type !== "quiz") continue;
+  const questions = QUIZ_CONTENT_BY_DAY[item.dayIndex] ?? [];
+  if (questions.length === 0) {
+    throw new Error(`No quiz content for day ${item.dayIndex}.`);
+  }
+  if (questions.length !== item.config.question_count) {
+    throw new Error(
+      `Day ${item.dayIndex}: ${questions.length} questions written but ` +
+        `question_count says ${item.config.question_count}.`,
+    );
+  }
+  if (item.config.pass_mark > questions.length) {
+    throw new Error(
+      `Day ${item.dayIndex}: pass mark ${item.config.pass_mark} exceeds ` +
+        `${questions.length} questions - nobody could pass.`,
+    );
+  }
+  item.config.questions = questions;
+}
 
 // (day_index, sort_order) is the seed's idempotency key and a unique
 // constraint in the schema. Assert it here so a spec change that collides

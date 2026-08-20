@@ -46,3 +46,6 @@ next-env.d.ts
 # local scratch files (one-off scripts, verification helpers)
 /.scratch/
 .env*.local
+
+# Superset per-machine setup overrides (see .superset/config.json)
+.superset/config.local.json

@@ -165,8 +165,11 @@ export function buildTrackItems(): TrackItemSpec[] {
         pass_mark: quiz.passMark,
         question_count: quiz.questionCount,
         summative: quiz.summative,
-        // Filled in by an admin before the quiz unlocks; the engine reads
-        // questions from here so content changes need no deploy.
+        // Left empty here and filled by the seed generator from
+        // quiz-content.ts. Keeping the import out of this module means
+        // track-spec stays free of dependencies, and the engine reads
+        // questions from config_json at run time anyway - so an admin can
+        // retune one without a deploy.
         questions: [],
       },
     });

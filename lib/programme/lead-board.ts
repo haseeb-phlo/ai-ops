@@ -1,0 +1,177 @@
+import "server-only";
+import { cache } from "react";
+import { createClient } from "@/lib/supabase/server";
+import type { RagStatus } from "./rag";
+
+/**
+ * The team lead's view: their own members, and the sign-offs waiting on them.
+ *
+ * "Team lead" is not a role - it is being named as `team_lead_user_id` on at
+ * least one cohort_member row. So every query here keys on that, and someone
+ * who leads nobody simply gets an empty board rather than a permission error.
+ */
+
+export type LeadMember = {
+  cohortMemberId: string;
+  userId: string;
+  displayName: string;
+  cohortName: string;
+  rag: RagStatus | null;
+  ragComputedAt: string | null;
+  completedAt: string | null;
+  pendingCount: number;
+};
+
+export type PendingSubmission = {
+  id: string;
+  cohortMemberId: string;
+  memberName: string;
+  kind: string;
+  title: string;
+  promptText: string | null;
+  taskSolved: string | null;
+  timeSaved: string | null;
+  artefactUrl: string | null;
+  submittedAt: string;
+  /** Set when this replaces a rejected attempt - the lead should see why. */
+  previousComment: string | null;
+};
+
+export type LeadBoard = {
+  isLead: boolean;
+  members: LeadMember[];
+  pending: PendingSubmission[];
+};
+
+export const loadLeadBoard = cache(
+  async (userId: string): Promise<LeadBoard> => {
+    const supabase = await createClient();
+
+    const { data: memberRows } = await supabase
+      .from("programme_cohort_members")
+      .select(
+        "id, user_id, rag_status, rag_computed_at, completed_at, programme_cohorts!inner(name, status)",
+      )
+      .eq("team_lead_user_id", userId)
+      .in("programme_cohorts.status", ["live", "planned", "complete"])
+      .returns<
+        {
+          id: string;
+          user_id: string;
+          rag_status: RagStatus | null;
+          rag_computed_at: string | null;
+          completed_at: string | null;
+          programme_cohorts: { name: string; status: string };
+        }[]
+      >();
+
+    const members = memberRows ?? [];
+    if (members.length === 0) {
+      return { isLead: false, members: [], pending: [] };
+    }
+
+    const memberIds = members.map((m) => m.id);
+
+    const [{ data: profiles }, { data: submissionRows }, { data: items }] =
+      await Promise.all([
+        supabase
+          .from("profiles")
+          .select("user_id, display_name")
+          .in("user_id", members.map((m) => m.user_id))
+          .returns<{ user_id: string; display_name: string | null }[]>(),
+        supabase
+          .from("programme_submissions")
+          .select(
+            "id, cohort_member_id, track_item_id, kind, prompt_text, task_solved, time_saved_estimate, artefact_url, signoff_status, signoff_comment, superseded_by, created_at",
+          )
+          .in("cohort_member_id", memberIds)
+          .returns<
+            {
+              id: string;
+              cohort_member_id: string;
+              track_item_id: string | null;
+              kind: string;
+              prompt_text: string | null;
+              task_solved: string | null;
+              time_saved_estimate: string | null;
+              artefact_url: string | null;
+              signoff_status: string;
+              signoff_comment: string | null;
+              superseded_by: string | null;
+              created_at: string;
+            }[]
+          >(),
+        supabase
+          .from("programme_track_items")
+          .select("id, title")
+          .returns<{ id: string; title: string }[]>(),
+      ]);
+
+    const nameByUserId = new Map(
+      (profiles ?? []).map((p) => [p.user_id, p.display_name ?? ""]),
+    );
+    const titleByItemId = new Map((items ?? []).map((i) => [i.id, i.title]));
+    const nameByMemberId = new Map(
+      members.map((m) => [m.id, nameByUserId.get(m.user_id) || "(no name)"]),
+    );
+
+    const all = submissionRows ?? [];
+    // A rejected attempt points at its replacement, so the comment the member
+    // was given can be shown alongside the resubmission.
+    const commentBySupersededBy = new Map(
+      all
+        .filter((s) => s.superseded_by && s.signoff_comment)
+        .map((s) => [s.superseded_by!, s.signoff_comment!]),
+    );
+
+    const pending: PendingSubmission[] = all
+      .filter((s) => !s.superseded_by && s.signoff_status === "pending")
+      .map((s) => ({
+        id: s.id,
+        cohortMemberId: s.cohort_member_id,
+        memberName: nameByMemberId.get(s.cohort_member_id) ?? "(unknown)",
+        kind: s.kind,
+        title: s.track_item_id
+          ? (titleByItemId.get(s.track_item_id) ?? "Submission")
+          : "Submission",
+        promptText: s.prompt_text,
+        taskSolved: s.task_solved,
+        timeSaved: s.time_saved_estimate,
+        artefactUrl: s.artefact_url,
+        submittedAt: s.created_at,
+        previousComment: commentBySupersededBy.get(s.id) ?? null,
+      }))
+      // Oldest first: whoever has waited longest gets unblocked first.
+      .sort((a, b) => a.submittedAt.localeCompare(b.submittedAt));
+
+    const pendingByMember = new Map<string, number>();
+    for (const p of pending) {
+      pendingByMember.set(
+        p.cohortMemberId,
+        (pendingByMember.get(p.cohortMemberId) ?? 0) + 1,
+      );
+    }
+
+    const leadMembers: LeadMember[] = members
+      .map((m) => ({
+        cohortMemberId: m.id,
+        userId: m.user_id,
+        displayName: nameByUserId.get(m.user_id) || "(no name)",
+        cohortName: m.programme_cohorts.name,
+        rag: m.rag_status,
+        ragComputedAt: m.rag_computed_at,
+        completedAt: m.completed_at,
+        pendingCount: pendingByMember.get(m.id) ?? 0,
+      }))
+      .sort((a, b) => {
+        // Whoever needs attention first: red before amber before green, then
+        // by name. A lead should not have to scan for the problem.
+        const rank = { red: 0, amber: 1, green: 2 } as const;
+        const ra = a.rag ? rank[a.rag] : 3;
+        const rb = b.rag ? rank[b.rag] : 3;
+        return ra - rb || a.displayName.localeCompare(b.displayName);
+      });
+
+    return { isLead: true, members: leadMembers, pending };
+  },
+);

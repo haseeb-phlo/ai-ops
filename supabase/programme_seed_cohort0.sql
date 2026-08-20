@@ -47,8 +47,8 @@ update public.programme_track_items i
 -- 2. The cohort -----------------------------------------------------------
 -- start_date is a Monday, as the schema expects. 2026-08-03 is far enough in
 -- the past that days 1-15 have all unlocked, so every surface has data.
-insert into public.programme_cohorts (name, track_id, start_date, status, is_test)
-select 'Cohort 0 — Test', t.id, date '2026-08-03', 'live', true
+insert into public.programme_cohorts (name, track_id, start_date, status, is_test, join_code)
+select 'Cohort 0 — Test', t.id, date '2026-08-03', 'live', true, 'PHLO-C0'
   from public.programme_tracks t
  where t.slug = 'core-programme'
    and not exists (select 1 from public.programme_cohorts where name = 'Cohort 0 — Test');
