@@ -130,13 +130,16 @@ export function buildTrackItems(): TrackItemSpec[] {
       sortOrder: SORT.video,
       learnVideoTitle: topic,
     });
+    // Deliberately NOT bound to the day's Learn video. A use_example is the
+    // "now go do it" half of the day, and binding it to the same video would
+    // let one tick on /learn complete both items - which would make G1
+    // ("watched everything") satisfiable without doing any of the exercises.
     items.push({
       type: "use_example",
       title: `${topic} — try it yourself`,
       description: "Apply the day's technique to something on your own desk.",
       dayIndex,
       sortOrder: SORT.use_example,
-      learnVideoTitle: topic,
     });
   });
 

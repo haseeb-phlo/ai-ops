@@ -43,11 +43,17 @@ describe("Core Programme track shape", () => {
   });
 
   it("points video items at a Learn video by title and never inlines one", () => {
-    for (const item of items.filter(
-      (i) => i.type === "video" || i.type === "use_example",
-    )) {
+    for (const item of items.filter((i) => i.type === "video")) {
       expect(item.learnVideoTitle).toBeTruthy();
       expect(DAY_TOPICS).toContain(item.learnVideoTitle!);
+    }
+  });
+
+  it("leaves use_example items unbound so watching cannot complete the exercise", () => {
+    // Binding both halves of a day to the same Learn video would let one tick
+    // on /learn satisfy both, making G1 reachable without doing any exercise.
+    for (const item of items.filter((i) => i.type === "use_example")) {
+      expect(item.learnVideoTitle).toBeUndefined();
     }
   });
 
