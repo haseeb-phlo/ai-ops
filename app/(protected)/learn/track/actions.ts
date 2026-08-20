@@ -183,3 +183,159 @@ export async function markTrackItemStarted(formData: FormData): Promise<void> {
 
   revalidatePath("/learn/track");
 }
+
+/* ------------------------------------------------------------------ */
+/* Submissions                                                         */
+/* ------------------------------------------------------------------ */
+
+const SubmissionSchema = z.object({
+  track_item_id: z.string().uuid(),
+  artefact_url: z.string().trim().max(2048).optional(),
+  prompt_text: z.string().trim().max(10_000).optional(),
+  task_solved: z.string().trim().max(2000).optional(),
+  time_saved_estimate: z.string().trim().max(200).optional(),
+  share_publicly: z.boolean(),
+});
+
+/**
+ * Creates or replaces a submission against a submission slot.
+ *
+ * The slot's `config_json.kind` decides what this is, not the client - a
+ * member must not be able to file a work sample as a signed example and skip
+ * sign-off. Work samples are forced private regardless of the share checkbox
+ * (the schema enforces that too).
+ *
+ * Resubmitting after a rejection keeps the rejected version and points it at
+ * the new one via superseded_by, so the sign-off history survives.
+ */
+export async function submitProgrammeSubmission(
+  formData: FormData,
+): Promise<ActionState> {
+  const gate = await requireWriter();
+  if (!gate.ok) return { kind: "error", message: gate.error };
+  const user = gate.user;
+
+  const parsed = SubmissionSchema.safeParse({
+    track_item_id: formData.get("track_item_id"),
+    artefact_url: (formData.get("artefact_url") as string) || undefined,
+    prompt_text: (formData.get("prompt_text") as string) || undefined,
+    task_solved: (formData.get("task_solved") as string) || undefined,
+    time_saved_estimate:
+      (formData.get("time_saved_estimate") as string) || undefined,
+    share_publicly: formData.get("share_publicly") === "on",
+  });
+  if (!parsed.success) {
+    return { kind: "error", message: "Check the form and try again." };
+  }
+
+  const supabase = await createClient();
+
+  const { data: membership } = await supabase
+    .from("programme_cohort_members")
+    .select("id, programme_cohorts!inner(track_id, status)")
+    .eq("user_id", user.id)
+    .in("programme_cohorts.status", ["live", "planned"])
+    .order("joined_at", { ascending: false })
+    .limit(1)
+    .maybeSingle<{
+      id: string;
+      programme_cohorts: { track_id: string; status: string };
+    }>();
+  if (!membership) {
+    return { kind: "error", message: "You're not in an active cohort." };
+  }
+
+  const { data: item } = await supabase
+    .from("programme_track_items")
+    .select("id, type, track_id, config_json")
+    .eq("id", parsed.data.track_item_id)
+    .maybeSingle<{
+      id: string;
+      type: string;
+      track_id: string;
+      config_json: { kind?: string; visibility?: string };
+    }>();
+
+  if (
+    !item ||
+    item.type !== "submission_slot" ||
+    item.track_id !== membership.programme_cohorts.track_id
+  ) {
+    return { kind: "error", message: "That slot isn't on your track." };
+  }
+
+  const kind = item.config_json?.kind ?? "signed_example";
+  const isWorkSample = kind.startsWith("work_sample");
+
+  // Work samples feed external blind scoring and are never shown to peers.
+  const visibility = isWorkSample
+    ? "private"
+    : parsed.data.share_publicly
+      ? "public_gallery"
+      : "cohort";
+
+  if (!isWorkSample && !parsed.data.prompt_text) {
+    return { kind: "error", message: "Add the prompt you used." };
+  }
+
+  // Any live (non-superseded) submission against this slot.
+  const { data: existing } = await supabase
+    .from("programme_submissions")
+    .select("id, signoff_status")
+    .eq("cohort_member_id", membership.id)
+    .eq("track_item_id", item.id)
+    .is("superseded_by", null)
+    .maybeSingle<{ id: string; signoff_status: string }>();
+
+  if (existing?.signoff_status === "approved") {
+    return { kind: "error", message: "That one's already been approved." };
+  }
+
+  const { data: created, error } = await supabase
+    .from("programme_submissions")
+    .insert({
+      cohort_member_id: membership.id,
+      track_item_id: item.id,
+      kind,
+      artefact_url: parsed.data.artefact_url ?? null,
+      prompt_text: parsed.data.prompt_text ?? null,
+      task_solved: parsed.data.task_solved ?? null,
+      time_saved_estimate: parsed.data.time_saved_estimate ?? null,
+      visibility,
+      // Work samples need no human sign-off; everything else queues for a lead.
+      signoff_status: isWorkSample ? "approved" : "pending",
+    })
+    .select("id")
+    .maybeSingle<{ id: string }>();
+
+  if (error || !created) {
+    return {
+      kind: "error",
+      message: `Could not save: ${error?.message ?? "unknown error"}`,
+    };
+  }
+
+  // Keep the rejected version as history rather than overwriting it.
+  if (existing) {
+    await supabase
+      .from("programme_submissions")
+      .update({ superseded_by: created.id })
+      .eq("id", existing.id);
+  }
+
+  // Submitting completes the slot; approval is what feeds G3 separately.
+  await supabase.from("programme_item_progress").upsert(
+    {
+      cohort_member_id: membership.id,
+      track_item_id: item.id,
+      status: "complete",
+      completed_at: new Date().toISOString(),
+    },
+    { onConflict: "cohort_member_id,track_item_id" },
+  );
+
+  revalidatePath("/learn/track");
+  revalidatePath("/learn/gallery");
+  revalidatePath("/");
+  return { kind: "success" };
+}

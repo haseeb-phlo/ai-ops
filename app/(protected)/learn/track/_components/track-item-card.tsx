@@ -13,9 +13,15 @@ import {
 import { loomEmbedUrl } from "@/lib/loom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { PROGRAMME_ITEM_STATE, type ProgrammeItemState } from "@/lib/status";
+import {
+  PROGRAMME_ITEM_STATE,
+  PROGRAMME_SIGNOFF,
+  type ProgrammeItemState,
+  type ProgrammeSignoffStatus,
+} from "@/lib/status";
 import type { TrackVideo } from "@/lib/programme/track-data";
 import { markTrackItemComplete, markTrackItemStarted } from "../actions";
+import { SubmissionDialog } from "./submission-dialog";
 
 export type TrackItemView = {
   id: string;
@@ -25,6 +31,12 @@ export type TrackItemView = {
   state: ProgrammeItemState;
   unlockDate: string;
   video: TrackVideo | null;
+  /** Set for submission_slot items. */
+  submission?: {
+    kind: string;
+    signoffStatus: ProgrammeSignoffStatus | null;
+    signoffComment: string | null;
+  } | null;
 };
 
 const TYPE_ICON: Record<string, typeof PlayIcon> = {
@@ -169,6 +181,33 @@ export function TrackItemCard({ item }: { item: TrackItemView }) {
               This day&apos;s video hasn&apos;t been linked yet — an admin can
               attach it from the Learn library.
             </p>
+          )}
+
+          {!locked && item.type === "submission_slot" && (
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              {item.submission?.signoffStatus && (
+                <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <span
+                    aria-hidden
+                    className={cn(
+                      "size-1.5 shrink-0 rounded-full",
+                      PROGRAMME_SIGNOFF[item.submission.signoffStatus]
+                        .dotClassName,
+                    )}
+                  />
+                  {PROGRAMME_SIGNOFF[item.submission.signoffStatus].label}
+                </span>
+              )}
+              {item.submission?.signoffStatus !== "approved" && (
+                <SubmissionDialog
+                  trackItemId={item.id}
+                  title={item.title}
+                  kind={item.submission?.kind ?? "signed_example"}
+                  isResubmission={item.submission?.signoffStatus === "rejected"}
+                  rejectionComment={item.submission?.signoffComment ?? null}
+                />
+              )}
+            </div>
           )}
 
           {canComplete && (

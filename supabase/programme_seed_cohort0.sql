@@ -135,9 +135,12 @@ select co.id, v.user_id, v.lead_id, v.is_champion,
  );
 
 -- 6. The returner's May 2026 response --------------------------------------
--- Mid-range capability answers so the post-wave delta has somewhere to move,
--- and two axes at 0 so the "New this cohort" achievement logic has something
--- to find. Keyed on email, like every other response row.
+-- A COMPLETE May response (q1-q23), because that is what a real returner has.
+-- It matters for the 60-second test: with everything carried forward, the only
+-- thing left to answer is q19b, which is new in the cohort_baseline wave.
+--
+-- Two axes sit at 0 so the day-15 "New this cohort" achievements have
+-- something to find, and the overall score has room to move.
 insert into public.ai_score_responses (email, user_id, wave, source, answers_json, submitted_at)
 values (
   'cohort0.returner@wearephlo.com',
@@ -145,15 +148,29 @@ values (
   'may_2026',
   'import',
   jsonb_build_object(
-    'q1', jsonb_build_object('value', 'I write structured prompts with context, role and clear instructions. Most prompts work first time.', 'score', 2),
-    'q2', jsonb_build_object('value', 'I''ve heard of them but haven''t used one.', 'score', 1),
-    'q3', jsonb_build_object('value', 'I don''t know what Artefacts are.', 'score', 0),
-    'q4', jsonb_build_object('value', 'I''ve heard of them but don''t know how to set one up.', 'score', 1),
-    'q5', jsonb_build_object('value', 'I don''t know what MCP or Connectors are.', 'score', 0),
-    'q6', jsonb_build_object('value', 'I''ve heard of them but haven''t added one.', 'score', 1),
-    'q7', jsonb_build_object('value', 'I have logged in but don''t know how to use it.', 'score', 1),
+    'q1',  jsonb_build_object('value', 'I write structured prompts with context, role and clear instructions. Most prompts work first time.', 'score', 2),
+    'q2',  jsonb_build_object('value', 'I''ve heard of them but haven''t used one.', 'score', 1),
+    'q3',  jsonb_build_object('value', 'I don''t know what Artefacts are.', 'score', 0),
+    'q4',  jsonb_build_object('value', 'I''ve heard of them but don''t know how to set one up.', 'score', 1),
+    'q5',  jsonb_build_object('value', 'I don''t know what MCP or Connectors are.', 'score', 0),
+    'q6',  jsonb_build_object('value', 'I''ve heard of them but haven''t added one.', 'score', 1),
+    'q7',  jsonb_build_object('value', 'I have logged in but don''t know how to use it.', 'score', 1),
+    'q8',  jsonb_build_object('value', 'ChatGPT occasionally.'),
+    'q9',  jsonb_build_object('value', 'Agree'),
+    'q10', jsonb_build_object('value', 'Neutral'),
+    'q11', jsonb_build_object('value', 'Disagree'),
+    'q12', jsonb_build_object('value', 'Neutral'),
+    'q13', jsonb_build_object('value', 'Agree'),
+    'q14', jsonb_build_object('value', 'Neutral'),
+    'q15', jsonb_build_object('value', 'Disagree'),
+    'q16', jsonb_build_object('value', 'Interested & learning the basics'),
+    'q17', jsonb_build_object('value', 'The pace and approach is right - it feels sustainable.'),
     'q18', jsonb_build_object('value', '3'),
-    'q19', jsonb_build_object('value', '2-3 hours ish')
+    'q19', jsonb_build_object('value', '2-3 hours ish'),
+    'q20', jsonb_build_object('value', 'Not knowing where to start.'),
+    'q21', jsonb_build_object('value', 'Day-to-day admin.'),
+    'q22', jsonb_build_object('value', 'Drafting patient comms faster.'),
+    'q23', jsonb_build_object('value', '')
   ),
   timestamptz '2026-05-14 10:00:00+00'
 )

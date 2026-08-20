@@ -62,6 +62,11 @@ export type TrackState = {
   gates: GateSet;
   rag: RagStatus;
   outstandingCount: number;
+  /** Live (non-superseded) submission per submission_slot item id. */
+  submissionByItemId: Map<
+    string,
+    { kind: string; signoffStatus: string; signoffComment: string | null }
+  >;
 };
 
 /**
@@ -131,12 +136,16 @@ export const loadTrackState = cache(
         .returns<{ wave: string }[]>(),
       supabase
         .from("programme_submissions")
-        .select("kind, signoff_status, signoff_rubric_json, superseded_by")
+        .select(
+          "track_item_id, kind, signoff_status, signoff_comment, signoff_rubric_json, superseded_by",
+        )
         .eq("cohort_member_id", membership.id)
         .returns<
           {
+            track_item_id: string | null;
             kind: string;
             signoff_status: string;
+            signoff_comment: string | null;
             signoff_rubric_json: Record<string, unknown> | null;
             superseded_by: string | null;
           }[]
@@ -309,6 +318,19 @@ export const loadTrackState = cache(
       today,
     });
 
+    const submissionByItemId = new Map<
+      string,
+      { kind: string; signoffStatus: string; signoffComment: string | null }
+    >();
+    for (const s of live) {
+      if (!s.track_item_id) continue;
+      submissionByItemId.set(s.track_item_id, {
+        kind: s.kind,
+        signoffStatus: s.signoff_status,
+        signoffComment: s.signoff_comment,
+      });
+    }
+
     return {
       cohort: {
         id: cohort.id,
@@ -332,6 +354,7 @@ export const loadTrackState = cache(
       gates,
       rag,
       outstandingCount,
+      submissionByItemId,
     };
   },
 );

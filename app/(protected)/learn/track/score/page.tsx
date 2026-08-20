@@ -1,36 +1,105 @@
-import Link from "next/link";
-import { ClipboardCheckIcon } from "lucide-react";
+import { getSessionUser } from "@/lib/auth";
+import { loadAiScore } from "@/lib/programme/ai-score";
+import { loadTrackState } from "@/lib/programme/track-data";
+import { prefillSourceFor, priorWaveFor } from "@/lib/programme/waves";
 import { PageContainer, PageHeader } from "@/components/page-header";
-import { EmptyState } from "@/components/ui/empty-state";
+import type { Wave } from "@/lib/programme/questions";
+import { ScoreForm } from "./_components/score-form";
+import { ResultScreen } from "./_components/result-screen";
 
 export const metadata = { title: "Your AI Score" };
 
 /**
- * Placeholder. The real instrument - the 24-question form, the returner
- * pre-fill flow and the radar result screens - lands in Part 3.
+ * "Your AI Score".
  *
- * It exists now so the gate card on the track has somewhere to point: shipping
- * Part 2 with a link to a 404 would be worse than shipping this.
+ * One route, three states:
+ *   ?done=<wave> - the result screen, straight after submitting
+ *   already submitted this wave - the result screen
+ *   otherwise    - the form
+ *
+ * Which wave is being collected is decided here, not by the client: the post
+ * wave once day 15 has unlocked, the baseline before that.
  */
-export default function AiScorePlaceholderPage() {
+export default async function AiScorePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ done?: string }>;
+}) {
+  const { done } = await searchParams;
+  const user = await getSessionUser();
+  const [score, track] = await Promise.all([
+    loadAiScore(user.email),
+    loadTrackState(user.id, user.email),
+  ]);
+
+  const byWave = new Map(score.waves.map((w) => [w.wave, w]));
+
+  // The post wave opens once its day-15 item has unlocked; until then the
+  // baseline is what's being collected.
+  const postItem = track?.items.find(
+    (i) => i.item.type === "questionnaire_post",
+  );
+  const postOpen = postItem ? postItem.state !== "locked" : false;
+  const targetWave: Wave =
+    postOpen && !byWave.has("post") ? "post" : "cohort_baseline";
+
+  // Showing a result: either just submitted, or revisiting one already done.
+  const showWave: Wave | null =
+    done && byWave.has(done as Wave)
+      ? (done as Wave)
+      : byWave.has(targetWave)
+        ? targetWave
+        : null;
+
+  if (showWave) {
+    const current = byWave.get(showWave)!;
+    const priorWave = priorWaveFor(showWave);
+    const previous = priorWave ? (byWave.get(priorWave) ?? null) : null;
+    return (
+      <PageContainer className="max-w-3xl">
+        <PageHeader
+          title="Your AI Score"
+          description={
+            showWave === "post"
+              ? "See what three weeks did to your score"
+              : "Where you're starting from."
+          }
+        />
+        <ResultScreen
+          current={current}
+          previous={previous}
+          companyAvg={score.company_avg}
+          graduation={showWave === "post"}
+        />
+      </PageContainer>
+    );
+  }
+
+  const source = prefillSourceFor(targetWave, score.waves);
+  const prefill = source
+    ? Object.fromEntries(
+        Object.entries(source.answers).map(([qid, a]) => [
+          qid,
+          { value: a.value },
+        ]),
+      )
+    : null;
+
   return (
-    <PageContainer>
+    <PageContainer className="max-w-3xl">
       <PageHeader
         title="Your AI Score"
-        description="A 3-minute check-in that sets your starting point."
-      />
-      <EmptyState
-        icon={<ClipboardCheckIcon aria-hidden />}
-        title="Almost ready"
-        description="The check-in opens here shortly. Once you've done it, the rest of your 15-day track unlocks day by day."
-        action={
-          <Link
-            href="/learn/track"
-            className="text-sm font-medium text-primary underline underline-offset-4"
-          >
-            Back to the programme
-          </Link>
+        description={
+          targetWave === "post"
+            ? "See what three weeks did to your score"
+            : "A quick check-in that sets your starting point."
         }
+      />
+      <ScoreForm
+        wave={targetWave}
+        prefill={prefill}
+        prefillLabel={source?.waveLabel ?? null}
+        estimatedMinutes={source ? 3 : 8}
       />
     </PageContainer>
   );
