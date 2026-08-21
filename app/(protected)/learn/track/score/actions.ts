@@ -12,6 +12,7 @@ import {
   normalizeAnswerText,
 } from "@/lib/programme/questions";
 import { scoreAnswer, type Answers } from "@/lib/programme/score";
+import { maybeCompleteProgramme } from "@/lib/programme/complete-action";
 import type { ActionState } from "../../topics";
 
 /**
@@ -100,12 +101,12 @@ export async function submitAiScore(formData: FormData): Promise<ActionState> {
   // have no cohort by definition, which is why the column is nullable.
   const { data: membership } = await supabase
     .from("programme_cohort_members")
-    .select("cohort_id, programme_cohorts!inner(status)")
+    .select("id, cohort_id, programme_cohorts!inner(status)")
     .eq("user_id", user.id)
     .in("programme_cohorts.status", ["live", "planned"])
     .order("joined_at", { ascending: false })
     .limit(1)
-    .maybeSingle<{ cohort_id: string }>();
+    .maybeSingle<{ id: string; cohort_id: string }>();
 
   const { error } = await supabase.from("ai_score_responses").upsert(
     {
@@ -124,6 +125,11 @@ export async function submitAiScore(formData: FormData): Promise<ActionState> {
 
   if (error) {
     return { kind: "error", message: `Could not save: ${error.message}` };
+  }
+
+  // The post wave is one half of G4, so submitting it can complete someone.
+  if (parsed.data.wave === "post" && membership) {
+    await maybeCompleteProgramme(membership.id);
   }
 
   revalidatePath("/learn/track");

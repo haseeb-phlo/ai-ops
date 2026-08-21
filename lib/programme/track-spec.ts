@@ -39,7 +39,7 @@ export type TrackItemSpec = {
 /** The 15 daily topics, verbatim from the programme playbook. */
 export const DAY_TOPICS: readonly string[] = [
   "When to use AI and when not to",
-  "CRISP Framework",
+  "CRISPE Framework",
   "Connectors & MCP",
   "Projects",
   "Catching confident wrong answers",
@@ -66,12 +66,13 @@ export const SESSION_DAYS = [3, 8, 13] as const;
  * without a deploy - and so G4 never hardcodes "8".
  */
 export const QUIZ_SPECS = [
-  { dayIndex: 5, title: "Week 1 check", questionCount: 10, passMark: 7, summative: false },
-  { dayIndex: 10, title: "Week 2 check", questionCount: 10, passMark: 7, summative: false },
+  { dayIndex: 5, title: "Week 1 check", questionCount: 10, passMark: 8, summative: false },
+  { dayIndex: 10, title: "Week 2 check", questionCount: 10, passMark: 8, summative: false },
   { dayIndex: 15, title: "Final quiz", questionCount: 10, passMark: 8, summative: true },
-  // Weekly checks pass at 7/10 rather than 8/10: they are formative and gate
-  // nothing, so the bar is "you were paying attention" rather than the
-  // certificate standard. The final keeps the playbook's 8/10.
+  // All three pass at 8/10. The weekly checks gate nothing and allow unlimited
+  // retakes, so a consistent bar is simpler to explain than a sliding one, and
+  // it keeps "passed a Phlo AI quiz" meaning the same thing all the way
+  // through. The final is the one that gates the certificate via G4.
 ] as const;
 
 /**

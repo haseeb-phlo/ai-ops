@@ -41,7 +41,7 @@ export type QuizQuestion = {
 };
 
 /* ------------------------------------------------------------------ */
-/* Week 1 - day 5. Ten questions, pass 7.                              */
+/* Week 1 - day 5. Ten questions, pass 8.                              */
 /* ------------------------------------------------------------------ */
 
 export const WEEK_1_QUESTIONS: QuizQuestion[] = [
@@ -183,7 +183,7 @@ export const WEEK_1_QUESTIONS: QuizQuestion[] = [
 ];
 
 /* ------------------------------------------------------------------ */
-/* Week 2 - day 10. Ten questions, pass 7.                             */
+/* Week 2 - day 10. Ten questions, pass 8.                             */
 /* ------------------------------------------------------------------ */
 
 export const WEEK_2_QUESTIONS: QuizQuestion[] = [
