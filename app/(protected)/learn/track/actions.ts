@@ -1,8 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { runAiReview } from "@/lib/programme/ai-review-run";
 import { requireWriter } from "@/lib/auth";
 import type { ActionState } from "../topics";
 
@@ -333,6 +335,19 @@ export async function submitProgrammeSubmission(
     },
     { onConflict: "cohort_member_id,track_item_id" },
   );
+
+  // Review runs after the response, so the member is not left watching a
+  // spinner while a model thinks. A nightly sweep catches anything this
+  // never reached, and either way an unreviewed submission just waits for a
+  // human - which is where it would have waited anyway.
+  if (!isWorkSample) {
+    const submissionId = created.id;
+    after(async () => {
+      await runAiReview(submissionId);
+      revalidatePath("/learn/track");
+      revalidatePath("/learn/leads");
+    });
+  }
 
   revalidatePath("/learn/track");
   revalidatePath("/learn/gallery");

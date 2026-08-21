@@ -7,6 +7,7 @@ import { resolveItemStates, outstandingItems, type ItemState } from "@/lib/progr
 import { todayInLondon, unlockDateFor } from "@/lib/programme/working-days";
 import { isG2Impossible, satisfiedSessionIds } from "@/lib/programme/attendance";
 import { gateableContentItemIds, isAwaitingContent } from "@/lib/programme/content-readiness";
+import { sweepUnreviewedSubmissions } from "@/lib/programme/ai-review-run";
 
 /**
  * Nightly RAG recompute for every active cohort.
@@ -233,8 +234,14 @@ export async function GET(request: NextRequest) {
     });
   }
 
+  // Backstop for AI review. The submit action schedules a review with
+  // after(), so this normally finds nothing - it exists for the times the
+  // callback never ran (a deploy mid-request, a cold model outage). Anything
+  // it misses simply waits for a person, which is the safe direction.
+  const reviewed = await sweepUnreviewedSubmissions();
+
   return NextResponse.json(
-    { ok: true, today, cohorts: results },
+    { ok: true, today, cohorts: results, reviewed },
     { headers: NO_STORE },
   );
 }

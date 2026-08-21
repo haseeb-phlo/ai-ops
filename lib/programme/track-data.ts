@@ -72,7 +72,12 @@ export type TrackState = {
   /** Live (non-superseded) submission per submission_slot item id. */
   submissionByItemId: Map<
     string,
-    { kind: string; signoffStatus: string; signoffComment: string | null }
+    {
+      kind: string;
+      signoffStatus: string;
+      signoffComment: string | null;
+      reviewedByAi: boolean;
+    }
   >;
 };
 
@@ -352,7 +357,12 @@ export const loadTrackState = cache(
 
     const submissionByItemId = new Map<
       string,
-      { kind: string; signoffStatus: string; signoffComment: string | null }
+      {
+      kind: string;
+      signoffStatus: string;
+      signoffComment: string | null;
+      reviewedByAi: boolean;
+    }
     >();
     for (const s of live) {
       if (!s.track_item_id) continue;
@@ -360,6 +370,9 @@ export const loadTrackState = cache(
         kind: s.kind,
         signoffStatus: s.signoff_status,
         signoffComment: s.signoff_comment,
+        // Said plainly to the member rather than buried: a programme about
+        // using AI well should not be coy about where its own marks came from.
+        reviewedByAi: s.signoff_rubric_json?.reviewer === "ai",
       });
     }
 

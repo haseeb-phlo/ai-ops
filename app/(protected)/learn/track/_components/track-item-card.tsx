@@ -40,6 +40,7 @@ export type TrackItemView = {
     kind: string;
     signoffStatus: ProgrammeSignoffStatus | null;
     signoffComment: string | null;
+    reviewedByAi?: boolean;
   } | null;
 };
 
@@ -274,7 +275,9 @@ export function TrackItemCard({ item }: { item: TrackItemView }) {
             item.submission.signoffComment && (
               <div className="mt-2 rounded-md border border-border border-l-2 border-l-success bg-background px-3 py-2">
                 <p className="text-3xs font-semibold uppercase tracking-[0.06em] text-muted-foreground">
-                  Feedback
+                  {item.submission.reviewedByAi
+                    ? "Feedback - automatic review"
+                    : "Feedback"}
                 </p>
                 <p className="mt-0.5 text-xs text-foreground">
                   {item.submission.signoffComment}

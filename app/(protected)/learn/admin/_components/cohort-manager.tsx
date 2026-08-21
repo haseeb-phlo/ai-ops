@@ -29,6 +29,7 @@ export type ExistingCohort = {
   joinOpen: boolean;
   slackChannel: string | null;
   defaultApproverUserId: string | null;
+  reviewMode: string;
   memberCount: number;
 };
 
@@ -297,6 +298,26 @@ function CreateCohortForm({
             themselves.
           </p>
         </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="review_mode">How work gets reviewed</Label>
+          <select
+            id="review_mode"
+            name="review_mode"
+            defaultValue="ai_assisted"
+            className="h-9 w-full rounded-lg border border-border bg-background px-2 text-sm"
+          >
+            <option value="ai_assisted">
+              Reviewed automatically, exceptions to the approver
+            </option>
+            <option value="human">Every submission waits for the approver</option>
+          </select>
+          <p className="text-xs text-muted-foreground">
+            Automatic review scores against the same four criteria and approves
+            clear passes with written feedback. Capstones, anything borderline
+            and anything it cannot judge fairly still go to a person.
+          </p>
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-4">
@@ -450,6 +471,17 @@ function CohortRow({
             defaultValue={cohort.defaultApproverUserId}
             compact
           />
+        </label>
+        <label className="space-y-1 text-xs">
+          <span className="block text-muted-foreground">Review</span>
+          <select
+            name="review_mode"
+            defaultValue={cohort.reviewMode}
+            className="h-8 w-44 rounded-lg border border-border bg-background px-2 text-sm"
+          >
+            <option value="ai_assisted">Automatic first pass</option>
+            <option value="human">People only</option>
+          </select>
         </label>
         <label className="inline-flex items-center gap-1.5 pb-2 text-xs text-muted-foreground">
           <input

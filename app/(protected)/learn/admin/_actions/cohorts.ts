@@ -34,6 +34,7 @@ const CreateSchema = z.object({
   is_test: z.boolean(),
   dual_slot_item_ids: z.array(z.string().uuid()),
   default_approver_user_id: z.string().uuid().nullable(),
+  review_mode: z.enum(["human", "ai_assisted"]),
 });
 
 export async function createCohort(
@@ -56,6 +57,7 @@ export async function createCohort(
     dual_slot_item_ids: formData.getAll("dual_slot").map(String),
     default_approver_user_id:
       (formData.get("default_approver_user_id") as string) || null,
+    review_mode: formData.get("review_mode") ?? "ai_assisted",
   });
   if (!parsed.success) {
     return { kind: "error", message: "Check the form and try again." };
@@ -116,6 +118,7 @@ export async function createCohort(
       join_code: parsed.data.join_code,
       slack_channel: parsed.data.slack_channel,
       default_approver_user_id: parsed.data.default_approver_user_id,
+      review_mode: parsed.data.review_mode,
     })
     .select("id, join_code")
     .maybeSingle<{ id: string; join_code: string | null }>();
@@ -145,6 +148,7 @@ const UpdateSchema = z.object({
   slack_channel: z.string().trim().max(120).nullable(),
   join_open: z.boolean().nullable(),
   default_approver_user_id: z.string().uuid().nullable(),
+  review_mode: z.enum(["human", "ai_assisted"]),
 });
 
 /**
@@ -174,6 +178,7 @@ export async function updateCohort(
     join_open: rawJoinOpen === null ? null : rawJoinOpen === "on",
     default_approver_user_id:
       (formData.get("default_approver_user_id") as string) || null,
+    review_mode: formData.get("review_mode") ?? "ai_assisted",
   });
   if (!parsed.success) {
     return { kind: "error", message: "Check the form and try again." };
@@ -187,6 +192,7 @@ export async function updateCohort(
   // on the org tree.
   update.slack_channel = parsed.data.slack_channel;
   update.default_approver_user_id = parsed.data.default_approver_user_id;
+  update.review_mode = parsed.data.review_mode;
 
   const supabase = await createClient();
   const { error } = await supabase

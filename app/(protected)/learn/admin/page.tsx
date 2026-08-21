@@ -68,7 +68,7 @@ export default async function ProgrammeAdminPage({
       supabase
         .from("programme_cohorts")
         .select(
-          "id, name, status, start_date, is_test, join_code, join_open, slack_channel, default_approver_user_id",
+          "id, name, status, start_date, is_test, join_code, join_open, slack_channel, default_approver_user_id, review_mode",
         )
         .order("start_date", { ascending: false })
         .returns<
@@ -82,6 +82,7 @@ export default async function ProgrammeAdminPage({
             join_open: boolean;
             slack_channel: string | null;
             default_approver_user_id: string | null;
+            review_mode: string;
           }[]
         >(),
       supabase
@@ -293,6 +294,7 @@ export default async function ProgrammeAdminPage({
               joinOpen: c.join_open,
               slackChannel: c.slack_channel,
               defaultApproverUserId: c.default_approver_user_id,
+              reviewMode: c.review_mode,
               memberCount: memberCountByCohort.get(c.id) ?? 0,
             }))}
             />

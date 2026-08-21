@@ -2,6 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import type { RagStatus } from "./rag";
+import { explainReasons } from "./ai-review";
 
 /**
  * The team lead's view: their own members, and the sign-offs waiting on them.
@@ -35,6 +36,12 @@ export type PendingSubmission = {
   submittedAt: string;
   /** Set when this replaces a rejected attempt - the lead should see why. */
   previousComment: string | null;
+  /** The automated first pass, when one ran and routed this to a human. */
+  aiReview: {
+    scores: Record<string, number>;
+    feedback: string;
+    why: string;
+  } | null;
 };
 
 export type LeadBoard = {
@@ -91,7 +98,7 @@ export const loadLeadBoard = cache(
         supabase
           .from("programme_submissions")
           .select(
-            "id, cohort_member_id, track_item_id, kind, prompt_text, task_solved, time_saved_estimate, artefact_url, signoff_status, signoff_comment, superseded_by, created_at",
+            "id, cohort_member_id, track_item_id, kind, prompt_text, task_solved, time_saved_estimate, artefact_url, signoff_status, signoff_comment, superseded_by, created_at, ai_decision, ai_review_json",
           )
           .in("cohort_member_id", memberIds)
           .returns<
@@ -108,6 +115,12 @@ export const loadLeadBoard = cache(
               signoff_comment: string | null;
               superseded_by: string | null;
               created_at: string;
+              ai_decision: string | null;
+              ai_review_json: {
+                scores?: Record<string, number>;
+                feedback?: string;
+                reasons?: string[];
+              } | null;
             }[]
           >(),
         supabase
@@ -149,6 +162,14 @@ export const loadLeadBoard = cache(
         artefactUrl: s.artefact_url,
         submittedAt: s.created_at,
         previousComment: commentBySupersededBy.get(s.id) ?? null,
+        aiReview:
+          s.ai_decision === "flagged" && s.ai_review_json?.scores
+            ? {
+                scores: s.ai_review_json.scores,
+                feedback: s.ai_review_json.feedback ?? "",
+                why: explainReasons(s.ai_review_json.reasons ?? []),
+              }
+            : null,
       }))
       // Oldest first: whoever has waited longest gets unblocked first.
       .sort((a, b) => a.submittedAt.localeCompare(b.submittedAt));
