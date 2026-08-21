@@ -198,7 +198,7 @@ export function ScoreForm({
       </Section>
 
       {/* Optional free text, collapsed. Never blocks submission. */}
-      <div className="rounded-lg border border-border bg-card">
+      <div className="rounded-lg border border-border bg-background">
         <button
           type="button"
           onClick={() => setShowOptional((v) => !v)}

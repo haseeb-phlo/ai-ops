@@ -26,9 +26,9 @@ export type RosterSession = {
 
 /** Cell appearance per state. Colour lives in a dot, per the app's grammar. */
 const CELL: Record<AttendanceStatus, { dot: string; short: string; label: string }> = {
-  attended: { dot: "bg-emerald-500", short: "A", label: "Attended" },
-  absent: { dot: "bg-rose-500", short: "-", label: "Absent" },
-  excused: { dot: "bg-amber-500", short: "E", label: "Excused" },
+  attended: { dot: "bg-success", short: "A", label: "Attended" },
+  absent: { dot: "bg-destructive", short: "-", label: "Absent" },
+  excused: { dot: "bg-warning", short: "E", label: "Excused" },
 };
 
 /**

@@ -18,7 +18,7 @@ export type HeatmapMember = {
 
 /** Day cells are dots, not coloured squares - the app's status grammar. */
 const DAY_DOT: Record<string, string> = {
-  complete: "bg-emerald-500",
+  complete: "bg-success",
   partial: "bg-cyan-500",
   none: "bg-muted-foreground/30",
   locked: "bg-transparent border border-border",
@@ -66,7 +66,7 @@ function GateFunnel({
   funnel: { total: number; perGate: Record<string, number>; complete: number };
 }) {
   return (
-    <section className="rounded-lg border border-border bg-card p-4">
+    <section className="rounded-lg border border-border bg-background p-4">
       <h3 className="text-sm font-semibold tracking-tight text-foreground">
         Gates
       </h3>
@@ -112,7 +112,7 @@ function Heatmap({
   dayIndexes: number[];
 }) {
   return (
-    <section className="rounded-lg border border-border bg-card p-4">
+    <section className="rounded-lg border border-border bg-background p-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h3 className="text-sm font-semibold tracking-tight text-foreground">
           Progress by day
@@ -131,7 +131,7 @@ function Heatmap({
         <table className="w-full min-w-[40rem] border-collapse">
           <thead>
             <tr>
-              <th className="sticky left-0 bg-card px-2 py-1 text-left text-xs font-medium text-muted-foreground">
+              <th className="sticky left-0 bg-background px-2 py-1 text-left text-xs font-medium text-muted-foreground">
                 Member
               </th>
               {dayIndexes.map((d) => (
@@ -150,7 +150,7 @@ function Heatmap({
           <tbody>
             {members.map((m) => (
               <tr key={m.cohortMemberId} className="border-t border-border">
-                <td className="sticky left-0 bg-card px-2 py-1.5">
+                <td className="sticky left-0 bg-background px-2 py-1.5">
                   <span className="inline-flex items-center gap-1.5 text-xs text-foreground">
                     <span
                       aria-hidden
@@ -202,7 +202,7 @@ function AttendanceSummary({
 }) {
   if (rows.length === 0) return null;
   return (
-    <section className="rounded-lg border border-border bg-card p-4">
+    <section className="rounded-lg border border-border bg-background p-4">
       <h3 className="text-sm font-semibold tracking-tight text-foreground">
         Attendance
       </h3>
@@ -257,7 +257,7 @@ function ExportCard({ cohortId }: { cohortId: string }) {
   };
 
   return (
-    <section className="rounded-lg border border-border bg-card p-4">
+    <section className="rounded-lg border border-border bg-background p-4">
       <h3 className="text-sm font-semibold tracking-tight text-foreground">
         Work samples for blind scoring
       </h3>

@@ -28,7 +28,7 @@ export function ProgrammeBanner({
   return (
     <Link
       href="/learn/track"
-      className="group flex flex-wrap items-center justify-between gap-4 rounded-lg border border-border bg-card p-4 transition hover:border-primary/40"
+      className="group flex flex-wrap items-center justify-between gap-4 rounded-lg border border-border bg-background p-4 transition hover:border-primary/40"
     >
       <div className="min-w-0">
         <div className="flex items-center gap-2">

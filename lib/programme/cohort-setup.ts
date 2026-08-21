@@ -67,7 +67,10 @@ export function deriveSessionDates(args: {
     .slice()
     .sort((a, b) => a.dayIndex - b.dayIndex)
     .map((session) => {
-      const first = unlockDateFor(args.startDate, session.dayIndex);
+      // Always daily arithmetic, whatever the unlock mode is. A session is a
+      // real event in a real room: the one on day 3 happens on the Wednesday,
+      // not on the Monday its week unlocks.
+      const first = unlockDateFor(args.startDate, session.dayIndex, "daily");
       return {
         ...session,
         dates: dual.has(session.trackItemId)

@@ -43,10 +43,10 @@ export function DayRow({
             isToday
               ? "border-primary bg-primary text-primary-foreground ring-4 ring-secondary"
               : allComplete
-                ? "border-border bg-emerald-50 text-emerald-700"
+                ? "border-border bg-background"
                 : allLocked
                   ? "border-border bg-muted text-muted-foreground/60"
-                  : "border-border bg-card text-foreground",
+                  : "border-border bg-background text-foreground",
           )}
         >
           {dayIndex}

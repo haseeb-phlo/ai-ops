@@ -102,14 +102,50 @@ export function workingDaysBetween(from: IsoDate, to: IsoDate): number {
 }
 
 /**
+ * How much of the programme opens at once.
+ *
+ *   "daily"  - one day at a time, the playbook's original drip.
+ *   "weekly" - the whole week opens on its Monday.
+ *
+ * Weekly is the default, and the reasoning is worth keeping next to the code.
+ * The real cadence of this programme is the three live sessions, one per week,
+ * not the fifteen videos. Phlo runs shifts, so a daily lock stops someone who
+ * has a quiet Tuesday and a brutal Wednesday from working when they can - and
+ * the playbook already concedes the point by saying unlocked items never
+ * re-lock and shift workers catch up whenever. A daily lock therefore adds
+ * friction without adding structure.
+ *
+ * Weekly still drips: nobody can take all fifteen days on the first morning,
+ * so the sessions still land in sequence and the spacing survives.
+ */
+export type UnlockMode = "daily" | "weekly";
+
+export const DEFAULT_UNLOCK_MODE: UnlockMode = "weekly";
+
+/** Which week (1-3) a programme day belongs to. */
+export function weekOf(dayIndex: number): number {
+  return Math.max(1, Math.ceil(dayIndex / 5));
+}
+
+/**
  * The date a given programme day unlocks.
  *
  * day_index 0 (the baseline check-in) is available from the cohort start.
- * day_index N unlocks on start_date + (N - 1) working days, so day 1 is the
- * start Monday, day 5 the Friday of week 1, and day 15 the Friday of week 3.
+ *
+ * daily:  start_date + (N - 1) working days, so day 1 is the start Monday,
+ *         day 5 the Friday of week 1 and day 15 the Friday of week 3.
+ * weekly: the Monday of that day's week, so days 1-5 all open on the start
+ *         Monday, 6-10 a week later and 11-15 a week after that.
  */
-export function unlockDateFor(startDate: IsoDate, dayIndex: number): IsoDate {
+export function unlockDateFor(
+  startDate: IsoDate,
+  dayIndex: number,
+  mode: UnlockMode = DEFAULT_UNLOCK_MODE,
+): IsoDate {
   if (dayIndex <= 0) return startDate;
+  if (mode === "weekly") {
+    return addWorkingDays(startDate, (weekOf(dayIndex) - 1) * 5);
+  }
   return addWorkingDays(startDate, dayIndex - 1);
 }
 

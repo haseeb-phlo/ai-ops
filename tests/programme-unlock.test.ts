@@ -24,6 +24,8 @@ const stateOf = (
   id: string,
 ): ItemState => resolved.find((r) => r.item.id === id)!.state;
 
+// The cases below pin DAILY behaviour explicitly. Weekly is the default in
+// production; see the weekly block at the end.
 describe("the baseline gate", () => {
   it("is available on day one even with no baseline response", () => {
     const r = resolveItemStates({
@@ -31,6 +33,7 @@ describe("the baseline gate", () => {
       startDate: START,
       today: START,
       hasBaseline: false,
+      unlockMode: "daily",
     });
     expect(stateOf(r, "gate")).toBe("available");
   });
@@ -41,6 +44,7 @@ describe("the baseline gate", () => {
       startDate: START,
       today: START,
       hasBaseline: false,
+      unlockMode: "daily",
     });
     expect(stateOf(r, "d1v")).toBe("locked");
     expect(stateOf(r, "d1u")).toBe("locked");
@@ -52,6 +56,7 @@ describe("the baseline gate", () => {
       startDate: START,
       today: START,
       hasBaseline: true,
+      unlockMode: "daily",
     });
     expect(stateOf(r, "d1v")).toBe("available");
     expect(stateOf(r, "d1u")).toBe("available");
@@ -65,6 +70,7 @@ describe("the baseline gate", () => {
       startDate: START,
       today: "2026-09-18", // day 15
       hasBaseline: false,
+      unlockMode: "daily",
     });
     expect(stateOf(r, "d1v")).toBe("locked");
     expect(stateOf(r, "d8s")).toBe("locked");
@@ -79,6 +85,7 @@ describe("quiz and post check-in are gate-exempt", () => {
       startDate: START,
       today: "2026-09-18", // day 15
       hasBaseline: false,
+      unlockMode: "daily",
     });
     expect(stateOf(r, "d15q")).toBe("available");
     expect(stateOf(r, "d15p")).toBe("available");
@@ -91,6 +98,7 @@ describe("quiz and post check-in are gate-exempt", () => {
       startDate: START,
       today: START,
       hasBaseline: true,
+      unlockMode: "daily",
     });
     expect(stateOf(r, "d5q")).toBe("locked");
     expect(stateOf(r, "d15q")).toBe("locked");
@@ -104,6 +112,7 @@ describe("unlock dates follow working days", () => {
       startDate: START,
       today: "2026-09-04",
       hasBaseline: true,
+      unlockMode: "daily",
     });
     expect(stateOf(friday, "d5q")).toBe("available");
 
@@ -112,6 +121,7 @@ describe("unlock dates follow working days", () => {
       startDate: START,
       today: "2026-09-03",
       hasBaseline: true,
+      unlockMode: "daily",
     });
     expect(stateOf(thursday, "d5q")).toBe("locked");
   });
@@ -122,6 +132,7 @@ describe("unlock dates follow working days", () => {
       startDate: START,
       today: START,
       hasBaseline: true,
+      unlockMode: "daily",
     });
     expect(r.find((x) => x.item.id === "d15v")!.unlockDate).toBe("2026-09-18");
   });
@@ -132,6 +143,7 @@ describe("unlock dates follow working days", () => {
       startDate: START,
       today: "2026-09-05",
       hasBaseline: true,
+      unlockMode: "daily",
     });
     expect(stateOf(saturday, "d5q")).toBe("available");
     expect(stateOf(saturday, "d8s")).toBe("locked");
@@ -145,6 +157,7 @@ describe("items never re-lock", () => {
       startDate: "2026-12-07", // cohort rescheduled far into the future
       today: START,
       hasBaseline: true,
+      unlockMode: "daily",
       progressByItemId: new Map([["d15v", "complete"]]),
     });
     expect(stateOf(r, "d15v")).toBe("complete");
@@ -156,6 +169,7 @@ describe("items never re-lock", () => {
       startDate: START,
       today: START,
       hasBaseline: false,
+      unlockMode: "daily",
       progressByItemId: new Map([["d1v", "started"]]),
     });
     expect(stateOf(r, "d1v")).toBe("started");
@@ -167,6 +181,7 @@ describe("items never re-lock", () => {
       startDate: START,
       today: START,
       hasBaseline: false,
+      unlockMode: "daily",
       progressByItemId: new Map([["d1v", "locked"]]),
     });
     expect(stateOf(r, "d1v")).toBe("locked");
@@ -179,6 +194,7 @@ describe("unlockedItems / outstandingItems", () => {
     startDate: START,
     today: START,
     hasBaseline: true,
+    unlockMode: "daily",
     progressByItemId: new Map([["d1v", "complete"]]),
   });
 
@@ -190,5 +206,45 @@ describe("unlockedItems / outstandingItems", () => {
   it("excludes completed work from the outstanding list", () => {
     const ids = outstandingItems(resolved).map((r) => r.item.id).sort();
     expect(ids).toEqual(["d1u", "gate"]);
+  });
+});
+
+describe("weekly unlock, the production default", () => {
+  it("opens the whole of week one on day one", () => {
+    const r = resolveItemStates({
+      items,
+      startDate: START,
+      today: START,
+      hasBaseline: true,
+      unlockMode: "weekly",
+    });
+    // Day 5's quiz is available on the start Monday under weekly.
+    expect(stateOf(r, "d5q")).toBe("available");
+    // Week two is still shut.
+    expect(stateOf(r, "d8s")).toBe("locked");
+  });
+
+  it("still holds week three back until its Monday", () => {
+    const r = resolveItemStates({
+      items,
+      startDate: START,
+      today: "2026-09-07",
+      hasBaseline: true,
+      unlockMode: "weekly",
+    });
+    expect(stateOf(r, "d8s")).toBe("available");
+    expect(stateOf(r, "d15v")).toBe("locked");
+  });
+
+  it("still refuses everything without a baseline", () => {
+    const r = resolveItemStates({
+      items,
+      startDate: START,
+      today: START,
+      hasBaseline: false,
+      unlockMode: "weekly",
+    });
+    expect(stateOf(r, "d1v")).toBe("locked");
+    expect(stateOf(r, "gate")).toBe("available");
   });
 });

@@ -59,7 +59,7 @@ export function QuizRunner({
             "rounded-lg border p-5",
             state.passed
               ? "border-border bg-secondary text-secondary-foreground"
-              : "border-border bg-card",
+              : "border-border bg-background",
           )}
         >
           <h2 className="text-lg font-semibold tracking-tight">
@@ -97,7 +97,7 @@ export function QuizRunner({
                     aria-hidden
                     className={cn(
                       "mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full text-white",
-                      right ? "bg-emerald-500" : "bg-rose-500",
+                      right ? "bg-success" : "bg-destructive",
                     )}
                   >
                     {right ? (
@@ -116,8 +116,8 @@ export function QuizRunner({
                       key={oi}
                       className={cn(
                         "rounded px-2 py-1 text-sm",
-                        oi === correct && "bg-emerald-50 text-emerald-900",
-                        oi === chosen && oi !== correct && "bg-rose-50 text-rose-900",
+                        oi === correct && "border-l-2 border-l-success bg-muted/50 text-foreground",
+                        oi === chosen && oi !== correct && "border-l-2 border-l-destructive bg-muted/50 text-foreground",
                         oi !== correct && oi !== chosen && "text-muted-foreground",
                       )}
                     >

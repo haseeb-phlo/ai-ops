@@ -6,6 +6,7 @@ import {
   isWeekend,
   todayInLondon,
   unlockDateFor,
+  weekOf,
   workingDaysBetween,
 } from "@/lib/programme/working-days";
 
@@ -61,28 +62,28 @@ describe("addWorkingDays", () => {
   });
 });
 
-describe("unlockDateFor", () => {
+describe("unlockDateFor - daily mode", () => {
   it("makes the day-0 gate available from the cohort start", () => {
-    expect(unlockDateFor(START, 0)).toBe(START);
+    expect(unlockDateFor(START, 0, "daily")).toBe(START);
   });
 
   it("puts day 1 on the start Monday", () => {
-    expect(unlockDateFor(START, 1)).toBe(START);
+    expect(unlockDateFor(START, 1, "daily")).toBe(START);
   });
 
   it("puts day 5 on the Friday of week 1", () => {
-    expect(unlockDateFor(START, 5)).toBe("2026-09-04");
-    expect(dayOfWeek(unlockDateFor(START, 5))).toBe(5);
+    expect(unlockDateFor(START, 5, "daily")).toBe("2026-09-04");
+    expect(dayOfWeek(unlockDateFor(START, 5, "daily"))).toBe(5);
   });
 
   it("puts day 10 on the Friday of week 2", () => {
-    expect(unlockDateFor(START, 10)).toBe("2026-09-11");
-    expect(dayOfWeek(unlockDateFor(START, 10))).toBe(5);
+    expect(unlockDateFor(START, 10, "daily")).toBe("2026-09-11");
+    expect(dayOfWeek(unlockDateFor(START, 10, "daily"))).toBe(5);
   });
 
   it("puts day 15 on the Friday of week 3", () => {
-    expect(unlockDateFor(START, 15)).toBe("2026-09-18");
-    expect(dayOfWeek(unlockDateFor(START, 15))).toBe(5);
+    expect(unlockDateFor(START, 15, "daily")).toBe("2026-09-18");
+    expect(dayOfWeek(unlockDateFor(START, 15, "daily"))).toBe(5);
   });
 
   it("never schedules a programme day on a weekend", () => {
@@ -93,7 +94,7 @@ describe("unlockDateFor", () => {
 
   it("spans exactly three calendar weeks", () => {
     // 15 working days from a Monday lands 18 calendar days later.
-    expect(unlockDateFor(START, 15)).toBe("2026-09-18");
+    expect(unlockDateFor(START, 15, "daily")).toBe("2026-09-18");
   });
 });
 
@@ -136,5 +137,55 @@ describe("todayInLondon", () => {
 
   it("agrees with UTC in winter, when London is GMT", () => {
     expect(todayInLondon(new Date("2026-01-15T23:30:00Z"))).toBe("2026-01-15");
+  });
+});
+
+describe("unlockDateFor - weekly mode, the default", () => {
+  it("opens a whole week on its Monday", () => {
+    // The real cadence is the three live sessions, one per week. A daily lock
+    // stops a shift worker with a quiet Tuesday from working when they can,
+    // and the programme already lets people catch up whenever.
+    for (const day of [1, 2, 3, 4, 5]) {
+      expect(unlockDateFor(START, day, "weekly")).toBe("2026-08-31");
+    }
+    for (const day of [6, 7, 8, 9, 10]) {
+      expect(unlockDateFor(START, day, "weekly")).toBe("2026-09-07");
+    }
+    for (const day of [11, 12, 13, 14, 15]) {
+      expect(unlockDateFor(START, day, "weekly")).toBe("2026-09-14");
+    }
+  });
+
+  it("still drips, so nobody takes all fifteen days on the first morning", () => {
+    expect(unlockDateFor(START, 15, "weekly")).not.toBe(
+      unlockDateFor(START, 1, "weekly"),
+    );
+  });
+
+  it("keeps every week opening on a Monday", () => {
+    for (const day of [1, 6, 11]) {
+      expect(dayOfWeek(unlockDateFor(START, day, "weekly"))).toBe(1);
+    }
+  });
+
+  it("is the default when no mode is given", () => {
+    expect(unlockDateFor(START, 5)).toBe(unlockDateFor(START, 5, "weekly"));
+  });
+
+  it("leaves the day-0 gate open from the start either way", () => {
+    expect(unlockDateFor(START, 0, "weekly")).toBe(START);
+    expect(unlockDateFor(START, 0, "daily")).toBe(START);
+  });
+});
+
+describe("weekOf", () => {
+  it("maps days to their week", () => {
+    expect([1, 5].map(weekOf)).toEqual([1, 1]);
+    expect([6, 10].map(weekOf)).toEqual([2, 2]);
+    expect([11, 15].map(weekOf)).toEqual([3, 3]);
+  });
+
+  it("never returns week zero for the entry gate", () => {
+    expect(weekOf(0)).toBe(1);
   });
 });
