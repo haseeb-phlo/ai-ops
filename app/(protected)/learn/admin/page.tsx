@@ -14,6 +14,19 @@ import { CohortDashboard } from "./_components/cohort-dashboard";
 import { CohortPicker } from "./_components/cohort-picker";
 import { CohortManager } from "./_components/cohort-manager";
 import { CertificateQueue } from "./_components/certificate-queue";
+import { ReportingPanel } from "./_components/reporting-panel";
+import {
+  filterRows,
+  loadReportingData,
+} from "@/lib/programme/reporting-data";
+import {
+  bandMigration,
+  capabilityMix,
+  completionTelemetry,
+  confidenceShift,
+  driftComparison,
+  returnerTripwireTripped,
+} from "@/lib/programme/reporting";
 import { slackEnabled } from "@/lib/slack";
 import { todayInLondon } from "@/lib/programme/working-days";
 
@@ -28,9 +41,13 @@ export const metadata = { title: "Programme admin" };
 export default async function ProgrammeAdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; cohort?: string }>;
+  searchParams: Promise<{
+    tab?: string;
+    cohort?: string;
+    fn?: string;
+  }>;
 }) {
-  const { cohort: cohortParam } = await searchParams;
+  const { cohort: cohortParam, fn: functionParam } = await searchParams;
   const user = await getSessionUser();
   if (user.realRole !== "super_admin") {
     redirect("/learn?toast=admin-only");
@@ -136,6 +153,17 @@ export default async function ProgrammeAdminPage({
       description="Create a cohort to start tracking a group through the programme."
     />
   );
+
+  // ---- Reporting ------------------------------------------------------
+  const reporting = await loadReportingData();
+  const reportingFilters = {
+    cohortId: cohortParam ?? null,
+    functionName: functionParam ?? null,
+  };
+  const scoped = filterRows(reporting.rows, reportingFilters);
+  const baselineRows = scoped.filter((r) => r.wave === "cohort_baseline");
+  const postRows = scoped.filter((r) => r.wave === "post");
+  const telemetry = completionTelemetry(scoped);
 
   return (
     <PageContainer className="max-w-7xl">
@@ -246,6 +274,26 @@ export default async function ProgrammeAdminPage({
               completedAt: c.completed_at!,
               declined: c.certificate_declined_at !== null,
             }))}
+          />
+        }
+        reporting={
+          <ReportingPanel
+            filters={reportingFilters}
+            view={{
+              drift: driftComparison(scoped),
+              capability: capabilityMix(baselineRows, postRows),
+              confidence: confidenceShift(baselineRows, postRows),
+              bands: bandMigration(baselineRows, postRows),
+              telemetry,
+              tripwire: returnerTripwireTripped(telemetry),
+              unmapped: reporting.unmapped,
+              respondents: {
+                before: baselineRows.length,
+                after: postRows.length,
+              },
+              beforeLabel: "Cohort start",
+              afterLabel: "Day 15",
+            }}
           />
         }
         importPanel={
