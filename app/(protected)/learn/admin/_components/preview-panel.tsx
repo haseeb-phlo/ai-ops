@@ -40,7 +40,7 @@ export function PreviewPanel({
   return (
     <section className="rounded-lg border border-border bg-background p-4">
       <h3 className="text-sm font-semibold tracking-tight text-foreground">
-        Try it as a member
+        Try as a member
       </h3>
       <p className="mt-1 max-w-prose text-xs text-muted-foreground">
         Puts you in your own private run of the programme, backdated so nothing

@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { readXlsx, parseCsv } from "@/lib/programme/xlsx";
 import {
   buildImportPreview,
+  parseCompletionTime,
   type ImportPreview,
 } from "@/lib/programme/may-import";
 import { z } from "zod";
@@ -159,7 +160,7 @@ export async function commitMayImport(
       wave: "may_2026" as const,
       source: "import" as const,
       answers_json: r.answers,
-      submitted_at: parseCompletionTime(r.completionTime),
+      submitted_at: completionTimestamp(r.completionTime),
     }));
 
     const { error, count } = await supabase
@@ -189,12 +190,10 @@ export async function commitMayImport(
  * Microsoft Forms exports completion time in a few shapes. Anything we can't
  * confidently read falls back to now() rather than inventing a date.
  */
-function parseCompletionTime(raw: string): string {
-  if (!raw) return new Date().toISOString();
-  const parsed = Date.parse(raw);
-  return Number.isNaN(parsed)
-    ? new Date().toISOString()
-    : new Date(parsed).toISOString();
+function completionTimestamp(raw: string): string {
+  // Falls back to now only when the file gives us nothing usable. The parser
+  // handles Excel serials, which is what this column actually contains.
+  return parseCompletionTime(raw) ?? new Date().toISOString();
 }
 
 /* ------------------------------------------------------------------ */

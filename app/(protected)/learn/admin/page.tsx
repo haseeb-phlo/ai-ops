@@ -30,6 +30,7 @@ import {
   returnerTripwireTripped,
 } from "@/lib/programme/reporting";
 import { slackEnabled } from "@/lib/slack";
+import { loadImpersonableUsers } from "@/lib/impersonable-users";
 import { todayInLondon } from "@/lib/programme/working-days";
 
 export const metadata = { title: "Programme admin" };
@@ -67,7 +68,7 @@ export default async function ProgrammeAdminPage({
       supabase
         .from("programme_cohorts")
         .select(
-          "id, name, status, start_date, is_test, join_code, join_open, slack_channel",
+          "id, name, status, start_date, is_test, join_code, join_open, slack_channel, default_approver_user_id",
         )
         .order("start_date", { ascending: false })
         .returns<
@@ -80,6 +81,7 @@ export default async function ProgrammeAdminPage({
             join_code: string | null;
             join_open: boolean;
             slack_channel: string | null;
+            default_approver_user_id: string | null;
           }[]
         >(),
       supabase
@@ -111,6 +113,13 @@ export default async function ProgrammeAdminPage({
       .returns<{ cohort_id: string }[]>(),
   ]);
   const sessionItems = sessionRows ?? [];
+
+  // Who can be named as a cohort's approver. Anyone with an account: the
+  // approver is a job, not a role, and for the first cohorts it is whoever
+  // owns the programme rather than whoever the org tree points at.
+  const approvers = (await loadImpersonableUsers())
+    .map((u) => ({ userId: u.userId, displayName: u.displayName }))
+    .sort((a, b) => a.displayName.localeCompare(b.displayName));
 
   // Does this admin already have a preview run open?
   const { data: previewRow } = await supabase
@@ -267,6 +276,8 @@ export default async function ProgrammeAdminPage({
             />
             <CohortManager
             today={todayInLondon()}
+            meUserId={user.id}
+            approvers={approvers}
             sessions={sessionItems.map((i) => ({
               trackItemId: i.id,
               title: i.title,
@@ -281,6 +292,7 @@ export default async function ProgrammeAdminPage({
               joinCode: c.join_code,
               joinOpen: c.join_open,
               slackChannel: c.slack_channel,
+              defaultApproverUserId: c.default_approver_user_id,
               memberCount: memberCountByCohort.get(c.id) ?? 0,
             }))}
             />

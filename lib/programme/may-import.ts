@@ -102,11 +102,50 @@ export function rowToResponse(row: readonly string[]): ParsedResponse | null {
 }
 
 /**
+ * When a response was actually submitted.
+ *
+ * An .xlsx does not store a date - it stores a NUMBER of days since the 1900
+ * epoch, and the "date" you see in Excel is a display format sitting on top
+ * of it. The May file's completion times arrive as `46170.50510416667`, which
+ * `Date.parse` rejects, so an ISO-only parser silently falls back to "now"
+ * and stamps a wave called May 2026 with the date somebody happened to run
+ * the import. That is exactly what happened on the first import.
+ *
+ * The epoch is 1899-12-30, not 1900-01-01: Excel deliberately reproduces a
+ * Lotus 1-2-3 bug that treats 1900 as a leap year, and the two-day offset is
+ * how you cancel it out. Serials are naive local times with no zone, so they
+ * are read as UTC rather than invented into one.
+ *
+ * Returns null when the value is neither a serial nor a parseable date, so
+ * the caller decides what to do rather than getting a wrong answer.
+ */
+export function parseCompletionTime(raw: string): string | null {
+  const trimmed = (raw ?? "").trim();
+  if (trimmed === "") return null;
+
+  if (/^\d+(\.\d+)?$/.test(trimmed)) {
+    const serial = Number(trimmed);
+    // Below ~20000 (1954) an "Excel serial" is far more likely to be a stray
+    // integer in the wrong column than a real date.
+    if (serial < 20000 || serial > 80000) return null;
+    const EXCEL_EPOCH_UTC = Date.UTC(1899, 11, 30);
+    const ms = Math.round(serial * 86_400_000);
+    return new Date(EXCEL_EPOCH_UTC + ms).toISOString();
+  }
+
+  const parsed = Date.parse(trimmed);
+  return Number.isNaN(parsed) ? null : new Date(parsed).toISOString();
+}
+
+/**
  * One response per email, keeping the LATEST by completion time.
  *
  * The May file happens to have no duplicates, but a re-export could, and an
  * upsert in file order would keep whichever row happened to come last rather
  * than the most recent answer.
+ *
+ * Compared as parsed instants, not as raw strings: the raw values are Excel
+ * serials, and lexically "9" sorts after "46170".
  */
 export function dedupeByCompletionTime(
   responses: readonly ParsedResponse[],
@@ -114,9 +153,14 @@ export function dedupeByCompletionTime(
   const byEmail = new Map<string, ParsedResponse>();
   for (const response of responses) {
     const existing = byEmail.get(response.email);
-    if (!existing || response.completionTime > existing.completionTime) {
+    if (!existing) {
       byEmail.set(response.email, response);
+      continue;
     }
+    const a = parseCompletionTime(response.completionTime);
+    const b = parseCompletionTime(existing.completionTime);
+    // A row with no usable time never displaces one that has one.
+    if (a && (!b || a > b)) byEmail.set(response.email, response);
   }
   return [...byEmail.values()];
 }
