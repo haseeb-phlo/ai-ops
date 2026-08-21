@@ -344,8 +344,14 @@ export async function submitProgrammeSubmission(
     const submissionId = created.id;
     after(async () => {
       await runAiReview(submissionId);
+      // An automatic approval can put the submission in the gallery, flip G3,
+      // and land a certificate in the admin queue - so the same readers the
+      // human sign-off revalidates.
       revalidatePath("/learn/track");
       revalidatePath("/learn/leads");
+      revalidatePath("/learn/gallery");
+      revalidatePath("/learn/admin");
+      revalidatePath("/");
     });
   }
 

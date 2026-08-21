@@ -1,6 +1,7 @@
 import "server-only";
 import { anthropic, CLAUDE_MODEL } from "@/lib/anthropic";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { maybeCompleteProgramme } from "./complete-action";
 import {
   buildReviewPrompt,
   decideReview,
@@ -134,7 +135,7 @@ export async function runAiReview(submissionId: string): Promise<ReviewOutcome> 
   };
 
   if (decision === "approved") {
-    await supabase
+    const { data: applied } = await supabase
       .from("programme_submissions")
       .update({
         signoff_status: "approved",
@@ -151,7 +152,18 @@ export async function runAiReview(submissionId: string): Promise<ReviewOutcome> 
       // Re-checked at write time: the row may have been signed by a human in
       // the seconds the model took to answer, and the human wins.
       .eq("signoff_status", "pending")
-      .is("ai_reviewed_at", null);
+      .is("ai_reviewed_at", null)
+      .select("id")
+      .maybeSingle<{ id: string }>();
+
+    // An approval can be the fifth signed example, which flips G3 and can be
+    // the last thing between someone and their certificate. The human
+    // sign-off action does this; without it here, an automatic approval
+    // satisfies the gate in the data and nothing ever notices.
+    //
+    // Only when the write actually landed - if a human got there first, this
+    // already ran on their path.
+    if (applied) await maybeCompleteProgramme(submission.cohort_member_id, supabase);
     return "approved";
   }
 
@@ -181,7 +193,8 @@ async function recordError(
       ai_review_json: { error: message },
     })
     .eq("id", submissionId)
-    .eq("signoff_status", "pending");
+    .eq("signoff_status", "pending")
+    .is("ai_reviewed_at", null);
 }
 
 /**
@@ -198,12 +211,18 @@ export async function sweepUnreviewedSubmissions(limit = 50): Promise<number> {
     return 0;
   }
 
+  // Test cohorts are excluded here rather than inside runAiReview, so a
+  // rehearsal fixture never costs a model call. review_mode defaults to
+  // ai_assisted on every cohort, the seeded ones included.
   const { data: rows } = await supabase
     .from("programme_submissions")
-    .select("id")
+    .select(
+      "id, programme_cohort_members!inner(programme_cohorts!inner(is_test))",
+    )
     .eq("signoff_status", "pending")
     .is("ai_reviewed_at", null)
     .is("superseded_by", null)
+    .eq("programme_cohort_members.programme_cohorts.is_test", false)
     .order("created_at", { ascending: true })
     .limit(limit)
     .returns<{ id: string }[]>();

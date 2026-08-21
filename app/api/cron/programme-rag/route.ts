@@ -78,6 +78,13 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  // Backstop for AI review, and it runs BEFORE the RAG loop on purpose: an
+  // approval flips G3, so a submission the sweep clears has to be visible to
+  // the recompute below or it waits another twenty-four hours for its effect.
+  // The submit action normally schedules the review with after(), so this
+  // usually finds nothing - it is here for the times the callback never ran.
+  const reviewed = await sweepUnreviewedSubmissions();
+
   const results: { cohort: string; members: number; counts: Record<string, number> }[] = [];
 
   for (const cohort of cohorts ?? []) {
@@ -233,12 +240,6 @@ export async function GET(request: NextRequest) {
       counts,
     });
   }
-
-  // Backstop for AI review. The submit action schedules a review with
-  // after(), so this normally finds nothing - it exists for the times the
-  // callback never ran (a deploy mid-request, a cold model outage). Anything
-  // it misses simply waits for a person, which is the safe direction.
-  const reviewed = await sweepUnreviewedSubmissions();
 
   return NextResponse.json(
     { ok: true, today, cohorts: results, reviewed },

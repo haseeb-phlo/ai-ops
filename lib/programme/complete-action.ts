@@ -17,11 +17,17 @@ import { gateableContentItemIds } from "./content-readiness";
  * and (from part 8) fire the congratulation. The UPDATE is guarded on
  * `completed_at is null`, so two concurrent calls cannot both report the
  * transition and announce the same person twice.
+ *
+ * @param client Pass one when there is no user session to borrow - the
+ * automatic reviewer runs in an after() callback and in a cron sweep, and
+ * the second of those has no cookies at all. Omitted, it reads as the caller,
+ * which is what every human-triggered path wants.
  */
 export async function maybeCompleteProgramme(
   cohortMemberId: string,
+  client?: Awaited<ReturnType<typeof createClient>>,
 ): Promise<boolean> {
-  const supabase = await createClient();
+  const supabase = client ?? (await createClient());
 
   const { data: member } = await supabase
     .from("programme_cohort_members")
