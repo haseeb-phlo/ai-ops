@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { format } from "date-fns";
 import {
   CheckIcon,
+  ClapperboardIcon,
   ClipboardCheckIcon,
   FileTextIcon,
   LockIcon,
@@ -67,8 +68,15 @@ export function TrackItemCard({ item }: { item: TrackItemView }) {
   const Icon = TYPE_ICON[item.type] ?? FileTextIcon;
   const state: ProgrammeItemState = optimisticComplete ? "complete" : item.state;
   const style = PROGRAMME_ITEM_STATE[state];
+  // A video day with nothing linked yet can't be completed: otherwise G1 is
+  // satisfiable for content that hasn't been recorded. Use examples have no
+  // video by design, so they stay completable.
+  const awaitingVideo = item.type === "video" && !item.video;
   const canComplete =
-    !locked && !optimisticComplete && (item.type === "video" || item.type === "use_example");
+    !locked &&
+    !optimisticComplete &&
+    !awaitingVideo &&
+    (item.type === "video" || item.type === "use_example");
 
   const handlePlay = () => {
     setPlaying(true);
@@ -176,11 +184,28 @@ export function TrackItemCard({ item }: { item: TrackItemView }) {
             </div>
           )}
 
-          {!locked && !item.video && (item.type === "video" || item.type === "use_example") && (
-            <p className="mt-2 rounded-md border border-dashed border-border px-3 py-2 text-xs text-muted-foreground">
-              This day&apos;s video hasn&apos;t been linked yet — an admin can
-              attach it from the Learn library.
-            </p>
+          {/* Placeholder for a day whose video isn't recorded yet. Member-
+              facing copy, not the admin instruction it used to show - during
+              Cohort 1 several days are still in production, and "coming soon"
+              with the topic named reads as planned rather than broken. */}
+          {!locked && !item.video && item.type === "video" && (
+            <div className="mt-3 flex items-center gap-3 rounded-md border border-dashed border-border bg-muted/30 px-3 py-3">
+              <span
+                aria-hidden
+                className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground"
+              >
+                <ClapperboardIcon className="size-4" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-foreground">
+                  Video coming soon
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Being recorded now — you&apos;ll get a nudge when it lands.
+                  Carry on with the rest of the day.
+                </p>
+              </div>
+            </div>
           )}
 
           {!locked && item.type === "submission_slot" && (

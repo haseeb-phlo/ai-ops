@@ -1,0 +1,478 @@
+/**
+ * Knowledge-check questions for the three weekly quizzes.
+ *
+ * Drawn from the 15-day curriculum in "Phlo AI Training Programme v5":
+ *   Week 1 (day 5)  - D1 when to use AI, D2 CRISPE, D3 Connectors & MCP,
+ *                     D4 Projects, D5 catching confident wrong answers
+ *   Week 2 (day 10) - D6 Research/Memory/files out, D7 Cowork, D8 Skills,
+ *                     D9 Scheduled Tasks, D10 Reverse Prompting
+ *   Week 3 (day 15) - D11 Artifacts, D12 Design, D13 Dispatch + Plugins,
+ *                     D14 Claude everywhere, D15 choosing the right tool,
+ *                     plus a spiral back over weeks 1 and 2
+ *
+ * HOUSE STYLE, enforced by tests/programme-quiz-content.test.ts:
+ *   - no em dashes anywhere in a question, option or explanation; use a hyphen
+ *   - no Oxford comma before "and" in a list
+ *
+ * Design notes, so edits keep the character:
+ *
+ * - SCENARIOS, not definitions. "What is a Project?" tests reading; "you are
+ *   about to do X, what is the better move?" tests judgement, which is what
+ *   the programme is for.
+ * - Every distractor is something a reasonable person might genuinely pick.
+ * - Scenarios are spread across the company: dispensary, fulfilment, finance,
+ *   marketing, people, product, data and governance. Patient-facing clinical
+ *   advice is deliberately NOT the running theme - Phlo already has a
+ *   dedicated AI support tool grounded in the knowledge base, so drilling
+ *   "escalate to a pharmacist" would teach a reflex people already have and
+ *   crowd out the material that actually changes how they work.
+ * - Explanations say why the wrong answers are wrong, because the explanation
+ *   is shown after answering and is where most of the learning lands.
+ */
+
+export type QuizQuestion = {
+  question: string;
+  options: [string, string, string, string];
+  /** Index into `options`. */
+  correct: 0 | 1 | 2 | 3;
+  explanation: string;
+  /** Curriculum day this draws on, for editing against the video library. */
+  day: number;
+};
+
+/* ------------------------------------------------------------------ */
+/* Week 1 - day 5. Ten questions, pass 7.                              */
+/* ------------------------------------------------------------------ */
+
+export const WEEK_1_QUESTIONS: QuizQuestion[] = [
+  {
+    day: 1,
+    question:
+      "Which of these is the weakest candidate for handing to Claude?",
+    options: [
+      "Drafting the first version of a recurring internal update",
+      "Summarising a long supplier contract you will read properly afterwards",
+      "Signing off the final numbers in the month-end pack",
+      "Reformatting a messy stock export into a consistent structure",
+    ],
+    correct: 2,
+    explanation:
+      "Drafting, summarising and reformatting are exactly where AI earns its keep. Signing off is accountable work: a named person owns that number. Use AI to prepare what informs the decision, not to make it.",
+  },
+  {
+    day: 1,
+    question:
+      "A colleague says AI will just do their whole process for them. What is the more realistic framing after a week of using it?",
+    options: [
+      "They are right, most processes can be handed over completely",
+      "It removes the blank page and the repetitive middle, and you still own the judgement and the final check",
+      "It only helps with writing tasks",
+      "It works well for simple processes but never for complex ones",
+    ],
+    correct: 1,
+    explanation:
+      "The gain is real but it is in the drafting and the grind, not in the accountability. Expecting full handover leads to disappointment and to unchecked output; assuming it only does writing badly undersells it. Complexity is not the dividing line, ownership is.",
+  },
+  {
+    day: 2,
+    question:
+      "CRISPE is the prompt framework from day 2. What do its six parts stand for?",
+    options: [
+      "Context, Role, Instructions, Style, Parameters, Example",
+      "Clarity, Reasoning, Input, Scope, Precision, Evaluation",
+      "Context, Request, Intent, Structure, Purpose, Explanation",
+      "Concept, Rules, Information, Summary, Prompt, Excellence",
+    ],
+    correct: 0,
+    explanation:
+      "Context, Role, Instructions, Style, Parameters, Example. It is a checklist rather than a formula: you rarely need all six, but when a prompt is not working, running down the list usually shows you which one is missing.",
+  },
+  {
+    day: 2,
+    question:
+      "You ask for a supplier email and get something factually right but far too casual for the relationship. Which part of CRISPE was missing?",
+    options: ["Context", "Style", "Parameters", "Instructions"],
+    correct: 1,
+    explanation:
+      "Style covers tone, register and voice. The facts were right, so Context and Instructions did their job; Parameters would constrain things like length or format. When output is correct but reads wrong, Style is almost always the gap.",
+  },
+  {
+    day: 2,
+    question:
+      "You need a report laid out exactly like last quarter's. Which part of CRISPE does most of the work here?",
+    options: [
+      "Role, so it writes as an analyst",
+      "Example, because pasting last quarter's report shows the shape far faster than describing it",
+      "Instructions, listing every formatting rule",
+      "Context, explaining who the report is for",
+    ],
+    correct: 1,
+    explanation:
+      "One good example beats a paragraph of formatting rules, and it removes the ambiguity that a description always leaves. The others all help, but describing a layout in words is slow and still gets misread.",
+  },
+  {
+    day: 3,
+    question:
+      "You pull the same figures out of the same system into Claude several times a day. What is that a signal for?",
+    options: [
+      "A Connector, so Claude can reach the system and you stop ferrying context by hand",
+      "A longer prompt that includes more of the background",
+      "A Project to store the figures in",
+      "Nothing, copy and paste is fine at that volume",
+    ],
+    correct: 0,
+    explanation:
+      "Repetitive copy and paste is the clearest signal that a Connector would pay for itself. A Project holds standing context that does not change often; pasted figures go stale the moment you paste them. It was also the biggest awareness gap in the May baseline.",
+  },
+  {
+    day: 3,
+    question:
+      "A colleague worries that connecting a system to Claude will expose data they are not supposed to see. What is the accurate answer?",
+    options: [
+      "They are right, Connectors bypass the source system's permissions",
+      "A Connector acts within the access you already have, so it cannot show you anything you could not open yourself",
+      "Connectors only ever read public data",
+      "It depends entirely on which Connector it is",
+    ],
+    correct: 1,
+    explanation:
+      "A Connector is a route, not a promotion. It works with your existing access, so it cannot widen what you are allowed to see. Worth being clear on in a regulated business, because the fear is common and it stops people using something useful.",
+  },
+  {
+    day: 4,
+    question:
+      "Every week you re-explain the same background before you can ask your actual question: your team's terminology, the format you need and the standing constraints. What fixes that?",
+    options: [
+      "Keep the preamble in a note and paste it each time",
+      "Put the background and reference documents in a Project, and start those chats inside it",
+      "Write a longer prompt so nothing gets missed",
+      "Ask Claude to remember it at the end of each chat",
+    ],
+    correct: 1,
+    explanation:
+      "A Project holds the standing context so every chat inside it starts briefed. Pasting from a note works but you maintain it by hand and it drifts, and a longer prompt just moves the repetition rather than removing it.",
+  },
+  {
+    day: 5,
+    question:
+      "Claude gives you a confident, well-written answer about a courier's cut-off times, with specific figures. You do not know the terms yourself. What is the habit to build?",
+    options: [
+      "Accept it, since the level of detail suggests it came from real data",
+      "Check the specifics against the actual source before you act on them or pass them on",
+      "Ask Claude whether it is sure, and accept the answer if it holds",
+      "Ask the same question again and accept it if you get the same answer twice",
+    ],
+    correct: 1,
+    explanation:
+      "Fluency is not accuracy and confidence is not evidence. Anything specific and consequential gets checked against the source. In the May baseline most people rated themselves confident at catching wrong answers, which is exactly the blind spot this day exists for.",
+  },
+  {
+    day: 5,
+    question:
+      "Why is asking Claude whether it is sure a weak verification method?",
+    options: [
+      "It takes too long",
+      "It tests whether the answer is consistent, not whether it is true, and a wrong answer can be perfectly consistent",
+      "Claude always says yes",
+      "It only works on factual questions",
+    ],
+    correct: 1,
+    explanation:
+      "Self-checks measure consistency. A model can restate a wrong answer with total conviction, and rephrasing the question usually gets you a variation on the same misunderstanding. Verification means going outside the conversation.",
+  },
+];
+
+/* ------------------------------------------------------------------ */
+/* Week 2 - day 10. Ten questions, pass 7.                             */
+/* ------------------------------------------------------------------ */
+
+export const WEEK_2_QUESTIONS: QuizQuestion[] = [
+  {
+    day: 6,
+    question:
+      "You need a written comparison of three couriers' terms, ready to send to your manager. Which approach fits what Claude is actually good at?",
+    options: [
+      "Ask for the comparison and copy the answer out of the chat by hand",
+      "Ask it to do the research and hand back the finished document as a file",
+      "Ask three separate questions and stitch the answers together yourself",
+      "Ask for bullet points and then write them up yourself",
+    ],
+    correct: 1,
+    explanation:
+      "Claude can produce the finished file rather than leaving you to reassemble a document out of chat text. The other options all end with you doing the part the tool would have done, which is where most unclaimed time saving sits.",
+  },
+  {
+    day: 6,
+    question:
+      "What changes once Claude can refer back to your past chats and remembered context?",
+    options: [
+      "Answers become more accurate on factual questions",
+      "You stop re-establishing who you are and how you work at the start of every conversation",
+      "It can access company systems automatically",
+      "Your chats become visible to your team",
+    ],
+    correct: 1,
+    explanation:
+      "Memory removes the re-briefing, not the need to verify. It does not make factual answers more reliable, it does not grant system access, which is what Connectors are for, and it does not share anything with colleagues.",
+  },
+  {
+    day: 7,
+    question:
+      "A month-end task takes eight steps across two systems and most of a morning. How does working with Claude on it differ from asking a one-off question?",
+    options: [
+      "Write one very detailed prompt covering all eight steps at once",
+      "Work through it together, checking each step before moving on, so a wrong turn surfaces at step two rather than step eight",
+      "Do the task yourself and ask Claude to check it at the end",
+      "Split it into eight separate chats to keep each one simple",
+    ],
+    correct: 1,
+    explanation:
+      "For multi-step work the value is in the loop, not the single answer. Checking as you go catches a wrong turn while it is still cheap. One giant prompt hides errors until the end, and eight separate chats throw away the context each time.",
+  },
+  {
+    day: 7,
+    question:
+      "When is working step by step with Claude the wrong choice?",
+    options: [
+      "When the task is genuinely complicated",
+      "When you need a single short answer you can verify at a glance",
+      "When the task crosses more than one system",
+      "When you are new to the tool",
+    ],
+    correct: 1,
+    explanation:
+      "A one-line question deserves a one-line answer. Setting up a working session for something you could check in five seconds is overhead, and overhead is what makes people quietly stop using a tool.",
+  },
+  {
+    day: 8,
+    question:
+      "You have worked out a reliable way to handle a recurring task and two colleagues want to use it. What is a Skill for?",
+    options: [
+      "Packaging that way of working so it can be reused and shared, instead of living in your head",
+      "Storing the documents the task needs",
+      "Running the task automatically each morning",
+      "Giving Claude access to another system",
+    ],
+    correct: 0,
+    explanation:
+      "A Skill turns how I do this into something repeatable that other people can run. Storing documents is a Project, running to a timetable is a Scheduled Task and reaching another system is a Connector. Knowing which is which is most of the skill in choosing.",
+  },
+  {
+    day: 8,
+    question:
+      "A colleague says your Skill gives them worse results than it gives you. What is the most likely explanation?",
+    options: [
+      "They need to build their own version",
+      "The Skill assumes context you supply without thinking about it, and they do not know to",
+      "Skills only work well for whoever created them",
+      "The Skill needs rebuilding from scratch",
+    ],
+    correct: 1,
+    explanation:
+      "A Skill packages the method, not everything in your head. The fix is almost always making those assumptions explicit inside the Skill. Duplicating it just creates two versions that drift apart.",
+  },
+  {
+    day: 9,
+    question:
+      "Which of these is the best candidate for a Scheduled Task?",
+    options: [
+      "A one-off analysis you need this afternoon",
+      "The same stock summary you pull together every Monday before your team meeting",
+      "A complicated question that needs a lot of back and forth",
+      "Anything you would rather not do yourself",
+    ],
+    correct: 1,
+    explanation:
+      "Scheduled Tasks earn their keep on work that is regular and predictable: same shape, same cadence. One-off or exploratory work does not fit a timetable, and would rather not do it is not a criterion. If the shape changes every time, a schedule just produces something you have to redo.",
+  },
+  {
+    day: 9,
+    question:
+      "A Scheduled Task you set up three weeks ago still runs, but you now edit its output heavily before using it. What should you do?",
+    options: [
+      "Leave it, it is still saving time overall",
+      "Look at what you keep changing and fold that back into the task, or retire it if the work has moved on",
+      "Delete it and go back to doing the task by hand",
+      "Run it more often so it stays current",
+    ],
+    correct: 1,
+    explanation:
+      "Heavy editing is the signal that the task and the real work have drifted apart. What you keep changing is the specification, so feed it back in. Leaving it quietly erodes the saving you are claiming, and running it more often just produces more to correct.",
+  },
+  {
+    day: 10,
+    question:
+      "You are not getting what you want and you cannot tell what is missing from your prompt. What does reverse prompting mean here?",
+    options: [
+      "Asking Claude to work backwards from the conclusion",
+      "Asking Claude what it needs to know from you before it attempts the task",
+      "Asking the same thing repeatedly until the answer improves",
+      "Asking a second tool and comparing the answers",
+    ],
+    correct: 1,
+    explanation:
+      "Turn the questioning round and let Claude interview you. It surfaces the context you did not realise you were assuming, which is usually the actual problem. Repeating the prompt gets you variations on the same misunderstanding.",
+  },
+  {
+    day: 10,
+    question:
+      "Which of these is the clearest sign that you should stop rewording your prompt and change approach instead?",
+    options: [
+      "The first answer was not quite right",
+      "You have rephrased it three or four times and keep getting the same shape of wrong answer",
+      "The answer is longer than you wanted",
+      "You had to ask a follow-up question",
+    ],
+    correct: 1,
+    explanation:
+      "One iteration is normal and a follow-up is just conversation. The same wrong shape repeating means the misunderstanding is upstream of the wording, so it is time to ask what it needs, give it an example, or supply the missing context.",
+  },
+];
+
+/* ------------------------------------------------------------------ */
+/* Week 3 - day 15. Ten questions, pass 8. Gates the certificate (G4). */
+/* ------------------------------------------------------------------ */
+
+export const WEEK_3_QUESTIONS: QuizQuestion[] = [
+  {
+    day: 11,
+    question:
+      "You have asked Claude for a checklist your team will use every week. Why ask for it as an Artifact rather than as chat text?",
+    options: [
+      "It gets generated faster",
+      "You get a self-contained thing you can edit, keep and share, rather than something buried in a conversation",
+      "Artifacts are more accurate",
+      "It uses fewer messages",
+    ],
+    correct: 1,
+    explanation:
+      "An Artifact is the output as an object rather than as chat scrollback: editable in place and shareable without anyone reading the whole conversation. Speed and accuracy are unchanged. What changes is whether the work survives the chat.",
+  },
+  {
+    day: 12,
+    question:
+      "You need a one-page summary that will go in front of the exec team. Where does Claude's design help genuinely apply?",
+    options: [
+      "It removes the need for anyone with design skills",
+      "It gets you to a clear, presentable first version quickly, which you then judge and refine",
+      "It only matters for customer-facing material",
+      "It guarantees the result is on brand",
+    ],
+    correct: 1,
+    explanation:
+      "The gain is the distance from blank page to something worth reacting to. It does not guarantee brand fit and does not replace judgement, and internal work benefits from clarity just as much as customer-facing work does.",
+  },
+  {
+    day: 13,
+    question:
+      "What problem do Plugins solve that a better-written prompt does not?",
+    options: [
+      "They improve the quality of Claude's writing",
+      "They add capabilities and connections, extending what Claude can actually do",
+      "They store your previous conversations",
+      "They let several people share one account",
+    ],
+    correct: 1,
+    explanation:
+      "Prompting changes how well you use what is already there. Plugins change what is there. When the blocker is it cannot reach that rather than it misunderstood me, better wording will not fix it.",
+  },
+  {
+    day: 14,
+    question:
+      "You spend most of your day in Excel and Slack. What follows from Claude being available inside the tools you already use?",
+    options: [
+      "You should still do the work in the Claude app and paste results across",
+      "You can use it where the work already is, which removes the context switch that stops people bothering",
+      "The in-tool versions are less capable, so avoid them",
+      "It only matters for people who work in documents",
+    ],
+    correct: 1,
+    explanation:
+      "The barrier is rarely capability, it is friction. Stopping, switching app, re-explaining the context and pasting back is enough to make people not bother for small tasks, and small tasks are where most of the cumulative saving lives.",
+  },
+  {
+    day: 15,
+    question:
+      "You have automated a report that used to take 45 minutes a week. It now takes 5 minutes to run and check. What should you log as the time saved?",
+    options: [
+      "45 minutes a week, which is what the task used to cost",
+      "40 minutes a week, the old cost minus the new one",
+      "Nothing, until you have run it for a full quarter",
+      "However long the automation took to build, spread across the year",
+    ],
+    correct: 1,
+    explanation:
+      "The saving is the difference, not the old total, because something still has to be run and checked. Overstating it is the fastest way to lose trust in the whole exercise. In the May baseline half of respondents could not put a number on their saving at all, and a defensible small number beats a vague large one.",
+  },
+  {
+    day: 15,
+    question:
+      "Three weeks in, what is the most useful thing to do with a prompt you have refined and now rely on?",
+    options: [
+      "Keep it in a personal note so nobody changes it",
+      "Share it as a signed example or a Skill, so the team gets the benefit without rediscovering it",
+      "Keep it to yourself until it is perfect",
+      "Rewrite it from scratch each time to keep it current",
+    ],
+    correct: 1,
+    explanation:
+      "A prompt that only exists in your notes saves one person's time once. The compounding gain is other people not solving the same problem again, which is what the gallery and Skills are for. Waiting for perfect means it never gets shared.",
+  },
+  {
+    day: 5,
+    question:
+      "A colleague shares a Claude-drafted summary of a supplier agreement and says it is cited, so it is solid. What is the flaw?",
+    options: [
+      "Nothing, citations are exactly what you want",
+      "A citation shows a source was referenced, not that it says what the summary claims, so the specifics still need checking",
+      "Citations mean the answer took longer to produce",
+      "They should have asked for more citations",
+    ],
+    correct: 1,
+    explanation:
+      "Citations raise confidence more than they raise reliability. A reference can be real and still not support the claim attached to it. The check is against the actual document, and more citations compounds the problem rather than solving it.",
+  },
+  {
+    day: 2,
+    question:
+      "A prompt keeps producing output that is accurate but consistently the wrong length and format for where it needs to go. Which part of CRISPE should you reach for first?",
+    options: ["Context", "Role", "Parameters", "Instructions"],
+    correct: 2,
+    explanation:
+      "Parameters cover the constraints: length, format, structure and what to leave out. Context and Role shape what it knows and how it thinks; when the content is right but the container is wrong, Parameters is the lever.",
+  },
+  {
+    day: 4,
+    question:
+      "Your team has a Project full of reference documents and a Connector to the system those documents describe. When does the Connector earn its keep over the Project?",
+    options: [
+      "Always, Connectors are the more advanced feature",
+      "When you need what the system says right now, rather than what the documents said when they were written",
+      "Only when the Project gets too large",
+      "Never, they do the same job",
+    ],
+    correct: 1,
+    explanation:
+      "A Project holds standing context that changes slowly. A Connector fetches live state. Reference material belongs in the Project; anything that moves belongs behind the Connector, and treating a stale document as current is a quiet source of wrong answers.",
+  },
+  {
+    day: 9,
+    question:
+      "You have a recurring task, a one-off question and a method you want colleagues to reuse. Which mapping is right?",
+    options: [
+      "Scheduled Task, normal chat, Skill",
+      "Skill, Scheduled Task, Project",
+      "Project, Skill, Connector",
+      "Connector, Artifact, Scheduled Task",
+    ],
+    correct: 0,
+    explanation:
+      "Recurring and predictable is a Scheduled Task, a one-off just needs a chat and a repeatable method others can run is a Skill. Choosing the right container is most of what day 15 is about, because the wrong one makes simple work feel like overhead.",
+  },
+];
+
+export const QUIZ_CONTENT_BY_DAY: Record<number, QuizQuestion[]> = {
+  5: WEEK_1_QUESTIONS,
+  10: WEEK_2_QUESTIONS,
+  15: WEEK_3_QUESTIONS,
+};
