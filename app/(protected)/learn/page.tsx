@@ -121,7 +121,7 @@ export default async function LearnPage() {
   // rewatches) and uniques (distinct viewers) so the card can show
   // "X plays from Y people". In the same pass, capture the current user's
   // earliest play timestamp per video so the card can show a "watched on X"
-  // indicator. "Watched" today means "clicked play at least once" — good
+  // indicator. "Watched" today means "clicked play at least once" - good
   // enough until/unless we wire the Loom SDK for true completion.
   const totalPlays = new Map<string, number>();
   const uniqueViewers = new Map<string, Set<string>>();
@@ -254,7 +254,7 @@ export default async function LearnPage() {
 
       {canManageVideos && videoRows.length > 0 && (
         <p className="text-xs text-muted-foreground">
-          Drag to reorder within a topic — use Edit to move a video to another
+          Drag to reorder within a topic - use Edit to move a video to another
           topic.
         </p>
       )}

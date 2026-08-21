@@ -52,7 +52,7 @@ export function checkCanAddMember(args: {
       ok: false,
       reason: "self_lead",
       message:
-        "A member can't be their own team lead — route their sign-offs to their manager.",
+        "A member can't be their own team lead - route their sign-offs to their manager.",
     };
   }
 

@@ -1,0 +1,400 @@
+import "server-only";
+import { cache } from "react";
+import { createClient } from "@/lib/supabase/server";
+import { computeGates, type GateSet } from "./gates";
+import { computeRag, type RagStatus } from "./rag";
+import { resolveItemStates, outstandingItems, type ItemState } from "./unlock";
+import { todayInLondon, unlockDateFor } from "./working-days";
+import {
+  isG2Impossible,
+  satisfiedSessionIds,
+  summariseAttendance,
+  type AttendanceRecord,
+  type AttendanceStatus,
+} from "./attendance";
+import { buildGateFunnel, type GateFunnel } from "./funnel";
+import { gateableContentItemIds, isAwaitingContent } from "./content-readiness";
+
+/**
+ * Everything the programme admin screens need for one cohort, in one pass.
+ *
+ * Deliberately batched: the roster and heatmap are members x items grids, so
+ * loading per member would be N+1 queries deep. Six queries total, then all
+ * the arithmetic happens in the pure modules.
+ */
+
+export type AdminMember = {
+  cohortMemberId: string;
+  userId: string;
+  displayName: string;
+  isChampion: boolean;
+  joinedOn: string;
+  rag: RagStatus;
+  gates: GateSet;
+  outstandingCount: number;
+  /** Completion state per day index, for the heatmap row. */
+  dayState: Map<number, "complete" | "partial" | "none" | "locked">;
+  /** Attendance per session item id. */
+  attendance: Map<string, { status: AttendanceStatus; makeUp: boolean; slot: number | null }>;
+};
+
+export type SessionColumn = {
+  trackItemId: string;
+  title: string;
+  dayIndex: number;
+  slotDates: string[];
+};
+
+export type CohortAdminView = {
+  cohort: {
+    id: string;
+    name: string;
+    startDate: string;
+    status: string;
+    isTest: boolean;
+  };
+  today: string;
+  members: AdminMember[];
+  sessions: SessionColumn[];
+  dayIndexes: number[];
+  funnel: GateFunnel;
+  attendanceBySession: Map<
+    string,
+    ReturnType<typeof summariseAttendance>
+  >;
+  workSamplePairs: {
+    cohortMemberId: string;
+    preRef: string | null;
+    postRef: string | null;
+  }[];
+};
+
+export const loadCohortAdminView = cache(
+  async (cohortId: string): Promise<CohortAdminView | null> => {
+    const supabase = await createClient();
+
+    const { data: cohort } = await supabase
+      .from("programme_cohorts")
+      .select("id, name, start_date, status, is_test, track_id, session_dates")
+      .eq("id", cohortId)
+      .maybeSingle<{
+        id: string;
+        name: string;
+        start_date: string;
+        status: string;
+        is_test: boolean;
+        track_id: string;
+        session_dates: Record<string, string[]> | null;
+      }>();
+    if (!cohort) return null;
+
+    const [
+      { data: memberRows },
+      { data: itemRows },
+      { data: progressRows },
+      { data: attendanceRows },
+      { data: submissionRows },
+      { data: quizRows },
+    ] = await Promise.all([
+      supabase
+        .from("programme_cohort_members")
+        .select("id, user_id, is_champion, joined_at")
+        .eq("cohort_id", cohortId)
+        .returns<
+          { id: string; user_id: string; is_champion: boolean; joined_at: string }[]
+        >(),
+      supabase
+        .from("programme_track_items")
+        .select("id, type, title, day_index, learn_video_id, config_json")
+        .eq("track_id", cohort.track_id)
+        .order("day_index")
+        .order("sort_order")
+        .returns<
+          {
+            id: string;
+            type: string;
+            title: string;
+            day_index: number;
+            learn_video_id: string | null;
+            config_json: Record<string, unknown>;
+          }[]
+        >(),
+      supabase
+        .from("programme_item_progress")
+        .select("cohort_member_id, track_item_id, status")
+        .returns<
+          { cohort_member_id: string; track_item_id: string; status: ItemState }[]
+        >(),
+      supabase
+        .from("programme_session_attendance")
+        .select("user_id, track_item_id, status, slot, meta_json")
+        .eq("cohort_id", cohortId)
+        .returns<
+          {
+            user_id: string;
+            track_item_id: string;
+            status: AttendanceStatus;
+            slot: number | null;
+            meta_json: Record<string, unknown> | null;
+          }[]
+        >(),
+      supabase
+        .from("programme_submissions")
+        .select(
+          "cohort_member_id, track_item_id, kind, signoff_status, signoff_rubric_json, artefact_url, superseded_by",
+        )
+        .returns<
+          {
+            cohort_member_id: string;
+            track_item_id: string | null;
+            kind: string;
+            signoff_status: string;
+            signoff_rubric_json: Record<string, unknown> | null;
+            artefact_url: string | null;
+            superseded_by: string | null;
+          }[]
+        >(),
+      supabase
+        .from("programme_quiz_attempts")
+        .select("cohort_member_id, track_item_id, score")
+        .returns<
+          { cohort_member_id: string; track_item_id: string; score: number }[]
+        >(),
+    ]);
+
+    const members = memberRows ?? [];
+    const items = itemRows ?? [];
+    const today = todayInLondon();
+
+    // Names: profiles are readable to any authenticated user; this page is
+    // super-admin gated anyway.
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("user_id, display_name")
+      .in("user_id", members.map((m) => m.user_id))
+      .returns<{ user_id: string; display_name: string | null }[]>();
+    const nameByUserId = new Map(
+      (profiles ?? []).map((p) => [p.user_id, p.display_name ?? ""]),
+    );
+
+    const sessionItems = items.filter((i) => i.type === "session");
+    const contentItemIds = gateableContentItemIds(items);
+    const summativeItem = items.find(
+      (i) => i.type === "quiz" && i.config_json?.summative === true,
+    );
+    const summativeQuizPassMark = Number(
+      summativeItem?.config_json?.pass_mark ?? 8,
+    );
+
+    const sessions: SessionColumn[] = sessionItems.map((i) => ({
+      trackItemId: i.id,
+      title: i.title,
+      dayIndex: i.day_index,
+      slotDates: cohort.session_dates?.[i.id] ?? [],
+    }));
+
+    // Index everything by member so the per-member pass is cheap.
+    const progressByMember = new Map<string, Map<string, ItemState>>();
+    for (const p of progressRows ?? []) {
+      let map = progressByMember.get(p.cohort_member_id);
+      if (!map) {
+        map = new Map();
+        progressByMember.set(p.cohort_member_id, map);
+      }
+      map.set(p.track_item_id, p.status);
+    }
+
+    const attendanceByUser = new Map<string, typeof attendanceRows>();
+    for (const a of attendanceRows ?? []) {
+      const list = attendanceByUser.get(a.user_id) ?? [];
+      list.push(a);
+      attendanceByUser.set(a.user_id, list);
+    }
+
+    const submissionsByMember = new Map<string, typeof submissionRows>();
+    for (const s of submissionRows ?? []) {
+      if (s.superseded_by) continue;
+      const list = submissionsByMember.get(s.cohort_member_id) ?? [];
+      list.push(s);
+      submissionsByMember.set(s.cohort_member_id, list);
+    }
+
+    const quizByMember = new Map<string, number[]>();
+    for (const q of quizRows ?? []) {
+      if (q.track_item_id !== summativeItem?.id) continue;
+      const list = quizByMember.get(q.cohort_member_id) ?? [];
+      list.push(q.score);
+      quizByMember.set(q.cohort_member_id, list);
+    }
+
+    // Post-wave responses, by email, so G4 is accurate here too.
+    const { data: postRows } = await supabase
+      .from("ai_score_responses")
+      .select("user_id")
+      .eq("wave", "post")
+      .not("user_id", "is", null)
+      .returns<{ user_id: string }[]>();
+    const postUserIds = new Set((postRows ?? []).map((r) => r.user_id));
+
+    const dayIndexes = [
+      ...new Set(items.filter((i) => i.day_index > 0).map((i) => i.day_index)),
+    ].sort((a, b) => a - b);
+
+    const adminMembers: AdminMember[] = members.map((member) => {
+      const progress = progressByMember.get(member.id) ?? new Map();
+      const attendanceRecords: AttendanceRecord[] = (
+        attendanceByUser.get(member.user_id) ?? []
+      ).map((a) => ({
+        trackItemId: a.track_item_id,
+        status: a.status,
+        makeUp: a.meta_json?.make_up === true,
+      }));
+      const satisfied = satisfiedSessionIds(attendanceRecords);
+
+      const resolved = resolveItemStates({
+        items,
+        startDate: cohort.start_date,
+        today,
+        // The roster view doesn't need to re-derive the baseline gate per
+        // member; progress already reflects what they've actually done.
+        hasBaseline: true,
+        progressByItemId: progress,
+      });
+
+      const completedItemIds = new Set(
+        resolved.filter((r) => r.state === "complete").map((r) => r.item.id),
+      );
+
+      const live = submissionsByMember.get(member.id) ?? [];
+      const approvedSignedExamples = live.filter(
+        (s) => s.kind === "signed_example" && s.signoff_status === "approved",
+      ).length;
+      const approvedCapstone = live.find(
+        (s) => s.kind === "capstone" && s.signoff_status === "approved",
+      );
+      const scores = quizByMember.get(member.id) ?? [];
+
+      const gates = computeGates({
+        contentItemIds,
+        completedItemIds,
+        sessionItemIds: sessionItems.map((i) => i.id),
+        satisfiedSessionItemIds: satisfied,
+        approvedSignedExamples,
+        capstoneCredits: approvedCapstone
+          ? Number(approvedCapstone.signoff_rubric_json?.credits ?? 2)
+          : 0,
+        bestSummativeQuizScore: scores.length ? Math.max(...scores) : null,
+        summativeQuizPassMark,
+        hasPostResponse: postUserIds.has(member.user_id),
+      });
+
+      const outstandingCount = outstandingItems(resolved).filter(
+        (r) => !isAwaitingContent(r.item),
+      ).length;
+
+      const rag = computeRag({
+        outstandingCount,
+        hasOutstandingRejection: live.some(
+          (s) => s.signoff_status === "rejected",
+        ),
+        hasImpossibleGate: isG2Impossible({
+          sessions: sessions.map((s) => ({
+            trackItemId: s.trackItemId,
+            slotDates: s.slotDates,
+            fallbackDate: unlockDateFor(cohort.start_date, s.dayIndex),
+          })),
+          satisfied,
+          today,
+        }),
+        joinedOn: member.joined_at.slice(0, 10),
+        cohortStartDate: cohort.start_date,
+        today,
+      });
+
+      // One cell per day for the heatmap row.
+      const dayState = new Map<
+        number,
+        "complete" | "partial" | "none" | "locked"
+      >();
+      for (const day of dayIndexes) {
+        const forDay = resolved.filter((r) => r.item.day_index === day);
+        if (forDay.every((r) => r.state === "locked")) dayState.set(day, "locked");
+        else if (forDay.every((r) => r.state === "complete"))
+          dayState.set(day, "complete");
+        else if (forDay.some((r) => r.state === "complete" || r.state === "started"))
+          dayState.set(day, "partial");
+        else dayState.set(day, "none");
+      }
+
+      const attendance = new Map(
+        (attendanceByUser.get(member.user_id) ?? []).map((a) => [
+          a.track_item_id,
+          {
+            status: a.status,
+            makeUp: a.meta_json?.make_up === true,
+            slot: a.slot,
+          },
+        ]),
+      );
+
+      return {
+        cohortMemberId: member.id,
+        userId: member.user_id,
+        displayName: nameByUserId.get(member.user_id) || "(no name)",
+        isChampion: member.is_champion,
+        joinedOn: member.joined_at.slice(0, 10),
+        rag,
+        gates,
+        outstandingCount,
+        dayState,
+        attendance,
+      };
+    });
+
+    adminMembers.sort((a, b) => a.displayName.localeCompare(b.displayName));
+
+    const attendanceBySession = new Map(
+      sessions.map((session) => [
+        session.trackItemId,
+        summariseAttendance(
+          (attendanceRows ?? [])
+            .filter((a) => a.track_item_id === session.trackItemId)
+            .map((a) => ({
+              trackItemId: a.track_item_id,
+              status: a.status,
+              makeUp: a.meta_json?.make_up === true,
+            })),
+          members.length,
+        ),
+      ]),
+    );
+
+    const workSamplePairs = members.map((member) => {
+      const live = submissionsByMember.get(member.id) ?? [];
+      return {
+        cohortMemberId: member.id,
+        preRef:
+          live.find((s) => s.kind === "work_sample_pre")?.artefact_url ?? null,
+        postRef:
+          live.find((s) => s.kind === "work_sample_post")?.artefact_url ?? null,
+      };
+    });
+
+    return {
+      cohort: {
+        id: cohort.id,
+        name: cohort.name,
+        startDate: cohort.start_date,
+        status: cohort.status,
+        isTest: cohort.is_test,
+      },
+      today,
+      members: adminMembers,
+      sessions,
+      dayIndexes,
+      funnel: buildGateFunnel(adminMembers.map((m) => m.gates)),
+      attendanceBySession: attendanceBySession,
+      workSamplePairs,
+    };
+  },
+);

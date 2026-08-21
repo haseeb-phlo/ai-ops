@@ -4,15 +4,17 @@ import { useState, useTransition } from "react";
 import { format } from "date-fns";
 import {
   CheckIcon,
+  ClapperboardIcon,
   ClipboardCheckIcon,
   FileTextIcon,
   LockIcon,
   PlayIcon,
   UsersIcon,
 } from "lucide-react";
+import Link from "next/link";
 import { loomEmbedUrl } from "@/lib/loom";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   PROGRAMME_ITEM_STATE,
   PROGRAMME_SIGNOFF,
@@ -32,6 +34,8 @@ export type TrackItemView = {
   unlockDate: string;
   video: TrackVideo | null;
   /** Set for submission_slot items. */
+  /** Video day with nothing recorded yet: shown, but not a to-do. */
+  awaitingVideo?: boolean;
   submission?: {
     kind: string;
     signoffStatus: ProgrammeSignoffStatus | null;
@@ -67,8 +71,15 @@ export function TrackItemCard({ item }: { item: TrackItemView }) {
   const Icon = TYPE_ICON[item.type] ?? FileTextIcon;
   const state: ProgrammeItemState = optimisticComplete ? "complete" : item.state;
   const style = PROGRAMME_ITEM_STATE[state];
+  // A video day with nothing linked yet can't be completed: otherwise G1 is
+  // satisfiable for content that hasn't been recorded. Use examples have no
+  // video by design, so they stay completable.
+  const awaitingVideo = item.awaitingVideo ?? (item.type === "video" && !item.video);
   const canComplete =
-    !locked && !optimisticComplete && (item.type === "video" || item.type === "use_example");
+    !locked &&
+    !optimisticComplete &&
+    !awaitingVideo &&
+    (item.type === "video" || item.type === "use_example");
 
   const handlePlay = () => {
     setPlaying(true);
@@ -125,11 +136,18 @@ export function TrackItemCard({ item }: { item: TrackItemView }) {
             <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
               <span
                 aria-hidden
-                className={cn("size-1.5 shrink-0 rounded-full", style.dotClassName)}
+                className={cn(
+                  "size-1.5 shrink-0 rounded-full",
+                  awaitingVideo
+                    ? "bg-muted-foreground/30"
+                    : style.dotClassName,
+                )}
               />
               {locked
                 ? `Unlocks ${format(new Date(`${item.unlockDate}T00:00:00`), "d MMM")}`
-                : style.label}
+                : awaitingVideo
+                  ? "Coming soon"
+                  : style.label}
             </span>
           </div>
 
@@ -176,11 +194,28 @@ export function TrackItemCard({ item }: { item: TrackItemView }) {
             </div>
           )}
 
-          {!locked && !item.video && (item.type === "video" || item.type === "use_example") && (
-            <p className="mt-2 rounded-md border border-dashed border-border px-3 py-2 text-xs text-muted-foreground">
-              This day&apos;s video hasn&apos;t been linked yet — an admin can
-              attach it from the Learn library.
-            </p>
+          {/* Placeholder for a day whose video isn't recorded yet. Member-
+              facing copy, not the admin instruction it used to show - during
+              Cohort 1 several days are still in production, and "coming soon"
+              with the topic named reads as planned rather than broken. */}
+          {!locked && !item.video && item.type === "video" && (
+            <div className="mt-3 flex items-center gap-3 rounded-md border border-dashed border-border bg-muted/30 px-3 py-3">
+              <span
+                aria-hidden
+                className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground"
+              >
+                <ClapperboardIcon className="size-4" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-foreground">
+                  Video coming soon
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Being recorded now. It will not hold up your progress - carry
+                  on with the rest of the day.
+                </p>
+              </div>
+            </div>
           )}
 
           {!locked && item.type === "submission_slot" && (
@@ -209,6 +244,26 @@ export function TrackItemCard({ item }: { item: TrackItemView }) {
               )}
             </div>
           )}
+
+          {!locked && item.type === "quiz" && (
+            <Link
+              href={`/learn/track/quiz/${item.id}`}
+              className={cn(buttonVariants({ variant: "outline", size: "sm" }), "mt-3")}
+            >
+              {item.state === "complete" ? "Retake" : "Start"} the check
+            </Link>
+          )}
+
+          {!locked &&
+            (item.type === "questionnaire_baseline" ||
+              item.type === "questionnaire_post") && (
+              <Link
+                href="/learn/track/score"
+                className={cn(buttonVariants({ variant: "outline", size: "sm" }), "mt-3")}
+              >
+                {item.state === "complete" ? "See your score" : "Open the check-in"}
+              </Link>
+            )}
 
           {canComplete && (
             <Button

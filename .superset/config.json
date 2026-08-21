@@ -1,0 +1,7 @@
+{
+  "setup": [
+    "if [ -f \"$SUPERSET_ROOT_PATH/.env.local\" ]; then cp \"$SUPERSET_ROOT_PATH/.env.local\" .env.local; echo \"env: copied .env.local from $SUPERSET_ROOT_PATH\"; else echo \"env: MISSING $SUPERSET_ROOT_PATH/.env.local - see CLAUDE.md > Environment\"; exit 1; fi",
+    "npm ci --no-audit --fund=false"
+  ],
+  "run": ["npm run dev"]
+}

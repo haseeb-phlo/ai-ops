@@ -71,11 +71,18 @@ describe("Core Programme track shape", () => {
     expect(quizzes.map((q) => q.dayIndex)).toEqual([5, 10, 15]);
   });
 
-  it("makes weeks 1 and 2 short formative checks and week 3 the long one", () => {
+  it("uses the same ten-question, 8/10 bar for all three quizzes", () => {
+    // A consistent bar is simpler to explain than a sliding one, and keeps
+    // "passed a Phlo AI quiz" meaning the same thing all the way through.
+    // Only the final one gates the certificate, via G4.
     const byDay = new Map(QUIZ_SPECS.map((q) => [q.dayIndex, q]));
-    expect(byDay.get(5)).toMatchObject({ questionCount: 5, passMark: 4, summative: false });
-    expect(byDay.get(10)).toMatchObject({ questionCount: 5, passMark: 4, summative: false });
-    expect(byDay.get(15)).toMatchObject({ questionCount: 10, passMark: 8, summative: true });
+    for (const day of [5, 10, 15]) {
+      expect(byDay.get(day), `day ${day}`).toMatchObject({
+        questionCount: 10,
+        passMark: 8,
+      });
+    }
+    expect(QUIZ_SPECS.filter((q) => q.summative).map((q) => q.dayIndex)).toEqual([15]);
   });
 
   it("marks exactly one quiz summative, and it is the one G4 reads", () => {

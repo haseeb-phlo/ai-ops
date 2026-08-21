@@ -204,7 +204,7 @@ const ReorderVideosSchema = z.object({
 // Persist a drag-to-reorder of one topic/subtopic bucket. `ids` is the
 // bucket's videos in their new visual order. We keep the exact multiset of
 // position values those videos already hold and re-deal them in the new
-// order — so reordering one bucket never disturbs any other bucket's
+// order - so reordering one bucket never disturbs any other bucket's
 // positions, and we can't collide with rows we didn't touch.
 export async function reorderVideos(ids: string[]): Promise<ActionState> {
   const gate = await requireWriter();

@@ -39,7 +39,7 @@ export type TrackItemSpec = {
 /** The 15 daily topics, verbatim from the programme playbook. */
 export const DAY_TOPICS: readonly string[] = [
   "When to use AI and when not to",
-  "CRISP Framework",
+  "CRISPE Framework",
   "Connectors & MCP",
   "Projects",
   "Catching confident wrong answers",
@@ -66,9 +66,13 @@ export const SESSION_DAYS = [3, 8, 13] as const;
  * without a deploy - and so G4 never hardcodes "8".
  */
 export const QUIZ_SPECS = [
-  { dayIndex: 5, title: "Week 1 check", questionCount: 5, passMark: 4, summative: false },
-  { dayIndex: 10, title: "Week 2 check", questionCount: 5, passMark: 4, summative: false },
+  { dayIndex: 5, title: "Week 1 check", questionCount: 10, passMark: 8, summative: false },
+  { dayIndex: 10, title: "Week 2 check", questionCount: 10, passMark: 8, summative: false },
   { dayIndex: 15, title: "Final quiz", questionCount: 10, passMark: 8, summative: true },
+  // All three pass at 8/10. The weekly checks gate nothing and allow unlimited
+  // retakes, so a consistent bar is simpler to explain than a sliding one, and
+  // it keeps "passed a Phlo AI quiz" meaning the same thing all the way
+  // through. The final is the one that gates the certificate via G4.
 ] as const;
 
 /**
@@ -113,7 +117,7 @@ export function buildTrackItems(): TrackItemSpec[] {
   // Day 0 - the entry gate. Nothing else unlocks until this is submitted.
   items.push({
     type: "questionnaire_baseline",
-    title: "Your AI Score — 3-minute check-in",
+    title: "Your AI Score - 3-minute check-in",
     description:
       "A quick self-assessment. It sets your starting point and unlocks the programme.",
     dayIndex: 0,
@@ -136,7 +140,7 @@ export function buildTrackItems(): TrackItemSpec[] {
     // ("watched everything") satisfiable without doing any of the exercises.
     items.push({
       type: "use_example",
-      title: `${topic} — try it yourself`,
+      title: `${topic} - try it yourself`,
       description: "Apply the day's technique to something on your own desk.",
       dayIndex,
       sortOrder: SORT.use_example,
@@ -165,8 +169,11 @@ export function buildTrackItems(): TrackItemSpec[] {
         pass_mark: quiz.passMark,
         question_count: quiz.questionCount,
         summative: quiz.summative,
-        // Filled in by an admin before the quiz unlocks; the engine reads
-        // questions from here so content changes need no deploy.
+        // Left empty here and filled by the seed generator from
+        // quiz-content.ts. Keeping the import out of this module means
+        // track-spec stays free of dependencies, and the engine reads
+        // questions from config_json at run time anyway - so an admin can
+        // retune one without a deploy.
         questions: [],
       },
     });
@@ -184,7 +191,7 @@ export function buildTrackItems(): TrackItemSpec[] {
 
   items.push({
     type: "questionnaire_post",
-    title: "Your AI Score — see what three weeks did",
+    title: "Your AI Score - see what three weeks did",
     dayIndex: 15,
     sortOrder: SORT.questionnaire_post,
   });

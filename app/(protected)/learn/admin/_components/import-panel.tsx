@@ -48,7 +48,7 @@ export function ImportPanel({
         <p className="mt-1 max-w-prose text-sm text-muted-foreground">
           Upload the original export (<code>.xlsx</code> or{" "}
           <code>.csv</code>). Rows are matched on email and stored as the{" "}
-          <code>may_2026</code> wave. Re-running changes nothing — the import
+          <code>may_2026</code> wave. Re-running changes nothing - the import
           upserts on (email, wave).
         </p>
 
@@ -80,7 +80,7 @@ export function ImportPanel({
             <p className="mt-1 text-sm text-muted-foreground">
               {state.withoutAccount} of them have no AI Ops account yet. Their
               answers are stored against their email and will attach to their
-              account the first time they sign in — they keep their baseline
+              account the first time they sign in - they keep their baseline
               and stay in the before/after comparison.
             </p>
           )}
@@ -135,7 +135,7 @@ function PreviewPanel({
     <div className="space-y-4 rounded-lg border border-border bg-card p-4">
       <div>
         <h3 className="text-sm font-semibold tracking-tight text-foreground">
-          Preview — {fileName}
+          Preview - {fileName}
         </h3>
         <p className="mt-1 text-sm text-muted-foreground">
           {preview.rowCount} rows, {preview.rowCount - preview.duplicatesDropped}{" "}
@@ -165,7 +165,7 @@ function PreviewPanel({
       <Check
         ok={preview.unmatchedCount === 0}
         okLabel="Every answer matches an offered option"
-        badLabel={`${preview.unmatchedCount} answer(s) match no offered option — they'll import unscored`}
+        badLabel={`${preview.unmatchedCount} answer(s) match no offered option - they'll import unscored`}
       />
 
       <Check

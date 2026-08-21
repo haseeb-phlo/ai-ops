@@ -21,7 +21,12 @@ export function DayRow({
   items: TrackItemView[];
 }) {
   const allLocked = items.every((i) => i.state === "locked");
-  const allComplete = items.every((i) => i.state === "complete");
+  // A day whose video is still being recorded is not "done" - it is waiting on
+  // us. Marking it green would tell the member they had finished something
+  // they have not actually been able to do.
+  const actionable = items.filter((i) => !i.awaitingVideo);
+  const allComplete =
+    actionable.length > 0 && actionable.every((i) => i.state === "complete");
 
   return (
     <li className="relative flex gap-4 pb-6 last:pb-0">

@@ -49,7 +49,7 @@ export function ResultScreen({
           <h2 className="text-2xl font-semibold tracking-tight text-foreground">
             Your AI Score:{" "}
             <span className="tabular-nums">
-              {current.cap_avg?.toFixed(1) ?? "—"}
+              {current.cap_avg?.toFixed(1) ?? "-"}
             </span>
             <span className="text-muted-foreground"> / 4</span>
           </h2>
@@ -90,7 +90,7 @@ export function ResultScreen({
               value={
                 current.cap_avg !== null && previous.cap_avg !== null
                   ? `${previous.cap_avg.toFixed(1)} → ${current.cap_avg.toFixed(1)}`
-                  : "—"
+                  : "-"
               }
             />
             <StatRow
@@ -98,7 +98,7 @@ export function ResultScreen({
               value={
                 bandShift
                   ? `${bandShift.from} → ${bandShift.to}`
-                  : (current.hours_band ?? "—")
+                  : (current.hours_band ?? "-")
               }
             />
             <StatRow
@@ -111,7 +111,7 @@ export function ResultScreen({
             />
           </dl>
           <p className="mt-4 text-xs text-muted-foreground">
-            We&apos;ll check in once more in three months — 60 seconds,
+            We&apos;ll check in once more in three months - 60 seconds,
             pre-filled.
           </p>
         </div>

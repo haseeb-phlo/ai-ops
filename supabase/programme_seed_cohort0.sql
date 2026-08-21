@@ -47,11 +47,17 @@ update public.programme_track_items i
 -- 2. The cohort -----------------------------------------------------------
 -- start_date is a Monday, as the schema expects. 2026-08-03 is far enough in
 -- the past that days 1-15 have all unlocked, so every surface has data.
-insert into public.programme_cohorts (name, track_id, start_date, status, is_test)
-select 'Cohort 0 — Test', t.id, date '2026-08-03', 'live', true
+insert into public.programme_cohorts (name, track_id, start_date, status, is_test, join_code)
+select 'Cohort 0 — Test', t.id, date '2026-08-03', 'live', true, 'PHLO-C0'
   from public.programme_tracks t
  where t.slug = 'core-programme'
    and not exists (select 1 from public.programme_cohorts where name = 'Cohort 0 — Test');
+
+-- Backfill the join code on a cohort that already exists, so re-running this
+-- after the join-code migration actually gives Cohort 0 one.
+update public.programme_cohorts
+   set join_code = 'PHLO-C0'
+ where name = 'Cohort 0 — Test' and join_code is null;
 
 -- 3. Session dates --------------------------------------------------------
 -- Keyed by track_item id. Session 1 gets TWO dates (a dual slot) so the
@@ -110,6 +116,21 @@ select v.id, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authentic
     ('c0000000-0000-4000-8000-000000000005'::uuid, 'cohort0.joiner@wearephlo.com',     'Cohort0 Mid-cohort joiner')
   ) as v(id, email, display_name)
  where not exists (select 1 from auth.users u where u.id = v.id);
+
+-- handle_new_user seeds profiles.display_name from the email local part, so
+-- these would read "cohort0.returner" on the roster. Give them real names -
+-- the admin grid is meant to be scannable.
+update public.profiles p
+   set display_name = v.display_name
+  from (values
+    ('c0000000-0000-4000-8000-000000000001'::uuid, 'Cohort0 Returner'),
+    ('c0000000-0000-4000-8000-000000000002'::uuid, 'Cohort0 First-timer'),
+    ('c0000000-0000-4000-8000-000000000003'::uuid, 'Cohort0 Lead-and-member'),
+    ('c0000000-0000-4000-8000-000000000004'::uuid, 'Cohort0 Senior lead'),
+    ('c0000000-0000-4000-8000-000000000005'::uuid, 'Cohort0 Mid-cohort joiner')
+  ) as v(user_id, display_name)
+ where p.user_id = v.user_id
+   and p.display_name is distinct from v.display_name;
 
 -- 5. Members ---------------------------------------------------------------
 -- Lead routing:

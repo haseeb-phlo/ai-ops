@@ -125,7 +125,7 @@ export function ScoreForm({
       {isReturner && (
         <div className="rounded-lg border border-border bg-secondary p-4 text-sm text-secondary-foreground">
           <p className="font-medium">
-            Your {prefillLabel} answers are below — update anything that&apos;s
+            Your {prefillLabel} answers are below - update anything that&apos;s
             changed.
           </p>
           <p className="mt-1 text-secondary-foreground/80">
@@ -137,7 +137,7 @@ export function ScoreForm({
 
       {!isReturner && (
         <p className="text-sm text-muted-foreground">
-          About {estimatedMinutes} minutes. There are no wrong answers — this
+          About {estimatedMinutes} minutes. There are no wrong answers - this
           sets your starting point.
         </p>
       )}
@@ -217,7 +217,7 @@ export function ScoreForm({
         {showOptional && (
           <div className="space-y-5 border-t border-border p-4">
             <p className="text-xs text-muted-foreground">
-              All optional — skip anything you&apos;d rather not answer.
+              All optional - skip anything you&apos;d rather not answer.
             </p>
             {sections.E.map((q) => (
               <QuestionField

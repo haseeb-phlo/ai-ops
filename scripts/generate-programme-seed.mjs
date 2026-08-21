@@ -20,6 +20,7 @@ import {
   TRACK_NAME,
   TRACK_SLUG,
 } from "../lib/programme/track-spec.ts";
+import { QUIZ_CONTENT_BY_DAY } from "../lib/programme/quiz-content.ts";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -28,6 +29,29 @@ const jsonb = (o) =>
   o == null ? `'{}'::jsonb` : `'${JSON.stringify(o).replace(/'/g, "''")}'::jsonb`;
 
 const items = buildTrackItems();
+
+// Fill each quiz's questions from the content module. Done here rather than in
+// track-spec so that module stays dependency-free.
+for (const item of items) {
+  if (item.type !== "quiz") continue;
+  const questions = QUIZ_CONTENT_BY_DAY[item.dayIndex] ?? [];
+  if (questions.length === 0) {
+    throw new Error(`No quiz content for day ${item.dayIndex}.`);
+  }
+  if (questions.length !== item.config.question_count) {
+    throw new Error(
+      `Day ${item.dayIndex}: ${questions.length} questions written but ` +
+        `question_count says ${item.config.question_count}.`,
+    );
+  }
+  if (item.config.pass_mark > questions.length) {
+    throw new Error(
+      `Day ${item.dayIndex}: pass mark ${item.config.pass_mark} exceeds ` +
+        `${questions.length} questions - nobody could pass.`,
+    );
+  }
+  item.config.questions = questions;
+}
 
 // (day_index, sort_order) is the seed's idempotency key and a unique
 // constraint in the schema. Assert it here so a spec change that collides
@@ -86,6 +110,25 @@ lines.push(` where not exists (`);
 lines.push(`   select 1 from public.programme_track_items i`);
 lines.push(`    where i.track_id = t.id and i.day_index = s.day_index and i.sort_order = s.sort_order`);
 lines.push(` );`);
+lines.push("");
+lines.push(`-- Sync titles and descriptions from the spec. These are seed-owned: admins`);
+lines.push(`-- rename Learn videos, not track days, so overwriting is safe and it means`);
+lines.push(`-- re-running the seed actually applies a wording change to an existing track.`);
+lines.push(`update public.programme_track_items i`);
+lines.push(`   set title = s.title, description = s.description`);
+lines.push(`  from (values`);
+lines.push(
+  items
+    .map(
+      (it) =>
+        `    (${it.dayIndex}, ${it.sortOrder}, ${q(it.title)}, ${q(it.description ?? null)})`,
+    )
+    .join(",\n"),
+);
+lines.push(`  ) as s(day_index, sort_order, title, description)`);
+lines.push(` where i.day_index = s.day_index and i.sort_order = s.sort_order`);
+lines.push(`   and i.track_id = (select id from public.programme_tracks where slug = ${q(TRACK_SLUG)})`);
+lines.push(`   and (i.title is distinct from s.title or i.description is distinct from s.description);`);
 lines.push("");
 lines.push(`-- Re-bind any day whose Learn video has since been added. Only fills nulls,`);
 lines.push(`-- so an admin's manual binding is never overwritten.`);
