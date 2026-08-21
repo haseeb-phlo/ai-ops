@@ -5,6 +5,7 @@ import {
   completionTelemetry,
   confidenceShift,
   driftComparison,
+  hoursSaved,
   median,
   proportionAtOrAbove,
   returnerTripwireTripped,
@@ -304,5 +305,49 @@ describe("completion telemetry", () => {
 
   it("does not trip with no data", () => {
     expect(returnerTripwireTripped(completionTelemetry([]))).toBe(false);
+  });
+});
+
+describe("hoursSaved", () => {
+  const banded = (band: string): ResponseRow => ({
+    ...row("a@x", "post", []),
+    answers: { q19b: { value: band } },
+  });
+
+  it("reports a range, not a point estimate", () => {
+    // A band of "3-5" is not four hours. Summing midpoints into one confident
+    // number is how a self-reported estimate quietly becomes a claim.
+    const result = hoursSaved([banded("1-3"), banded("3-5")]);
+    expect(result.lowTotal).toBe(4);
+    expect(result.highTotal).toBe(8);
+    expect(result.respondents).toBe(2);
+  });
+
+  it("treats 10+ as a floor at both ends and says so", () => {
+    const result = hoursSaved([banded("10+")]);
+    expect(result.lowTotal).toBe(10);
+    expect(result.highTotal).toBe(10);
+    expect(result.topIsFloor).toBe(true);
+  });
+
+  it("counts \"can't estimate\" separately rather than dropping it", () => {
+    // How many people cannot put a number on it is itself a finding.
+    const result = hoursSaved([banded("1-3"), banded("can't estimate")]);
+    expect(result.respondents).toBe(1);
+    expect(result.cannotEstimate).toBe(1);
+  });
+
+  it("counts a zero answer as a respondent, not as missing", () => {
+    const result = hoursSaved([banded("0")]);
+    expect(result.respondents).toBe(1);
+    expect(result.highTotal).toBe(0);
+  });
+
+  it("ignores an unrecognised band rather than guessing at it", () => {
+    expect(hoursSaved([banded("about a day")]).respondents).toBe(0);
+  });
+
+  it("is empty, not zero-with-respondents, when nobody answered", () => {
+    expect(hoursSaved([])).toMatchObject({ respondents: 0, lowTotal: 0 });
   });
 });

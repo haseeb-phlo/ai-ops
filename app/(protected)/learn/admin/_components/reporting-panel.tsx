@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { AlertTriangleIcon, DownloadIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -16,6 +17,8 @@ import type {
   DriftComparison,
   FlowTelemetry,
 } from "@/lib/programme/reporting";
+import type { HoursSaved } from "@/lib/programme/reporting";
+import { DriftChart } from "./drift-chart";
 import { exportComparisonCsv } from "../_actions/reporting";
 
 export type ReportingView = {
@@ -24,6 +27,7 @@ export type ReportingView = {
   confidence: ConfidenceShiftRow[];
   bands: BandMigration[];
   telemetry: FlowTelemetry[];
+  hours: HoursSaved;
   tripwire: boolean;
   unmapped: string[];
   respondents: { before: number; after: number };
@@ -34,12 +38,15 @@ export type ReportingView = {
 export function ReportingPanel({
   view,
   filters,
+  includingRehearsal,
 }: {
   view: ReportingView;
   filters: { cohortId: string | null; functionName: string | null };
+  includingRehearsal: boolean;
 }) {
   return (
     <div className="space-y-6">
+      <RehearsalToggle on={includingRehearsal} />
       {view.unmapped.length > 0 && (
         <p className="flex items-start gap-2 rounded-md border border-border border-l-2 border-l-warning bg-background px-3 py-2 text-xs text-foreground">
           <AlertTriangleIcon className="mt-0.5 size-3.5 shrink-0 text-warning" aria-hidden />
@@ -54,11 +61,39 @@ export function ReportingPanel({
       )}
 
       <DriftCard drift={view.drift} />
+      <HoursCard hours={view.hours} />
       <CapabilityMixCard rows={view.capability} labels={view} />
       <ConfidenceCard rows={view.confidence} labels={view} />
       <BandCard rows={view.bands} labels={view} />
       <TelemetryCard telemetry={view.telemetry} tripped={view.tripwire} />
       <ExportCard filters={filters} />
+    </div>
+  );
+}
+
+/**
+ * Rehearsal data is off by default and turning it on is a deliberate act, so
+ * the state is in the URL and the banner is unmissable while it is on. A demo
+ * that quietly leaves seeded numbers in a real report is worse than no demo.
+ */
+function RehearsalToggle({ on }: { on: boolean }) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-background px-3 py-2">
+      <p className="text-xs text-muted-foreground">
+        {on ? (
+          <span className="font-medium text-foreground">
+            Showing rehearsal data. These are seeded figures, not real ones.
+          </span>
+        ) : (
+          "Real cohorts only."
+        )}
+      </p>
+      <Link
+        href={on ? "?tab=reporting" : "?tab=reporting&rehearsal=1"}
+        className="text-xs text-primary underline underline-offset-4"
+      >
+        {on ? "Hide rehearsal data" : "Include rehearsal data"}
+      </Link>
     </div>
   );
 }
@@ -126,6 +161,59 @@ function DriftCard({ drift }: { drift: DriftComparison }) {
           </p>
         </div>
       </div>
+
+      <div className="mt-4 border-t border-border pt-4">
+        <DriftChart
+          organic={drift.organic.delta}
+          programme={drift.programme.delta}
+        />
+      </div>
+    </section>
+  );
+}
+
+/**
+ * Hours saved, stated plainly.
+ *
+ * A range rather than a number, because banded answers only support a range,
+ * and no money: multiplying a self-reported estimate by a loaded cost produces
+ * something that looks like finance and is not, and the first person to ask how
+ * it was derived stops trusting everything next to it. The provenance is on the
+ * card rather than in a footnote for the same reason.
+ */
+function HoursCard({ hours }: { hours: HoursSaved }) {
+  if (hours.respondents === 0 && hours.cannotEstimate === 0) return null;
+
+  return (
+    <section className="rounded-lg border border-border bg-background p-4">
+      <h3 className="text-sm font-semibold tracking-tight text-foreground">
+        Time saved
+      </h3>
+      {hours.respondents > 0 ? (
+        <>
+          <p className="mt-2 font-mono text-2xl tabular-nums text-foreground">
+            {hours.lowTotal}
+            {hours.lowTotal !== hours.highTotal && ` to ${hours.highTotal}`}
+            {hours.topIsFloor && "+"}{" "}
+            <span className="font-sans text-sm text-muted-foreground">
+              hours a week
+            </span>
+          </p>
+          <p className="mt-1 max-w-prose text-xs text-muted-foreground">
+            Across {hours.respondents} {hours.respondents === 1 ? "person" : "people"},
+            self-reported in banded answers, so it is a range rather than a
+            figure.
+            {hours.cannotEstimate > 0 &&
+              ` ${hours.cannotEstimate} could not put a number on it.`}
+          </p>
+        </>
+      ) : (
+        <p className="mt-2 text-xs text-muted-foreground">
+          Nobody has given a usable estimate yet. {hours.cannotEstimate} said
+          they could not put a number on it, which is worth watching: that count
+          falling is one of the things the programme is for.
+        </p>
+      )}
     </section>
   );
 }

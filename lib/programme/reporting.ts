@@ -342,3 +342,68 @@ export function returnerTripwireTripped(
     returner.medianSeconds! > RETURNER_TRIPWIRE_SECONDS
   );
 }
+
+/* ------------------------------------------------------------------ */
+/* Hours saved                                                         */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Turning the q19b bands into an hours-per-week figure.
+ *
+ * Reported as a RANGE, because that is what banded answers actually support.
+ * A band of "3-5" is not four hours, and summing midpoints into a single
+ * confident number is how a self-reported estimate quietly becomes a claim.
+ * The range is defensible; a point estimate invites someone to check it and
+ * find it cannot be checked.
+ *
+ * "10+" has no upper bound, so it contributes its floor to both ends and the
+ * caller is told the top is a floor rather than a ceiling.
+ *
+ * Deliberately no money. Multiplying self-reported hours by a loaded cost
+ * produces a number that looks like finance and is not, and the first person
+ * to ask how it was derived stops trusting everything next to it.
+ */
+const BAND_BOUNDS: Record<string, [number, number]> = {
+  "0": [0, 0],
+  "under 1": [0, 1],
+  "1-3": [1, 3],
+  "3-5": [3, 5],
+  "5-10": [5, 10],
+  "10+": [10, 10],
+};
+
+export type HoursSaved = {
+  /** People who gave a usable band. */
+  respondents: number;
+  /** People who picked "can't estimate", reported rather than hidden. */
+  cannotEstimate: number;
+  lowTotal: number;
+  highTotal: number;
+  /** True when at least one "10+" answer means the top is a floor. */
+  topIsFloor: boolean;
+};
+
+export function hoursSaved(rows: readonly ResponseRow[]): HoursSaved {
+  let respondents = 0;
+  let cannotEstimate = 0;
+  let lowTotal = 0;
+  let highTotal = 0;
+  let topIsFloor = false;
+
+  for (const row of rows) {
+    const band = row.answers.q19b?.value;
+    if (!band) continue;
+    if (band === "can't estimate") {
+      cannotEstimate += 1;
+      continue;
+    }
+    const bounds = BAND_BOUNDS[band];
+    if (!bounds) continue;
+    respondents += 1;
+    lowTotal += bounds[0];
+    highTotal += bounds[1];
+    if (band === "10+") topIsFloor = true;
+  }
+
+  return { respondents, cannotEstimate, lowTotal, highTotal, topIsFloor };
+}
