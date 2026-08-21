@@ -76,7 +76,7 @@ describe("Core Programme track shape", () => {
     // "passed a Phlo AI quiz" meaning the same thing all the way through.
     // Only the final one gates the certificate, via G4.
     const byDay = new Map(QUIZ_SPECS.map((q) => [q.dayIndex, q]));
-    for (const day of [5, 10, 15]) {
+    for (const day of [5, 10, 15] as const) {
       expect(byDay.get(day), `day ${day}`).toMatchObject({
         questionCount: 10,
         passMark: 8,

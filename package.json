@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit",
     "test": "vitest",
     "db:types": "supabase gen types typescript --linked > lib/database.types.ts",
     "db:diff": "supabase db diff --linked",

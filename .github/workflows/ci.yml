@@ -1,0 +1,44 @@
+# Hermetic checks: lint, types, tests. No secrets, so nothing here can be
+# blocked by a missing environment variable.
+#
+# Deliberately does NOT run `next build`. Vercel builds every push and every
+# pull request already, so a build here would duplicate that at twice the
+# minutes and would be the only step needing NEXT_PUBLIC_SUPABASE_* in the
+# repo's secrets.
+#
+# The test step is what gates the design system: tests/contrast.test.ts reads
+# the palette out of app/globals.css and fails on a token change that breaks an
+# allowed colour pairing, or that quietly makes a forbidden one safe.
+
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# A new push to a PR cancels the run still in flight for its predecessor.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      # `npm ci` rather than `npm install`: fails on a package-lock that has
+      # drifted from package.json instead of silently resolving something new.
+      - run: npm ci
+
+      - run: npm run lint
+
+      - run: npm run typecheck
+
+      - run: npm run test -- --run

@@ -78,17 +78,17 @@ function DriftCard({ drift }: { drift: DriftComparison }) {
   ) => (
     <div className="rounded-md border border-border bg-background p-4">
       <p className="text-xs font-medium text-foreground">{label}</p>
-      <p className="text-[11px] text-muted-foreground">{sub}</p>
+      <p className="text-3xs text-muted-foreground">{sub}</p>
       <p className="mt-2 font-mono text-2xl tabular-nums text-foreground">
         {d.delta === null ? "-" : `${d.delta > 0 ? "+" : ""}${d.delta.toFixed(2)}`}
       </p>
-      <p className="mt-1 text-[11px] text-muted-foreground">
+      <p className="mt-1 text-3xs text-muted-foreground">
         {d.matched === 0
           ? "nobody answered both waves"
           : `${d.matched} people · ${d.beforeMean?.toFixed(2)} to ${d.afterMean?.toFixed(2)}`}
       </p>
       {d.matched > 0 && (
-        <p className="mt-0.5 text-[11px] text-muted-foreground">
+        <p className="mt-0.5 text-3xs text-muted-foreground">
           {d.improved} up · {d.unchanged} level · {d.declined} down
         </p>
       )}
@@ -111,7 +111,7 @@ function DriftCard({ drift }: { drift: DriftComparison }) {
           <p className="text-xs font-medium text-secondary-foreground">
             Difference
           </p>
-          <p className="text-[11px] text-secondary-foreground/80">
+          <p className="text-3xs text-secondary-foreground/80">
             Programme minus drift
           </p>
           <p className="mt-2 font-mono text-2xl tabular-nums text-secondary-foreground">
@@ -119,7 +119,7 @@ function DriftCard({ drift }: { drift: DriftComparison }) {
               ? "-"
               : `${drift.difference > 0 ? "+" : ""}${drift.difference.toFixed(2)}`}
           </p>
-          <p className="mt-1 text-[11px] text-secondary-foreground/80">
+          <p className="mt-1 text-3xs text-secondary-foreground/80">
             {drift.difference === null
               ? "needs both waves to overlap"
               : "points of capability, out of 4"}
@@ -311,7 +311,7 @@ function TelemetryCard({
             <p className="mt-1 font-mono text-lg tabular-nums text-foreground">
               {fmt(t.medianSeconds)}
             </p>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-3xs text-muted-foreground">
               median, {t.responses} response{t.responses === 1 ? "" : "s"}
             </p>
           </div>
