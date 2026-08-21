@@ -46,7 +46,11 @@ export type TrackState = {
     startDate: string;
     status: string;
     sessionDates: Record<string, string[]>;
+    /** True for a preview or rehearsal cohort, so the UI can say so. */
+    isTest: boolean;
   };
+  /** Other cohorts this person is in, for switching between them. */
+  otherCohorts: { id: string; name: string; isTest: boolean }[];
   membership: {
     id: string;
     joinedAt: string;
@@ -77,21 +81,30 @@ export type TrackState = {
  * cohort (which is most people until they're enrolled).
  */
 export const loadTrackState = cache(
-  async (userId: string, userEmail: string): Promise<TrackState | null> => {
+  async (
+    userId: string,
+    userEmail: string,
+    /**
+     * Which cohort to show when someone is in more than one. Only an admin
+     * with a preview run can be, and their REAL cohort wins by default - a
+     * sandbox should never quietly replace the programme they are actually
+     * doing. The preview is reachable by passing its id explicitly.
+     */
+    preferredCohortId?: string | null,
+  ): Promise<TrackState | null> => {
     const supabase = await createClient();
 
     // RLS limits this to the caller's own rows, so no extra filtering needed
-    // beyond picking the active cohort.
-    const { data: membership } = await supabase
+    // beyond picking which cohort to show.
+    const { data: memberships } = await supabase
       .from("programme_cohort_members")
       .select(
-        "id, cohort_id, joined_at, is_champion, completed_at, certificate_issued_at, certificate_declined_at, programme_cohorts!inner(id, name, start_date, status, track_id, session_dates)",
+        "id, cohort_id, joined_at, is_champion, completed_at, certificate_issued_at, certificate_declined_at, programme_cohorts!inner(id, name, start_date, status, track_id, session_dates, is_test)",
       )
       .eq("user_id", userId)
       .in("programme_cohorts.status", ["live", "planned"])
       .order("joined_at", { ascending: false })
-      .limit(1)
-      .maybeSingle<{
+      .returns<{
         id: string;
         cohort_id: string;
         joined_at: string;
@@ -106,8 +119,18 @@ export const loadTrackState = cache(
           status: string;
           track_id: string;
           session_dates: Record<string, string[]> | null;
+          is_test: boolean;
         };
-      }>();
+      }[]>();
+
+    const all = memberships ?? [];
+    const membership =
+      (preferredCohortId
+        ? all.find((m) => m.cohort_id === preferredCohortId)
+        : undefined) ??
+      // A real cohort always beats a sandbox.
+      all.find((m) => !m.programme_cohorts.is_test) ??
+      all[0];
 
     if (!membership) return null;
     const cohort = membership.programme_cohorts;
@@ -347,7 +370,15 @@ export const loadTrackState = cache(
         startDate: cohort.start_date,
         status: cohort.status,
         sessionDates: cohort.session_dates ?? {},
+        isTest: cohort.is_test,
       },
+      otherCohorts: all
+        .filter((m) => m.cohort_id !== cohort.id)
+        .map((m) => ({
+          id: m.cohort_id,
+          name: m.programme_cohorts.name,
+          isTest: m.programme_cohorts.is_test,
+        })),
       membership: {
         id: membership.id,
         joinedAt: membership.joined_at,

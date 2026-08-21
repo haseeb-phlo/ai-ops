@@ -407,3 +407,28 @@ export function hoursSaved(rows: readonly ResponseRow[]): HoursSaved {
 
   return { respondents, cannotEstimate, lowTotal, highTotal, topIsFloor };
 }
+
+/**
+ * Who should be dropped from reporting because they only exist in a sandbox.
+ *
+ * Someone in a test cohort AND a real one is a real participant who happens
+ * to have a preview run. Dropping them by person would delete a genuine
+ * member from the chart that has to prove the programme worked - and in a
+ * cohort of eight, one missing exec is visible. Their sandbox responses are
+ * still excluded, but by the response's own cohort_id rather than by who
+ * they are.
+ */
+export function sandboxOnlyUserIds(
+  memberships: readonly { user_id: string; isTest: boolean }[],
+): string[] {
+  const real = new Set(
+    memberships.filter((m) => !m.isTest).map((m) => m.user_id),
+  );
+  return [
+    ...new Set(
+      memberships
+        .filter((m) => m.isTest && !real.has(m.user_id))
+        .map((m) => m.user_id),
+    ),
+  ];
+}

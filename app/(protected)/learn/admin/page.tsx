@@ -15,6 +15,7 @@ import { CohortPicker } from "./_components/cohort-picker";
 import { CohortManager } from "./_components/cohort-manager";
 import { CertificateQueue } from "./_components/certificate-queue";
 import { ReportingPanel } from "./_components/reporting-panel";
+import { PreviewPanel } from "./_components/preview-panel";
 import {
   filterRows,
   loadReportingData,
@@ -110,6 +111,15 @@ export default async function ProgrammeAdminPage({
       .returns<{ cohort_id: string }[]>(),
   ]);
   const sessionItems = sessionRows ?? [];
+
+  // Does this admin already have a preview run open?
+  const { data: previewRow } = await supabase
+    .from("programme_cohort_members")
+    .select("id, cohort_id, programme_cohorts!inner(name, is_test)")
+    .eq("user_id", user.id)
+    .eq("programme_cohorts.is_test", true)
+    .ilike("programme_cohorts.name", "Preview run - %")
+    .maybeSingle<{ id: string; cohort_id: string }>();
 
   // Everyone who has met all four gates but has no certificate yet.
   const { data: certificateCandidates } = await supabase
@@ -250,7 +260,12 @@ export default async function ProgrammeAdminPage({
           )
         }
         cohorts={
-          <CohortManager
+          <div className="space-y-6">
+            <PreviewPanel
+              hasPreview={previewRow !== null}
+              previewCohortId={previewRow?.cohort_id ?? null}
+            />
+            <CohortManager
             today={todayInLondon()}
             sessions={sessionItems.map((i) => ({
               trackItemId: i.id,
@@ -268,7 +283,8 @@ export default async function ProgrammeAdminPage({
               slackChannel: c.slack_channel,
               memberCount: memberCountByCohort.get(c.id) ?? 0,
             }))}
-          />
+            />
+          </div>
         }
         certificates={
           <CertificateQueue

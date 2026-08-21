@@ -99,14 +99,30 @@ export async function submitAiScore(formData: FormData): Promise<ActionState> {
 
   // Which cohort this belongs to, when the member is in one. May responses
   // have no cohort by definition, which is why the column is nullable.
-  const { data: membership } = await supabase
+  //
+  // A REAL cohort always wins over a preview run. There is one response row
+  // per person per wave, so a check-in taken inside a sandbox is still the
+  // person's actual baseline - attributing it to the sandbox would drop them
+  // out of their own cohort's reporting and put their answers where a reset
+  // can delete them.
+  const { data: memberships } = await supabase
     .from("programme_cohort_members")
-    .select("id, cohort_id, programme_cohorts!inner(status)")
+    .select("id, cohort_id, joined_at, programme_cohorts!inner(status, is_test)")
     .eq("user_id", user.id)
     .in("programme_cohorts.status", ["live", "planned"])
     .order("joined_at", { ascending: false })
-    .limit(1)
-    .maybeSingle<{ id: string; cohort_id: string }>();
+    .returns<
+      {
+        id: string;
+        cohort_id: string;
+        joined_at: string;
+        programme_cohorts: { status: string; is_test: boolean };
+      }[]
+    >();
+
+  const membership =
+    (memberships ?? []).find((m) => !m.programme_cohorts.is_test) ??
+    (memberships ?? [])[0];
 
   const { error } = await supabase.from("ai_score_responses").upsert(
     {
@@ -128,8 +144,14 @@ export async function submitAiScore(formData: FormData): Promise<ActionState> {
   }
 
   // The post wave is one half of G4, so submitting it can complete someone.
-  if (parsed.data.wave === "post" && membership) {
-    await maybeCompleteProgramme(membership.id);
+  // Evaluated for every live membership rather than only the attributed one:
+  // gates are computed per membership, and an admin walking a preview run
+  // should still reach the certificate on it. Each call is guarded on
+  // completed_at, so this stays a single announcement either way.
+  if (parsed.data.wave === "post") {
+    for (const m of memberships ?? []) {
+      await maybeCompleteProgramme(m.id);
+    }
   }
 
   revalidatePath("/learn/track");

@@ -10,6 +10,7 @@ import {
   proportionAtOrAbove,
   returnerTripwireTripped,
   samePeopleDelta,
+  sandboxOnlyUserIds,
   RETURNER_TRIPWIRE_SECONDS,
   type ResponseRow,
 } from "@/lib/programme/reporting";
@@ -349,5 +350,43 @@ describe("hoursSaved", () => {
 
   it("is empty, not zero-with-respondents, when nobody answered", () => {
     expect(hoursSaved([])).toMatchObject({ respondents: 0, lowTotal: 0 });
+  });
+});
+
+describe("sandboxOnlyUserIds", () => {
+  it("drops someone who only exists in a test cohort", () => {
+    expect(
+      sandboxOnlyUserIds([
+        { user_id: "rehearsal-1", isTest: true },
+        { user_id: "rehearsal-2", isTest: true },
+      ]),
+    ).toEqual(["rehearsal-1", "rehearsal-2"]);
+  });
+
+  it("keeps an admin who has a preview run AND a real cohort", () => {
+    // The case that matters: excluding them by person would delete a real
+    // exec from the drift chart for their own cohort.
+    expect(
+      sandboxOnlyUserIds([
+        { user_id: "admin", isTest: true },
+        { user_id: "admin", isTest: false },
+        { user_id: "rehearsal-1", isTest: true },
+      ]),
+    ).toEqual(["rehearsal-1"]);
+  });
+
+  it("keeps ordinary members", () => {
+    expect(sandboxOnlyUserIds([{ user_id: "member", isTest: false }])).toEqual(
+      [],
+    );
+  });
+
+  it("does not repeat someone with two sandbox memberships", () => {
+    expect(
+      sandboxOnlyUserIds([
+        { user_id: "admin", isTest: true },
+        { user_id: "admin", isTest: true },
+      ]),
+    ).toEqual(["admin"]);
   });
 });

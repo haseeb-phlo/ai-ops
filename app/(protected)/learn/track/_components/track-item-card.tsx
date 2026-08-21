@@ -265,6 +265,23 @@ export function TrackItemCard({ item }: { item: TrackItemView }) {
               </Link>
             )}
 
+          {/* Feedback on an APPROVED submission had nowhere to appear: the
+              resubmit dialog only opens when something was sent back, so an
+              approving comment was written and never read. */}
+          {!locked &&
+            item.type === "submission_slot" &&
+            item.submission?.signoffStatus === "approved" &&
+            item.submission.signoffComment && (
+              <div className="mt-2 rounded-md border border-border border-l-2 border-l-success bg-background px-3 py-2">
+                <p className="text-3xs font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+                  Feedback
+                </p>
+                <p className="mt-0.5 text-xs text-foreground">
+                  {item.submission.signoffComment}
+                </p>
+              </div>
+            )}
+
           {canComplete && (
             <Button
               type="button"
