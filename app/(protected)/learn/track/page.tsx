@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeftIcon } from "lucide-react";
 import { getSessionUser } from "@/lib/auth";
 import { loadTrackState } from "@/lib/programme/track-data";
+import { certificateState } from "@/lib/programme/completion";
 import { PageContainer, PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { GraduationCapIcon } from "lucide-react";
@@ -83,6 +84,12 @@ export default async function TrackPage() {
     dayItems.map((r) => [r.item.day_index, r.unlockDate]),
   );
 
+  const certificate = certificateState({
+    completedAt: state.membership.completedAt,
+    certificateIssuedAt: state.membership.certificateIssuedAt,
+    certificateDeclinedAt: state.membership.certificateDeclinedAt,
+  });
+
   const completedContent = state.gates.g1.current;
   const totalContent = state.gates.g1.target;
 
@@ -106,7 +113,7 @@ export default async function TrackPage() {
         <BaselineGateCard />
       ) : (
         <>
-          {state.membership.completedAt && (
+          {certificate === "issued" && (
             <Link
               href="/learn/track/certificate"
               className="flex items-center justify-between gap-3 rounded-lg border border-border bg-secondary px-5 py-4 text-secondary-foreground transition hover:border-primary/40"
@@ -121,6 +128,18 @@ export default async function TrackPage() {
               </span>
               <span className="text-sm font-medium">See your certificate</span>
             </Link>
+          )}
+
+          {certificate === "awaiting_approval" && (
+            <div className="rounded-lg border border-border bg-card px-5 py-4">
+              <p className="text-sm font-semibold tracking-tight text-foreground">
+                All four gates passed
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Your certificate is with an admin for approval. You&apos;ll get
+                a message when it&apos;s ready - nothing else to do.
+              </p>
+            </div>
           )}
           <GateStrip gates={state.gates} rag={state.rag} />
         </>

@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { canViewCertificate, decideCompletion } from "@/lib/programme/completion";
+import {
+  canViewCertificate,
+  certificateState,
+  decideCompletion,
+} from "@/lib/programme/completion";
 import { computeGates, type GateInput } from "@/lib/programme/gates";
 
 const passing: GateInput = {
@@ -54,9 +58,52 @@ describe("decideCompletion", () => {
   });
 });
 
-describe("canViewCertificate", () => {
-  it("is gated on the stamp, not on the live gates", () => {
+
+
+describe("certificateState", () => {
+  const base = {
+    completedAt: null as string | null,
+    certificateIssuedAt: null as string | null,
+    certificateDeclinedAt: null as string | null,
+  };
+  const T = "2026-09-18T10:00:00Z";
+
+  it("is not_earned until every gate is met", () => {
+    expect(certificateState(base)).toBe("not_earned");
+  });
+
+  it("waits for an admin once the gates are met", () => {
+    // The review queue is the point: gates can be technically satisfied by
+    // work that is not what the programme intended.
+    expect(certificateState({ ...base, completedAt: T })).toBe(
+      "awaiting_approval",
+    );
+  });
+
+  it("is issued once an admin approves", () => {
+    expect(
+      certificateState({ ...base, completedAt: T, certificateIssuedAt: T }),
+    ).toBe("issued");
+  });
+
+  it("is declined when an admin sends it back", () => {
+    expect(
+      certificateState({ ...base, completedAt: T, certificateDeclinedAt: T }),
+    ).toBe("declined");
+  });
+
+  it("treats issuing as final, even over a previous decline", () => {
+    expect(
+      certificateState({
+        completedAt: T,
+        certificateIssuedAt: T,
+        certificateDeclinedAt: T,
+      }),
+    ).toBe("issued");
+  });
+
+  it("shows the certificate only once issued", () => {
     expect(canViewCertificate(null)).toBe(false);
-    expect(canViewCertificate("2026-09-18T10:00:00Z")).toBe(true);
+    expect(canViewCertificate(T)).toBe(true);
   });
 });

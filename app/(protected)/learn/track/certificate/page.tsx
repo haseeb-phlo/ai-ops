@@ -21,12 +21,14 @@ export default async function CertificatePage() {
   const user = await getSessionUser();
   const state = await loadTrackState(user.id, user.email);
 
-  if (!state || !canViewCertificate(state.membership.completedAt)) {
+  if (!state || !canViewCertificate(state.membership.certificateIssuedAt)) {
     redirect("/learn/track");
   }
 
+  // Dated by when the work was finished, not by when an admin got round to
+  // approving it - the achievement is the member's, not the reviewer's.
   const completedOn = format(
-    new Date(state.membership.completedAt!),
+    new Date(state.membership.completedAt ?? state.membership.certificateIssuedAt!),
     "d MMMM yyyy",
   );
 

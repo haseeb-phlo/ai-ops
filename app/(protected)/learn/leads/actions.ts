@@ -5,6 +5,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { requireWriter } from "@/lib/auth";
 import { maybeCompleteProgramme } from "@/lib/programme/complete-action";
+import { notifyRejection } from "@/lib/programme/notify-rejection";
 
 /**
  * Sign-off.
@@ -99,6 +100,17 @@ export async function signOffSubmission(
       message:
         REASON_MESSAGE[result?.reason ?? ""] ?? "That sign-off was refused.",
     };
+  }
+
+  // A rejection is only actionable if the person hears about it, and the
+  // comment is the actionable part. Fire and forget: a Slack outage must not
+  // roll back a sign-off that is already recorded.
+  if (parsed.data.decision === "rejected") {
+    await notifyRejection({
+      submissionId: parsed.data.submission_id,
+      leadUserId: gate.user.id,
+      comment: parsed.data.comment ?? "",
+    });
   }
 
   // Approving the fifth signed example can be the last thing standing between
