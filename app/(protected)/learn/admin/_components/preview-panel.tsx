@@ -87,15 +87,17 @@ export function PreviewPanel({
       )}
       {state.kind === "reset" && (
         <p className="mt-2 text-xs text-muted-foreground">
-          Cleared. Your run starts again at the check-in.
+          Cleared. Your run starts again from the top.
         </p>
       )}
 
       {active && (
         <p className="mt-3 border-t border-border pt-3 text-xs text-muted-foreground">
-          Starting again wipes your progress, submissions, quiz attempts and
-          your own check-in answers for this run. It never touches anyone
-          else&apos;s, and never touches an imported May response.
+          Starting again wipes this run&apos;s progress, submissions and quiz
+          attempts, and the check-in if it was taken here. A check-in that
+          belongs to a real cohort is left alone - it is your actual baseline,
+          not sandbox data. It never touches anyone else&apos;s rows, and never
+          an imported May response.
         </p>
       )}
     </section>

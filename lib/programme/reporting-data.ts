@@ -3,6 +3,7 @@ import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { functionForTeam, unmappedTeams } from "./functions";
 import type { Answers } from "./score";
+import { sandboxOnlyUserIds } from "./reporting";
 import type { ResponseRow } from "./reporting";
 import type { Wave } from "./questions";
 
@@ -10,10 +11,18 @@ import type { Wave } from "./questions";
  * Loads every AI Score response, annotated with the team and function needed
  * to slice it.
  *
- * TEST COHORTS ARE EXCLUDED BY PERSON, not by the response's cohort_id. May
- * responses carry a null cohort_id by design (they predate cohorts), so
- * filtering on the column would let fixture data through into the company
- * numbers - the same trap the company-average RPC had.
+ * TEST COHORTS ARE EXCLUDED TWO WAYS, and both are needed.
+ *
+ * By cohort_id, which catches a response taken inside a preview run. And by
+ * person, because May responses carry a null cohort_id by design (they
+ * predate cohorts) so the column alone would let seeded rehearsal people
+ * through into the company numbers - the same trap the company-average RPC
+ * had.
+ *
+ * The by-person leg only fires for someone whose EVERY membership is a test
+ * one. An admin sitting in a preview run and a real cohort at the same time
+ * is a real participant: excluding them by person would quietly delete a
+ * genuine member from the very chart that has to prove the programme worked.
  *
  * Team comes from the people directory, matched on email, because a response
  * is keyed on email and some respondents have no account at all.
@@ -67,13 +76,12 @@ export const loadReportingData = cache(
       .from("programme_cohorts")
       .select("id, name, is_test")
       .returns<{ id: string; name: string; is_test: boolean }[]>(),
-    // Everyone in a test cohort, so their responses can be dropped whatever
-    // cohort_id those responses carry.
+    // Every membership, so we can tell a sandbox-only person from someone
+    // who is in a real cohort and also has a preview run.
     supabase
       .from("programme_cohort_members")
       .select("user_id, programme_cohorts!inner(is_test)")
-      .eq("programme_cohorts.is_test", true)
-      .returns<{ user_id: string }[]>(),
+      .returns<{ user_id: string; programme_cohorts: { is_test: boolean } }[]>(),
   ]);
 
   const teamByEmail = new Map(
@@ -85,11 +93,17 @@ export const loadReportingData = cache(
     (cohorts ?? []).filter((c) => c.is_test).map((c) => c.id),
   );
 
-  // Test-cohort members by email, resolved through the directory where we can.
+  const sandboxOnly = sandboxOnlyUserIds(
+    (testMembers ?? []).map((m) => ({
+      user_id: m.user_id,
+      isTest: m.programme_cohorts.is_test,
+    })),
+  );
+
   const testEmails = new Set<string>();
-  if ((testMembers ?? []).length > 0) {
+  if (sandboxOnly.length > 0) {
     const { data: emails } = await supabase.rpc("user_emails", {
-      p_user_ids: (testMembers ?? []).map((m) => m.user_id),
+      p_user_ids: sandboxOnly,
     });
     for (const e of (emails ?? []) as { email: string | null }[]) {
       if (e.email) testEmails.add(e.email.toLowerCase());

@@ -195,18 +195,27 @@ begin
   update public.programme_cohort_members
      set completed_at = null,
          certificate_issued_at = null,
+         certificate_issued_by = null,
          certificate_declined_at = null,
          rag_status = null,
          rag_computed_at = null
    where id = v_member;
 
-  -- The check-in responses too, so the entry gate can be walked again. Only
-  -- the caller's own, and only the in-app waves: a real May import row is
-  -- never touched.
+  -- The check-in too, so the entry gate can be walked again - but ONLY the
+  -- row this preview owns.
+  --
+  -- There is one ai_score_responses row per person per wave (unique on
+  -- email, wave), so the row a preview writes is the same row a real cohort
+  -- reads. Unscoped, "start again" would delete the caller's genuine
+  -- Cohort 1 baseline and re-gate them on their own programme with no
+  -- explanation. The cohort_id clause is what keeps a sandbox reset from
+  -- reaching real data; a row attributed to a real cohort survives, which
+  -- also means the entry gate stays passed once you have genuinely passed it.
   delete from public.ai_score_responses
    where lower(email) = public.current_user_email()
      and wave in ('cohort_baseline', 'post')
-     and source = 'in_app';
+     and source = 'in_app'
+     and cohort_id = v_cohort;
 
   return jsonb_build_object('ok', true, 'cohort_id', v_cohort);
 end;
