@@ -278,7 +278,7 @@ export function StepEditor({
                     placeholder="Optional description"
                     rows={1}
                     maxLength={2000}
-                    className="min-h-0 resize-none border-0 bg-transparent px-0 py-0 text-xs text-muted-foreground shadow-none focus-visible:ring-0 md:text-xs"
+                    className="min-h-0 resize-none border-0 bg-transparent px-0 py-0 text-xs text-muted-foreground shadow-none focus-visible:ring-0 focus-visible:inset-ring-2 focus-visible:inset-ring-primary md:text-xs"
                   />
                 )}
               </div>
@@ -291,7 +291,7 @@ export function StepEditor({
                       aria-label={`Move step ${number} up`}
                       disabled={idx === 0}
                       onClick={() => moveStep(step.key, "up")}
-                      className="rounded p-1 text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-30 disabled:hover:bg-transparent"
+                      className="rounded p-1 text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:inset-ring-2 focus-visible:inset-ring-primary disabled:opacity-30 disabled:hover:bg-transparent"
                     >
                       <ArrowUp className="size-3.5" />
                     </button>
@@ -300,7 +300,7 @@ export function StepEditor({
                       aria-label={`Move step ${number} down`}
                       disabled={idx >= lastCommittedIdx}
                       onClick={() => moveStep(step.key, "down")}
-                      className="rounded p-1 text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-30 disabled:hover:bg-transparent"
+                      className="rounded p-1 text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:inset-ring-2 focus-visible:inset-ring-primary disabled:opacity-30 disabled:hover:bg-transparent"
                     >
                       <ArrowDown className="size-3.5" />
                     </button>
@@ -308,7 +308,7 @@ export function StepEditor({
                       type="button"
                       aria-label={`Remove step ${number}`}
                       onClick={() => removeStep(step.key)}
-                      className="rounded p-1 text-muted-foreground opacity-0 outline-none transition-opacity hover:bg-muted hover:text-foreground focus-visible:opacity-100 focus-visible:ring-3 focus-visible:ring-ring/50 group-hover:opacity-100"
+                      className="rounded p-1 text-muted-foreground opacity-0 outline-none transition-opacity hover:bg-muted hover:text-foreground focus-visible:opacity-100 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:inset-ring-2 focus-visible:inset-ring-primary group-hover:opacity-100"
                     >
                       <X className="size-3.5" />
                     </button>

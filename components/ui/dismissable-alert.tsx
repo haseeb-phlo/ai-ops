@@ -36,7 +36,7 @@ export function DismissableAlert({
         type="button"
         aria-label="Dismiss"
         onClick={dismiss}
-        className="-m-0.5 shrink-0 rounded p-0.5 outline-none transition-colors hover:bg-foreground/10 focus-visible:ring-3 focus-visible:ring-ring/50"
+        className="-m-0.5 shrink-0 rounded p-0.5 outline-none transition-colors hover:bg-foreground/10 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:inset-ring-2 focus-visible:inset-ring-primary"
       >
         <X className="size-4" aria-hidden />
       </button>

@@ -88,7 +88,7 @@ export function CertificateQueue({
               <span className="block text-sm text-foreground">
                 {c.displayName}
                 {c.declined && (
-                  <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+                  <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-3xs uppercase tracking-wide text-muted-foreground">
                     previously held back
                   </span>
                 )}

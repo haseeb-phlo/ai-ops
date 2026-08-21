@@ -56,7 +56,7 @@ export function MobileTopBar({
   const profileActive = isNavActive(pathname, "/profile");
 
   const iconButtonClass =
-    "inline-flex size-9 items-center justify-center rounded-md text-muted-foreground outline-none hover:bg-muted/40 hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50";
+    "inline-flex size-9 items-center justify-center rounded-md text-muted-foreground outline-none hover:bg-muted/40 hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:inset-ring-2 focus-visible:inset-ring-primary";
 
   return (
     <div ref={containerRef} className="md:hidden">
@@ -149,7 +149,7 @@ export function MobileTopBar({
               <form action="/auth/signout" method="post">
                 <button
                   type="submit"
-                  className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm text-muted-foreground outline-none hover:bg-muted/40 hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+                  className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm text-muted-foreground outline-none hover:bg-muted/40 hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:inset-ring-2 focus-visible:inset-ring-primary"
                 >
                   Sign out
                 </button>

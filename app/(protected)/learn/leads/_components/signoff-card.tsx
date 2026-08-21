@@ -147,7 +147,7 @@ export function SignOffCard({ item }: { item: PendingItem }) {
                 }
                 className="w-full accent-[var(--primary)]"
               />
-              <span className="block text-[10px] leading-tight text-muted-foreground">
+              <span className="block text-3xs leading-tight text-muted-foreground">
                 {d.hint}
               </span>
             </label>

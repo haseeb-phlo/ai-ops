@@ -316,10 +316,10 @@ export function CommandPalette({
       <DialogPrimitive.Root open={open} onOpenChange={handleOpenChange}>
         <DialogPrimitive.Portal>
         <DialogPrimitive.Backdrop
-          className="fixed inset-0 z-50 bg-foreground/25 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0"
+          className="fixed inset-0 z-50 bg-foreground/25 data-open:animate-in motion-reduce:data-open:animate-none motion-reduce:data-closed:animate-none data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0"
         />
         <DialogPrimitive.Popup
-          className="fixed left-1/2 top-[15vh] z-50 w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 overflow-hidden rounded-xl border border-border bg-popover text-popover-foreground shadow-xl outline-none data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0"
+          className="fixed left-1/2 top-[15vh] z-50 w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 overflow-hidden rounded-xl border border-border bg-popover text-popover-foreground shadow-xl outline-none data-open:animate-in motion-reduce:data-open:animate-none motion-reduce:data-closed:animate-none data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0"
         >
           <DialogPrimitive.Title className="sr-only">
             Command palette
@@ -349,7 +349,7 @@ export function CommandPalette({
               onKeyDown={handleKeyDown}
               className="h-12 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
             />
-            <kbd className="hidden shrink-0 rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground sm:inline-flex">
+            <kbd className="hidden shrink-0 rounded border border-border bg-muted px-1.5 py-0.5 text-3xs font-medium text-muted-foreground sm:inline-flex">
               esc
             </kbd>
           </div>
@@ -363,7 +363,7 @@ export function CommandPalette({
               <button
                 type="button"
                 onClick={() => setFetchFailed(false)}
-                className="shrink-0 rounded-md border border-border px-2 py-1 font-medium text-foreground outline-none hover:bg-muted/60 focus-visible:ring-3 focus-visible:ring-ring/50"
+                className="shrink-0 rounded-md border border-border px-2 py-1 font-medium text-foreground outline-none hover:bg-muted/60 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:inset-ring-2 focus-visible:inset-ring-primary"
               >
                 Retry
               </button>
@@ -400,7 +400,7 @@ export function CommandPalette({
                   <li key={group.kind} role="presentation">
                     <p
                       id={headerId}
-                      className="sticky top-0 z-10 bg-popover px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
+                      className="sticky top-0 z-10 bg-popover px-3 py-1 text-3xs font-semibold uppercase tracking-wider text-muted-foreground"
                     >
                       {KIND_LABEL[group.kind]}
                     </p>
@@ -452,7 +452,7 @@ export function CommandPalette({
             )}
           </ul>
 
-          <div className="flex items-center justify-between gap-3 border-t border-border bg-muted/40 px-4 py-2 text-[11px] text-muted-foreground">
+          <div className="flex items-center justify-between gap-3 border-t border-border bg-muted/40 px-4 py-2 text-3xs text-muted-foreground">
             <span className="flex items-center gap-2">
               <Hint label="↑↓" />
               <span>navigate</span>
@@ -501,12 +501,12 @@ export function CommandPaletteHint() {
     <button
       type="button"
       onClick={open}
-      className="flex w-full items-center gap-2 rounded-md border border-border bg-background px-2.5 py-1.5 text-left text-xs text-muted-foreground hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="flex w-full items-center gap-2 rounded-md border border-border bg-background px-2.5 py-1.5 text-left text-xs text-muted-foreground hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:inset-ring-2 focus-visible:inset-ring-primary"
       aria-label="Open command palette"
     >
       <SearchIcon className="size-3.5 shrink-0" aria-hidden />
       <span className="flex-1 truncate">Search AI Ops…</span>
-      <kbd className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground">
+      <kbd className="inline-flex items-center gap-0.5 text-3xs text-muted-foreground">
         <span>{isMac ? "⌘" : "Ctrl"}</span>
         <span>K</span>
       </kbd>

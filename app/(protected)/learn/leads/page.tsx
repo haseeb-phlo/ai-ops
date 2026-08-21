@@ -122,7 +122,7 @@ export default async function LeadsPage() {
                   />
                   {m.displayName}
                   {m.completedAt && (
-                    <span className="rounded bg-secondary px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-secondary-foreground">
+                    <span className="rounded bg-secondary px-1.5 py-0.5 text-3xs font-medium uppercase tracking-wide text-secondary-foreground">
                       Completed
                     </span>
                   )}

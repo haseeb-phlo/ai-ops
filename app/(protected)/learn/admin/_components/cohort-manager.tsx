@@ -295,7 +295,7 @@ function CohortRow({ cohort }: { cohort: ExistingCohort }) {
         <span className="text-sm font-medium text-foreground">
           {cohort.name}
           {cohort.isTest && (
-            <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+            <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-3xs uppercase tracking-wide text-muted-foreground">
               test
             </span>
           )}

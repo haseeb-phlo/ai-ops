@@ -191,7 +191,7 @@ function SortableCard({
         {...attributes}
         {...listeners}
         aria-label={`Drag to reorder ${title}`}
-        className="absolute left-2 top-2 z-20 inline-flex size-7 cursor-grab touch-none items-center justify-center rounded-md bg-foreground/50 text-background transition-colors hover:bg-foreground focus-visible:bg-foreground focus-visible:ring-3 focus-visible:ring-ring/50 active:cursor-grabbing"
+        className="absolute left-2 top-2 z-20 inline-flex size-7 cursor-grab touch-none items-center justify-center rounded-md bg-foreground/50 text-background transition-colors hover:bg-foreground focus-visible:bg-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:inset-ring-2 focus-visible:inset-ring-primary active:cursor-grabbing"
       >
         <GripVerticalIcon className="size-4" />
       </button>

@@ -57,7 +57,7 @@ export function EditRoadmapItemDialog({
           <button
             type="button"
             aria-label={`Edit ${title}`}
-            className="flex shrink-0 cursor-pointer items-start rounded-r-md px-1.5 py-2 text-muted-foreground/50 outline-none transition-colors hover:bg-muted/40 hover:text-foreground focus-visible:bg-muted/40 focus-visible:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+            className="flex shrink-0 cursor-pointer items-start rounded-r-md px-1.5 py-2 text-muted-foreground/50 outline-none transition-colors hover:bg-muted/40 hover:text-foreground focus-visible:bg-muted/40 focus-visible:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:inset-ring-2 focus-visible:inset-ring-primary"
           >
             <PencilIcon aria-hidden className="size-3" />
           </button>

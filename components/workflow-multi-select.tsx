@@ -48,7 +48,7 @@ export function WorkflowMultiSelect({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search workflows"
-            className="h-7 border-0 bg-transparent px-0 focus-visible:ring-0"
+            className="h-7 border-0 bg-transparent px-0 focus-visible:ring-0 focus-visible:inset-ring-2 focus-visible:inset-ring-primary"
           />
         </div>
       )}

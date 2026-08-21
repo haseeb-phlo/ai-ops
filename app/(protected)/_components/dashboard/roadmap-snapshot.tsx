@@ -104,7 +104,7 @@ function SnapshotColumn({
                 className="group flex items-baseline gap-1.5 py-0.5 text-sm text-foreground"
               >
                 {item.ordinal !== undefined && (
-                  <span className="shrink-0 font-mono text-[11px] tabular-nums text-muted-foreground/70">
+                  <span className="shrink-0 font-mono text-3xs tabular-nums text-muted-foreground/70">
                     {item.ordinal}.
                   </span>
                 )}

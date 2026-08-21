@@ -155,7 +155,7 @@ export function RosterGrid({
                             }))
                           }
                           className={cn(
-                            "rounded border px-1.5 py-0.5 text-[10px]",
+                            "rounded border px-1.5 py-0.5 text-3xs",
                             (slotBySession[session.trackItemId] ?? 1) === i + 1
                               ? "border-primary bg-secondary text-secondary-foreground"
                               : "border-border text-muted-foreground",
@@ -166,7 +166,7 @@ export function RosterGrid({
                       ))}
                     </span>
                   ) : (
-                    <span className="mt-0.5 block text-[10px] font-normal text-muted-foreground">
+                    <span className="mt-0.5 block text-3xs font-normal text-muted-foreground">
                       {session.slotDates[0] ?? "no date set"}
                     </span>
                   )}
@@ -201,7 +201,7 @@ export function RosterGrid({
                           {style?.label ?? "Not marked"}
                         </button>
                         {cell.status === "excused" && (
-                          <label className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                          <label className="inline-flex items-center gap-1 text-3xs text-muted-foreground">
                             <input
                               type="checkbox"
                               checked={cell.makeUp}

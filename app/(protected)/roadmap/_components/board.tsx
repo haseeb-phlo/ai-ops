@@ -440,11 +440,11 @@ function LaneColumn({
           <h3 className="text-sm font-semibold tracking-tight text-foreground">
             {lane.title}
           </h3>
-          <p className="mt-0.5 text-[11px] leading-4 text-muted-foreground/80">
+          <p className="mt-0.5 text-3xs leading-4 text-muted-foreground/80">
             {lane.hint}
           </p>
         </div>
-        <span className="rounded-full border border-border bg-background px-1.5 py-px text-[11px] tabular-nums text-muted-foreground">
+        <span className="rounded-full border border-border bg-background px-1.5 py-px text-3xs tabular-nums text-muted-foreground">
           {cards.length}
         </span>
       </div>
@@ -505,7 +505,7 @@ function CardShell({
           ref={setActivatorNodeRef}
           {...handleProps}
           aria-label={`Move ${title} to another lane or queue position`}
-          className="flex shrink-0 cursor-grab touch-none items-center rounded-l-md px-1.5 text-muted-foreground/60 outline-none hover:bg-muted/40 hover:text-foreground focus-visible:bg-muted/40 focus-visible:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 active:cursor-grabbing"
+          className="flex shrink-0 cursor-grab touch-none items-center rounded-l-md px-1.5 text-muted-foreground/60 outline-none hover:bg-muted/40 hover:text-foreground focus-visible:bg-muted/40 focus-visible:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:inset-ring-2 focus-visible:inset-ring-primary active:cursor-grabbing"
         >
           <GripVertical aria-hidden className="size-3.5" />
         </button>
@@ -621,7 +621,7 @@ function CardItem({
       >
         <p className="text-sm font-medium leading-snug text-foreground">
           {ordinal !== undefined && (
-            <span className="mr-1.5 font-mono text-[11px] tabular-nums text-muted-foreground/70">
+            <span className="mr-1.5 font-mono text-3xs tabular-nums text-muted-foreground/70">
               {ordinal}.
             </span>
           )}
@@ -633,7 +633,7 @@ function CardItem({
           </p>
         )}
         {card.meta.length > 0 && (
-          <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
+          <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-3xs text-muted-foreground">
             {card.meta.map((m, i) => (
               <span key={m} className="inline-flex min-w-0 items-center gap-2">
                 {i > 0 && <span aria-hidden>·</span>}

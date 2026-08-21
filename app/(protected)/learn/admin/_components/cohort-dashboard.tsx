@@ -82,7 +82,7 @@ function GateFunnel({
                 /{funnel.total}
               </span>
             </p>
-            <p className="mt-0.5 text-[10px] leading-tight text-muted-foreground">
+            <p className="mt-0.5 text-3xs leading-tight text-muted-foreground">
               {GATE_DESCRIPTION[id]}
             </p>
           </div>
@@ -95,7 +95,7 @@ function GateFunnel({
             {funnel.complete}
             <span className="text-sm opacity-70">/{funnel.total}</span>
           </p>
-          <p className="mt-0.5 text-[10px] leading-tight text-secondary-foreground/80">
+          <p className="mt-0.5 text-3xs leading-tight text-secondary-foreground/80">
             Certificate earned
           </p>
         </div>
@@ -117,7 +117,7 @@ function Heatmap({
         <h3 className="text-sm font-semibold tracking-tight text-foreground">
           Progress by day
         </h3>
-        <div className="flex flex-wrap items-center gap-3 text-[10px] text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-3 text-3xs text-muted-foreground">
           {(["complete", "partial", "none", "locked"] as const).map((k) => (
             <span key={k} className="inline-flex items-center gap-1">
               <span aria-hidden className={cn("size-1.5 rounded-full", DAY_DOT[k])} />
@@ -137,7 +137,7 @@ function Heatmap({
               {dayIndexes.map((d) => (
                 <th
                   key={d}
-                  className="px-1 py-1 text-center font-mono text-[10px] font-normal tabular-nums text-muted-foreground"
+                  className="px-1 py-1 text-center font-mono text-3xs font-normal tabular-nums text-muted-foreground"
                 >
                   {d}
                 </th>

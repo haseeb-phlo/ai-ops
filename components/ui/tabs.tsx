@@ -35,7 +35,7 @@ function TabsTrigger({ className, ...props }: TabsPrimitive.Tab.Props) {
       className={cn(
         "inline-flex shrink-0 items-center justify-center rounded-md px-3 py-1 text-sm whitespace-nowrap transition-colors outline-none",
         "text-muted-foreground hover:bg-muted hover:text-foreground",
-        "focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
+        "focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-ring/50",
         "disabled:pointer-events-none disabled:opacity-50",
         // Selected state: full contrast inversion. Base UI's <Tabs.Tab>
         // marks the active tab with aria-selected="true" rather than a

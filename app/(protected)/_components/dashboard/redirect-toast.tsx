@@ -104,7 +104,7 @@ export function RedirectToast() {
             type="button"
             onClick={dismiss}
             aria-label="Dismiss notification"
-            className="rounded p-0.5 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="rounded p-0.5 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:inset-ring-2 focus-visible:inset-ring-primary"
           >
             <X aria-hidden className="size-3.5" />
           </button>

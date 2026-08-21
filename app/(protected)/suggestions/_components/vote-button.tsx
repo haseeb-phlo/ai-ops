@@ -55,7 +55,7 @@ export function VoteButton({
         )}
       >
         <ChevronUp className="size-3.5" />
-        <span className="mt-0.5 font-mono text-[10px] tabular-nums">
+        <span className="mt-0.5 font-mono text-3xs tabular-nums">
           {optimistic.count}
         </span>
       </button>
@@ -63,7 +63,7 @@ export function VoteButton({
         <span
           role="alert"
           title={error}
-          className="max-w-24 text-center text-[10px] leading-tight text-destructive"
+          className="max-w-24 text-center text-3xs leading-tight text-destructive"
         >
           Vote failed
         </span>

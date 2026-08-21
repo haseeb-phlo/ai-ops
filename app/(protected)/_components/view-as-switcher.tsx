@@ -151,7 +151,7 @@ export function ViewAsSwitcher({
           type="button"
           onClick={exitImpersonation}
           disabled={isPending}
-          className="rounded-md bg-foreground px-2.5 py-1 text-xs font-medium text-background outline-none hover:bg-foreground/90 focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50"
+          className="rounded-md bg-foreground px-2.5 py-1 text-xs font-medium text-background outline-none hover:bg-foreground/90 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:inset-ring-2 focus-visible:inset-ring-primary disabled:opacity-50"
         >
           Exit view-as
         </button>
@@ -272,7 +272,7 @@ function UserPicker({
         aria-expanded={open}
         aria-haspopup="listbox"
         className={cn(
-          "inline-flex h-7 items-center gap-1.5 rounded-md border border-input bg-background px-2 text-xs outline-none hover:bg-muted/40 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50",
+          "inline-flex h-7 items-center gap-1.5 rounded-md border border-input bg-background px-2 text-xs outline-none hover:bg-muted/40 focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50",
           selected && "border-warning/50 bg-warning/10",
         )}
       >
@@ -337,7 +337,7 @@ function UserPicker({
                         <span className="block truncate text-foreground">
                           {u.displayName}
                         </span>
-                        <span className="block truncate text-[11px] text-muted-foreground">
+                        <span className="block truncate text-3xs text-muted-foreground">
                           {[
                             ROLE_LABEL[u.role] ?? u.role,
                             u.team,
@@ -347,7 +347,7 @@ function UserPicker({
                             .join(" · ")}
                         </span>
                       </span>
-                      <span className="shrink-0 text-[11px] text-muted-foreground">
+                      <span className="shrink-0 text-3xs text-muted-foreground">
                         {isSel ? "Active" : "View as"}
                       </span>
                     </button>
