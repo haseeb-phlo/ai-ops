@@ -28,9 +28,16 @@ export type ReportingData = {
   /** Teams the function config does not know about, surfaced as a prompt. */
   unmapped: string[];
   waveCounts: Record<Wave, number>;
+  includingRehearsal: boolean;
 };
 
-export const loadReportingData = cache(async (): Promise<ReportingData> => {
+/**
+ * @param includeRehearsal Show test-cohort data. Off by default so real
+ * figures stay clean; on, it lets someone be walked through the charts before
+ * a real cohort has finished. Never a default, always a deliberate act.
+ */
+export const loadReportingData = cache(
+  async (includeRehearsal = false): Promise<ReportingData> => {
   const supabase = await createClient();
 
   const [
@@ -72,8 +79,8 @@ export const loadReportingData = cache(async (): Promise<ReportingData> => {
   const teamByEmail = new Map(
     (people ?? []).map((p) => [p.email.trim().toLowerCase(), p.team]),
   );
-  const realCohorts = (cohorts ?? []).filter((c) => !c.is_test);
-  const cohortNameById = new Map(realCohorts.map((c) => [c.id, c.name]));
+  const realCohorts = (cohorts ?? []).filter((c) => includeRehearsal || !c.is_test);
+  const cohortNameById = new Map((cohorts ?? []).map((c) => [c.id, c.name]));
   const testCohortIds = new Set(
     (cohorts ?? []).filter((c) => c.is_test).map((c) => c.id),
   );
@@ -90,8 +97,10 @@ export const loadReportingData = cache(async (): Promise<ReportingData> => {
   }
 
   const rows: ResponseRow[] = (responses ?? [])
-    .filter((r) => !testEmails.has(r.email.toLowerCase()))
-    .filter((r) => !r.cohort_id || !testCohortIds.has(r.cohort_id))
+    .filter((r) => includeRehearsal || !testEmails.has(r.email.toLowerCase()))
+    .filter(
+      (r) => includeRehearsal || !r.cohort_id || !testCohortIds.has(r.cohort_id),
+    )
     .map((r) => {
       const team = teamByEmail.get(r.email.trim().toLowerCase()) ?? null;
       return {
@@ -128,6 +137,7 @@ export const loadReportingData = cache(async (): Promise<ReportingData> => {
     teams: teamsInUse,
     unmapped: unmappedTeams(teamsInUse),
     waveCounts,
+    includingRehearsal: includeRehearsal,
   };
 });
 

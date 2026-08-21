@@ -25,6 +25,7 @@ import {
   completionTelemetry,
   confidenceShift,
   driftComparison,
+  hoursSaved,
   returnerTripwireTripped,
 } from "@/lib/programme/reporting";
 import { slackEnabled } from "@/lib/slack";
@@ -45,9 +46,15 @@ export default async function ProgrammeAdminPage({
     tab?: string;
     cohort?: string;
     fn?: string;
+    rehearsal?: string;
   }>;
 }) {
-  const { cohort: cohortParam, fn: functionParam } = await searchParams;
+  const {
+    cohort: cohortParam,
+    fn: functionParam,
+    rehearsal: rehearsalParam,
+  } = await searchParams;
+  const includeRehearsal = rehearsalParam === "1";
   const user = await getSessionUser();
   if (user.realRole !== "super_admin") {
     redirect("/learn?toast=admin-only");
@@ -155,7 +162,7 @@ export default async function ProgrammeAdminPage({
   );
 
   // ---- Reporting ------------------------------------------------------
-  const reporting = await loadReportingData();
+  const reporting = await loadReportingData(includeRehearsal);
   const reportingFilters = {
     cohortId: cohortParam ?? null,
     functionName: functionParam ?? null,
@@ -279,12 +286,14 @@ export default async function ProgrammeAdminPage({
         reporting={
           <ReportingPanel
             filters={reportingFilters}
+            includingRehearsal={includeRehearsal}
             view={{
               drift: driftComparison(scoped),
               capability: capabilityMix(baselineRows, postRows),
               confidence: confidenceShift(baselineRows, postRows),
               bands: bandMigration(baselineRows, postRows),
               telemetry,
+              hours: hoursSaved(postRows.length > 0 ? postRows : baselineRows),
               tripwire: returnerTripwireTripped(telemetry),
               unmapped: reporting.unmapped,
               respondents: {
