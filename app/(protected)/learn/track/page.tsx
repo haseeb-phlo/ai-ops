@@ -3,6 +3,7 @@ import { ArrowLeftIcon } from "lucide-react";
 import { getSessionUser } from "@/lib/auth";
 import { loadTrackState } from "@/lib/programme/track-data";
 import { certificateState } from "@/lib/programme/completion";
+import { isAwaitingContent } from "@/lib/programme/content-readiness";
 import { PageContainer, PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { GraduationCapIcon } from "lucide-react";
@@ -31,7 +32,7 @@ export default async function TrackPage() {
         <EmptyState
           icon={<GraduationCapIcon aria-hidden />}
           title="You're not in a cohort yet"
-          description="The Core Programme runs in cohorts. You'll see your 15-day track here as soon as you're enrolled — in the meantime, everything in Learn is open to browse."
+          description="The Core Programme runs in cohorts. You'll see your 15-day track here as soon as you're enrolled - in the meantime, everything in Learn is open to browse."
           action={
             <Link
               href="/learn"
@@ -58,6 +59,7 @@ export default async function TrackPage() {
       description: resolved.item.description,
       state: resolved.state as ProgrammeItemState,
       unlockDate: resolved.unlockDate,
+      awaitingVideo: isAwaitingContent(resolved.item),
       video: resolved.item.learn_video_id
         ? (state.videosById.get(resolved.item.learn_video_id) ?? null)
         : null,
@@ -89,6 +91,10 @@ export default async function TrackPage() {
     certificateIssuedAt: state.membership.certificateIssuedAt,
     certificateDeclinedAt: state.membership.certificateDeclinedAt,
   });
+
+  const awaitingCount = state.items.filter((r) =>
+    isAwaitingContent(r.item),
+  ).length;
 
   const completedContent = state.gates.g1.current;
   const totalContent = state.gates.g1.target;
@@ -148,8 +154,11 @@ export default async function TrackPage() {
       {state.hasBaseline && (
         <p className="text-sm text-muted-foreground">
           {completedContent} of {totalContent} daily items complete.
-          {state.outstandingCount > 0 &&
-            ` ${state.outstandingCount} open right now.`}
+          {state.outstandingCount > 0
+            ? ` ${state.outstandingCount} open right now.`
+            : " You're up to date - nothing waiting on you."}
+          {awaitingCount > 0 &&
+            ` ${awaitingCount} video${awaitingCount === 1 ? " is" : "s are"} still being recorded and won't count against you.`}
         </p>
       )}
 

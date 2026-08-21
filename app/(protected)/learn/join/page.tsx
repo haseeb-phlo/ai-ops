@@ -32,7 +32,7 @@ export default async function JoinPage({
       />
       <JoinForm prefilled={code ?? null} />
       <p className="max-w-prose text-sm text-muted-foreground">
-        Haven&apos;t got a code? The programme runs in cohorts — you&apos;ll be
+        Haven&apos;t got a code? The programme runs in cohorts - you&apos;ll be
         invited when yours starts. Everything in{" "}
         <a href="/learn" className="text-primary underline underline-offset-4">
           Learn

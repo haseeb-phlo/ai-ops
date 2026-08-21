@@ -262,7 +262,7 @@ function ExportCard({ cohortId }: { cohortId: string }) {
         Work samples for blind scoring
       </h3>
       <p className="mt-1 max-w-prose text-sm text-muted-foreground">
-        Before/after pairs, keyed by a stable hash. No name, email or team —
+        Before/after pairs, keyed by a stable hash. No name, email or team -
         the scorer shouldn&apos;t be able to tell whose work they&apos;re
         reading, and the file leaves our control once it&apos;s downloaded.
       </p>

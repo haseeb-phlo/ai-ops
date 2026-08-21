@@ -269,7 +269,7 @@ export function VideoCard({
 
 // A compact tick-to-complete control, sat at the end of the title row so it
 // reads like a checklist item (Things/Todoist/Linear) and stays reachable
-// while the video is playing — the card body persists behind the iframe.
+// while the video is playing - the card body persists behind the iframe.
 // The circle is visible at rest (muted ring) so the affordance is
 // discoverable without hover; the check fills in when complete. Padding
 // gives it a ≥28px effective hit area for touch.
@@ -285,7 +285,7 @@ function CompletionToggle({
       type="button"
       onClick={onToggle}
       aria-pressed={completed}
-      title={completed ? "Completed — click to unmark" : "Mark as completed"}
+      title={completed ? "Completed - click to unmark" : "Mark as completed"}
       className="inline-flex shrink-0 items-center justify-center rounded-full p-1"
     >
       <span

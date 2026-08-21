@@ -35,7 +35,7 @@ export function SortableVideoGrid({
   items: SortableItem[];
   canManage: boolean;
 }) {
-  // Non-admins (and the common case) get the exact static grid as before —
+  // Non-admins (and the common case) get the exact static grid as before -
   // no DnD machinery mounted at all.
   if (!canManage) {
     return (
@@ -65,8 +65,8 @@ function SortableGrid({ items }: { items: SortableItem[] }) {
   const [, startTransition] = useTransition();
 
   // Resync when the server sends a new set/order of videos (after a
-  // revalidate, an add, or a delete). Adjusting state during render — keyed
-  // on the id list — is React's recommended alternative to a sync effect,
+  // revalidate, an add, or a delete). Adjusting state during render - keyed
+  // on the id list - is React's recommended alternative to a sync effect,
   // and means an optimistic reorder we've already applied (same ids, new
   // order persisted server-side) reconciles without a flicker.
   if (serverKey !== syncedKey) {

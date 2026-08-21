@@ -27,7 +27,7 @@ export type RosterSession = {
 /** Cell appearance per state. Colour lives in a dot, per the app's grammar. */
 const CELL: Record<AttendanceStatus, { dot: string; short: string; label: string }> = {
   attended: { dot: "bg-emerald-500", short: "A", label: "Attended" },
-  absent: { dot: "bg-rose-500", short: "—", label: "Absent" },
+  absent: { dot: "bg-rose-500", short: "-", label: "Absent" },
   excused: { dot: "bg-amber-500", short: "E", label: "Excused" },
 };
 
@@ -123,7 +123,7 @@ export function RosterGrid({
       <p className="text-xs text-muted-foreground">
         Tap a cell to cycle: blank → attended → absent → excused. An excused
         member only counts toward their sessions gate if they made it up
-        elsewhere — tick “made up” to record that.
+        elsewhere - tick “made up” to record that.
       </p>
 
       {error && (

@@ -65,7 +65,7 @@ export function SubmissionDialog({
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>
             {isWorkSample
-              ? "Just the artefact. This one is private — only admins see it, and it's used to measure the programme, not to judge you."
+              ? "Just the artefact. This one is private - only admins see it, and it's used to measure the programme, not to judge you."
               : "Share what you made and the prompt behind it. Your team lead signs it off."}
           </DialogDescription>
         </DialogHeader>

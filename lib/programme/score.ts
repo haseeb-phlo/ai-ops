@@ -174,10 +174,10 @@ export function insightSentence(scores: AxisScores): string | null {
 
   // Everything level: there is no "biggest opportunity" to name.
   if (scores[strongest] === scores[weakest]) {
-    return `Evenly spread across all seven areas — ${AXIS_COVERAGE[weakest]}.`;
+    return `Evenly spread across all seven areas - ${AXIS_COVERAGE[weakest]}.`;
   }
 
-  return `Strongest: ${CAPABILITY_AXIS_LABEL[strongest]}. Biggest opportunity: ${CAPABILITY_AXIS_LABEL[weakest]} — ${AXIS_COVERAGE[weakest]}.`;
+  return `Strongest: ${CAPABILITY_AXIS_LABEL[strongest]}. Biggest opportunity: ${CAPABILITY_AXIS_LABEL[weakest]} - ${AXIS_COVERAGE[weakest]}.`;
 }
 
 /* ------------------------------------------------------------------ */

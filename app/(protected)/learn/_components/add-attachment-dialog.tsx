@@ -29,7 +29,7 @@ const FILE_ACCEPT =
 
 /**
  * Dialog shell; forms live in a keyed child so both useActionState hooks
- * reset on every open — a previous success can't instantly re-close the
+ * reset on every open - a previous success can't instantly re-close the
  * dialog and stale errors never reappear (see AddVideoDialog).
  */
 export function AddAttachmentDialog({
@@ -103,7 +103,7 @@ function AttachmentForms({
     const file = e.target.files?.[0];
     if (file && file.size > VIDEO_RESOURCE_MAX_FILE_BYTES) {
       setFileError(
-        `That file is ${formatMb(file.size)} MB — the limit is ${maxMb} MB.`,
+        `That file is ${formatMb(file.size)} MB - the limit is ${maxMb} MB.`,
       );
     } else {
       setFileError(null);

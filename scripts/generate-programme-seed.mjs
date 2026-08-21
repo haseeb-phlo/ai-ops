@@ -111,6 +111,25 @@ lines.push(`   select 1 from public.programme_track_items i`);
 lines.push(`    where i.track_id = t.id and i.day_index = s.day_index and i.sort_order = s.sort_order`);
 lines.push(` );`);
 lines.push("");
+lines.push(`-- Sync titles and descriptions from the spec. These are seed-owned: admins`);
+lines.push(`-- rename Learn videos, not track days, so overwriting is safe and it means`);
+lines.push(`-- re-running the seed actually applies a wording change to an existing track.`);
+lines.push(`update public.programme_track_items i`);
+lines.push(`   set title = s.title, description = s.description`);
+lines.push(`  from (values`);
+lines.push(
+  items
+    .map(
+      (it) =>
+        `    (${it.dayIndex}, ${it.sortOrder}, ${q(it.title)}, ${q(it.description ?? null)})`,
+    )
+    .join(",\n"),
+);
+lines.push(`  ) as s(day_index, sort_order, title, description)`);
+lines.push(` where i.day_index = s.day_index and i.sort_order = s.sort_order`);
+lines.push(`   and i.track_id = (select id from public.programme_tracks where slug = ${q(TRACK_SLUG)})`);
+lines.push(`   and (i.title is distinct from s.title or i.description is distinct from s.description);`);
+lines.push("");
 lines.push(`-- Re-bind any day whose Learn video has since been added. Only fills nulls,`);
 lines.push(`-- so an admin's manual binding is never overwritten.`);
 lines.push(`--`);

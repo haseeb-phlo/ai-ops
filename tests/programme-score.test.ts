@@ -134,7 +134,7 @@ describe("insightSentence", () => {
   it("names the strongest and weakest axis with where it's taught", () => {
     const s = insightSentence({ q1: 4, q2: 1, q3: 2, q4: 2, q5: 2, q6: 2, q7: 2 });
     expect(s).toBe(
-      "Strongest: Prompting. Biggest opportunity: Projects — Week 1 covers it.",
+      "Strongest: Prompting. Biggest opportunity: Projects - Week 1 covers it.",
     );
   });
 

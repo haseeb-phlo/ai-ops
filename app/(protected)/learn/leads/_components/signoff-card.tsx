@@ -67,7 +67,7 @@ export function SignOffCard({ item }: { item: PendingItem }) {
     <article className="rounded-lg border border-border bg-background p-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h3 className="text-sm font-medium text-foreground">
-          {item.memberName} — {item.title}
+          {item.memberName} - {item.title}
         </h3>
         {item.timeSaved && (
           <span className="text-xs text-muted-foreground">

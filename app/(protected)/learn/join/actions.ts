@@ -30,7 +30,7 @@ const REASON_MESSAGE: Record<string, string> = {
     "That code doesn't match an open cohort. Check it with whoever invited you.",
   already_in_a_cohort:
     "You're already on a cohort. Finish that one before joining another.",
-  not_signed_in: "Your session expired — sign in again.",
+  not_signed_in: "Your session expired - sign in again.",
 };
 
 export async function joinCohort(

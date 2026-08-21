@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { CheckIcon, CopyIcon, PlusIcon } from "lucide-react";
+import { CheckIcon, CopyIcon, PlusIcon, SendIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,7 @@ import {
   updateCohort,
   type CohortActionState,
 } from "../_actions/cohorts";
+import { sendSlackTest, type SlackTestState } from "../_actions/slack-test";
 
 export type ExistingCohort = {
   id: string;
@@ -336,6 +337,8 @@ function CohortRow({ cohort }: { cohort: ExistingCohort }) {
         </div>
       )}
 
+      {cohort.slackChannel && <SlackTest cohortId={cohort.id} channel={cohort.slackChannel} />}
+
       <form action={action} className="mt-3 flex flex-wrap items-end gap-3">
         <input type="hidden" name="cohort_id" value={cohort.id} />
         <label className="space-y-1 text-xs">
@@ -379,5 +382,48 @@ function CohortRow({ cohort }: { cohort: ExistingCohort }) {
         )}
       </form>
     </li>
+  );
+}
+
+/**
+ * Sends a real message to the configured channel.
+ *
+ * The three ways this breaks - wrong channel name, bot not invited, missing
+ * scope - are indistinguishable until something tries to post, and in
+ * production they all fail the same way: silently, to nobody. Better to find
+ * out here.
+ */
+function SlackTest({
+  cohortId,
+  channel,
+}: {
+  cohortId: string;
+  channel: string;
+}) {
+  const [state, action, pending] = useActionState<SlackTestState, FormData>(
+    sendSlackTest,
+    { kind: "idle" },
+  );
+
+  return (
+    <form action={action} className="mt-3 space-y-2">
+      <input type="hidden" name="cohort_id" value={cohortId} />
+      <div className="flex flex-wrap items-center gap-2">
+        <Button type="submit" variant="outline" size="xs" disabled={pending}>
+          <SendIcon aria-hidden />
+          {pending ? "Sending..." : `Send a test to #${channel}`}
+        </Button>
+        {state.kind === "success" && (
+          <span className="text-xs text-emerald-700">
+            Posted. Check #{state.channel}.
+          </span>
+        )}
+      </div>
+      {state.kind === "error" && (
+        <p className="max-w-prose rounded-md border border-amber-500/30 bg-amber-50/50 px-3 py-2 text-xs text-foreground">
+          {state.message}
+        </p>
+      )}
+    </form>
   );
 }

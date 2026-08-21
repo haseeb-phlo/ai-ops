@@ -6,6 +6,7 @@ import { computeRag, type RagStatus } from "@/lib/programme/rag";
 import { resolveItemStates, outstandingItems, type ItemState } from "@/lib/programme/unlock";
 import { todayInLondon, unlockDateFor } from "@/lib/programme/working-days";
 import { isG2Impossible, satisfiedSessionIds } from "@/lib/programme/attendance";
+import { gateableContentItemIds, isAwaitingContent } from "@/lib/programme/content-readiness";
 
 /**
  * Nightly RAG recompute for every active cohort.
@@ -88,10 +89,10 @@ export async function GET(request: NextRequest) {
           .returns<{ id: string; user_id: string; joined_at: string }[]>(),
         supabase
           .from("programme_track_items")
-          .select("id, type, day_index, config_json")
+          .select("id, type, day_index, learn_video_id, config_json")
           .eq("track_id", cohort.track_id)
           .returns<
-            { id: string; type: string; day_index: number; config_json: Record<string, unknown> }[]
+            { id: string; type: string; day_index: number; learn_video_id: string | null; config_json: Record<string, unknown> }[]
           >(),
         supabase
           .from("programme_item_progress")
@@ -133,9 +134,7 @@ export async function GET(request: NextRequest) {
 
     const itemList = items ?? [];
     const sessionItems = itemList.filter((i) => i.type === "session");
-    const contentItemIds = itemList
-      .filter((i) => i.type === "video" || i.type === "use_example")
-      .map((i) => i.id);
+    const contentItemIds = gateableContentItemIds(itemList);
     const summative = itemList.find(
       (i) => i.type === "quiz" && i.config_json?.summative === true,
     );
@@ -201,7 +200,9 @@ export async function GET(request: NextRequest) {
       });
 
       const rag: RagStatus = computeRag({
-        outstandingCount: outstandingItems(resolved).length,
+        outstandingCount: outstandingItems(resolved).filter(
+          (r) => !isAwaitingContent(r.item),
+        ).length,
         hasOutstandingRejection: live.some((s) => s.signoff_status === "rejected"),
         hasImpossibleGate: isG2Impossible({
           sessions: sessionItems.map((i) => ({

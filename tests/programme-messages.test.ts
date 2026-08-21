@@ -56,7 +56,9 @@ const ALL = [
 
 describe("house style", () => {
   it("uses no em dashes", () => {
-    for (const text of ALL) expect(text).not.toMatch(/[—–]/);
+    // Escapes, not literals: a global dash sweep would otherwise rewrite the
+    // detector and make this test pass on anything.
+    for (const text of ALL) expect(text).not.toMatch(/[\u2013\u2014]/);
   });
 
   it("never guilt-trips", () => {
