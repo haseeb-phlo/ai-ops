@@ -51,6 +51,8 @@ export type TrackState = {
     joinedAt: string;
     isChampion: boolean;
     completedAt: string | null;
+    certificateIssuedAt: string | null;
+    certificateDeclinedAt: string | null;
   };
   today: string;
   hasBaseline: boolean;
@@ -82,7 +84,7 @@ export const loadTrackState = cache(
     const { data: membership } = await supabase
       .from("programme_cohort_members")
       .select(
-        "id, cohort_id, joined_at, is_champion, completed_at, programme_cohorts!inner(id, name, start_date, status, track_id, session_dates)",
+        "id, cohort_id, joined_at, is_champion, completed_at, certificate_issued_at, certificate_declined_at, programme_cohorts!inner(id, name, start_date, status, track_id, session_dates)",
       )
       .eq("user_id", userId)
       .in("programme_cohorts.status", ["live", "planned"])
@@ -94,6 +96,8 @@ export const loadTrackState = cache(
         joined_at: string;
         is_champion: boolean;
         completed_at: string | null;
+        certificate_issued_at: string | null;
+        certificate_declined_at: string | null;
         programme_cohorts: {
           id: string;
           name: string;
@@ -344,6 +348,8 @@ export const loadTrackState = cache(
         joinedAt: membership.joined_at,
         isChampion: membership.is_champion,
         completedAt: membership.completed_at,
+        certificateIssuedAt: membership.certificate_issued_at,
+        certificateDeclinedAt: membership.certificate_declined_at,
       },
       today,
       hasBaseline,

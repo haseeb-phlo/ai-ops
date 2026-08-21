@@ -31,9 +31,35 @@ export function decideCompletion(input: CompletionInput): CompletionDecision {
   return allGatesPassed(input.gates) ? { action: "complete" } : { action: "none" };
 }
 
-/** Certificate is visible exactly when completion has been stamped. */
-export function canViewCertificate(completedAt: string | null): boolean {
-  return completedAt !== null;
+export type CertificateState =
+  | "not_earned"
+  | "awaiting_approval"
+  | "issued"
+  | "declined";
+
+/**
+ * Where someone's certificate has got to.
+ *
+ * Meeting the gates makes it EARNED; an admin approving makes it ISSUED. They
+ * are separate because they answer different questions: reporting wants to
+ * know how many people finished the programme, the member wants to know
+ * whether their certificate is ready, and an admin needs a review queue in
+ * between. Collapsing them would make a review backlog look like people not
+ * finishing.
+ */
+export function certificateState(args: {
+  completedAt: string | null;
+  certificateIssuedAt: string | null;
+  certificateDeclinedAt: string | null;
+}): CertificateState {
+  if (args.certificateIssuedAt) return "issued";
+  if (!args.completedAt) return "not_earned";
+  return args.certificateDeclinedAt ? "declined" : "awaiting_approval";
+}
+
+/** Only an issued certificate is visible to the member. */
+export function canViewCertificate(certificateIssuedAt: string | null): boolean {
+  return certificateIssuedAt !== null;
 }
 
 export type CertificateDetails = {

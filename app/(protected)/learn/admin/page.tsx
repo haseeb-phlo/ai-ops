@@ -13,6 +13,8 @@ import { RosterGrid } from "./_components/roster-grid";
 import { CohortDashboard } from "./_components/cohort-dashboard";
 import { CohortPicker } from "./_components/cohort-picker";
 import { CohortManager } from "./_components/cohort-manager";
+import { CertificateQueue } from "./_components/certificate-queue";
+import { slackEnabled } from "@/lib/slack";
 import { todayInLondon } from "@/lib/programme/working-days";
 
 export const metadata = { title: "Programme admin" };
@@ -84,6 +86,34 @@ export default async function ProgrammeAdminPage({
       .returns<{ cohort_id: string }[]>(),
   ]);
   const sessionItems = sessionRows ?? [];
+
+  // Everyone who has met all four gates but has no certificate yet.
+  const { data: certificateCandidates } = await supabase
+    .from("programme_cohort_members")
+    .select(
+      "id, user_id, completed_at, certificate_declined_at, programme_cohorts!inner(name)",
+    )
+    .not("completed_at", "is", null)
+    .is("certificate_issued_at", null)
+    .order("completed_at", { ascending: true })
+    .returns<
+      {
+        id: string;
+        user_id: string;
+        completed_at: string | null;
+        certificate_declined_at: string | null;
+        programme_cohorts: { name: string };
+      }[]
+    >();
+
+  const { data: candidateProfiles } = await supabase
+    .from("profiles")
+    .select("user_id, display_name")
+    .in("user_id", (certificateCandidates ?? []).map((c) => c.user_id))
+    .returns<{ user_id: string; display_name: string | null }[]>();
+  const nameByUserId = new Map(
+    (candidateProfiles ?? []).map((p) => [p.user_id, p.display_name ?? ""]),
+  );
   const memberCountByCohort = new Map<string, number>();
   for (const m of memberRows ?? []) {
     memberCountByCohort.set(
@@ -202,6 +232,19 @@ export default async function ProgrammeAdminPage({
               joinOpen: c.join_open,
               slackChannel: c.slack_channel,
               memberCount: memberCountByCohort.get(c.id) ?? 0,
+            }))}
+          />
+        }
+        certificates={
+          <CertificateQueue
+            slackConfigured={slackEnabled}
+            candidates={(certificateCandidates ?? []).map((c) => ({
+              cohortMemberId: c.id,
+              displayName:
+                nameByUserId.get(c.user_id) || "(no name)",
+              cohortName: c.programme_cohorts.name,
+              completedAt: c.completed_at!,
+              declined: c.certificate_declined_at !== null,
             }))}
           />
         }
