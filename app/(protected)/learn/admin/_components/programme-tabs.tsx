@@ -13,6 +13,7 @@ const TABS = [
   { value: "roster", label: "Roster" },
   { value: "cohorts", label: "Cohorts" },
   { value: "certificates", label: "Certificates" },
+  { value: "reporting", label: "Reporting" },
   { value: "import", label: "AI Score import" },
 ] as const;
 
@@ -28,12 +29,14 @@ export function ProgrammeTabs({
   roster,
   cohorts,
   certificates,
+  reporting,
   importPanel,
 }: {
   dashboard: React.ReactNode;
   roster: React.ReactNode;
   cohorts: React.ReactNode;
   certificates: React.ReactNode;
+  reporting: React.ReactNode;
   importPanel: React.ReactNode;
 }) {
   const panels: Record<TabValue, React.ReactNode> = {
@@ -41,6 +44,7 @@ export function ProgrammeTabs({
     roster,
     cohorts,
     certificates,
+    reporting,
     import: importPanel,
   };
 
