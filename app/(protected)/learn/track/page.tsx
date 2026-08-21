@@ -105,7 +105,25 @@ export default async function TrackPage() {
       {!state.hasBaseline ? (
         <BaselineGateCard />
       ) : (
-        <GateStrip gates={state.gates} rag={state.rag} />
+        <>
+          {state.membership.completedAt && (
+            <Link
+              href="/learn/track/certificate"
+              className="flex items-center justify-between gap-3 rounded-lg border border-border bg-secondary px-5 py-4 text-secondary-foreground transition hover:border-primary/40"
+            >
+              <span>
+                <span className="block text-sm font-semibold tracking-tight">
+                  You&apos;ve completed the Core Programme
+                </span>
+                <span className="block text-xs text-secondary-foreground/80">
+                  All four gates passed.
+                </span>
+              </span>
+              <span className="text-sm font-medium">See your certificate</span>
+            </Link>
+          )}
+          <GateStrip gates={state.gates} rag={state.rag} />
+        </>
       )}
 
       {state.hasBaseline && (

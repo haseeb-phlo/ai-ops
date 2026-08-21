@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { requireWriter } from "@/lib/auth";
+import { maybeCompleteProgramme } from "@/lib/programme/complete-action";
 
 /**
  * Sign-off.
@@ -98,6 +99,17 @@ export async function signOffSubmission(
       message:
         REASON_MESSAGE[result?.reason ?? ""] ?? "That sign-off was refused.",
     };
+  }
+
+  // Approving the fifth signed example can be the last thing standing between
+  // a member and their certificate, so check before revalidating.
+  if (parsed.data.decision === "approved") {
+    const { data: submission } = await supabase
+      .from("programme_submissions")
+      .select("cohort_member_id")
+      .eq("id", parsed.data.submission_id)
+      .maybeSingle<{ cohort_member_id: string }>();
+    if (submission) await maybeCompleteProgramme(submission.cohort_member_id);
   }
 
   // Approval can flip G3, which changes the member's RAG and their track view.

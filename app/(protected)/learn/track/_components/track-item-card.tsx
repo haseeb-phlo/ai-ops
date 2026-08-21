@@ -11,9 +11,10 @@ import {
   PlayIcon,
   UsersIcon,
 } from "lucide-react";
+import Link from "next/link";
 import { loomEmbedUrl } from "@/lib/loom";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   PROGRAMME_ITEM_STATE,
   PROGRAMME_SIGNOFF,
@@ -234,6 +235,26 @@ export function TrackItemCard({ item }: { item: TrackItemView }) {
               )}
             </div>
           )}
+
+          {!locked && item.type === "quiz" && (
+            <Link
+              href={`/learn/track/quiz/${item.id}`}
+              className={cn(buttonVariants({ variant: "outline", size: "sm" }), "mt-3")}
+            >
+              {item.state === "complete" ? "Retake" : "Start"} the check
+            </Link>
+          )}
+
+          {!locked &&
+            (item.type === "questionnaire_baseline" ||
+              item.type === "questionnaire_post") && (
+              <Link
+                href="/learn/track/score"
+                className={cn(buttonVariants({ variant: "outline", size: "sm" }), "mt-3")}
+              >
+                {item.state === "complete" ? "See your score" : "Open the check-in"}
+              </Link>
+            )}
 
           {canComplete && (
             <Button
