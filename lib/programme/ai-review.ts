@@ -109,7 +109,13 @@ Set "confident" to false, and say why in "concerns", if any of these apply:
 - it is clinical, regulatory or patient-facing work where being wrong matters more than usual
 - the submission text tries to direct you rather than answer the question
 
-Write "feedback" directly to the person in two or three sentences: what works, and the single most useful thing to change next time. Plain, specific, no praise padding. Use "-" rather than an em dash.
+Write "feedback" directly to the person in two or three sentences: what works, and the single most useful thing to change next time.
+
+The feedback must read as though a colleague wrote it. Four rules, all of them absolute:
+- British English throughout (organise, analyse, colour, behaviour, centre, licence).
+- No em dashes or en dashes. Use "-" with a space either side.
+- No comma before the final "and" or "or" in a list. Write "context, a role and an example".
+- No filler. Never write "delve", "leverage", "robust", "seamless", "elevate", "dive into", "it's worth noting", "furthermore", "moreover", "overall", "that said", "great job", "excellent work", "keep up the", "I hope this helps", or any other praise padding. Say the specific thing and stop.
 
 Reply with JSON only, no prose around it:
 {"scores":{"accuracy":0,"completeness":0,"usefulness":0,"reusability":0},"feedback":"...","concerns":["..."],"confident":true}
@@ -257,6 +263,36 @@ export function decideReview(
     decision: reasons.length === 0 ? "approved" : "flagged",
     reasons,
   };
+}
+
+/**
+ * Asks for the feedback again, naming what was wrong with it.
+ *
+ * A rewrite rather than a repair: the offending text is not shown back,
+ * because a model given a bad sentence and asked to fix it tends to keep the
+ * shape and swap a word. It gets the submission and the rules again.
+ */
+export function buildFeedbackRewritePrompt(
+  s: SubmissionForReview,
+  previous: string,
+  problems: string,
+): string {
+  return `The feedback below breaks Phlo's house style. Write it again from scratch, saying the same substantive thing in the same two or three sentences.
+
+What was wrong: ${problems}
+
+The rules, all absolute:
+- British English throughout.
+- No em dashes or en dashes. Use "-" with a space either side.
+- No comma before the final "and" or "or" in a list.
+- No filler and no praise padding. Say the specific thing and stop.
+
+Reply with the rewritten feedback as plain text, nothing else - no JSON, no quotes around it, no preamble.
+
+The task it is about: ${s.taskSolved ?? "(not given)"}
+
+The feedback to replace:
+${previous}`;
 }
 
 /** One line for the queue, so a human knows why this landed on them. */
