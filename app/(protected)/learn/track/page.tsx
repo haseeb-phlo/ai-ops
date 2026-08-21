@@ -4,12 +4,14 @@ import { getSessionUser } from "@/lib/auth";
 import { loadTrackState } from "@/lib/programme/track-data";
 import { certificateState } from "@/lib/programme/completion";
 import { isAwaitingContent } from "@/lib/programme/content-readiness";
+import { unlockDateFor, weekOf } from "@/lib/programme/working-days";
 import { PageContainer, PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { GraduationCapIcon } from "lucide-react";
 import { BaselineGateCard } from "./_components/baseline-gate-card";
 import { GateStrip } from "./_components/gate-strip";
 import { DayRow } from "./_components/day-row";
+import { TodayPanel } from "./_components/today-panel";
 import type { TrackItemView } from "./_components/track-item-card";
 import type {
   ProgrammeItemState,
@@ -97,6 +99,29 @@ export default async function TrackPage() {
   ).length;
 
   const completedContent = state.gates.g1.current;
+
+  // The soonest date anything still locked becomes available, so the panel can
+  // say when to come back rather than leaving a wall of grey to interpret.
+  const nextOpensOn =
+    state.items
+      .filter((r) => r.state === "locked")
+      .map((r) => r.unlockDate)
+      .sort()[0] ?? null;
+
+  // Which day of the programme today is. Computed with DAILY arithmetic even
+  // under weekly unlock: a whole week shares one unlock date, so comparing
+  // against that would label all five days "Today".
+  const todayDayIndex =
+    days.find(
+      (d) => unlockDateFor(state.cohort.startDate, d, "daily") === state.today,
+    ) ?? null;
+
+  const weeks = [1, 2, 3]
+    .map((week) => ({
+      week,
+      days: days.filter((d) => weekOf(d) === week),
+    }))
+    .filter((w) => w.days.length > 0);
   const totalContent = state.gates.g1.target;
 
   return (
@@ -137,7 +162,7 @@ export default async function TrackPage() {
           )}
 
           {certificate === "awaiting_approval" && (
-            <div className="rounded-lg border border-border bg-card px-5 py-4">
+            <div className="rounded-lg border border-border bg-background px-5 py-4">
               <p className="text-sm font-semibold tracking-tight text-foreground">
                 All four gates passed
               </p>
@@ -152,27 +177,49 @@ export default async function TrackPage() {
       )}
 
       {state.hasBaseline && (
-        <p className="text-sm text-muted-foreground">
-          {completedContent} of {totalContent} daily items complete.
-          {state.outstandingCount > 0
-            ? ` ${state.outstandingCount} open right now.`
-            : " You're up to date - nothing waiting on you."}
-          {awaitingCount > 0 &&
-            ` ${awaitingCount} video${awaitingCount === 1 ? " is" : "s are"} still being recorded and won't count against you.`}
-        </p>
+        <TodayPanel
+          openCount={state.outstandingCount}
+          nextOpensOn={nextOpensOn}
+          completedCount={completedContent}
+          totalCount={totalContent}
+          awaitingVideoCount={awaitingCount}
+          isComplete={state.membership.completedAt !== null}
+        />
       )}
 
-      <ol className="mt-2">
-        {days.map((day) => (
-          <DayRow
-            key={day}
-            dayIndex={day}
-            unlockDate={unlockByDay.get(day) ?? state.cohort.startDate}
-            isToday={unlockByDay.get(day) === state.today}
-            items={byDay.get(day) ?? []}
-          />
+      {/* The timeline is reference below the panel, grouped by week because
+          that is the cadence people actually experience: three weeks, three
+          sessions, not fifteen equal days. */}
+      <div id="day-timeline" className="space-y-8">
+        {weeks.map(({ week, days: weekDays }) => (
+          <section key={week} className="space-y-2">
+            <div className="flex items-baseline justify-between gap-3 border-b border-border pb-2">
+              <h2 className="text-3xs font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+                Week {week}
+              </h2>
+              <span className="font-mono text-3xs tabular-nums text-muted-foreground">
+                {weekDays.filter((d) =>
+                  (byDay.get(d) ?? []).every(
+                    (i) => i.state === "complete" || i.awaitingVideo,
+                  ),
+                ).length}
+                /{weekDays.length} days done
+              </span>
+            </div>
+            <ol>
+              {weekDays.map((day) => (
+                <DayRow
+                  key={day}
+                  dayIndex={day}
+                  unlockDate={unlockByDay.get(day) ?? state.cohort.startDate}
+                  isToday={day === todayDayIndex}
+                  items={byDay.get(day) ?? []}
+                />
+              ))}
+            </ol>
+          </section>
         ))}
-      </ol>
+      </div>
     </PageContainer>
   );
 }

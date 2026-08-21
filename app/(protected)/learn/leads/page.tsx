@@ -104,7 +104,7 @@ export default async function LeadsPage() {
         <h2 className="text-sm font-semibold tracking-tight text-foreground">
           Your team
         </h2>
-        <ul className="divide-y divide-border rounded-lg border border-border bg-card">
+        <ul className="divide-y divide-border rounded-lg border border-border bg-background">
           {board.members.map((m) => {
             const style = m.rag ? PROGRAMME_RAG[m.rag] : null;
             return (

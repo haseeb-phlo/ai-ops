@@ -41,7 +41,7 @@ export function ImportPanel({
 
   return (
     <div className="space-y-5">
-      <div className="rounded-lg border border-border bg-card p-4">
+      <div className="rounded-lg border border-border bg-background p-4">
         <h3 className="text-sm font-semibold tracking-tight text-foreground">
           Import the May 2026 baseline
         </h3>
@@ -71,9 +71,9 @@ export function ImportPanel({
       )}
 
       {state.kind === "done" && (
-        <div className="rounded-lg border border-border bg-card p-4">
+        <div className="rounded-lg border border-border bg-background p-4">
           <p className="flex items-center gap-2 text-sm font-medium text-foreground">
-            <CheckIcon className="size-4 text-emerald-600" aria-hidden />
+            <CheckIcon className="size-4 text-success" aria-hidden />
             Imported {state.inserted} responses.
           </p>
           {state.withoutAccount > 0 && (
@@ -132,7 +132,7 @@ function PreviewPanel({
   const clean = headerOk && mismatches.length === 0 && preview.unmatchedCount === 0;
 
   return (
-    <div className="space-y-4 rounded-lg border border-border bg-card p-4">
+    <div className="space-y-4 rounded-lg border border-border bg-background p-4">
       <div>
         <h3 className="text-sm font-semibold tracking-tight text-foreground">
           Preview - {fileName}
@@ -186,7 +186,7 @@ function PreviewPanel({
       </Check>
 
       {!clean && (
-        <label className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-50/50 p-3 text-sm">
+        <label className="flex items-start gap-2 rounded-md border border-border border-l-2 border-l-warning bg-background p-3 text-sm">
           <input
             type="checkbox"
             checked={acknowledged}
@@ -231,7 +231,7 @@ function Check({
         aria-hidden
         className={cn(
           "mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full",
-          ok ? "text-emerald-600" : "text-amber-600",
+          ok ? "text-success" : "text-warning",
         )}
       >
         {ok ? (

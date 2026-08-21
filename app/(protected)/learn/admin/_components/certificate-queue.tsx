@@ -63,7 +63,7 @@ export function CertificateQueue({
     <form action={action} className="space-y-4">
       <input type="hidden" name="decision" value={decision} />
 
-      <div className="flex items-start gap-2 rounded-lg border border-border bg-card p-3 text-sm">
+      <div className="flex items-start gap-2 rounded-lg border border-border bg-background p-3 text-sm">
         <AwardIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
         <p className="text-muted-foreground">
           These people have passed all four gates. Issuing reveals their
@@ -74,7 +74,7 @@ export function CertificateQueue({
         </p>
       </div>
 
-      <ul className="divide-y divide-border rounded-lg border border-border bg-card">
+      <ul className="divide-y divide-border rounded-lg border border-border bg-background">
         {candidates.map((c) => (
           <li key={c.cohortMemberId} className="flex items-center gap-3 px-4 py-3">
             <input
@@ -115,7 +115,7 @@ export function CertificateQueue({
       )}
       {state.kind === "success" && (
         <p className="flex items-center gap-2 text-sm text-foreground">
-          <CheckIcon className="size-4 text-emerald-600" aria-hidden />
+          <CheckIcon className="size-4 text-success" aria-hidden />
           {state.issued > 0
             ? `Issued ${state.issued} certificate${state.issued === 1 ? "" : "s"}.${state.announced ? " Announced in the cohort channel." : ""}`
             : "Held back."}

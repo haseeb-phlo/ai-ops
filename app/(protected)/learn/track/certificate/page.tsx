@@ -34,7 +34,7 @@ export default async function CertificatePage() {
 
   return (
     <PageContainer className="max-w-2xl">
-      <div className="rounded-lg border border-border bg-card p-8 text-center sm:p-12">
+      <div className="rounded-lg border border-border bg-background p-8 text-center sm:p-12">
         <span
           aria-hidden
           className="mx-auto flex size-12 items-center justify-center rounded-full bg-secondary text-secondary-foreground"
@@ -62,7 +62,7 @@ export default async function CertificatePage() {
             >
               <span
                 aria-hidden
-                className="mt-1.5 size-1.5 shrink-0 rounded-full bg-emerald-500"
+                className="mt-1.5 size-1.5 shrink-0 rounded-full bg-success"
               />
               <span>
                 <span className="font-medium text-foreground">

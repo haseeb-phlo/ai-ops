@@ -44,7 +44,7 @@ export function ResultScreen({
 
   return (
     <div className="space-y-6">
-      <div className="rounded-lg border border-border bg-card p-5 sm:p-6">
+      <div className="rounded-lg border border-border bg-background p-5 sm:p-6">
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
           <h2 className="text-2xl font-semibold tracking-tight text-foreground">
             Your AI Score:{" "}
@@ -80,7 +80,7 @@ export function ResultScreen({
       </div>
 
       {graduation && previous && (
-        <div className="rounded-lg border border-border bg-card p-5 sm:p-6">
+        <div className="rounded-lg border border-border bg-background p-5 sm:p-6">
           <h3 className="text-sm font-semibold tracking-tight text-foreground">
             Three weeks on
           </h3>
@@ -145,7 +145,7 @@ function DeltaChip({
       className={cn(
         "rounded-full px-2 py-0.5 text-xs font-medium",
         chip.kind === "up"
-          ? "bg-emerald-50 text-emerald-700"
+          ? "bg-background"
           : "bg-muted text-muted-foreground",
       )}
     >

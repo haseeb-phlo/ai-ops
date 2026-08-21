@@ -117,7 +117,7 @@ export function TrackItemCard({ item }: { item: TrackItemView }) {
           className={cn(
             "mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md border border-border",
             state === "complete"
-              ? "bg-emerald-50 text-emerald-700"
+              ? "bg-background"
               : "bg-muted text-muted-foreground",
           )}
         >

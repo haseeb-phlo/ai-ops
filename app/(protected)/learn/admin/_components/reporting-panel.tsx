@@ -41,8 +41,8 @@ export function ReportingPanel({
   return (
     <div className="space-y-6">
       {view.unmapped.length > 0 && (
-        <p className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-50/50 px-3 py-2 text-xs text-foreground">
-          <AlertTriangleIcon className="mt-0.5 size-3.5 shrink-0 text-amber-600" aria-hidden />
+        <p className="flex items-start gap-2 rounded-md border border-border border-l-2 border-l-warning bg-background px-3 py-2 text-xs text-foreground">
+          <AlertTriangleIcon className="mt-0.5 size-3.5 shrink-0 text-warning" aria-hidden />
           <span>
             {view.unmapped.join(", ")}{" "}
             {view.unmapped.length === 1 ? "is" : "are"} not in any function
@@ -78,17 +78,17 @@ function DriftCard({ drift }: { drift: DriftComparison }) {
   ) => (
     <div className="rounded-md border border-border bg-background p-4">
       <p className="text-xs font-medium text-foreground">{label}</p>
-      <p className="text-[11px] text-muted-foreground">{sub}</p>
+      <p className="text-3xs text-muted-foreground">{sub}</p>
       <p className="mt-2 font-mono text-2xl tabular-nums text-foreground">
         {d.delta === null ? "-" : `${d.delta > 0 ? "+" : ""}${d.delta.toFixed(2)}`}
       </p>
-      <p className="mt-1 text-[11px] text-muted-foreground">
+      <p className="mt-1 text-3xs text-muted-foreground">
         {d.matched === 0
           ? "nobody answered both waves"
           : `${d.matched} people · ${d.beforeMean?.toFixed(2)} to ${d.afterMean?.toFixed(2)}`}
       </p>
       {d.matched > 0 && (
-        <p className="mt-0.5 text-[11px] text-muted-foreground">
+        <p className="mt-0.5 text-3xs text-muted-foreground">
           {d.improved} up · {d.unchanged} level · {d.declined} down
         </p>
       )}
@@ -96,7 +96,7 @@ function DriftCard({ drift }: { drift: DriftComparison }) {
   );
 
   return (
-    <section className="rounded-lg border border-border bg-card p-4">
+    <section className="rounded-lg border border-border bg-background p-4">
       <h3 className="text-sm font-semibold tracking-tight text-foreground">
         Did the programme do it, or would it have happened anyway?
       </h3>
@@ -111,7 +111,7 @@ function DriftCard({ drift }: { drift: DriftComparison }) {
           <p className="text-xs font-medium text-secondary-foreground">
             Difference
           </p>
-          <p className="text-[11px] text-secondary-foreground/80">
+          <p className="text-3xs text-secondary-foreground/80">
             Programme minus drift
           </p>
           <p className="mt-2 font-mono text-2xl tabular-nums text-secondary-foreground">
@@ -119,7 +119,7 @@ function DriftCard({ drift }: { drift: DriftComparison }) {
               ? "-"
               : `${drift.difference > 0 ? "+" : ""}${drift.difference.toFixed(2)}`}
           </p>
-          <p className="mt-1 text-[11px] text-secondary-foreground/80">
+          <p className="mt-1 text-3xs text-secondary-foreground/80">
             {drift.difference === null
               ? "needs both waves to overlap"
               : "points of capability, out of 4"}
@@ -141,7 +141,7 @@ function CapabilityMixCard({
     total === 0 ? 0 : Math.round((counts.slice(2).reduce((a, b) => a + b, 0) / total) * 100);
 
   return (
-    <section className="rounded-lg border border-border bg-card p-4">
+    <section className="rounded-lg border border-border bg-background p-4">
       <h3 className="text-sm font-semibold tracking-tight text-foreground">
         Capability mix
       </h3>
@@ -176,7 +176,7 @@ function CapabilityMixCard({
                 <td
                   className={cn(
                     "py-1.5 text-right tabular-nums",
-                    change > 0 ? "text-emerald-700" : "text-muted-foreground",
+                    change > 0 ? "text-success" : "text-muted-foreground",
                   )}
                 >
                   {r.beforeTotal === 0 || r.afterTotal === 0
@@ -200,7 +200,7 @@ function ConfidenceCard({
   labels: { beforeLabel: string; afterLabel: string };
 }) {
   return (
-    <section className="rounded-lg border border-border bg-card p-4">
+    <section className="rounded-lg border border-border bg-background p-4">
       <h3 className="text-sm font-semibold tracking-tight text-foreground">
         Confidence
       </h3>
@@ -232,7 +232,7 @@ function ConfidenceCard({
               <td
                 className={cn(
                   "py-1.5 text-right tabular-nums",
-                  (r.delta ?? 0) > 0 ? "text-emerald-700" : "text-muted-foreground",
+                  (r.delta ?? 0) > 0 ? "text-success" : "text-muted-foreground",
                 )}
               >
                 {r.delta === null
@@ -255,7 +255,7 @@ function BandCard({
   labels: { beforeLabel: string; afterLabel: string };
 }) {
   return (
-    <section className="rounded-lg border border-border bg-card p-4">
+    <section className="rounded-lg border border-border bg-background p-4">
       <h3 className="text-sm font-semibold tracking-tight text-foreground">
         Hours saved each week
       </h3>
@@ -298,7 +298,7 @@ function TelemetryCard({
     s === null ? "-" : s < 90 ? `${s}s` : `${Math.round(s / 60)} min`;
 
   return (
-    <section className="rounded-lg border border-border bg-card p-4">
+    <section className="rounded-lg border border-border bg-background p-4">
       <h3 className="text-sm font-semibold tracking-tight text-foreground">
         How long the check-in takes
       </h3>
@@ -311,15 +311,15 @@ function TelemetryCard({
             <p className="mt-1 font-mono text-lg tabular-nums text-foreground">
               {fmt(t.medianSeconds)}
             </p>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-3xs text-muted-foreground">
               median, {t.responses} response{t.responses === 1 ? "" : "s"}
             </p>
           </div>
         ))}
       </div>
       {tripped && (
-        <p className="mt-3 flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-50/50 px-3 py-2 text-xs text-foreground">
-          <AlertTriangleIcon className="mt-0.5 size-3.5 shrink-0 text-amber-600" aria-hidden />
+        <p className="mt-3 flex items-start gap-2 rounded-md border border-border border-l-2 border-l-warning bg-background px-3 py-2 text-xs text-foreground">
+          <AlertTriangleIcon className="mt-0.5 size-3.5 shrink-0 text-warning" aria-hidden />
           <span>
             Returners are taking over six minutes. The pre-fill is meant to make
             an unchanged submission take under one, so something has stopped
@@ -359,7 +359,7 @@ function ExportCard({
   };
 
   return (
-    <section className="rounded-lg border border-border bg-card p-4">
+    <section className="rounded-lg border border-border bg-background p-4">
       <h3 className="text-sm font-semibold tracking-tight text-foreground">
         Export
       </h3>

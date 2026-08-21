@@ -16,9 +16,11 @@
  */
 
 import {
+  DEFAULT_UNLOCK_MODE,
   hasReached,
   unlockDateFor,
   type IsoDate,
+  type UnlockMode,
 } from "./working-days";
 
 export type ItemState = "locked" | "available" | "started" | "complete";
@@ -50,11 +52,14 @@ export function resolveItemStates<T extends TrackItemLike>(args: {
   hasBaseline: boolean;
   /** Existing progress, by track item id. Absent means never touched. */
   progressByItemId?: ReadonlyMap<string, ItemState>;
+  /** Defaults to weekly - see UnlockMode for why. */
+  unlockMode?: UnlockMode;
 }): ResolvedItem<T>[] {
   const progress = args.progressByItemId ?? new Map<string, ItemState>();
+  const mode = args.unlockMode ?? DEFAULT_UNLOCK_MODE;
 
   return args.items.map((item) => {
-    const unlockDate = unlockDateFor(args.startDate, item.day_index);
+    const unlockDate = unlockDateFor(args.startDate, item.day_index, mode);
     const recorded = progress.get(item.id);
 
     // Rule 5 (the invariant): work already begun stays visible, whatever the

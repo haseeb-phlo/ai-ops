@@ -125,7 +125,7 @@ export function SignOffCard({ item }: { item: PendingItem }) {
                   className={cn(
                     "font-mono text-xs tabular-nums",
                     scores[d.key] < APPROVE_THRESHOLD
-                      ? "text-amber-600"
+                      ? "text-warning"
                       : "text-muted-foreground",
                   )}
                 >
@@ -167,7 +167,7 @@ export function SignOffCard({ item }: { item: PendingItem }) {
             }
           />
           {belowThreshold && decision === "approved" && (
-            <p className="text-xs text-amber-700">
+            <p className="text-xs text-warning">
               Approval needs all four at {APPROVE_THRESHOLD} or above. Send it
               back with a comment instead.
             </p>

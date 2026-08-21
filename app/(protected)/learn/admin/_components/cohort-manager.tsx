@@ -92,9 +92,9 @@ function CreateCohortForm({
 
   if (state.kind === "success") {
     return (
-      <div className="rounded-lg border border-border bg-card p-4">
+      <div className="rounded-lg border border-border bg-background p-4">
         <p className="flex items-center gap-2 text-sm font-medium text-foreground">
-          <CheckIcon className="size-4 text-emerald-600" aria-hidden />
+          <CheckIcon className="size-4 text-success" aria-hidden />
           Cohort created.
         </p>
         {state.joinCode && (
@@ -110,7 +110,7 @@ function CreateCohortForm({
   }
 
   return (
-    <form action={action} className="space-y-5 rounded-lg border border-border bg-card p-4">
+    <form action={action} className="space-y-5 rounded-lg border border-border bg-background p-4">
       <h3 className="text-sm font-semibold tracking-tight text-foreground">
         New cohort
       </h3>
@@ -290,7 +290,7 @@ function CohortRow({ cohort }: { cohort: ExistingCohort }) {
     : null;
 
   return (
-    <li className="rounded-lg border border-border bg-card p-4">
+    <li className="rounded-lg border border-border bg-background p-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <span className="text-sm font-medium text-foreground">
           {cohort.name}
@@ -314,7 +314,7 @@ function CohortRow({ cohort }: { cohort: ExistingCohort }) {
           <span
             className={cn(
               "text-xs",
-              cohort.joinOpen ? "text-muted-foreground" : "text-amber-700",
+              cohort.joinOpen ? "text-muted-foreground" : "text-warning",
             )}
           >
             {cohort.joinOpen ? "open for joining" : "closed"}
@@ -337,7 +337,7 @@ function CohortRow({ cohort }: { cohort: ExistingCohort }) {
         </div>
       )}
 
-      {cohort.slackChannel && <SlackTest cohortId={cohort.id} channel={cohort.slackChannel} />}
+      <SlackTest cohortId={cohort.id} channel={cohort.slackChannel} />
 
       <form action={action} className="mt-3 flex flex-wrap items-end gap-3">
         <input type="hidden" name="cohort_id" value={cohort.id} />
@@ -398,12 +398,22 @@ function SlackTest({
   channel,
 }: {
   cohortId: string;
-  channel: string;
+  channel: string | null;
 }) {
   const [state, action, pending] = useActionState<SlackTestState, FormData>(
     sendSlackTest,
     { kind: "idle" },
   );
+
+  // Rendered even with no channel set. Hiding it until one is saved put the
+  // affordance behind exactly the step it exists to verify, so nobody found it.
+  if (!channel) {
+    return (
+      <p className="mt-3 text-xs text-muted-foreground">
+        Add a Slack channel below and save, then a test button appears here.
+      </p>
+    );
+  }
 
   return (
     <form action={action} className="mt-3 space-y-2">
@@ -414,13 +424,13 @@ function SlackTest({
           {pending ? "Sending..." : `Send a test to #${channel}`}
         </Button>
         {state.kind === "success" && (
-          <span className="text-xs text-emerald-700">
+          <span className="text-xs text-success">
             Posted. Check #{state.channel}.
           </span>
         )}
       </div>
       {state.kind === "error" && (
-        <p className="max-w-prose rounded-md border border-amber-500/30 bg-amber-50/50 px-3 py-2 text-xs text-foreground">
+        <p className="max-w-prose rounded-md border border-border border-l-2 border-l-warning bg-background px-3 py-2 text-xs text-foreground">
           {state.message}
         </p>
       )}
