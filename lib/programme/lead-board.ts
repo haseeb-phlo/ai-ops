@@ -47,12 +47,17 @@ export const loadLeadBoard = cache(
   async (userId: string): Promise<LeadBoard> => {
     const supabase = await createClient();
 
+    // Two routes onto this board: named as someone's team lead, or named as a
+    // cohort's default approver. The second exists because the org tree routes
+    // every exec to the CEO, so early cohorts name the programme owner instead.
     const { data: memberRows } = await supabase
       .from("programme_cohort_members")
       .select(
-        "id, user_id, rag_status, rag_computed_at, completed_at, programme_cohorts!inner(name, status)",
+        "id, user_id, rag_status, rag_computed_at, completed_at, programme_cohorts!inner(name, status, default_approver_user_id)",
       )
-      .eq("team_lead_user_id", userId)
+      .or(
+        `team_lead_user_id.eq.${userId},programme_cohorts.default_approver_user_id.eq.${userId}`,
+      )
       .in("programme_cohorts.status", ["live", "planned", "complete"])
       .returns<
         {
@@ -61,7 +66,11 @@ export const loadLeadBoard = cache(
           rag_status: RagStatus | null;
           rag_computed_at: string | null;
           completed_at: string | null;
-          programme_cohorts: { name: string; status: string };
+          programme_cohorts: {
+            name: string;
+            status: string;
+            default_approver_user_id: string | null;
+          };
         }[]
       >();
 

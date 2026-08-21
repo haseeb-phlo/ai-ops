@@ -66,9 +66,18 @@ export async function joinCohort(
     if (typeof resolved === "string") leadUserId = resolved;
   }
 
+  // A cohort with a default approver overrides the org tree entirely - that
+  // is the point of the field, and passing a tree-derived lead as well would
+  // send half a cohort's sign-offs somewhere nobody expects.
+  const { data: cohortDefault } = await supabase
+    .from("programme_cohorts")
+    .select("default_approver_user_id")
+    .ilike("join_code", parsed.data.code)
+    .maybeSingle<{ default_approver_user_id: string | null }>();
+
   const { data, error } = await supabase.rpc("join_programme_cohort", {
     p_join_code: parsed.data.code,
-    p_team_lead_user_id: leadUserId,
+    p_team_lead_user_id: cohortDefault?.default_approver_user_id ?? leadUserId,
   });
 
   if (error) {

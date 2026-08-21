@@ -20,9 +20,14 @@ import type {
 
 export const metadata = { title: "Core Programme" };
 
-export default async function TrackPage() {
+export default async function TrackPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ cohort?: string }>;
+}) {
+  const { cohort: cohortParam } = await searchParams;
   const user = await getSessionUser();
-  const state = await loadTrackState(user.id, user.email);
+  const state = await loadTrackState(user.id, user.email, cohortParam ?? null);
 
   if (!state) {
     return (
@@ -139,6 +144,37 @@ export default async function TrackPage() {
           </Link>
         }
       />
+
+      {state.cohort.isTest && (
+        <p className="rounded-md border border-border border-l-2 border-l-warning bg-background px-3 py-2 text-xs text-foreground">
+          This is your private preview run, not a real cohort. Nothing here
+          reaches reporting or notifications.
+          {state.otherCohorts.length > 0 && (
+            <>
+              {" "}
+              <Link
+                href={`/learn/track?cohort=${state.otherCohorts[0].id}`}
+                className="text-primary underline underline-offset-4"
+              >
+                Switch to {state.otherCohorts[0].name}
+              </Link>
+            </>
+          )}
+        </p>
+      )}
+
+      {!state.cohort.isTest && state.otherCohorts.some((c) => c.isTest) && (
+        <p className="text-xs text-muted-foreground">
+          You also have a{" "}
+          <Link
+            href={`/learn/track?cohort=${state.otherCohorts.find((c) => c.isTest)!.id}`}
+            className="text-primary underline underline-offset-4"
+          >
+            preview run
+          </Link>
+          .
+        </p>
+      )}
 
       {!state.hasBaseline ? (
         <BaselineGateCard />
