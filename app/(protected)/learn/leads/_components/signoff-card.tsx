@@ -17,6 +17,12 @@ export type PendingItem = {
   timeSaved: string | null;
   artefactUrl: string | null;
   previousComment: string | null;
+  /** The automated first pass, when there was one and it flagged this. */
+  aiReview: {
+    scores: Record<string, number>;
+    feedback: string;
+    why: string;
+  } | null;
 };
 
 /** The four rubric dimensions, in the order the playbook lists them. */
@@ -42,13 +48,18 @@ export function SignOffCard({ item }: { item: PendingItem }) {
     signOffSubmission,
     { kind: "idle" },
   );
-  const [scores, setScores] = useState<Record<string, number>>({
-    accuracy: 3,
-    completeness: 3,
-    usefulness: 3,
-    reusability: 3,
-  });
-  const [comment, setComment] = useState("");
+  // Pre-filled from the automated pass where there is one, so the human job
+  // is confirm-or-override rather than compose-from-scratch. Defaults to a
+  // passing 3 otherwise, which is what makes a clean approval two clicks.
+  const [scores, setScores] = useState<Record<string, number>>(
+    item.aiReview?.scores ?? {
+      accuracy: 3,
+      completeness: 3,
+      usefulness: 3,
+      reusability: 3,
+    },
+  );
+  const [comment, setComment] = useState(item.aiReview?.feedback ?? "");
   const [decision, setDecision] = useState<"approved" | "rejected">("approved");
 
   if (state.kind === "success") {
@@ -78,6 +89,19 @@ export function SignOffCard({ item }: { item: PendingItem }) {
 
       {item.taskSolved && (
         <p className="mt-1 text-sm text-muted-foreground">{item.taskSolved}</p>
+      )}
+
+      {item.aiReview && (
+        <div className="mt-3 rounded-md border border-border border-l-2 border-l-primary bg-background p-3 text-xs">
+          <p className="font-medium text-foreground">
+            Reviewed first pass - flagged for you
+          </p>
+          <p className="mt-0.5 text-muted-foreground">{item.aiReview.why}</p>
+          <p className="mt-1.5 text-muted-foreground">{item.aiReview.feedback}</p>
+          <p className="mt-1.5 text-3xs uppercase tracking-wide text-muted-foreground">
+            Scores and comment below are its draft. Change anything.
+          </p>
+        </div>
       )}
 
       {item.previousComment && (

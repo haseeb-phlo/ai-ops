@@ -28,8 +28,12 @@ export type ExistingCohort = {
   joinCode: string | null;
   joinOpen: boolean;
   slackChannel: string | null;
+  defaultApproverUserId: string | null;
+  reviewMode: string;
   memberCount: number;
 };
+
+export type ApproverOption = { userId: string; displayName: string };
 
 /**
  * Create and manage cohorts.
@@ -44,25 +48,76 @@ export function CohortManager({
   cohorts,
   sessions,
   today,
+  approvers,
+  meUserId,
 }: {
   cohorts: ExistingCohort[];
   sessions: SessionItemRef[];
   today: string;
+  approvers: ApproverOption[];
+  meUserId: string;
 }) {
   return (
     <div className="space-y-6">
-      <CreateCohortForm sessions={sessions} today={today} />
-      <ExistingCohorts cohorts={cohorts} />
+      <CreateCohortForm
+        sessions={sessions}
+        today={today}
+        approvers={approvers}
+        meUserId={meUserId}
+      />
+      <ExistingCohorts cohorts={cohorts} approvers={approvers} />
     </div>
+  );
+}
+
+/**
+ * Who signs off every submission in this cohort.
+ *
+ * Left unset, routing falls to ORG_TREE - which sends every exec to the CEO,
+ * so an exec cohort would land forty sign-offs on someone who never agreed
+ * to them. Naming one person here overrides the tree for the whole cohort.
+ */
+function ApproverField({
+  approvers,
+  defaultValue,
+  id,
+  compact = false,
+}: {
+  approvers: ApproverOption[];
+  defaultValue: string | null;
+  id?: string;
+  compact?: boolean;
+}) {
+  return (
+    <select
+      id={id}
+      name="default_approver_user_id"
+      defaultValue={defaultValue ?? ""}
+      className={cn(
+        "rounded-lg border border-border bg-background px-2 text-sm",
+        compact ? "h-8 w-48" : "h-9 w-full",
+      )}
+    >
+      <option value="">Follow the org chart</option>
+      {approvers.map((a) => (
+        <option key={a.userId} value={a.userId}>
+          {a.displayName}
+        </option>
+      ))}
+    </select>
   );
 }
 
 function CreateCohortForm({
   sessions,
   today,
+  approvers,
+  meUserId,
 }: {
   sessions: SessionItemRef[];
   today: string;
+  approvers: ApproverOption[];
+  meUserId: string;
 }) {
   const [state, action, pending] = useActionState<CohortActionState, FormData>(
     createCohort,
@@ -229,6 +284,40 @@ function CreateCohortForm({
             link; invite the AI Ops bot to it first.
           </p>
         </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="default_approver_user_id">Who signs off work</Label>
+          <ApproverField
+            id="default_approver_user_id"
+            approvers={approvers}
+            defaultValue={meUserId}
+          />
+          <p className="text-xs text-muted-foreground">
+            One person reviews every submission in this cohort. Leave it on the
+            org chart only once team leads have been through the programme
+            themselves.
+          </p>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="review_mode">How work gets reviewed</Label>
+          <select
+            id="review_mode"
+            name="review_mode"
+            defaultValue="ai_assisted"
+            className="h-9 w-full rounded-lg border border-border bg-background px-2 text-sm"
+          >
+            <option value="ai_assisted">
+              Reviewed automatically, exceptions to the approver
+            </option>
+            <option value="human">Every submission waits for the approver</option>
+          </select>
+          <p className="text-xs text-muted-foreground">
+            Automatic review scores against the same four criteria and approves
+            clear passes with written feedback. Capstones, anything borderline
+            and anything it cannot judge fairly still go to a person.
+          </p>
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-4">
@@ -267,18 +356,30 @@ function CreateCohortForm({
   );
 }
 
-function ExistingCohorts({ cohorts }: { cohorts: ExistingCohort[] }) {
+function ExistingCohorts({
+  cohorts,
+  approvers,
+}: {
+  cohorts: ExistingCohort[];
+  approvers: ApproverOption[];
+}) {
   if (cohorts.length === 0) return null;
   return (
     <ul className="space-y-3">
       {cohorts.map((c) => (
-        <CohortRow key={c.id} cohort={c} />
+        <CohortRow key={c.id} cohort={c} approvers={approvers} />
       ))}
     </ul>
   );
 }
 
-function CohortRow({ cohort }: { cohort: ExistingCohort }) {
+function CohortRow({
+  cohort,
+  approvers,
+}: {
+  cohort: ExistingCohort;
+  approvers: ApproverOption[];
+}) {
   const [state, action, pending] = useActionState<CohortActionState, FormData>(
     updateCohort,
     { kind: "idle" },
@@ -362,6 +463,25 @@ function CohortRow({ cohort }: { cohort: ExistingCohort }) {
             placeholder="ai-cohort-1"
             className="w-48"
           />
+        </label>
+        <label className="space-y-1 text-xs">
+          <span className="block text-muted-foreground">Signs off work</span>
+          <ApproverField
+            approvers={approvers}
+            defaultValue={cohort.defaultApproverUserId}
+            compact
+          />
+        </label>
+        <label className="space-y-1 text-xs">
+          <span className="block text-muted-foreground">Review</span>
+          <select
+            name="review_mode"
+            defaultValue={cohort.reviewMode}
+            className="h-8 w-44 rounded-lg border border-border bg-background px-2 text-sm"
+          >
+            <option value="ai_assisted">Automatic first pass</option>
+            <option value="human">People only</option>
+          </select>
         </label>
         <label className="inline-flex items-center gap-1.5 pb-2 text-xs text-muted-foreground">
           <input

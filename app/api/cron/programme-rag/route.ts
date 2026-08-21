@@ -7,6 +7,7 @@ import { resolveItemStates, outstandingItems, type ItemState } from "@/lib/progr
 import { todayInLondon, unlockDateFor } from "@/lib/programme/working-days";
 import { isG2Impossible, satisfiedSessionIds } from "@/lib/programme/attendance";
 import { gateableContentItemIds, isAwaitingContent } from "@/lib/programme/content-readiness";
+import { sweepUnreviewedSubmissions } from "@/lib/programme/ai-review-run";
 
 /**
  * Nightly RAG recompute for every active cohort.
@@ -76,6 +77,13 @@ export async function GET(request: NextRequest) {
       { status: 500, headers: NO_STORE },
     );
   }
+
+  // Backstop for AI review, and it runs BEFORE the RAG loop on purpose: an
+  // approval flips G3, so a submission the sweep clears has to be visible to
+  // the recompute below or it waits another twenty-four hours for its effect.
+  // The submit action normally schedules the review with after(), so this
+  // usually finds nothing - it is here for the times the callback never ran.
+  const reviewed = await sweepUnreviewedSubmissions();
 
   const results: { cohort: string; members: number; counts: Record<string, number> }[] = [];
 
@@ -234,7 +242,7 @@ export async function GET(request: NextRequest) {
   }
 
   return NextResponse.json(
-    { ok: true, today, cohorts: results },
+    { ok: true, today, cohorts: results, reviewed },
     { headers: NO_STORE },
   );
 }

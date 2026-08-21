@@ -5,4 +5,10 @@ export const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
-export const CLAUDE_MODEL = "claude-opus-4-7";
+/**
+ * Sonnet rather than Opus: the only caller is submission review, which is
+ * rubric scoring against explicit criteria rather than open reasoning, and
+ * it runs once per submission on a member's behalf. Bump it here, not at
+ * the call site.
+ */
+export const CLAUDE_MODEL = "claude-sonnet-5";

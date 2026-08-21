@@ -30,6 +30,7 @@ import {
   returnerTripwireTripped,
 } from "@/lib/programme/reporting";
 import { slackEnabled } from "@/lib/slack";
+import { loadImpersonableUsers } from "@/lib/impersonable-users";
 import { todayInLondon } from "@/lib/programme/working-days";
 
 export const metadata = { title: "Programme admin" };
@@ -62,12 +63,17 @@ export default async function ProgrammeAdminPage({
   }
 
   const supabase = await createClient();
-  const [{ data: cohorts }, { count: mayCount }, { count: unlinkedCount }] =
-    await Promise.all([
-      supabase
+  const [
+    { data: cohorts },
+    { count: mayCount },
+    { count: unlinkedCount },
+    { count: reviewErrorCount },
+    { count: awaitingReviewCount },
+  ] = await Promise.all([
+    supabase
         .from("programme_cohorts")
         .select(
-          "id, name, status, start_date, is_test, join_code, join_open, slack_channel",
+          "id, name, status, start_date, is_test, join_code, join_open, slack_channel, default_approver_user_id, review_mode",
         )
         .order("start_date", { ascending: false })
         .returns<
@@ -80,6 +86,8 @@ export default async function ProgrammeAdminPage({
             join_code: string | null;
             join_open: boolean;
             slack_channel: string | null;
+            default_approver_user_id: string | null;
+            review_mode: string;
           }[]
         >(),
       supabase
@@ -91,6 +99,20 @@ export default async function ProgrammeAdminPage({
         .select("id", { count: "exact", head: true })
         .eq("wave", "may_2026")
         .is("user_id", null),
+      // The automatic reviewer fails CLOSED - a missing API key, a wrong
+      // model name and a model outage all leave the submission pending for a
+      // person. That is the safe direction, and it is also indistinguishable
+      // from "the queue is busy" unless somebody counts it. So it is counted.
+      supabase
+        .from("programme_submissions")
+        .select("id", { count: "exact", head: true })
+        .eq("ai_decision", "error"),
+      supabase
+        .from("programme_submissions")
+        .select("id", { count: "exact", head: true })
+        .eq("signoff_status", "pending")
+        .is("ai_reviewed_at", null)
+        .is("superseded_by", null),
     ]);
 
   const cohortList = cohorts ?? [];
@@ -111,6 +133,13 @@ export default async function ProgrammeAdminPage({
       .returns<{ cohort_id: string }[]>(),
   ]);
   const sessionItems = sessionRows ?? [];
+
+  // Who can be named as a cohort's approver. Anyone with an account: the
+  // approver is a job, not a role, and for the first cohorts it is whoever
+  // owns the programme rather than whoever the org tree points at.
+  const approvers = (await loadImpersonableUsers())
+    .map((u) => ({ userId: u.userId, displayName: u.displayName }))
+    .sort((a, b) => a.displayName.localeCompare(b.displayName));
 
   // Does this admin already have a preview run open?
   const { data: previewRow } = await supabase
@@ -202,6 +231,28 @@ export default async function ProgrammeAdminPage({
         }
       />
 
+      {/* The automatic reviewer failing is invisible by design - every error
+          path leaves the submission for a person, which looks exactly like a
+          busy queue. This is the only place that difference shows. */}
+      {((reviewErrorCount ?? 0) > 0 || (awaitingReviewCount ?? 0) > 0) && (
+        <p className="rounded-md border border-border border-l-2 border-l-warning bg-background px-3 py-2 text-xs text-foreground">
+          {(reviewErrorCount ?? 0) > 0 && (
+            <>
+              {reviewErrorCount} submission
+              {reviewErrorCount === 1 ? "" : "s"} could not be reviewed
+              automatically and {reviewErrorCount === 1 ? "is" : "are"} waiting
+              for a person. Check ANTHROPIC_API_KEY is set.{" "}
+            </>
+          )}
+          {(awaitingReviewCount ?? 0) > 0 && (
+            <>
+              {awaitingReviewCount} not reviewed yet - the nightly sweep picks
+              these up.
+            </>
+          )}
+        </p>
+      )}
+
       <ProgrammeTabs
         dashboard={
           view ? (
@@ -267,6 +318,8 @@ export default async function ProgrammeAdminPage({
             />
             <CohortManager
             today={todayInLondon()}
+            meUserId={user.id}
+            approvers={approvers}
             sessions={sessionItems.map((i) => ({
               trackItemId: i.id,
               title: i.title,
@@ -281,6 +334,8 @@ export default async function ProgrammeAdminPage({
               joinCode: c.join_code,
               joinOpen: c.join_open,
               slackChannel: c.slack_channel,
+              defaultApproverUserId: c.default_approver_user_id,
+              reviewMode: c.review_mode,
               memberCount: memberCountByCohort.get(c.id) ?? 0,
             }))}
             />

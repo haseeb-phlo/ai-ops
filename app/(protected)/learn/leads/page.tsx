@@ -93,6 +93,7 @@ export default async function LeadsPage() {
                   timeSaved: p.timeSaved,
                   artefactUrl: p.artefactUrl,
                   previousComment: p.previousComment,
+                  aiReview: p.aiReview,
                 }}
               />
             ))}

@@ -3,6 +3,7 @@ import {
   buildImportPreview,
   checkHeaders,
   dedupeByCompletionTime,
+  parseCompletionTime,
   rowToResponse,
   summariseDistribution,
 } from "@/lib/programme/may-import";
@@ -188,5 +189,51 @@ describe("summariseDistribution", () => {
     const dist = summariseDistribution([r]);
     expect(dist.q1[opt("q1", 1)]).toBe(1);
     expect(dist.q19).toBeUndefined();
+  });
+});
+
+describe("parseCompletionTime", () => {
+  it("reads an Excel serial as a real date", () => {
+    // The value in the May file's first row. Excel's epoch is 1899-12-30,
+    // which is what makes this 28 May rather than 30 May.
+    expect(parseCompletionTime("46170.50510416667")).toBe(
+      "2026-05-28T12:07:21.000Z",
+    );
+  });
+
+  it("still reads an ISO string", () => {
+    expect(parseCompletionTime("2026-05-28T12:07:21Z")).toBe(
+      "2026-05-28T12:07:21.000Z",
+    );
+  });
+
+  it("returns null rather than guessing", () => {
+    expect(parseCompletionTime("")).toBeNull();
+    expect(parseCompletionTime("not a date")).toBeNull();
+    // A stray row number in the wrong column is not 1900-01-31.
+    expect(parseCompletionTime("31")).toBeNull();
+  });
+});
+
+describe("dedupeByCompletionTime with serials", () => {
+  const row = (email: string, completionTime: string) =>
+    ({ email, completionTime, answers: {}, unmatched: [] }) as never;
+
+  it("keeps the later serial, which sorts wrong as a string", () => {
+    // "9000" > "46170" lexically, so a string compare picks the older row.
+    const kept = dedupeByCompletionTime([
+      row("a@wearephlo.com", "46170.5"),
+      row("a@wearephlo.com", "46100.5"),
+    ]);
+    expect(kept).toHaveLength(1);
+    expect(kept[0].completionTime).toBe("46170.5");
+  });
+
+  it("never lets an unparseable time displace a real one", () => {
+    const kept = dedupeByCompletionTime([
+      row("a@wearephlo.com", "46170.5"),
+      row("a@wearephlo.com", ""),
+    ]);
+    expect(kept[0].completionTime).toBe("46170.5");
   });
 });
