@@ -34,6 +34,8 @@ export type TrackItemView = {
   unlockDate: string;
   video: TrackVideo | null;
   /** Set for submission_slot items. */
+  /** Video day with nothing recorded yet: shown, but not a to-do. */
+  awaitingVideo?: boolean;
   submission?: {
     kind: string;
     signoffStatus: ProgrammeSignoffStatus | null;
@@ -72,7 +74,7 @@ export function TrackItemCard({ item }: { item: TrackItemView }) {
   // A video day with nothing linked yet can't be completed: otherwise G1 is
   // satisfiable for content that hasn't been recorded. Use examples have no
   // video by design, so they stay completable.
-  const awaitingVideo = item.type === "video" && !item.video;
+  const awaitingVideo = item.awaitingVideo ?? (item.type === "video" && !item.video);
   const canComplete =
     !locked &&
     !optimisticComplete &&
@@ -134,11 +136,18 @@ export function TrackItemCard({ item }: { item: TrackItemView }) {
             <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
               <span
                 aria-hidden
-                className={cn("size-1.5 shrink-0 rounded-full", style.dotClassName)}
+                className={cn(
+                  "size-1.5 shrink-0 rounded-full",
+                  awaitingVideo
+                    ? "bg-muted-foreground/30"
+                    : style.dotClassName,
+                )}
               />
               {locked
                 ? `Unlocks ${format(new Date(`${item.unlockDate}T00:00:00`), "d MMM")}`
-                : style.label}
+                : awaitingVideo
+                  ? "Coming soon"
+                  : style.label}
             </span>
           </div>
 
@@ -202,8 +211,8 @@ export function TrackItemCard({ item }: { item: TrackItemView }) {
                   Video coming soon
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Being recorded now — you&apos;ll get a nudge when it lands.
-                  Carry on with the rest of the day.
+                  Being recorded now. It will not hold up your progress - carry
+                  on with the rest of the day.
                 </p>
               </div>
             </div>

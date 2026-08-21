@@ -10,6 +10,7 @@ import {
   type ResolvedItem,
 } from "./unlock";
 import { todayInLondon, hasReached, unlockDateFor } from "./working-days";
+import { gateableContentItemIds, isAwaitingContent } from "./content-readiness";
 
 /**
  * Loads everything the member's track view needs, in one place.
@@ -247,9 +248,10 @@ export const loadTrackState = cache(
     });
 
     // ---- Gates ----------------------------------------------------------
-    const contentItemIds = items
-      .filter((i) => i.type === "video" || i.type === "use_example")
-      .map((i) => i.id);
+    // Videos with nothing recorded yet are excluded: a member cannot be
+    // required to watch a video that does not exist, and counting them would
+    // make G1 unreachable for the whole cohort.
+    const contentItemIds = gateableContentItemIds(items);
     const sessionItems = items.filter((i) => i.type === "session");
 
     const satisfiedSessionItemIds = new Set<string>();
@@ -311,7 +313,10 @@ export const loadTrackState = cache(
       return hasReached(last, today) && last !== today;
     });
 
-    const outstandingCount = outstandingItems(resolved).length;
+    // Same exclusion for RAG: an unrecorded day is our backlog, not theirs.
+    const outstandingCount = outstandingItems(resolved).filter(
+      (r) => !isAwaitingContent(r.item),
+    ).length;
 
     const rag = computeRag({
       outstandingCount,

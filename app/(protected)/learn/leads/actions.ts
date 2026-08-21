@@ -41,7 +41,7 @@ const REASON_MESSAGE: Record<string, string> = {
   below_threshold:
     "Approval needs all four dimensions at 3 or above. Reject with a comment instead.",
   rubric_out_of_range: "Scores must be between 0 and 5.",
-  not_signed_in: "Your session expired — sign in again.",
+  not_signed_in: "Your session expired - sign in again.",
 };
 
 export type SignOffState =

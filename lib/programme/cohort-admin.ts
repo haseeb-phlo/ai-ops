@@ -13,6 +13,7 @@ import {
   type AttendanceStatus,
 } from "./attendance";
 import { buildGateFunnel, type GateFunnel } from "./funnel";
+import { gateableContentItemIds, isAwaitingContent } from "./content-readiness";
 
 /**
  * Everything the programme admin screens need for one cohort, in one pass.
@@ -104,7 +105,7 @@ export const loadCohortAdminView = cache(
         >(),
       supabase
         .from("programme_track_items")
-        .select("id, type, title, day_index, config_json")
+        .select("id, type, title, day_index, learn_video_id, config_json")
         .eq("track_id", cohort.track_id)
         .order("day_index")
         .order("sort_order")
@@ -114,6 +115,7 @@ export const loadCohortAdminView = cache(
             type: string;
             title: string;
             day_index: number;
+            learn_video_id: string | null;
             config_json: Record<string, unknown>;
           }[]
         >(),
@@ -176,9 +178,7 @@ export const loadCohortAdminView = cache(
     );
 
     const sessionItems = items.filter((i) => i.type === "session");
-    const contentItemIds = items
-      .filter((i) => i.type === "video" || i.type === "use_example")
-      .map((i) => i.id);
+    const contentItemIds = gateableContentItemIds(items);
     const summativeItem = items.find(
       (i) => i.type === "quiz" && i.config_json?.summative === true,
     );
@@ -288,7 +288,9 @@ export const loadCohortAdminView = cache(
         hasPostResponse: postUserIds.has(member.user_id),
       });
 
-      const outstandingCount = outstandingItems(resolved).length;
+      const outstandingCount = outstandingItems(resolved).filter(
+        (r) => !isAwaitingContent(r.item),
+      ).length;
 
       const rag = computeRag({
         outstandingCount,

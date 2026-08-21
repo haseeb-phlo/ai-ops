@@ -4,6 +4,7 @@ import { computeGates } from "./gates";
 import { decideCompletion } from "./completion";
 import { parseQuizConfig, bestScore } from "./quiz";
 import { satisfiedSessionIds } from "./attendance";
+import { gateableContentItemIds } from "./content-readiness";
 
 /**
  * Stamps completion when all four gates pass, exactly once.
@@ -48,9 +49,11 @@ export async function maybeCompleteProgramme(
   ] = await Promise.all([
     supabase
       .from("programme_track_items")
-      .select("id, type, config_json")
+      .select("id, type, learn_video_id, config_json")
       .eq("track_id", member.programme_cohorts.track_id)
-      .returns<{ id: string; type: string; config_json: unknown }[]>(),
+      .returns<
+        { id: string; type: string; learn_video_id: string | null; config_json: unknown }[]
+      >(),
     supabase
       .from("programme_item_progress")
       .select("track_item_id, status")
@@ -109,9 +112,7 @@ export async function maybeCompleteProgramme(
   );
 
   const gates = computeGates({
-    contentItemIds: itemList
-      .filter((i) => i.type === "video" || i.type === "use_example")
-      .map((i) => i.id),
+    contentItemIds: gateableContentItemIds(itemList),
     completedItemIds: new Set(
       (progress ?? [])
         .filter((p) => p.status === "complete")

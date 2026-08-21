@@ -135,7 +135,7 @@ export async function commitMayImport(
   try {
     responses = JSON.parse(String(formData.get("payload") ?? "[]"));
   } catch {
-    return { kind: "error", message: "Preview expired — upload again." };
+    return { kind: "error", message: "Preview expired - upload again." };
   }
   if (responses.length === 0) {
     return { kind: "error", message: "Nothing to import." };

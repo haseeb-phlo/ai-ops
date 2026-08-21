@@ -5,7 +5,7 @@
 // the exact multiset of `position` values that bucket's videos already hold
 // and re-deal them to the videos in their new visual order. Because we reuse
 // the same slots, positions in other buckets are never disturbed and we
-// can't collide with rows we didn't touch — even though positions are global
+// can't collide with rows we didn't touch - even though positions are global
 // and interleaved across topics.
 
 export type PositionedVideo = { id: string; position: number };

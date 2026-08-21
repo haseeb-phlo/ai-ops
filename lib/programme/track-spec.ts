@@ -117,7 +117,7 @@ export function buildTrackItems(): TrackItemSpec[] {
   // Day 0 - the entry gate. Nothing else unlocks until this is submitted.
   items.push({
     type: "questionnaire_baseline",
-    title: "Your AI Score — 3-minute check-in",
+    title: "Your AI Score - 3-minute check-in",
     description:
       "A quick self-assessment. It sets your starting point and unlocks the programme.",
     dayIndex: 0,
@@ -140,7 +140,7 @@ export function buildTrackItems(): TrackItemSpec[] {
     // ("watched everything") satisfiable without doing any of the exercises.
     items.push({
       type: "use_example",
-      title: `${topic} — try it yourself`,
+      title: `${topic} - try it yourself`,
       description: "Apply the day's technique to something on your own desk.",
       dayIndex,
       sortOrder: SORT.use_example,
@@ -191,7 +191,7 @@ export function buildTrackItems(): TrackItemSpec[] {
 
   items.push({
     type: "questionnaire_post",
-    title: "Your AI Score — see what three weeks did",
+    title: "Your AI Score - see what three weeks did",
     dayIndex: 15,
     sortOrder: SORT.questionnaire_post,
   });
