@@ -57,7 +57,7 @@ export function DayRow({
             {format(new Date(`${unlockDate}T00:00:00`), "EEE d MMM")}
           </span>
           {isToday && (
-            <span className="rounded bg-secondary px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-secondary-foreground">
+            <span className="rounded bg-secondary px-1.5 py-0.5 text-3xs font-medium uppercase tracking-wide text-secondary-foreground">
               Today
             </span>
           )}

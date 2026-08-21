@@ -83,7 +83,7 @@ export function Sidebar({
           href="/"
           aria-label="Phlo AI Ops home"
           className={cn(
-            "flex min-w-0 items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "flex min-w-0 items-center gap-3 rounded-md focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-primary",
             !collapsed && "flex-1",
           )}
         >
@@ -109,7 +109,7 @@ export function Sidebar({
             type="button"
             onClick={handleToggle}
             aria-label="Collapse sidebar"
-            className="rounded-md p-1 text-muted-foreground opacity-60 outline-none transition-opacity hover:bg-muted/40 hover:text-foreground hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-3 focus-visible:ring-ring/50 group-hover:opacity-100"
+            className="rounded-md p-1 text-muted-foreground opacity-60 outline-none transition-opacity hover:bg-muted/40 hover:text-foreground hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:inset-ring-2 focus-visible:inset-ring-primary group-hover:opacity-100"
           >
             <ChevronsLeftIcon className="size-4" aria-hidden />
           </button>
@@ -123,7 +123,7 @@ export function Sidebar({
             onClick={handleToggle}
             aria-label="Expand sidebar"
             title="Expand sidebar"
-            className="flex w-full items-center justify-center rounded-md py-1.5 text-muted-foreground outline-none hover:bg-muted/40 hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+            className="flex w-full items-center justify-center rounded-md py-1.5 text-muted-foreground outline-none hover:bg-muted/40 hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:inset-ring-2 focus-visible:inset-ring-primary"
           >
             <ChevronsRightIcon className="size-4" aria-hidden />
           </button>
@@ -160,7 +160,7 @@ export function Sidebar({
           href="/profile"
           aria-current={profileActive ? "page" : undefined}
           className={cn(
-            "flex items-center gap-3 rounded-md px-2 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "flex items-center gap-3 rounded-md px-2 py-2 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:inset-ring-2 focus-visible:inset-ring-primary",
             profileActive ? "bg-sidebar-accent/60" : "hover:bg-sidebar-accent/40",
             collapsed && "justify-center px-0",
           )}
@@ -177,7 +177,7 @@ export function Sidebar({
               <p className="truncate text-xs font-medium text-foreground">
                 {user.displayName}
               </p>
-              <p className="truncate text-[11px] text-muted-foreground">
+              <p className="truncate text-3xs text-muted-foreground">
                 {user.role === "super_admin"
                   ? "Super admin"
                   : user.team ?? "Member"}
@@ -190,7 +190,7 @@ export function Sidebar({
           <button
             type="submit"
             className={cn(
-              "flex w-full items-center gap-3 rounded-md px-2 py-2 text-xs text-muted-foreground hover:bg-muted/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "flex w-full items-center gap-3 rounded-md px-2 py-2 text-xs text-muted-foreground hover:bg-muted/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:inset-ring-2 focus-visible:inset-ring-primary",
               collapsed && "justify-center px-0",
             )}
             aria-label="Sign out"
@@ -214,7 +214,7 @@ function CommandPaletteIconButton() {
       onClick={open}
       aria-label="Open command palette"
       title={`Search (${isMac ? "⌘K" : "Ctrl K"})`}
-      className="flex w-full items-center justify-center rounded-md px-0 py-1.5 text-muted-foreground hover:bg-muted/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="flex w-full items-center justify-center rounded-md px-0 py-1.5 text-muted-foreground hover:bg-muted/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:inset-ring-2 focus-visible:inset-ring-primary"
     >
       <SearchIcon className="size-4" aria-hidden />
     </button>
@@ -238,7 +238,7 @@ function SidebarLink({
       aria-current={active ? "page" : undefined}
       className={cn(
         "relative flex items-center gap-3 rounded-md px-2 py-2 text-sm transition-colors",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:inset-ring-2 focus-visible:inset-ring-primary",
         active
           ? "bg-sidebar-accent/60 font-medium text-sidebar-primary before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-r-full before:bg-sidebar-primary"
           : "text-muted-foreground hover:bg-sidebar-accent/40 hover:text-foreground",

@@ -419,7 +419,7 @@ function BigCard({
       <button
         type="button"
         onClick={() => onOpen(person)}
-        className={`relative flex w-44 flex-col items-center gap-2 rounded-lg border border-border bg-background p-4 text-left hover:border-input focus:outline-none focus-visible:ring-2 focus-visible:ring-ring ${dim}`}
+        className={`relative flex w-44 flex-col items-center gap-2 rounded-lg border border-border bg-background p-4 text-left hover:border-input focus:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:inset-ring-2 focus-visible:inset-ring-primary ${dim}`}
         title={person.displayName}
       >
         <PersonAvatar person={person} className="size-14 self-center" />
@@ -459,7 +459,7 @@ function SmallCard({
       <button
         type="button"
         onClick={() => onOpen(person)}
-        className={`relative flex w-36 flex-col items-center gap-2 rounded-lg border border-border bg-background p-3 text-left hover:border-input focus:outline-none focus-visible:ring-2 focus-visible:ring-ring ${dim}`}
+        className={`relative flex w-36 flex-col items-center gap-2 rounded-lg border border-border bg-background p-3 text-left hover:border-input focus:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:inset-ring-2 focus-visible:inset-ring-primary ${dim}`}
         title={person.displayName}
       >
         <PersonAvatar person={person} className="size-10 self-center" />
@@ -467,7 +467,7 @@ function SmallCard({
           <div className="truncate text-xs font-semibold text-foreground">
             {person.displayName}
           </div>
-          <div className="line-clamp-2 text-[10px] leading-tight text-muted-foreground">
+          <div className="line-clamp-2 text-3xs leading-tight text-muted-foreground">
             {person.title}
           </div>
         </div>
@@ -518,10 +518,10 @@ function Chip({
     <button
       type="button"
       onClick={() => onOpen(person)}
-      className={`flex w-44 items-center gap-2 rounded-md border border-border bg-background px-2 py-1.5 text-left hover:border-input focus:outline-none focus-visible:ring-2 focus-visible:ring-ring ${dim}`}
+      className={`flex w-44 items-center gap-2 rounded-md border border-border bg-background px-2 py-1.5 text-left hover:border-input focus:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:inset-ring-2 focus-visible:inset-ring-primary ${dim}`}
       title={person.title ? `${person.displayName} — ${person.title}` : person.displayName}
     >
-      <PersonAvatar person={person} className="size-[22px] text-[9px]" />
+      <PersonAvatar person={person} className="size-[22px] text-3xs" />
       <span className="min-w-0 flex-1 truncate text-xs text-foreground">
         {person.displayName}
         {person.title && (

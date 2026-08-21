@@ -318,7 +318,7 @@ export default function LoginPage() {
                   type="button"
                   onClick={handleResendCode}
                   disabled={isBusy || resendCooldown > 0}
-                  className="text-muted-foreground outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-default disabled:opacity-60 disabled:hover:text-muted-foreground"
+                  className="text-muted-foreground outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-primary disabled:cursor-default disabled:opacity-60 disabled:hover:text-muted-foreground"
                 >
                   {status.kind === "sending"
                     ? "Sending…"
@@ -331,7 +331,7 @@ export default function LoginPage() {
                   type="button"
                   onClick={handleUseDifferentEmail}
                   disabled={isBusy}
-                  className="text-muted-foreground outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-60"
+                  className="text-muted-foreground outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-primary disabled:opacity-60"
                 >
                   Use a different email
                 </button>

@@ -295,7 +295,7 @@ function QuestionField({
           <span className="text-xs text-muted-foreground">(optional)</span>
         )}
         {carriedForward && prefillLabel && (
-          <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+          <span className="rounded bg-muted px-1.5 py-0.5 text-3xs font-medium uppercase tracking-wide text-muted-foreground">
             from {prefillLabel}
           </span>
         )}

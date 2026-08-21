@@ -21,7 +21,7 @@ export type SegmentedOption = {
 };
 
 const OPTION_CLASS =
-  "flex flex-1 items-center justify-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
+  "flex flex-1 items-center justify-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:inset-ring-2 focus-visible:inset-ring-primary";
 
 function optionClass(active: boolean): string {
   return cn(
@@ -65,7 +65,7 @@ function LinkPendingSpinner() {
   return (
     <span
       aria-hidden
-      className="animate-in fade-in inline-flex duration-200 delay-150 fill-mode-backwards"
+      className="animate-in fade-in motion-reduce:animate-none inline-flex duration-200 delay-150 fill-mode-backwards"
     >
       <Loader2 className="size-3 animate-spin" />
     </span>

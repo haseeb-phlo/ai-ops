@@ -167,7 +167,7 @@ export function TagInput({
                   type="button"
                   onClick={() => remove(tag)}
                   aria-label={`Remove ${tag}`}
-                  className="-my-1 flex size-6 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors outline-none hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+                  className="-my-1 flex size-6 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors outline-none hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:inset-ring-2 focus-visible:inset-ring-primary"
                 >
                   <X className="size-3" />
                 </button>
@@ -216,7 +216,7 @@ export function TagInput({
                     onClick={() => add(s)}
                     onMouseEnter={() => setActiveIndex(i)}
                     className={cn(
-                      "flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset",
+                      "flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:inset-ring-2 focus-visible:inset-ring-primary focus-visible:ring-inset",
                       i === clampedActiveIndex && "bg-muted",
                     )}
                   >
@@ -240,7 +240,7 @@ export function TagInput({
                     onClick={() => add(query)}
                     onMouseEnter={() => setActiveIndex(matches.length)}
                     className={cn(
-                      "flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset",
+                      "flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:inset-ring-2 focus-visible:inset-ring-primary focus-visible:ring-inset",
                       matches.length === clampedActiveIndex && "bg-muted",
                     )}
                   >

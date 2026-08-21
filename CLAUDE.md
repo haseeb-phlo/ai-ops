@@ -148,3 +148,46 @@ npm run db:types           # regenerates lib/database.types.ts
 Tailwind v4 via `@tailwindcss/postcss` (see `postcss.config.mjs`). No `tailwind.config` - v4 is config-less by default; customize via `app/globals.css`.
 
 shadcn/ui is configured (`components.json`, style `base-nova`, RSC enabled, lucide icons). Primitives live in `components/ui/` (button, dialog, input, select, table, etc.) with the `cn` helper at `@/lib/utils`. Reuse and extend these rather than introducing a parallel component library.
+
+### The design system
+
+**The binding spec is `docs/design-system.md` in the sibling `gradient` repo.** It covers both apps, and it is the authority on the flat-panel rule, the shadow/overlay split, the focus ring, colour rationing, selection, type, motion budget, density, responsive, forms and content. Read it before changing anything visual. Everything below is either enforced here in code or is a fact about *this* app that a shared doc can't hold.
+
+**Enforced, not documented.** `tests/contrast.test.ts` reads the tokens straight out of `app/globals.css`, so it cannot drift from the palette it checks. It asserts both directions: every pairing the rules allow clears 4.5:1 (3:1 non-text), *and* every pairing the rules forbid is still below 4.5:1 — so a palette change that quietly makes a banned combination safe fails as a stale rule rather than passing unnoticed. It also fails on any raw hex or `rgba()` outside the token block. Run `npm run test` after touching a token.
+
+**Focus ring — one recipe, two parts.** The boundary is `--primary` (6.06:1 on cream, 6.32:1 on white); the `--ring` aqua is the decorative halo only, at 2.72:1, which is why it can never be the whole indicator. Two shapes, depending on whether the control has a border to recolour:
+
+```
+focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-ring/50            # has a border
+focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:inset-ring-2 focus-visible:inset-ring-primary   # borderless
+```
+
+Use `inset-ring-*`, not `outline-*`: nearly every primitive here carries `outline-none`, which sets `--tw-outline-style: none`, so a `focus-visible:outline-2` added on top compiles to `outline-style: none` and is silently invisible. `inset-ring` also paints *inside* the border box, so it survives an ancestor with `overflow` — keep the whole indicator inside ~4px of the box, and don't add `ring-offset` on top of `ring-3`. Never hand-write the ring as a `box-shadow`: that assigns rather than appends, and would drop the `shadow-md`/`shadow-xl` of any elevated surface while focused. Tailwind's `ring-*`, `inset-ring-*` and `shadow-*` compose through separate variables and are safe together (`dialog.tsx` carries `ring-1` and `shadow-xl` at once).
+
+**Type.** Tailwind's default scale plus one named step, `--text-3xs` (11px), for uppercase eyebrows, chips and dense meta. `text-xs` is the body voice of the chrome (~300 uses), `text-sm` is controls, `text-2xl` is the page headline. Arbitrary font sizes (`text-[10px]`) are drift — add a named step instead. Two traps: `text-base` on `input`/`textarea` is 16px deliberately, because iOS Safari zooms the viewport on focus below that, so they read `text-base ... md:text-sm` and `--text-base` must not shrink; and `--text-3xs` intentionally has no paired `--text-3xs--line-height`, so it emits `font-size` only and inherits line-height like the arbitrary values it replaced.
+
+**Motion.** The budget is small: entry animations on `dialog.tsx`, `select.tsx`, `command-palette.tsx` and the `segmented-control.tsx` indicator, and nothing else. Each honours `prefers-reduced-motion` via `motion-reduce:data-open:animate-none motion-reduce:data-closed:animate-none` — the compound form, so it doesn't depend on `data-open` keeping the zero-specificity `:where()` that tw-animate-css currently gives it. Any new overlay needs the same. Drag transitions in `roadmap/board.tsx` and `learn/sortable-video-grid.tsx` are dnd-kit inline styles that CSS variants can't reach; they are user-initiated, so they are out of budget by intent, not oversight.
+
+**Responsive.** `md` (48rem) is the single navigation breakpoint, and the spec can't tell you this:
+
+| Breakpoint | What changes |
+| --- | --- |
+| `< md` | `_components/mobile-top-bar.tsx` **is** the navigation. The sidebar is `hidden md:flex` and absent. `redirect-toast` drops to `top-16` to clear the bar. |
+| `>= md` | Sidebar appears as a sticky full-height rail, collapsible and cookie-persisted (`lib/sidebar.ts`); the mobile bar is `md:hidden`. Inputs step down to `text-sm`. |
+| `sm` (40rem) | The dominant *content* breakpoint (~90 uses): grid columns, page padding, table density. No navigation effect. |
+
+Lose `mobile-top-bar.tsx` and you lose the entire sub-`md` navigation layer with no error.
+
+**Z-index layers.** Five, named after what lives there. Don't renumber to tidy them up — that is risk for no gain.
+
+| Layer | Used by |
+| --- | --- |
+| `z-10` in-flow | sticky table headers and pinned first columns, sticky panel headers, the drag-lifted card, badges over a thumbnail |
+| `z-20` anchored popover | `tag-input`, `people-picker`, `champions-manager` suggestion lists; the drag handle over a card |
+| `z-30` page chrome | `detail-header.tsx` sticky header |
+| `z-40` app banner | `impersonation-banner.tsx` — must sit above page chrome and never be covered |
+| `z-50` overlay | `dialog`, `select` popup, `command-palette`, `view-as-switcher` menu, `redirect-toast` |
+
+Two known inconsistencies, left alone deliberately: `view-as-switcher`'s anchored menu is `z-50` where the structurally identical pickers are `z-20`, and `redirect-toast` shares `z-50` with `dialog`, so a dialog can cover a toast.
+
+**Known open, so nobody re-derives them.** There is no toast primitive in `components/ui/` — only `_components/dashboard/redirect-toast.tsx`, which is still cream-on-`shadow-md` where the shared spec's recipe is a floating white surface with a 2px `--success`/`--destructive` left spine. Field-level form patterns (label/control/help/error stacking, required markers, `aria-describedby` wiring) are unwritten; `alert.tsx` is page-level only. The scroll-boundary rule (a scrollable panel gets a sticky header with `border-b`; a sticky table header gets `inset 0 -1px 0 var(--border)`, which is a hairline and not elevation) and the colour-as-data rule (a matrix/diff/heatmap **may** wash a surface, from the categorical ramp only, mixed toward `transparent` and never toward `--background`, with the text staying ink or a link) both live in the shared spec but have no consumer here yet. A full eight-step type scale with proper heading roles is also deferred — the `xl`/`2xl` roles need a real decision, not a token rename.

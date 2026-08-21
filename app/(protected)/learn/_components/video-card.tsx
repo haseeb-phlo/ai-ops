@@ -134,7 +134,7 @@ export function VideoCard({
         )}
         {durationSeconds != null && !playing && (
           <span
-            className="pointer-events-none absolute bottom-2 right-2 z-10 rounded bg-black/70 px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-white"
+            className="pointer-events-none absolute bottom-2 right-2 z-10 rounded bg-black/70 px-1.5 py-0.5 font-mono text-3xs tabular-nums text-white"
             aria-label={`Duration ${formatDuration(durationSeconds)}`}
           >
             {formatDuration(durationSeconds)}

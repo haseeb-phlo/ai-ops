@@ -427,7 +427,7 @@ function Cell({
             startEditing();
           }
         }}
-        className={`w-full cursor-pointer rounded px-0 py-0.5 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 ${alignClass}`}
+        className={`w-full cursor-pointer rounded px-0 py-0.5 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:inset-ring-2 focus-visible:inset-ring-primary ${alignClass}`}
       >
         {content}
       </div>

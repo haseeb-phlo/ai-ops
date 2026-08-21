@@ -24,7 +24,7 @@ export function BackLink({
     <Link
       href={href}
       className={cn(
-        "group inline-flex items-center gap-1.5 rounded-sm text-sm text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50",
+        "group inline-flex items-center gap-1.5 rounded-sm text-sm text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-primary",
         className,
       )}
     >
@@ -53,7 +53,7 @@ export function ForwardLink({
       className={cn(
         // Mirrors BackLink's hover lift: muted at rest, full foreground on
         // hover, with the same underline + arrow-nudge treatment.
-        "group inline-flex items-center gap-1.5 rounded-sm text-sm font-medium text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50",
+        "group inline-flex items-center gap-1.5 rounded-sm text-sm font-medium text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-primary",
         className,
       )}
     >

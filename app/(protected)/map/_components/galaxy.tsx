@@ -939,7 +939,7 @@ function Legend({
         type="button"
         aria-expanded
         onClick={() => setOpen(false)}
-        className="flex w-full items-center justify-between border-b border-border px-3 py-2 text-left text-[10px] font-medium uppercase tracking-wide text-muted-foreground hover:text-foreground"
+        className="flex w-full items-center justify-between border-b border-border px-3 py-2 text-left text-3xs font-medium uppercase tracking-wide text-muted-foreground hover:text-foreground"
       >
         Legend
         <ChevronUp aria-hidden className="size-3.5" />
@@ -950,7 +950,7 @@ function Legend({
           className="h-1.5 w-full rounded-full"
           style={{ background: gradient }}
         />
-        <div className="mt-1.5 flex justify-between text-[10px] tabular-nums text-muted-foreground">
+        <div className="mt-1.5 flex justify-between text-3xs tabular-nums text-muted-foreground">
           <span>{leftLabel}</span>
           <span>{rightLabel}</span>
         </div>
@@ -1063,7 +1063,7 @@ function LegendSection({
           : "border-b border-border px-3 py-2.5"
       }
     >
-      <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+      <p className="text-3xs font-medium uppercase tracking-wide text-muted-foreground">
         {title}
       </p>
       <div className="mt-1.5">{children}</div>

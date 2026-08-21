@@ -186,7 +186,7 @@ export function AuditLog({ rows }: { rows: AuditRow[] }) {
                         type="button"
                         onClick={() => toggleExpanded(r.id)}
                         aria-expanded={isExpanded}
-                        className="ml-1.5 inline-flex items-center gap-0.5 rounded text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+                        className="ml-1.5 inline-flex items-center gap-0.5 rounded text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-primary focus-visible:outline-none"
                       >
                         {isExpanded ? (
                           <>
