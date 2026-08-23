@@ -49,7 +49,7 @@ export async function runReviewEval(): Promise<LiveEvalReport> {
   for (const testCase of EVAL_CASES) {
     let raw: string;
     try {
-      raw = await askClaude(buildReviewPrompt(testCase.submission));
+      raw = await askClaude(buildReviewPrompt(testCase.submission), 2048);
     } catch (error) {
       results.push(errorResult(testCase.id, testCase.expect, error));
       continue;

@@ -17,6 +17,12 @@
  *      credentials, so it is a command you run before shipping a prompt or
  *      model change, not a test.
  *
+ * LAST MEASURED 23 Aug 2026, claude-opus-5 on Vertex: 7 of 8 agreed, no
+ * false approvals, no style problems, no errors. The one disagreement was
+ * `solid-but-plain` routed to a human on a completeness score of 2 - Opus
+ * marks harder than Sonnet, which costs about one unnecessary human review
+ * in eight and is the direction worth erring in.
+ *
  * THE METRIC THAT MATTERS IS FALSE APPROVALS. A flagged submission that
  * should have passed costs one human review. An approved submission that
  * should have been flagged is a gate that did not hold, and nobody finds out.

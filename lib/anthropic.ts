@@ -41,13 +41,19 @@ export function claudeProvider(): ClaudeProvider | null {
 }
 
 /**
- * The direct API's alias. On Vertex this is wrong and CLAUDE_MODEL must be
- * set to the Vertex id for the same model, which carries an @version suffix.
+ * Opus 5, because the only caller is submission review and that is the one
+ * place in this app where being slightly wrong is expensive: an approval
+ * nobody checks is a gate that did not hold.
  *
- * Sonnet rather than Opus because the only caller is submission review, which
- * is rubric scoring against explicit criteria rather than open reasoning.
+ * Verified against Vertex on 23 Aug 2026 - the eval set scored 7 of 8 with no
+ * false approvals and no style problems. Opus marks harder than Sonnet, so
+ * roughly one good submission in eight is routed to a person unnecessarily.
+ * That is the cheap direction to be wrong in and it is a deliberate trade.
+ *
+ * The id happens to be identical on both providers. That is not guaranteed
+ * for future models, which is why CLAUDE_MODEL exists.
  */
-const DEFAULT_MODEL = "claude-sonnet-5";
+const DEFAULT_MODEL = "claude-opus-5";
 
 export const CLAUDE_MODEL = process.env.CLAUDE_MODEL?.trim() || DEFAULT_MODEL;
 
@@ -66,6 +72,11 @@ export function claudeClient(): Anthropic | AnthropicVertex | null {
         googleAuth = new GoogleAuth({
           credentials: JSON.parse(raw),
           scopes: ["https://www.googleapis.com/auth/cloud-platform"],
+          // Without this, user-flavoured credentials are refused with
+          // "the API requires a quota project" rather than anything legible.
+          clientOptions: {
+            quotaProjectId: process.env.ANTHROPIC_VERTEX_PROJECT_ID,
+          },
         });
       } catch {
         // Malformed key: fall through to ADC rather than throwing at import.
@@ -74,7 +85,11 @@ export function claudeClient(): Anthropic | AnthropicVertex | null {
     }
     cached = new AnthropicVertex({
       projectId: process.env.ANTHROPIC_VERTEX_PROJECT_ID ?? null,
-      region: process.env.CLOUD_ML_REGION ?? "europe-west1",
+      // "global", not a European region. Checked against Phlo's own Vertex
+      // project on 23 Aug 2026: europe-west1 carries only claude-3-opus and
+      // claude-sonnet-4-5, and us-central1 lists Opus 5 but answers 429 with
+      // zero quota for it. The global endpoint serves it.
+      region: process.env.CLOUD_ML_REGION ?? "global",
       ...(googleAuth ? { googleAuth } : {}),
     });
     return cached;
@@ -122,7 +137,7 @@ export function claudeStatus(): string {
   if (provider === "vertex") {
     const project = process.env.ANTHROPIC_VERTEX_PROJECT_ID;
     if (!project) return "Vertex, but no project id set";
-    return `Vertex (${project}, ${process.env.CLOUD_ML_REGION ?? "europe-west1"}) using ${CLAUDE_MODEL}`;
+    return `Vertex (${project}, ${process.env.CLOUD_ML_REGION ?? "global"}) using ${CLAUDE_MODEL}`;
   }
   return `Anthropic API using ${CLAUDE_MODEL}`;
 }

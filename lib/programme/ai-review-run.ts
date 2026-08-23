@@ -107,7 +107,7 @@ export async function runAiReview(submissionId: string): Promise<ReviewOutcome> 
 
   let rawText = "";
   try {
-    rawText = await askClaude(buildReviewPrompt(forReview));
+    rawText = await askClaude(buildReviewPrompt(forReview), 2048);
   } catch (error) {
     await recordError(
       supabase,
