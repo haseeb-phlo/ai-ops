@@ -12,6 +12,7 @@ import { BaselineGateCard } from "./_components/baseline-gate-card";
 import { GateStrip } from "./_components/gate-strip";
 import { DayRow } from "./_components/day-row";
 import { TodayPanel } from "./_components/today-panel";
+import { DayFocus } from "./_components/day-focus";
 import type { TrackItemView } from "./_components/track-item-card";
 import type {
   ProgrammeItemState,
@@ -223,10 +224,26 @@ export default async function TrackPage({
         />
       )}
 
-      {/* The timeline is reference below the panel, grouped by week because
-          that is the cadence people actually experience: three weeks, three
-          sessions, not fifteen equal days. */}
+      {state.hasBaseline && (
+        <DayFocus
+          days={days.map((day) => ({
+            dayIndex: day,
+            unlockDate: unlockByDay.get(day) ?? state.cohort.startDate,
+            items: byDay.get(day) ?? [],
+          }))}
+          todayDayIndex={todayDayIndex}
+          weekOfDay={Object.fromEntries(days.map((d) => [d, weekOf(d)]))}
+        />
+      )}
+
+      {/* The full timeline stays below the focus card rather than being
+          replaced by it. The card answers "what now"; this answers "what is
+          the whole thing", which is the question anyone senior asks first and
+          the one a carousel cannot answer at all. */}
       <div id="day-timeline" className="space-y-8">
+        <h2 className="text-sm font-semibold tracking-tight text-foreground">
+          All {days.length} days
+        </h2>
         {weeks.map(({ week, days: weekDays }) => (
           <section key={week} className="space-y-2">
             <div className="flex items-baseline justify-between gap-3 border-b border-border pb-2">
