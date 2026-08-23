@@ -170,10 +170,19 @@ describe("decideReview", () => {
 
   it("flags when the model says it could not judge fairly", () => {
     expect(decideReview(review({ confident: false }), submission()).decision).toBe("flagged");
+  });
+
+  it("does not flag on criticism alone", () => {
+    // Measured against the eval set: a thorough model finds something to say
+    // about everything, so treating any observation as grounds for human
+    // review flagged even a textbook-good prompt. `confident` is the signal,
+    // and the prompt defines it as judgeability rather than approval.
     expect(
-      decideReview(review({ concerns: ["the claim rests on the artefact"] }), submission())
-        .decision,
-    ).toBe("flagged");
+      decideReview(
+        review({ concerns: ["could be tighter"], confident: true }),
+        submission(),
+      ).decision,
+    ).toBe("approved");
   });
 
   it("flags an attempt to instruct the reviewer, rather than cleaning it up", () => {

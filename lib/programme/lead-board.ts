@@ -44,10 +44,28 @@ export type PendingSubmission = {
   } | null;
 };
 
+/**
+ * Something the machine approved on its own.
+ *
+ * Listed so the approver can read what went out in their name and correct the
+ * wording. The decision is not editable here - if a score is wrong the answer
+ * is a conversation, not a quiet rewrite.
+ */
+export type ReviewedSubmission = {
+  id: string;
+  memberName: string;
+  title: string;
+  comment: string;
+  decidedAt: string;
+  /** True until a person has rewritten it. */
+  stillMachineWorded: boolean;
+};
+
 export type LeadBoard = {
   isLead: boolean;
   members: LeadMember[];
   pending: PendingSubmission[];
+  autoApproved: ReviewedSubmission[];
 };
 
 export const loadLeadBoard = cache(
@@ -83,7 +101,7 @@ export const loadLeadBoard = cache(
 
     const members = memberRows ?? [];
     if (members.length === 0) {
-      return { isLead: false, members: [], pending: [] };
+      return { isLead: false, members: [], pending: [], autoApproved: [] };
     }
 
     const memberIds = members.map((m) => m.id);
@@ -98,7 +116,7 @@ export const loadLeadBoard = cache(
         supabase
           .from("programme_submissions")
           .select(
-            "id, cohort_member_id, track_item_id, kind, prompt_text, task_solved, time_saved_estimate, artefact_url, signoff_status, signoff_comment, superseded_by, created_at, ai_decision, ai_review_json",
+            "id, cohort_member_id, track_item_id, kind, prompt_text, task_solved, time_saved_estimate, artefact_url, signoff_status, signoff_comment, signed_at, signed_by, superseded_by, created_at, ai_decision, ai_review_json",
           )
           .in("cohort_member_id", memberIds)
           .returns<
@@ -116,6 +134,8 @@ export const loadLeadBoard = cache(
               superseded_by: string | null;
               created_at: string;
               ai_decision: string | null;
+              signed_at: string | null;
+              signed_by: string | null;
               ai_review_json: {
                 scores?: Record<string, number>;
                 feedback?: string;
@@ -202,6 +222,30 @@ export const loadLeadBoard = cache(
         return ra - rb || a.displayName.localeCompare(b.displayName);
       });
 
-    return { isLead: true, members: leadMembers, pending };
+    // Approved by the machine and never touched by a person, most recent
+    // first. Capped: this is a review-what-went-out list, not an archive.
+    const autoApproved: ReviewedSubmission[] = all
+      .filter(
+        (s) =>
+          !s.superseded_by &&
+          s.signoff_status === "approved" &&
+          s.ai_decision === "approved" &&
+          s.signed_by === null &&
+          s.signoff_comment,
+      )
+      .sort((a, b) => (b.signed_at ?? "").localeCompare(a.signed_at ?? ""))
+      .slice(0, 30)
+      .map((s) => ({
+        id: s.id,
+        memberName: nameByMemberId.get(s.cohort_member_id) ?? "(unknown)",
+        title: s.track_item_id
+          ? (titleByItemId.get(s.track_item_id) ?? "Submission")
+          : "Submission",
+        comment: s.signoff_comment ?? "",
+        decidedAt: s.signed_at ?? s.created_at,
+        stillMachineWorded: (s.ai_review_json?.reasons ?? []).length === 0,
+      }));
+
+    return { isLead: true, members: leadMembers, pending, autoApproved };
   },
 );

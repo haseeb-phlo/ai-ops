@@ -133,3 +133,66 @@ export async function signOffSubmission(
 
   return { kind: "success", decision: parsed.data.decision };
 }
+
+/* ------------------------------------------------------------------ */
+/* Correcting the wording on a decided submission                      */
+/* ------------------------------------------------------------------ */
+
+const EditFeedbackSchema = z.object({
+  submission_id: z.string().uuid(),
+  comment: z.string().trim().min(1).max(2000),
+});
+
+export type EditFeedbackState =
+  | { kind: "idle" }
+  | { kind: "error"; message: string }
+  | { kind: "success" };
+
+const EDIT_REASON: Record<string, string> = {
+  not_found: "That submission no longer exists.",
+  not_your_member: "You're not the approver for this person.",
+  still_pending: "Nothing has been decided on this one yet.",
+  empty: "Write something, or leave it as it is.",
+};
+
+/**
+ * Rewrites the feedback a member reads, without touching the decision.
+ *
+ * The scores stood up; the wording did not. Every previous version is kept by
+ * the RPC, and once a person has rewritten it the member is no longer told a
+ * machine wrote it - because by then one did not.
+ */
+export async function editFeedback(
+  _prev: EditFeedbackState,
+  formData: FormData,
+): Promise<EditFeedbackState> {
+  const gate = await requireWriter();
+  if (!gate.ok) return { kind: "error", message: gate.error };
+
+  const parsed = EditFeedbackSchema.safeParse({
+    submission_id: formData.get("submission_id"),
+    comment: formData.get("comment"),
+  });
+  if (!parsed.success) {
+    return { kind: "error", message: "Write something first." };
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("programme_edit_feedback", {
+    p_submission_id: parsed.data.submission_id,
+    p_comment: parsed.data.comment,
+  });
+  if (error) return { kind: "error", message: `Could not save: ${error.message}` };
+
+  const result = data as { ok: boolean; reason?: string } | null;
+  if (!result?.ok) {
+    return {
+      kind: "error",
+      message: EDIT_REASON[result?.reason ?? ""] ?? "That edit was refused.",
+    };
+  }
+
+  revalidatePath("/learn/leads");
+  revalidatePath("/learn/track");
+  return { kind: "success" };
+}

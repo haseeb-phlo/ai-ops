@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { PROGRAMME_RAG } from "@/lib/status";
 import { cn } from "@/lib/utils";
 import { SignOffCard } from "./_components/signoff-card";
+import { AutoApprovedList } from "./_components/auto-approved-list";
 
 export const metadata = { title: "Your team's programme" };
 
@@ -100,6 +101,16 @@ export default async function LeadsPage() {
           </div>
         )}
       </section>
+
+      <AutoApprovedList
+        items={board.autoApproved.map((a) => ({
+          id: a.id,
+          memberName: a.memberName,
+          title: a.title,
+          comment: a.comment,
+          decidedAt: a.decidedAt,
+        }))}
+      />
 
       <section className="space-y-3">
         <h2 className="text-sm font-semibold tracking-tight text-foreground">

@@ -16,6 +16,7 @@ import { CohortManager } from "./_components/cohort-manager";
 import { CertificateQueue } from "./_components/certificate-queue";
 import { ReportingPanel } from "./_components/reporting-panel";
 import { PreviewPanel } from "./_components/preview-panel";
+import { ReviewEvalPanel } from "./_components/review-eval-panel";
 import {
   filterRows,
   loadReportingData,
@@ -30,6 +31,7 @@ import {
   returnerTripwireTripped,
 } from "@/lib/programme/reporting";
 import { slackEnabled } from "@/lib/slack";
+import { claudeStatus } from "@/lib/anthropic";
 import { loadImpersonableUsers } from "@/lib/impersonable-users";
 import { todayInLondon } from "@/lib/programme/working-days";
 
@@ -316,6 +318,7 @@ export default async function ProgrammeAdminPage({
               hasPreview={previewRow !== null}
               previewCohortId={previewRow?.cohort_id ?? null}
             />
+            <ReviewEvalPanel configuration={claudeStatus()} />
             <CohortManager
             today={todayInLondon()}
             meUserId={user.id}

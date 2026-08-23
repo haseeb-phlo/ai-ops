@@ -12,10 +12,12 @@
     "db:types": "supabase gen types typescript --linked > lib/database.types.ts",
     "db:diff": "supabase db diff --linked",
     "db:new": "supabase migration new",
-    "seed:programme": "node scripts/generate-programme-seed.mjs"
+    "seed:programme": "node scripts/generate-programme-seed.mjs",
+    "eval:review": "node --experimental-strip-types scripts/eval-review.mts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.92.0",
+    "@anthropic-ai/vertex-sdk": "^0.19.5",
     "@base-ui/react": "^1.4.1",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",

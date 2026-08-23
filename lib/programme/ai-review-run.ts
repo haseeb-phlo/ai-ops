@@ -1,13 +1,19 @@
 import "server-only";
-import { anthropic, CLAUDE_MODEL } from "@/lib/anthropic";
+import { askClaude, CLAUDE_MODEL } from "@/lib/anthropic";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { maybeCompleteProgramme } from "./complete-action";
 import {
+  buildFeedbackRewritePrompt,
   buildReviewPrompt,
   decideReview,
   parseReviewResponse,
   type SubmissionForReview,
 } from "./ai-review";
+import {
+  applyStyleFixes,
+  describeViolations,
+  findStyleViolations,
+} from "./feedback-style";
 
 /**
  * Running one AI review.
@@ -101,15 +107,7 @@ export async function runAiReview(submissionId: string): Promise<ReviewOutcome> 
 
   let rawText = "";
   try {
-    if (!process.env.ANTHROPIC_API_KEY) throw new Error("no api key");
-    const response = await anthropic.messages.create({
-      model: CLAUDE_MODEL,
-      max_tokens: 1024,
-      messages: [{ role: "user", content: buildReviewPrompt(forReview) }],
-    });
-    rawText = response.content
-      .map((block) => (block.type === "text" ? block.text : ""))
-      .join("");
+    rawText = await askClaude(buildReviewPrompt(forReview), 2048);
   } catch (error) {
     await recordError(
       supabase,
@@ -125,6 +123,15 @@ export async function runAiReview(submissionId: string): Promise<ReviewOutcome> 
     return "error";
   }
 
+  // House style, in three passes and in this order. Ask again first, because
+  // a rewrite fixes filler that no amount of find-and-replace can; then apply
+  // the mechanical corrections to whatever survives; then record what is
+  // still wrong so a bad prompt shows up in the numbers rather than only in
+  // somebody's reading. Style never blocks a decision - a well-judged review
+  // in slightly wrong English is still a well-judged review.
+  const styled = await enforceStyle(review.feedback, forReview);
+  review.feedback = styled.feedback;
+
   const { decision, reasons } = decideReview(review, forReview);
   const now = new Date().toISOString();
   const reviewJson = {
@@ -132,6 +139,10 @@ export async function runAiReview(submissionId: string): Promise<ReviewOutcome> 
     reasons,
     model: CLAUDE_MODEL,
     reviewed_at: now,
+    style: {
+      rewritten: styled.rewritten,
+      remaining: styled.remaining,
+    },
   };
 
   if (decision === "approved") {
@@ -178,6 +189,47 @@ export async function runAiReview(submissionId: string): Promise<ReviewOutcome> 
     .eq("signoff_status", "pending")
     .is("ai_reviewed_at", null);
   return "flagged";
+}
+
+type StyledFeedback = {
+  feedback: string;
+  /** Whether a second call was needed. Worth watching: a high rate means the prompt is not landing. */
+  rewritten: boolean;
+  /** Violations that survived both the rewrite and the mechanical fixes. */
+  remaining: string[];
+};
+
+async function enforceStyle(
+  original: string,
+  submission: SubmissionForReview,
+): Promise<StyledFeedback> {
+  let feedback = original;
+  let rewritten = false;
+
+  const first = findStyleViolations(feedback);
+  if (first.length > 0) {
+    try {
+      const retry = (
+        await askClaude(
+          buildFeedbackRewritePrompt(submission, feedback, describeViolations(first)),
+        )
+      ).trim();
+      // Only take the rewrite if it is actually feedback and actually better.
+      if (retry.length > 20 && findStyleViolations(retry).length < first.length) {
+        feedback = retry;
+        rewritten = true;
+      }
+    } catch {
+      // A failed rewrite is not a failed review. Fall through to the fixes.
+    }
+  }
+
+  feedback = applyStyleFixes(feedback);
+  return {
+    feedback,
+    rewritten,
+    remaining: findStyleViolations(feedback).map((v) => `${v.rule}:${v.found}`),
+  };
 }
 
 async function recordError(
