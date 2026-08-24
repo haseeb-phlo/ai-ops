@@ -149,16 +149,38 @@ const SLOP = [
  * after it contain no verb-looking pronoun-plus-word opener. Narrow means it
  * misses some real Oxford commas, which costs a regeneration; wide would mean
  * breaking correct sentences, which costs a reader.
+ *
+ * ITEMS MAY NOT CROSS A SENTENCE BOUNDARY, and may not run long. Without
+ * that, `[^,]+` happily spans full stops and swallows two sentences, so a
+ * comma in one and an "or" in the next read as a single list - and the fix
+ * then deletes a comma that was doing real work. Found by the live eval on
+ * 24 Aug 2026, on feedback of exactly that shape: a genuine list in the first
+ * sentence and an ordinary "..., or when..." in the second.
  */
-const OXFORD = /(?:[^,]+,)\s*[^,]+,\s+(and|or)\s+/gi;
+const LIST_ITEM = "[^,.;:!?\\n]{1,60}";
+const OXFORD = new RegExp(
+  `(${LIST_ITEM}),\\s*(${LIST_ITEM}),\\s+(and|or)\\s+`,
+  "gi",
+);
 const CLAUSE_AFTER = /^(?:and|or)\s+(?:i|you|it|they|we|he|she|this|that|there)\b/i;
+/**
+ * A list item never opens with a conjunction.
+ *
+ * "a, b, and c" has "b" in the middle. "X, and Y, or Z" has "and Y" there,
+ * which is the tell that the first comma joined clauses rather than
+ * separating items - so the trailing comma is a pause, not an Oxford comma,
+ * and removing it changes the sentence.
+ */
+const ITEM_OPENS_WITH_CONJUNCTION = /^\s*(?:and|or|but|so|yet|because|which)\b/i;
 
 export function findOxfordCommas(text: string): string[] {
   const hits: string[] = [];
   for (const match of text.matchAll(OXFORD)) {
-    const rest = text.slice(match.index + match[0].length - match[1].length - 1);
-    if (CLAUSE_AFTER.test(rest.trim())) continue;
-    hits.push(match[0].trim());
+    const [whole, , second, conjunction] = match;
+    if (ITEM_OPENS_WITH_CONJUNCTION.test(second)) continue;
+    const after = text.slice(match.index + whole.length);
+    if (CLAUSE_AFTER.test(`${conjunction} ${after}`)) continue;
+    hits.push(whole.trim());
   }
   return hits;
 }

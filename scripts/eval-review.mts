@@ -18,8 +18,12 @@
  *   CLAUDE_PROVIDER=vertex ANTHROPIC_VERTEX_PROJECT_ID=phlo-ai \
  *   CLOUD_ML_REGION=global CLAUDE_MODEL=claude-opus-5 npm run eval:review
  *
- * On Vertex it uses Application Default Credentials, so `gcloud auth
- * application-default login` is enough locally and no key file is needed.
+ * On Vertex it prefers GOOGLE_SERVICE_ACCOUNT_JSON when that is set, which
+ * is the credential production uses - so pointing it at the deployment's own
+ * key is a real end-to-end check of that key before it goes anywhere near
+ * Vercel. With the variable unset it falls back to Application Default
+ * Credentials, so `gcloud auth application-default login` is enough for
+ * everyday prompt work and no key file is needed.
  */
 
 import Anthropic from "@anthropic-ai/sdk";
@@ -52,11 +56,15 @@ function makeClient() {
   if (PROVIDER === "vertex") {
     const projectId = process.env.ANTHROPIC_VERTEX_PROJECT_ID;
     if (!projectId) throw new Error("ANTHROPIC_VERTEX_PROJECT_ID is not set");
+    const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON?.trim();
     return new AnthropicVertex({
       projectId,
       region: process.env.CLOUD_ML_REGION ?? "global",
       googleAuth: new GoogleAuth({
         scopes: ["https://www.googleapis.com/auth/cloud-platform"],
+        // Same two lines as lib/anthropic.ts, so what passes here is what
+        // production will do rather than something adjacent to it.
+        ...(raw ? { credentials: JSON.parse(raw) } : {}),
         clientOptions: { quotaProjectId: projectId },
       }),
     });
@@ -83,6 +91,12 @@ async function ask(prompt: string): Promise<string> {
 }
 
 console.log(`provider ${PROVIDER} | model ${MODEL}`);
+if (PROVIDER === "vertex" && process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
+  const sa = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON) as {
+    client_email?: string;
+  };
+  console.log(`credential ${sa.client_email ?? "(service account)"}`);
+}
 if (PROVIDER === "vertex") {
   console.log(
     `project ${process.env.ANTHROPIC_VERTEX_PROJECT_ID} | region ${process.env.CLOUD_ML_REGION ?? "global"}`,
