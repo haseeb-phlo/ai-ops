@@ -1852,8 +1852,24 @@ export type Database = {
         Args: { p_cohort_member_id: string }
         Returns: boolean
       }
+      programme_cohort_day_activity: {
+        Args: { p_cohort_id: string }
+        Returns: {
+          completions: number
+          day_index: number
+          peers: number
+        }[]
+      }
+      programme_delete_cohort: {
+        Args: { p_cohort_id: string; p_confirm_name: string }
+        Returns: Json
+      }
       programme_edit_feedback: {
         Args: { p_comment: string; p_submission_id: string }
+        Returns: Json
+      }
+      programme_set_cohort_test: {
+        Args: { p_cohort_id: string; p_is_test: boolean }
         Returns: Json
       }
       programme_sign_off: {

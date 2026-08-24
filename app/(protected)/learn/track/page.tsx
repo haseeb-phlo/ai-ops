@@ -13,6 +13,7 @@ import { GateStrip } from "./_components/gate-strip";
 import { DayRow } from "./_components/day-row";
 import { TodayPanel } from "./_components/today-panel";
 import { DayFocus } from "./_components/day-focus";
+import { ActivityHeatmap } from "./_components/activity-heatmap";
 import type { TrackItemView } from "./_components/track-item-card";
 import type {
   ProgrammeItemState,
@@ -217,7 +218,11 @@ export default async function TrackPage({
               </p>
             </div>
           )}
-          <GateStrip gates={state.gates} rag={state.rag} />
+          <GateStrip
+            gates={state.gates}
+            rag={state.rag}
+            g3Routes={state.g3Routes}
+          />
         </>
       )}
 
@@ -229,8 +234,11 @@ export default async function TrackPage({
           totalCount={totalContent}
           awaitingVideoCount={awaitingCount}
           isComplete={state.membership.completedAt !== null}
+          nextSteps={state.nextSteps}
         />
       )}
+
+      {state.entryGateOpen && <ActivityHeatmap days={state.activity} />}
 
       {state.entryGateOpen && (
         <DayFocus

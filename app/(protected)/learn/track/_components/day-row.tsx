@@ -1,5 +1,10 @@
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import {
+  dayAwaitsContent,
+  daySpine,
+  dayStatus,
+} from "@/lib/programme/day-status";
 import { TrackItemCard, type TrackItemView } from "./track-item-card";
 
 /**
@@ -23,20 +28,22 @@ export function DayRow({
   isToday: boolean;
   items: TrackItemView[];
 }) {
-  const allLocked = items.every((i) => i.state === "locked");
-  // A day whose video is still being recorded is not "done" - it is waiting on
-  // us. Marking it green would tell the member they had finished something
-  // they have not actually been able to do.
-  const actionable = items.filter((i) => !i.awaitingVideo);
-  const allComplete =
-    actionable.length > 0 && actionable.every((i) => i.state === "complete");
+  // One rule for what a day is doing, shared with the focus card - see
+  // day-status.ts for why it is not derived here.
+  const status = dayStatus(items, isToday);
+  const allLocked = status === "locked";
+  const allComplete = status === "complete";
 
   return (
     <li className="relative flex gap-4 pb-6 last:pb-0">
-      {/* The connecting spine. */}
+      {/* The connecting spine, carrying two facts downward: colour is the
+          member's progress, a dash is a day we still owe a recording. */}
       <div
         aria-hidden
-        className="absolute bottom-0 left-[15px] top-8 w-px bg-border"
+        className={cn(
+          "absolute bottom-0 left-[15px] top-8 border-l",
+          daySpine(status, dayAwaitsContent(items)),
+        )}
       />
 
       <div className="relative z-10 flex w-8 shrink-0 flex-col items-center">

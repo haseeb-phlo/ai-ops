@@ -1,7 +1,9 @@
 import "server-only";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
-import { computeGates, type GateSet } from "./gates";
+import { computeGates, g3Routes, type G3Route, type GateSet } from "./gates";
+import { stepsToGreen, type StepsToGreen } from "./next-steps";
+import { type DayActivity } from "./activity";
 import { computeRag, type RagStatus } from "./rag";
 import {
   resolveItemStates,
@@ -77,6 +79,12 @@ export type TrackState = {
   gates: GateSet;
   rag: RagStatus;
   outstandingCount: number;
+  /** The complete ways left to clear G3. Empty once it has passed. */
+  g3Routes: G3Route[];
+  /** The shortest route back to green, or none when already there. */
+  nextSteps: StepsToGreen;
+  /** One entry per programme day, for the activity heatmap. */
+  activity: DayActivity[];
   /** Live (non-superseded) submission per submission_slot item id. */
   submissionByItemId: Map<
     string,
@@ -168,6 +176,7 @@ export const loadTrackState = cache(
       { data: submissionRows },
       { data: quizRows },
       { data: attendanceRows },
+      { data: cohortActivityRows },
     ] = await Promise.all([
       supabase
         .from("programme_track_items")
@@ -221,6 +230,9 @@ export const loadTrackState = cache(
             meta_json: Record<string, unknown> | null;
           }[]
         >(),
+      // Aggregate only, and only for a cohort the caller is in - the function
+      // has no argument that selects a person. See the migration.
+      supabase.rpc("programme_cohort_day_activity", { p_cohort_id: cohort.id }),
     ]);
 
     const items = itemRows ?? [];
@@ -403,6 +415,66 @@ export const loadTrackState = cache(
       });
     }
 
+    // ---- G3 routes, next steps, activity -------------------------------
+    const routes = g3Routes({ approvedSignedExamples, capstoneCredits });
+
+    const outstandingActionable = outstandingItems(resolved).filter(
+      (r) => !isAwaitingContent(r.item),
+    );
+    const rejected = live.find((s) => s.signoff_status === "rejected");
+    const nextSteps = stepsToGreen({
+      rag,
+      outstanding: outstandingActionable.map((r) => ({
+        dayIndex: r.item.day_index,
+        title: r.item.title,
+      })),
+      hasOutstandingRejection,
+      rejectedTitle: rejected?.track_item_id
+        ? (items.find((i) => i.id === rejected.track_item_id)?.title ?? null)
+        : null,
+      hasImpossibleGate,
+    });
+
+    // Only items a member can be asked to do count toward a day's share, so an
+    // unrecorded video never drags a day down. Same rule the gate uses.
+    const gateable = new Set(contentItemIds);
+    const peersByDay = new Map<number, { peers: number; done: number }>();
+    for (const row of (cohortActivityRows ?? []) as {
+      day_index: number;
+      peers: number;
+      completions: number;
+    }[]) {
+      peersByDay.set(row.day_index, {
+        peers: row.peers,
+        done: row.completions,
+      });
+    }
+
+    const activity: DayActivity[] = [];
+    for (let day = 1; day <= 15; day += 1) {
+      const dayItems = resolved.filter(
+        (r) => r.item.day_index === day && gateable.has(r.item.id),
+      );
+      const done = dayItems.filter((r) =>
+        completedItemIds.has(r.item.id),
+      ).length;
+
+      const agg = peersByDay.get(day);
+      // Denominator is peers times the day's item count, so one peer who did
+      // half a day reads as half rather than as a whole day's activity.
+      const peerTotal = agg ? agg.peers * dayItems.length : 0;
+
+      activity.push({
+        dayIndex: day,
+        you: dayItems.length === 0 ? 0 : done / dayItems.length,
+        cohort: peerTotal > 0 ? Math.min(1, agg!.done / peerTotal) : null,
+        awaitsContent: resolved.some(
+          (r) => r.item.day_index === day && isAwaitingContent(r.item),
+        ),
+        locked: dayItems.length > 0 && dayItems.every((r) => r.state === "locked"),
+      });
+    }
+
     return {
       cohort: {
         id: cohort.id,
@@ -437,6 +509,9 @@ export const loadTrackState = cache(
       gates,
       rag,
       outstandingCount,
+      g3Routes: routes,
+      nextSteps,
+      activity,
       submissionByItemId,
     };
   },

@@ -3,6 +3,7 @@ import {
   allGatesPassed,
   computeGates,
   g3Credits,
+  g3Routes,
   GATE_IDS,
   type GateInput,
 } from "@/lib/programme/gates";
@@ -211,5 +212,61 @@ describe("allGatesPassed", () => {
 
   it("covers all four gate ids", () => {
     expect(Object.keys(computeGates(passing)).sort()).toEqual([...GATE_IDS]);
+  });
+});
+
+describe("the routes left to clearing G3", () => {
+  it("offers nothing once the gate has passed", () => {
+    expect(g3Routes({ approvedSignedExamples: 5, capstoneCredits: 0 })).toEqual(
+      [],
+    );
+    expect(g3Routes({ approvedSignedExamples: 3, capstoneCredits: 2 })).toEqual(
+      [],
+    );
+  });
+
+  it("offers the capstone as a genuine shortcut when two are missing", () => {
+    const routes = g3Routes({ approvedSignedExamples: 3, capstoneCredits: 0 });
+    expect(routes).toEqual([
+      { examples: 2, capstone: false },
+      { examples: 0, capstone: true },
+    ]);
+  });
+
+  it("keeps the capstone route honest when it cannot finish the job alone", () => {
+    // Two short of five after the capstone's two credits, so the route still
+    // needs an example. Saying "just do the capstone" here would be wrong.
+    const routes = g3Routes({ approvedSignedExamples: 1, capstoneCredits: 0 });
+    expect(routes[1]).toEqual({ examples: 2, capstone: true });
+  });
+
+  it("does not offer the capstone when only one credit is missing", () => {
+    // It would clear the gate, but it is strictly more work than one example.
+    const routes = g3Routes({ approvedSignedExamples: 4, capstoneCredits: 0 });
+    expect(routes).toEqual([{ examples: 1, capstone: false }]);
+  });
+
+  it("stops offering a capstone that has already been spent", () => {
+    const routes = g3Routes({ approvedSignedExamples: 1, capstoneCredits: 2 });
+    expect(routes).toEqual([{ examples: 2, capstone: false }]);
+  });
+
+  it("agrees with the gate about whether anything is left", () => {
+    for (let examples = 0; examples <= 6; examples += 1) {
+      for (const credits of [0, 1, 2]) {
+        const gates = computeGates({
+          ...passing,
+          approvedSignedExamples: examples,
+          capstoneCredits: credits,
+        });
+        const routes = g3Routes({
+          approvedSignedExamples: examples,
+          capstoneCredits: credits,
+        });
+        expect(routes.length === 0, `${examples}/${credits}`).toBe(
+          gates.g3.passed,
+        );
+      }
+    }
   });
 });
