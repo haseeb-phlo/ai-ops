@@ -849,6 +849,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           display_name: string | null
+          slack_user_id: string | null
           title: string | null
           updated_at: string
           user_id: string
@@ -856,6 +857,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           display_name?: string | null
+          slack_user_id?: string | null
           title?: string | null
           updated_at?: string
           user_id: string
@@ -863,6 +865,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           display_name?: string | null
+          slack_user_id?: string | null
           title?: string | null
           updated_at?: string
           user_id?: string
@@ -871,6 +874,10 @@ export type Database = {
       }
       programme_cohort_members: {
         Row: {
+          certificate_declined_at: string | null
+          certificate_issued_at: string | null
+          certificate_issued_by: string | null
+          certificate_note: string | null
           cohort_id: string
           completed_at: string | null
           created_at: string
@@ -885,6 +892,10 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          certificate_declined_at?: string | null
+          certificate_issued_at?: string | null
+          certificate_issued_by?: string | null
+          certificate_note?: string | null
           cohort_id: string
           completed_at?: string | null
           created_at?: string
@@ -899,6 +910,10 @@ export type Database = {
           user_id: string
         }
         Update: {
+          certificate_declined_at?: string | null
+          certificate_issued_at?: string | null
+          certificate_issued_by?: string | null
+          certificate_note?: string | null
           cohort_id?: string
           completed_at?: string | null
           created_at?: string
@@ -925,9 +940,13 @@ export type Database = {
       programme_cohorts: {
         Row: {
           created_at: string
+          default_approver_user_id: string | null
           id: string
           is_test: boolean
+          join_code: string | null
+          join_open: boolean
           name: string
+          review_mode: string
           session_dates: Json
           slack_channel: string | null
           start_date: string
@@ -937,9 +956,13 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          default_approver_user_id?: string | null
           id?: string
           is_test?: boolean
+          join_code?: string | null
+          join_open?: boolean
           name: string
+          review_mode?: string
           session_dates?: Json
           slack_channel?: string | null
           start_date: string
@@ -949,9 +972,13 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          default_approver_user_id?: string | null
           id?: string
           is_test?: boolean
+          join_code?: string | null
+          join_open?: boolean
           name?: string
+          review_mode?: string
           session_dates?: Json
           slack_channel?: string | null
           start_date?: string
@@ -1016,6 +1043,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      programme_notification_sends: {
+        Row: {
+          channel: string | null
+          detail: string | null
+          id: string
+          kind: string
+          period_key: string
+          sent_at: string
+          succeeded: boolean
+          user_id: string | null
+        }
+        Insert: {
+          channel?: string | null
+          detail?: string | null
+          id?: string
+          kind: string
+          period_key: string
+          sent_at?: string
+          succeeded?: boolean
+          user_id?: string | null
+        }
+        Update: {
+          channel?: string | null
+          detail?: string | null
+          id?: string
+          kind?: string
+          period_key?: string
+          sent_at?: string
+          succeeded?: boolean
+          user_id?: string | null
+        }
+        Relationships: []
       }
       programme_quiz_attempts: {
         Row: {
@@ -1115,6 +1175,9 @@ export type Database = {
       }
       programme_submissions: {
         Row: {
+          ai_decision: string | null
+          ai_review_json: Json | null
+          ai_reviewed_at: string | null
           artefact_url: string | null
           cohort_member_id: string
           created_at: string
@@ -1134,6 +1197,9 @@ export type Database = {
           visibility: string
         }
         Insert: {
+          ai_decision?: string | null
+          ai_review_json?: Json | null
+          ai_reviewed_at?: string | null
           artefact_url?: string | null
           cohort_member_id: string
           created_at?: string
@@ -1153,6 +1219,9 @@ export type Database = {
           visibility?: string
         }
         Update: {
+          ai_decision?: string | null
+          ai_review_json?: Json | null
+          ai_reviewed_at?: string | null
           artefact_url?: string | null
           cohort_member_id?: string
           created_at?: string
@@ -1751,6 +1820,10 @@ export type Database = {
         Args: { p_workflow_id: string }
         Returns: boolean
       }
+      join_programme_cohort: {
+        Args: { p_join_code: string; p_team_lead_user_id?: string }
+        Returns: Json
+      }
       leads_user_in_cohort: {
         Args: { p_cohort_id: string; p_user_id: string }
         Returns: boolean
@@ -1779,6 +1852,23 @@ export type Database = {
         Args: { p_cohort_member_id: string }
         Returns: boolean
       }
+      programme_edit_feedback: {
+        Args: { p_comment: string; p_submission_id: string }
+        Returns: Json
+      }
+      programme_sign_off: {
+        Args: {
+          p_accuracy?: number
+          p_capstone_credits?: number
+          p_comment?: string
+          p_completeness?: number
+          p_decision: string
+          p_reusability?: number
+          p_submission_id: string
+          p_usefulness?: number
+        }
+        Returns: Json
+      }
       recent_logins: {
         Args: never
         Returns: {
@@ -1787,11 +1877,13 @@ export type Database = {
           last_sign_in_at: string
         }[]
       }
+      reset_programme_preview: { Args: never; Returns: Json }
       set_intervention_status: {
         Args: { p_id: string; p_status: string }
         Returns: undefined
       }
       signed_in_emails: { Args: never; Returns: string[] }
+      start_programme_preview: { Args: never; Returns: Json }
       swap_step_positions: {
         Args: { p_step_a: string; p_step_b: string }
         Returns: undefined

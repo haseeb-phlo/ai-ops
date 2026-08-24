@@ -77,6 +77,34 @@ describe("Oxford comma", () => {
     );
   });
 
+  it("never reaches across a sentence boundary", () => {
+    // The bug the live eval found. Sentence one holds a real list that is
+    // already correct; sentence two holds an ordinary clause "or". Spanning
+    // them read as one Oxford comma, and the fix then deleted a comma that
+    // was doing real work.
+    const text =
+      "Clear constraints - reading age, word limit, no clinical advice and a pharmacist handover. It lacks any rule for what to do when the message needs order data, or when a complaint arrives.";
+    expect(findOxfordCommas(text)).toHaveLength(0);
+    expect(applyStyleFixes(text)).toBe(text);
+  });
+
+  it("still catches a real list in the second sentence", () => {
+    const text =
+      "The role is clear. Name the columns, the date range, and the site before you run it.";
+    expect(findOxfordCommas(text)).toHaveLength(1);
+    expect(applyStyleFixes(text)).toBe(
+      "The role is clear. Name the columns, the date range and the site before you run it.",
+    );
+  });
+
+  it("does not treat a long clause as a list item", () => {
+    // A sixty-character cap: real list items are short, and anything longer
+    // is far more likely to be a clause that happens to carry a comma.
+    const text =
+      "You have described a process that runs every Monday across all of the dispensing sites, and the prompt does not say which of them it covers, or how to handle a site with no data.";
+    expect(applyStyleFixes(text)).toBe(text);
+  });
+
   it("ignores a two-item list, which has no Oxford comma to remove", () => {
     const text = "Add context and an example.";
     expect(findOxfordCommas(text)).toHaveLength(0);
