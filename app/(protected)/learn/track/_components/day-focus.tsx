@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
 import { ChevronLeftIcon, ChevronRightIcon, LockIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { dayStatus, type DayStatus } from "@/lib/programme/day-status";
 import { Button } from "@/components/ui/button";
 import { TrackItemCard, type TrackItemView } from "./track-item-card";
 
@@ -32,18 +33,8 @@ export type FocusDay = {
   items: TrackItemView[];
 };
 
-type DayStatus = "complete" | "current" | "open" | "locked" | "awaiting";
-
-function statusOf(day: FocusDay, isToday: boolean): DayStatus {
-  if (day.items.every((i) => i.state === "locked")) return "locked";
-  // A day whose video has not been recorded yet is waiting on us, not on the
-  // member. Showing it as done would credit them with something they could
-  // not do; showing it as outstanding would blame them for it.
-  const actionable = day.items.filter((i) => !i.awaitingVideo);
-  if (actionable.length === 0) return "awaiting";
-  if (actionable.every((i) => i.state === "complete")) return "complete";
-  return isToday ? "current" : "open";
-}
+const statusOf = (day: FocusDay, isToday: boolean): DayStatus =>
+  dayStatus(day.items, isToday);
 
 const DOT: Record<DayStatus, string> = {
   complete: "bg-success",

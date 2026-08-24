@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import { CheckIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
+import type { StepsToGreen } from "@/lib/programme/next-steps";
 
 /**
  * The one panel that answers "what do I do now".
@@ -11,6 +12,11 @@ import { buttonVariants } from "@/components/ui/button";
  * scanning: which day am I on, what is left, is any of it urgent. That is work
  * the page should have done. So the open work is lifted out and stated once, at
  * the top, and the timeline below becomes reference rather than the interface.
+ *
+ * It also carries the way back to green when someone has drifted. A status
+ * that only names a colour is a judgement; the same numbers turned around are
+ * a short list of things to do, and the list is almost always far shorter than
+ * the open count because green tolerates one loose end. See next-steps.ts.
  *
  * The "up to date" state is deliberately a first-class outcome and not an
  * absence. On a drip programme most visits end with nothing to do, and a page
@@ -24,6 +30,7 @@ export function TodayPanel({
   totalCount,
   awaitingVideoCount,
   isComplete,
+  nextSteps,
 }: {
   /** Items unlocked and not finished. */
   openCount: number;
@@ -33,6 +40,8 @@ export function TodayPanel({
   totalCount: number;
   awaitingVideoCount: number;
   isComplete: boolean;
+  /** The shortest route back to green. Empty when already there. */
+  nextSteps: StepsToGreen;
 }) {
   const pct =
     totalCount === 0 ? 0 : Math.round((completedCount / totalCount) * 100);
@@ -109,6 +118,37 @@ export function TodayPanel({
           {completedCount}/{totalCount}
         </span>
       </div>
+
+      {!nextSteps.reachable && (
+        <div className="mt-4 border-t border-border pt-4">
+          <p className="text-xs font-medium text-foreground">
+            A live session has passed without an attendance mark
+          </p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Ask your lead about a make-up session. That is the one thing that
+            reopens it, and nothing else on your track is affected.
+          </p>
+        </div>
+      )}
+
+      {nextSteps.reachable && nextSteps.steps.length > 0 && (
+        <div className="mt-4 border-t border-border pt-4">
+          <p className="text-xs font-medium text-foreground">
+            {nextSteps.steps.length === 1 ? "One thing" : "Two things"} would
+            move you back to green
+          </p>
+          <ul className="mt-2 space-y-2">
+            {nextSteps.steps.map((step) => (
+              <li key={step.key}>
+                <p className="text-xs font-medium text-foreground">
+                  {step.title}
+                </p>
+                <p className="text-xs text-muted-foreground">{step.why}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {awaitingVideoCount > 0 && (
         <p className="mt-2 text-xs text-muted-foreground">

@@ -133,3 +133,54 @@ export function computeGates(input: GateInput): GateSet {
 export function allGatesPassed(gates: GateSet): boolean {
   return GATE_IDS.every((id) => gates[id].passed);
 }
+
+/**
+ * The routes still open to clearing G3.
+ *
+ * "3/5" is exact and says nothing about what to do next, because the gate's
+ * arithmetic is substitution rather than addition: an approved capstone
+ * replaces up to two of the five. Someone reading the number cannot tell
+ * whether the shorter path is a fourth signed example or the capstone, and the
+ * strip has no room to explain the rule in prose.
+ *
+ * So state the routes instead of the rule. Each one is a complete way to reach
+ * five credits from where the member actually is, and the caller renders them
+ * as the alternatives they are.
+ *
+ * Deliberately NOT a progress bar. The gate strip's own reasoning applies: a
+ * member needs to know how many more, not roughly how far, and a filled track
+ * would re-encode a number that is already on screen.
+ */
+export type G3Route = {
+  /** Signed examples this route still needs approved. */
+  examples: number;
+  /** True when the route leans on the capstone for the rest. */
+  capstone: boolean;
+};
+
+export function g3Routes(input: {
+  approvedSignedExamples: number;
+  capstoneCredits: number;
+}): G3Route[] {
+  const credits = g3Credits(
+    input.approvedSignedExamples,
+    input.capstoneCredits,
+  );
+  const short = G3_REQUIRED_CREDITS - credits;
+  if (short <= 0) return [];
+
+  const routes: G3Route[] = [{ examples: short, capstone: false }];
+
+  // A capstone already counted cannot be spent twice, so it stops being an
+  // alternative the moment it has credits. And when only one credit is
+  // missing the capstone is not a second route, just a longer version of the
+  // first - offering it there would be advice to do more work for nothing.
+  if (input.capstoneCredits <= 0 && short > 1) {
+    routes.push({
+      examples: Math.max(0, short - CAPSTONE_MAX_CREDITS),
+      capstone: true,
+    });
+  }
+
+  return routes;
+}
