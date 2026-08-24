@@ -24,12 +24,15 @@ import { submitProgrammeSubmission } from "../actions";
  * scoring, so asking for a prompt or offering to share would be misleading.
  */
 export function SubmissionDialog({
+  cohortId,
   trackItemId,
   title,
   kind,
   isResubmission,
   rejectionComment,
 }: {
+  /** Which cohort to file this against. See TrackItemCard. */
+  cohortId: string;
   trackItemId: string;
   title: string;
   kind: string;
@@ -44,6 +47,7 @@ export function SubmissionDialog({
   const handleSubmit = (formData: FormData) => {
     setError(null);
     formData.set("track_item_id", trackItemId);
+    formData.set("cohort_id", cohortId);
     startTransition(async () => {
       const result = await submitProgrammeSubmission(formData);
       if (result.kind === "error") setError(result.message);

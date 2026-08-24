@@ -50,6 +50,50 @@ describe("the baseline gate", () => {
     expect(stateOf(r, "d1u")).toBe("locked");
   });
 
+  it("does not apply in a sandbox, where there is nothing to measure", () => {
+    // A preview run is excluded from every report, so the gate protects
+    // nothing there and would strand the admin on day 0 with the week-1
+    // submission slots locked behind it.
+    const r = resolveItemStates({
+      items,
+      startDate: START,
+      today: START,
+      hasBaseline: false,
+      enforceBaselineGate: false,
+      unlockMode: "daily",
+    });
+    expect(stateOf(r, "d1v")).toBe("available");
+    expect(stateOf(r, "d1u")).toBe("available");
+  });
+
+  it("still respects the drip when it does not apply", () => {
+    // Turning the gate off opens what the DATE allows, not the whole track -
+    // otherwise a preview would prove nothing about the drip it is previewing.
+    const r = resolveItemStates({
+      items,
+      startDate: START,
+      today: START,
+      hasBaseline: false,
+      enforceBaselineGate: false,
+      unlockMode: "daily",
+    });
+    expect(stateOf(r, "d15v")).toBe("locked");
+  });
+
+  it("leaves the day-0 check-in reachable in a sandbox", () => {
+    // The gate screen is still walkable from a preview run. It is just no
+    // longer compulsory, which is the trade this exception makes.
+    const r = resolveItemStates({
+      items,
+      startDate: START,
+      today: START,
+      hasBaseline: false,
+      enforceBaselineGate: false,
+      unlockMode: "daily",
+    });
+    expect(stateOf(r, "gate")).toBe("available");
+  });
+
   it("releases day-appropriate items once the baseline exists", () => {
     const r = resolveItemStates({
       items,

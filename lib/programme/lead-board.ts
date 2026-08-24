@@ -75,31 +75,53 @@ export const loadLeadBoard = cache(
     // Two routes onto this board: named as someone's team lead, or named as a
     // cohort's default approver. The second exists because the org tree routes
     // every exec to the CEO, so early cohorts name the programme owner instead.
-    const { data: memberRows } = await supabase
-      .from("programme_cohort_members")
-      .select(
-        "id, user_id, rag_status, rag_computed_at, completed_at, programme_cohorts!inner(name, status, default_approver_user_id)",
-      )
-      .or(
-        `team_lead_user_id.eq.${userId},programme_cohorts.default_approver_user_id.eq.${userId}`,
-      )
-      .in("programme_cohorts.status", ["live", "planned", "complete"])
-      .returns<
-        {
-          id: string;
-          user_id: string;
-          rag_status: RagStatus | null;
-          rag_computed_at: string | null;
-          completed_at: string | null;
-          programme_cohorts: {
-            name: string;
-            status: string;
-            default_approver_user_id: string | null;
-          };
-        }[]
-      >();
+    //
+    // TWO QUERIES, NOT ONE `or`. The obvious version is a single `.or()`
+    // listing both, and it does not work: `team_lead_user_id` is a column on
+    // this table while `default_approver_user_id` lives on the embedded
+    // cohort, and PostgREST cannot mix the two in one logic tree. It does not
+    // degrade either - it rejects the whole request with PGRST100, which
+    // arrives here as `data: null` and turns into `isLead: false`. That reads
+    // exactly like "nobody is assigned to you", so the board went quietly
+    // empty for every lead and every approver rather than erroring visibly.
+    const memberSelect =
+      "id, user_id, rag_status, rag_computed_at, completed_at, programme_cohorts!inner(name, status, default_approver_user_id)";
+    type MemberRow = {
+      id: string;
+      user_id: string;
+      rag_status: RagStatus | null;
+      rag_computed_at: string | null;
+      completed_at: string | null;
+      programme_cohorts: {
+        name: string;
+        status: string;
+        default_approver_user_id: string | null;
+      };
+    };
 
-    const members = memberRows ?? [];
+    const [{ data: ledRows }, { data: approverRows }] = await Promise.all([
+      supabase
+        .from("programme_cohort_members")
+        .select(memberSelect)
+        .eq("team_lead_user_id", userId)
+        .in("programme_cohorts.status", ["live", "planned", "complete"])
+        .returns<MemberRow[]>(),
+      supabase
+        .from("programme_cohort_members")
+        .select(memberSelect)
+        .eq("programme_cohorts.default_approver_user_id", userId)
+        .in("programme_cohorts.status", ["live", "planned", "complete"])
+        .returns<MemberRow[]>(),
+    ]);
+
+    // Both routes can name the same person, so merge on member id rather than
+    // concatenating - otherwise they are listed twice and their pending count
+    // is doubled.
+    const byId = new Map<string, MemberRow>();
+    for (const row of [...(ledRows ?? []), ...(approverRows ?? [])]) {
+      byId.set(row.id, row);
+    }
+    const members = [...byId.values()];
     if (members.length === 0) {
       return { isLead: false, members: [], pending: [], autoApproved: [] };
     }

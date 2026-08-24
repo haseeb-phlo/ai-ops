@@ -13,6 +13,7 @@ import {
 } from "@/lib/programme/questions";
 import { scoreAnswer, type Answers } from "@/lib/programme/score";
 import { maybeCompleteProgramme } from "@/lib/programme/complete-action";
+import { pickMembership } from "@/lib/programme/membership";
 import type { ActionState } from "../../topics";
 
 /**
@@ -32,6 +33,8 @@ const AnswerSchema = z.object({
 
 const SubmitSchema = z.object({
   wave: z.enum(WAVES),
+  /** The cohort this check-in was opened from, when it was opened from one. */
+  cohort_id: z.string().uuid().optional(),
   answers: z.array(AnswerSchema).max(50),
   flow: z.enum(["returner", "first_timer"]),
   duration_seconds: z.number().int().min(0).max(86_400).nullable(),
@@ -52,6 +55,7 @@ export async function submitAiScore(formData: FormData): Promise<ActionState> {
   const durationRaw = formData.get("duration_seconds");
   const parsed = SubmitSchema.safeParse({
     wave: formData.get("wave"),
+    cohort_id: (formData.get("cohort_id") as string) || undefined,
     answers: rawAnswers,
     flow: formData.get("flow"),
     duration_seconds: durationRaw ? Number(durationRaw) : null,
@@ -100,17 +104,23 @@ export async function submitAiScore(formData: FormData): Promise<ActionState> {
   // Which cohort this belongs to, when the member is in one. May responses
   // have no cohort by definition, which is why the column is nullable.
   //
-  // A REAL cohort always wins over a preview run. There is one response row
-  // per person per wave, so a check-in taken inside a sandbox is still the
-  // person's actual baseline - attributing it to the sandbox would drop them
-  // out of their own cohort's reporting and put their answers where a reset
-  // can delete them.
+  // A REAL cohort wins over a preview run whenever the caller has not said
+  // which they are on. There is one response row per person per wave, so a
+  // check-in taken with no cohort in mind is still the person's actual
+  // baseline, and defaulting it to a sandbox would drop them out of their own
+  // cohort's reporting and put their answers where a reset can delete them.
+  //
+  // A check-in opened FROM a preview run is the other case, and it says so.
+  // Attributing that one to the real cohort would take answers typed while
+  // walking the screens and record them as the person's genuine starting
+  // point, invisibly and permanently, on the one metric the whole programme
+  // exists to move. It is also what the preview panel already promises out
+  // loud: "starting again wipes ... the check-in if it was taken here".
   const { data: memberships } = await supabase
     .from("programme_cohort_members")
     .select("id, cohort_id, joined_at, programme_cohorts!inner(status, is_test)")
     .eq("user_id", user.id)
     .in("programme_cohorts.status", ["live", "planned"])
-    .order("joined_at", { ascending: false })
     .returns<
       {
         id: string;
@@ -120,9 +130,16 @@ export async function submitAiScore(formData: FormData): Promise<ActionState> {
       }[]
     >();
 
-  const membership =
-    (memberships ?? []).find((m) => !m.programme_cohorts.is_test) ??
-    (memberships ?? [])[0];
+  const membership = pickMembership(
+    (memberships ?? []).map((m) => ({
+      row: m,
+      cohortId: m.cohort_id,
+      joinedAt: m.joined_at,
+      status: m.programme_cohorts.status,
+      isTest: m.programme_cohorts.is_test,
+    })),
+    parsed.data.cohort_id,
+  )?.row;
 
   const { error } = await supabase.from("ai_score_responses").upsert(
     {

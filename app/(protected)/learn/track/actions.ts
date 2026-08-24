@@ -5,6 +5,7 @@ import { after } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { runAiReview } from "@/lib/programme/ai-review-run";
+import { resolveWritableMembership } from "@/lib/programme/membership-lookup";
 import { requireWriter } from "@/lib/auth";
 import type { ActionState } from "../topics";
 
@@ -23,8 +24,14 @@ import type { ActionState } from "../topics";
  * for a mandatory programme: "I finished day 4" is not something you undo.
  */
 
+/**
+ * `cohort_id` is which cohort the page was showing. Optional so an older
+ * client, or any caller that does not know, still works - it just falls back
+ * to the same default the loader picks. See membership-lookup.ts.
+ */
 const MarkCompleteSchema = z.object({
   track_item_id: z.string().uuid(),
+  cohort_id: z.string().uuid().optional(),
 });
 
 export async function markTrackItemComplete(
@@ -36,6 +43,7 @@ export async function markTrackItemComplete(
 
   const parsed = MarkCompleteSchema.safeParse({
     track_item_id: formData.get("track_item_id"),
+    cohort_id: (formData.get("cohort_id") as string) || undefined,
   });
   if (!parsed.success) {
     return { kind: "error", message: "Invalid item." };
@@ -43,19 +51,13 @@ export async function markTrackItemComplete(
 
   const supabase = await createClient();
 
-  // Resolve the caller's membership and the item together, so we can reject an
-  // item that isn't on the caller's own track rather than trusting the form.
-  const { data: membership } = await supabase
-    .from("programme_cohort_members")
-    .select("id, programme_cohorts!inner(track_id, status)")
-    .eq("user_id", user.id)
-    .in("programme_cohorts.status", ["live", "planned"])
-    .order("joined_at", { ascending: false })
-    .limit(1)
-    .maybeSingle<{
-      id: string;
-      programme_cohorts: { track_id: string; status: string };
-    }>();
+  // The item is re-checked against the resolved membership's track below, so
+  // an item that isn't on the caller's own track is rejected rather than
+  // trusted from the form.
+  const membership = await resolveWritableMembership(
+    user.id,
+    parsed.data.cohort_id,
+  );
 
   if (!membership) {
     return { kind: "error", message: "You're not in an active cohort." };
@@ -72,7 +74,7 @@ export async function markTrackItemComplete(
       learn_video_id: string | null;
     }>();
 
-  if (!item || item.track_id !== membership.programme_cohorts.track_id) {
+  if (!item || item.track_id !== membership.trackId) {
     return { kind: "error", message: "That item isn't on your track." };
   }
 
@@ -124,7 +126,10 @@ export async function markTrackItemComplete(
  * Never downgrades: a completed item stays complete. Also records a play in
  * Learn's own table, which is what /learn's "N plays from M people" counts.
  */
-const StartSchema = z.object({ track_item_id: z.string().uuid() });
+const StartSchema = z.object({
+  track_item_id: z.string().uuid(),
+  cohort_id: z.string().uuid().optional(),
+});
 
 export async function markTrackItemStarted(formData: FormData): Promise<void> {
   const gate = await requireWriter();
@@ -133,22 +138,16 @@ export async function markTrackItemStarted(formData: FormData): Promise<void> {
 
   const parsed = StartSchema.safeParse({
     track_item_id: formData.get("track_item_id"),
+    cohort_id: (formData.get("cohort_id") as string) || undefined,
   });
   if (!parsed.success) return;
 
   const supabase = await createClient();
 
-  const { data: membership } = await supabase
-    .from("programme_cohort_members")
-    .select("id, programme_cohorts!inner(track_id, status)")
-    .eq("user_id", user.id)
-    .in("programme_cohorts.status", ["live", "planned"])
-    .order("joined_at", { ascending: false })
-    .limit(1)
-    .maybeSingle<{
-      id: string;
-      programme_cohorts: { track_id: string; status: string };
-    }>();
+  const membership = await resolveWritableMembership(
+    user.id,
+    parsed.data.cohort_id,
+  );
   if (!membership) return;
 
   const { data: item } = await supabase
@@ -156,7 +155,7 @@ export async function markTrackItemStarted(formData: FormData): Promise<void> {
     .select("id, track_id, learn_video_id")
     .eq("id", parsed.data.track_item_id)
     .maybeSingle<{ id: string; track_id: string; learn_video_id: string | null }>();
-  if (!item || item.track_id !== membership.programme_cohorts.track_id) return;
+  if (!item || item.track_id !== membership.trackId) return;
 
   if (item.learn_video_id) {
     await supabase
@@ -192,6 +191,7 @@ export async function markTrackItemStarted(formData: FormData): Promise<void> {
 
 const SubmissionSchema = z.object({
   track_item_id: z.string().uuid(),
+  cohort_id: z.string().uuid().optional(),
   artefact_url: z.string().trim().max(2048).optional(),
   prompt_text: z.string().trim().max(10_000).optional(),
   task_solved: z.string().trim().max(2000).optional(),
@@ -219,6 +219,7 @@ export async function submitProgrammeSubmission(
 
   const parsed = SubmissionSchema.safeParse({
     track_item_id: formData.get("track_item_id"),
+    cohort_id: (formData.get("cohort_id") as string) || undefined,
     artefact_url: (formData.get("artefact_url") as string) || undefined,
     prompt_text: (formData.get("prompt_text") as string) || undefined,
     task_solved: (formData.get("task_solved") as string) || undefined,
@@ -232,17 +233,10 @@ export async function submitProgrammeSubmission(
 
   const supabase = await createClient();
 
-  const { data: membership } = await supabase
-    .from("programme_cohort_members")
-    .select("id, programme_cohorts!inner(track_id, status)")
-    .eq("user_id", user.id)
-    .in("programme_cohorts.status", ["live", "planned"])
-    .order("joined_at", { ascending: false })
-    .limit(1)
-    .maybeSingle<{
-      id: string;
-      programme_cohorts: { track_id: string; status: string };
-    }>();
+  const membership = await resolveWritableMembership(
+    user.id,
+    parsed.data.cohort_id,
+  );
   if (!membership) {
     return { kind: "error", message: "You're not in an active cohort." };
   }
@@ -261,7 +255,7 @@ export async function submitProgrammeSubmission(
   if (
     !item ||
     item.type !== "submission_slot" ||
-    item.track_id !== membership.programme_cohorts.track_id
+    item.track_id !== membership.trackId
   ) {
     return { kind: "error", message: "That slot isn't on your track." };
   }
