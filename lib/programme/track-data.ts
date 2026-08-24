@@ -107,7 +107,7 @@ export const loadTrackState = cache(
         "id, cohort_id, joined_at, is_champion, completed_at, certificate_issued_at, certificate_declined_at, programme_cohorts!inner(id, name, start_date, status, track_id, session_dates, is_test)",
       )
       .eq("user_id", userId)
-      .in("programme_cohorts.status", ["live", "planned"])
+      .in("programme_cohorts.status", ["live", "planned", "complete", "archived"])
       .order("joined_at", { ascending: false })
       .returns<{
         id: string;
@@ -129,13 +129,34 @@ export const loadTrackState = cache(
       }[]>();
 
     const all = memberships ?? [];
+
+    // A finished cohort is still readable. `complete` and `archived` used to
+    // be filtered out here, which meant marking a cohort complete - the
+    // normal end of a cohort - made every member's track return null and
+    // rendered "You're not in a cohort yet". The certificate page reads
+    // through this same loader, so it took away certificates people had
+    // earned. Read them all, and rank them instead.
+    const STATUS_RANK: Record<string, number> = {
+      live: 0,
+      planned: 1,
+      complete: 2,
+      archived: 3,
+    };
+    const ranked = [...all].sort(
+      (a, b) =>
+        (STATUS_RANK[a.programme_cohorts.status] ?? 9) -
+          (STATUS_RANK[b.programme_cohorts.status] ?? 9) ||
+        b.joined_at.localeCompare(a.joined_at),
+    );
+
     const membership =
       (preferredCohortId
-        ? all.find((m) => m.cohort_id === preferredCohortId)
+        ? ranked.find((m) => m.cohort_id === preferredCohortId)
         : undefined) ??
-      // A real cohort always beats a sandbox.
-      all.find((m) => !m.programme_cohorts.is_test) ??
-      all[0];
+      // A real cohort always beats a sandbox, and an active one beats a
+      // finished one - somebody in last cohort and this one wants this one.
+      ranked.find((m) => !m.programme_cohorts.is_test) ??
+      ranked[0];
 
     if (!membership) return null;
     const cohort = membership.programme_cohorts;
@@ -385,7 +406,7 @@ export const loadTrackState = cache(
         sessionDates: cohort.session_dates ?? {},
         isTest: cohort.is_test,
       },
-      otherCohorts: all
+      otherCohorts: ranked
         .filter((m) => m.cohort_id !== cohort.id)
         .map((m) => ({
           id: m.cohort_id,

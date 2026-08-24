@@ -146,6 +146,14 @@ export default async function TrackPage({
         }
       />
 
+      {(state.cohort.status === "complete" ||
+        state.cohort.status === "archived") && (
+        <p className="rounded-md border border-border border-l-2 border-l-muted-foreground bg-background px-3 py-2 text-xs text-foreground">
+          This cohort has finished. Everything below is your record of it -
+          nothing new will unlock.
+        </p>
+      )}
+
       {state.cohort.isTest && (
         <p className="rounded-md border border-border border-l-2 border-l-warning bg-background px-3 py-2 text-xs text-foreground">
           This is your private preview run, not a real cohort. Nothing here

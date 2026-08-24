@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { CheckIcon, CopyIcon, PlusIcon, SendIcon } from "lucide-react";
+import { CheckIcon, CopyIcon, PlusIcon, SendIcon, Trash2Icon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,8 +14,10 @@ import {
 } from "@/lib/programme/cohort-setup";
 import {
   createCohort,
+  deleteCohort,
   updateCohort,
   type CohortActionState,
+  type DeleteCohortState,
 } from "../_actions/cohorts";
 import { sendSlackTest, type SlackTestState } from "../_actions/slack-test";
 
@@ -443,6 +445,28 @@ function CohortRow({
       <form action={action} className="mt-3 flex flex-wrap items-end gap-3">
         <input type="hidden" name="cohort_id" value={cohort.id} />
         <label className="space-y-1 text-xs">
+          <span className="block text-muted-foreground">Name</span>
+          <Input name="name" defaultValue={cohort.name} className="w-52" />
+        </label>
+        <label className="space-y-1 text-xs">
+          <span className="block text-muted-foreground">Starts (Monday)</span>
+          <Input
+            name="start_date"
+            type="date"
+            defaultValue={cohort.startDate}
+            className="w-40"
+          />
+        </label>
+        <label className="space-y-1 text-xs">
+          <span className="block text-muted-foreground">Join code</span>
+          <Input
+            name="join_code"
+            defaultValue={cohort.joinCode ?? ""}
+            placeholder="none"
+            className="w-32"
+          />
+        </label>
+        <label className="space-y-1 text-xs">
           <span className="block text-muted-foreground">Status</span>
           <select
             name="status"
@@ -491,6 +515,13 @@ function CohortRow({
           />
           accepting joins
         </label>
+        <label
+          className="inline-flex items-center gap-1.5 pb-2 text-xs text-muted-foreground"
+          title="Test cohorts are excluded from every report and every notification."
+        >
+          <input type="checkbox" name="is_test" defaultChecked={cohort.isTest} />
+          test cohort
+        </label>
         <Button type="submit" variant="outline" size="sm" disabled={pending}>
           {pending ? "Saving…" : "Save"}
         </Button>
@@ -501,7 +532,99 @@ function CohortRow({
           <span className="text-xs text-muted-foreground">Saved.</span>
         )}
       </form>
+
+      <p className="mt-2 text-3xs text-muted-foreground">
+        {cohort.isTest
+          ? "Marked as test: excluded from every report and every notification. Untick to count it as a real cohort."
+          : "Counts as a real cohort. Ticking test hides it from every report and notification."}
+        {" Changing the start date moves the three session dates with it."}
+      </p>
+
+      <DeleteCohort cohort={cohort} />
     </li>
+  );
+}
+
+/**
+ * Delete, with the name typed out.
+ *
+ * The refusals live in the RPC, not here: a real cohort where anyone has done
+ * anything cannot be deleted at all, because the cascade would take their
+ * whole training record with it. This is the affordance and the confirmation,
+ * and it stays folded away until asked for so it is never the thing you click
+ * by accident.
+ */
+function DeleteCohort({ cohort }: { cohort: ExistingCohort }) {
+  const [state, action, pending] = useActionState<DeleteCohortState, FormData>(
+    deleteCohort,
+    { kind: "idle" },
+  );
+  const [open, setOpen] = useState(false);
+
+  if (state.kind === "deleted") {
+    return (
+      <p className="mt-3 border-t border-border pt-3 text-xs text-muted-foreground">
+        Deleted {state.name} - {state.summary}.
+      </p>
+    );
+  }
+
+  return (
+    <div className="mt-3 border-t border-border pt-3">
+      {!open ? (
+        <Button
+          type="button"
+          variant="ghost"
+          size="xs"
+          onClick={() => setOpen(true)}
+        >
+          <Trash2Icon aria-hidden />
+          Delete this cohort
+        </Button>
+      ) : (
+        <form action={action} className="flex flex-wrap items-end gap-2">
+          <input type="hidden" name="cohort_id" value={cohort.id} />
+          <label className="space-y-1 text-xs">
+            <span className="block max-w-prose text-muted-foreground">
+              Deletes {cohort.memberCount} member
+              {cohort.memberCount === 1 ? "" : "s"} and everything they have
+              done in it, including their check-in answers unless they are in
+              a real cohort as well. Imported May answers are kept. Type{" "}
+              <span className="font-medium text-foreground">{cohort.name}</span>{" "}
+              to confirm. This cannot be undone.
+            </span>
+            <Input
+              name="confirm_name"
+              placeholder={cohort.name}
+              className="w-64"
+              autoComplete="off"
+            />
+          </label>
+          <Button
+            type="submit"
+            variant="outline"
+            size="sm"
+            disabled={pending}
+            className="border-destructive/40 text-destructive-ink"
+          >
+            {pending ? "Deleting..." : "Delete"}
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setOpen(false)}
+          >
+            Cancel
+          </Button>
+        </form>
+      )}
+      {state.kind === "error" && (
+        <p className="mt-2 max-w-prose text-xs text-destructive-ink" role="alert">
+          {state.message}
+        </p>
+      )}
+    </div>
   );
 }
 
