@@ -17,9 +17,14 @@ export const metadata = { title: "Certificate" };
  * Someone who has earned it keeps it even if an admin later corrects an
  * attendance mark.
  */
-export default async function CertificatePage() {
+export default async function CertificatePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ cohort?: string }>;
+}) {
+  const { cohort } = await searchParams;
   const user = await getSessionUser();
-  const state = await loadTrackState(user.id, user.email);
+  const state = await loadTrackState(user.id, user.email, cohort ?? null);
 
   if (!state || !canViewCertificate(state.membership.certificateIssuedAt)) {
     redirect("/learn/track");

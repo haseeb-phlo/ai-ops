@@ -23,13 +23,15 @@ export const metadata = { title: "Your AI Score" };
 export default async function AiScorePage({
   searchParams,
 }: {
-  searchParams: Promise<{ done?: string }>;
+  searchParams: Promise<{ done?: string; cohort?: string }>;
 }) {
-  const { done } = await searchParams;
+  const { done, cohort } = await searchParams;
   const user = await getSessionUser();
   const [score, track] = await Promise.all([
     loadAiScore(user.email),
-    loadTrackState(user.id, user.email),
+    // Which cohort decides whether the POST wave is open yet, so a check-in
+    // opened from a preview run has to resolve to the preview.
+    loadTrackState(user.id, user.email, cohort ?? null),
   ]);
 
   const byWave = new Map(score.waves.map((w) => [w.wave, w]));
@@ -96,6 +98,7 @@ export default async function AiScorePage({
         }
       />
       <ScoreForm
+        cohortId={cohort ?? null}
         wave={targetWave}
         prefill={prefill}
         prefillLabel={source?.waveLabel ?? null}

@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireWriter } from "@/lib/auth";
 import { parseQuizConfig, scoreAttempt } from "@/lib/programme/quiz";
 import { maybeCompleteProgramme } from "@/lib/programme/complete-action";
+import { resolveWritableMembership } from "@/lib/programme/membership-lookup";
 
 /**
  * Records a quiz attempt.
@@ -17,6 +18,8 @@ import { maybeCompleteProgramme } from "@/lib/programme/complete-action";
 
 const SubmitSchema = z.object({
   track_item_id: z.string().uuid(),
+  /** Which cohort the quiz was opened from. See membership-lookup.ts. */
+  cohort_id: z.string().uuid().optional(),
   answers: z.array(z.number().int().min(0).max(9).nullable()).max(50),
 });
 
@@ -51,6 +54,7 @@ export async function submitQuizAttempt(
 
   const parsed = SubmitSchema.safeParse({
     track_item_id: formData.get("track_item_id"),
+    cohort_id: (formData.get("cohort_id") as string) || undefined,
     answers: rawAnswers,
   });
   if (!parsed.success) {
@@ -59,19 +63,10 @@ export async function submitQuizAttempt(
 
   const supabase = await createClient();
 
-  const { data: membership } = await supabase
-    .from("programme_cohort_members")
-    .select("id, cohort_id, completed_at, programme_cohorts!inner(track_id, status)")
-    .eq("user_id", user.id)
-    .in("programme_cohorts.status", ["live", "planned"])
-    .order("joined_at", { ascending: false })
-    .limit(1)
-    .maybeSingle<{
-      id: string;
-      cohort_id: string;
-      completed_at: string | null;
-      programme_cohorts: { track_id: string; status: string };
-    }>();
+  const membership = await resolveWritableMembership(
+    user.id,
+    parsed.data.cohort_id,
+  );
 
   if (!membership) {
     return { kind: "error", message: "You're not in an active cohort." };
@@ -91,7 +86,7 @@ export async function submitQuizAttempt(
   if (
     !item ||
     item.type !== "quiz" ||
-    item.track_id !== membership.programme_cohorts.track_id
+    item.track_id !== membership.trackId
   ) {
     return { kind: "error", message: "That quiz isn't on your track." };
   }

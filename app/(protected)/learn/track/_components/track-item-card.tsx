@@ -60,7 +60,19 @@ const TYPE_ICON: Record<string, typeof PlayIcon> = {
  * Locked items still render - greyed, with their unlock date - because seeing
  * what's coming is most of what makes a 15-day programme feel finite.
  */
-export function TrackItemCard({ item }: { item: TrackItemView }) {
+export function TrackItemCard({
+  cohortId,
+  item,
+}: {
+  /**
+   * The cohort this card is being shown for, sent with every write and every
+   * link out. An admin with a preview run is in two cohorts on the same track,
+   * and without this the server picks one for itself - which is how a sandbox
+   * submission gets filed against a real cohort.
+   */
+  cohortId: string;
+  item: TrackItemView;
+}) {
   const [playing, setPlaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [optimisticComplete, setOptimisticComplete] = useState(
@@ -87,6 +99,7 @@ export function TrackItemCard({ item }: { item: TrackItemView }) {
     startTransition(() => {
       const fd = new FormData();
       fd.set("track_item_id", item.id);
+      fd.set("cohort_id", cohortId);
       void markTrackItemStarted(fd);
     });
   };
@@ -97,6 +110,7 @@ export function TrackItemCard({ item }: { item: TrackItemView }) {
     startTransition(async () => {
       const fd = new FormData();
       fd.set("track_item_id", item.id);
+      fd.set("cohort_id", cohortId);
       const result = await markTrackItemComplete(fd);
       if (result.kind === "error") {
         setOptimisticComplete(false);
@@ -236,6 +250,7 @@ export function TrackItemCard({ item }: { item: TrackItemView }) {
               )}
               {item.submission?.signoffStatus !== "approved" && (
                 <SubmissionDialog
+                  cohortId={cohortId}
                   trackItemId={item.id}
                   title={item.title}
                   kind={item.submission?.kind ?? "signed_example"}
@@ -248,7 +263,7 @@ export function TrackItemCard({ item }: { item: TrackItemView }) {
 
           {!locked && item.type === "quiz" && (
             <Link
-              href={`/learn/track/quiz/${item.id}`}
+              href={`/learn/track/quiz/${item.id}?cohort=${cohortId}`}
               className={cn(buttonVariants({ variant: "outline", size: "sm" }), "mt-3")}
             >
               {item.state === "complete" ? "Retake" : "Start"} the check
@@ -259,7 +274,7 @@ export function TrackItemCard({ item }: { item: TrackItemView }) {
             (item.type === "questionnaire_baseline" ||
               item.type === "questionnaire_post") && (
               <Link
-                href="/learn/track/score"
+                href={`/learn/track/score?cohort=${cohortId}`}
                 className={cn(buttonVariants({ variant: "outline", size: "sm" }), "mt-3")}
               >
                 {item.state === "complete" ? "See your score" : "Open the check-in"}

@@ -10,11 +10,14 @@ import { TrackItemCard, type TrackItemView } from "./track-item-card";
  * opacity, which the item cards already carry.
  */
 export function DayRow({
+  cohortId,
   dayIndex,
   unlockDate,
   isToday,
   items,
 }: {
+  /** Which cohort these items belong to, so a write lands on the right one. */
+  cohortId: string;
   dayIndex: number;
   unlockDate: string;
   isToday: boolean;
@@ -68,7 +71,7 @@ export function DayRow({
           )}
         </div>
         {items.map((item) => (
-          <TrackItemCard key={item.id} item={item} />
+          <TrackItemCard key={item.id} cohortId={cohortId} item={item} />
         ))}
       </div>
     </li>

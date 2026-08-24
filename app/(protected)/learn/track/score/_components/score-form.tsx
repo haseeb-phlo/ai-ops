@@ -30,11 +30,18 @@ export type PrefilledAnswer = { value: string };
  * tell "unchanged" from "not asked".
  */
 export function ScoreForm({
+  cohortId,
   wave,
   prefill,
   prefillLabel,
   estimatedMinutes,
 }: {
+  /**
+   * The cohort this check-in was opened from, when it was opened from a track.
+   * Null on the bare /learn/track/score URL, which leaves the attribution rule
+   * to decide. See actions.ts.
+   */
+  cohortId: string | null;
   wave: Wave;
   prefill: Record<string, PrefilledAnswer> | null;
   prefillLabel: string | null;
@@ -106,6 +113,7 @@ export function ScoreForm({
     startTransition(async () => {
       const fd = new FormData();
       fd.set("wave", wave);
+      if (cohortId) fd.set("cohort_id", cohortId);
       fd.set("answers", JSON.stringify(payload));
       fd.set("flow", isReturner ? "returner" : "first_timer");
       if (startedAt.current !== null) {

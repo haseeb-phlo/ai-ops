@@ -62,10 +62,13 @@ const DOT_LABEL: Record<DayStatus, string> = {
 };
 
 export function DayFocus({
+  cohortId,
   days,
   todayDayIndex,
   weekOfDay,
 }: {
+  /** Which cohort these items belong to, so a write lands on the right one. */
+  cohortId: string;
   days: FocusDay[];
   todayDayIndex: number | null;
   /** Passed in rather than imported so the week rule stays in one module. */
@@ -187,7 +190,7 @@ export function DayFocus({
             panel, which a screen reader would otherwise not mention. */}
         <div aria-live="polite" className="mt-3 space-y-2">
           {day.items.map((item) => (
-            <TrackItemCard key={item.id} item={item} />
+            <TrackItemCard key={item.id} cohortId={cohortId} item={item} />
           ))}
         </div>
       </div>

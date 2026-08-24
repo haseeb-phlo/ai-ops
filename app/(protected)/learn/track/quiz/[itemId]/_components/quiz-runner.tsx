@@ -25,6 +25,7 @@ export type RunnerQuestion = {
  * "try again" rather than as a verdict.
  */
 export function QuizRunner({
+  cohortId,
   trackItemId,
   title,
   questions,
@@ -32,6 +33,8 @@ export function QuizRunner({
   previousBest,
   alreadyPassed,
 }: {
+  /** Which cohort this attempt belongs to. See membership-lookup.ts. */
+  cohortId: string;
   trackItemId: string;
   title: string;
   questions: RunnerQuestion[];
@@ -170,6 +173,7 @@ export function QuizRunner({
   return (
     <form action={action} key={attemptKey} className="space-y-6">
       <input type="hidden" name="track_item_id" value={trackItemId} />
+      <input type="hidden" name="cohort_id" value={cohortId} />
       <input type="hidden" name="answers" value={JSON.stringify(answers)} />
 
       <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">

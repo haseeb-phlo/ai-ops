@@ -10,6 +10,7 @@ import {
   type ResolvedItem,
 } from "./unlock";
 import { todayInLondon, hasReached, unlockDateFor } from "./working-days";
+import { pickMembership, rankMemberships } from "./membership";
 import { gateableContentItemIds, isAwaitingContent } from "./content-readiness";
 
 /**
@@ -61,6 +62,13 @@ export type TrackState = {
   };
   today: string;
   hasBaseline: boolean;
+  /**
+   * Whether the member is past the entry gate, which is what every surface
+   * should branch on rather than `hasBaseline` itself. True once the check-in
+   * exists - and always true in a test cohort, where the gate has nothing to
+   * measure and would only lock the sandbox shut. See unlock.ts.
+   */
+  entryGateOpen: boolean;
   hasPostResponse: boolean;
   items: ResolvedItem<TrackItemRow>[];
   videosById: Map<string, TrackVideo>;
@@ -136,27 +144,19 @@ export const loadTrackState = cache(
     // rendered "You're not in a cohort yet". The certificate page reads
     // through this same loader, so it took away certificates people had
     // earned. Read them all, and rank them instead.
-    const STATUS_RANK: Record<string, number> = {
-      live: 0,
-      planned: 1,
-      complete: 2,
-      archived: 3,
-    };
-    const ranked = [...all].sort(
-      (a, b) =>
-        (STATUS_RANK[a.programme_cohorts.status] ?? 9) -
-          (STATUS_RANK[b.programme_cohorts.status] ?? 9) ||
-        b.joined_at.localeCompare(a.joined_at),
-    );
-
-    const membership =
-      (preferredCohortId
-        ? ranked.find((m) => m.cohort_id === preferredCohortId)
-        : undefined) ??
-      // A real cohort always beats a sandbox, and an active one beats a
-      // finished one - somebody in last cohort and this one wants this one.
-      ranked.find((m) => !m.programme_cohorts.is_test) ??
-      ranked[0];
+    //
+    // Which one wins lives in membership.ts, because the write actions have to
+    // reach the same answer as this loader or a submission made on one cohort
+    // gets filed against the other.
+    const keyed = all.map((m) => ({
+      row: m,
+      cohortId: m.cohort_id,
+      joinedAt: m.joined_at,
+      status: m.programme_cohorts.status,
+      isTest: m.programme_cohorts.is_test,
+    }));
+    const ranked = rankMemberships(keyed).map((k) => k.row);
+    const membership = pickMembership(keyed, preferredCohortId)?.row;
 
     if (!membership) return null;
     const cohort = membership.programme_cohorts;
@@ -288,11 +288,17 @@ export const loadTrackState = cache(
     const effectiveProgress = new Map(progressByItemId);
     for (const id of completedItemIds) effectiveProgress.set(id, "complete");
 
+    // A preview run is excluded from every report, so the entry gate has
+    // nothing to protect there and does nothing but strand the admin on day 0
+    // with the submission slots locked behind it.
+    const entryGateOpen = hasBaseline || cohort.is_test;
+
     const resolved = resolveItemStates({
       items,
       startDate: cohort.start_date,
       today,
       hasBaseline,
+      enforceBaselineGate: !cohort.is_test,
       progressByItemId: effectiveProgress,
     });
 
@@ -423,6 +429,7 @@ export const loadTrackState = cache(
       },
       today,
       hasBaseline,
+      entryGateOpen,
       hasPostResponse,
       items: resolved,
       videosById,

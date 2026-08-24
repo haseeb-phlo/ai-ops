@@ -234,7 +234,7 @@ export default async function LearnPage() {
       />
 
       {track &&
-        (track.hasBaseline ? (
+        (track.entryGateOpen ? (
           <ProgrammeBanner
             cohortName={track.cohort.name}
             completed={track.gates.g1.current}

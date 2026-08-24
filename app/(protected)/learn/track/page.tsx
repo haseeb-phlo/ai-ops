@@ -185,13 +185,13 @@ export default async function TrackPage({
         </p>
       )}
 
-      {!state.hasBaseline ? (
+      {!state.entryGateOpen ? (
         <BaselineGateCard />
       ) : (
         <>
           {certificate === "issued" && (
             <Link
-              href="/learn/track/certificate"
+              href={`/learn/track/certificate?cohort=${state.cohort.id}`}
               className="flex items-center justify-between gap-3 rounded-lg border border-border bg-secondary px-5 py-4 text-secondary-foreground transition hover:border-primary/40"
             >
               <span>
@@ -221,7 +221,7 @@ export default async function TrackPage({
         </>
       )}
 
-      {state.hasBaseline && (
+      {state.entryGateOpen && (
         <TodayPanel
           openCount={state.outstandingCount}
           nextOpensOn={nextOpensOn}
@@ -232,8 +232,9 @@ export default async function TrackPage({
         />
       )}
 
-      {state.hasBaseline && (
+      {state.entryGateOpen && (
         <DayFocus
+          cohortId={state.cohort.id}
           days={days.map((day) => ({
             dayIndex: day,
             unlockDate: unlockByDay.get(day) ?? state.cohort.startDate,
@@ -271,6 +272,7 @@ export default async function TrackPage({
               {weekDays.map((day) => (
                 <DayRow
                   key={day}
+                  cohortId={state.cohort.id}
                   dayIndex={day}
                   unlockDate={unlockByDay.get(day) ?? state.cohort.startDate}
                   isToday={day === todayDayIndex}

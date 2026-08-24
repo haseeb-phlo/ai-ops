@@ -13,12 +13,18 @@ export const metadata = { title: "Knowledge check" };
 
 export default async function QuizPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ itemId: string }>;
+  searchParams: Promise<{ cohort?: string }>;
 }) {
   const { itemId } = await params;
+  // Carried from the track page, so an admin taking the quiz inside their
+  // preview run is marked against the preview and not against the real cohort
+  // this loader would otherwise prefer.
+  const { cohort: cohortParam } = await searchParams;
   const user = await getSessionUser();
-  const state = await loadTrackState(user.id, user.email);
+  const state = await loadTrackState(user.id, user.email, cohortParam ?? null);
   if (!state) redirect("/learn/track");
 
   const resolved = state.items.find((r) => r.item.id === itemId);
@@ -74,6 +80,7 @@ export default async function QuizPage({
           client: an explanation gives the answer away as surely as the index
           does. Both come back with the marked result. */}
       <QuizRunner
+        cohortId={state.cohort.id}
         trackItemId={itemId}
         title={resolved.item.title}
         questions={config.questions.map((q) => ({
