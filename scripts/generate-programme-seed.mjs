@@ -53,6 +53,8 @@ for (const item of items) {
   item.config.questions = questions;
 }
 
+const quizItems = items.filter((it) => it.type === "quiz");
+
 // (day_index, sort_order) is the seed's idempotency key and a unique
 // constraint in the schema. Assert it here so a spec change that collides
 // fails at generate time with a readable message, rather than at psql time
@@ -129,6 +131,35 @@ lines.push(`  ) as s(day_index, sort_order, title, description)`);
 lines.push(` where i.day_index = s.day_index and i.sort_order = s.sort_order`);
 lines.push(`   and i.track_id = (select id from public.programme_tracks where slug = ${q(TRACK_SLUG)})`);
 lines.push(`   and (i.title is distinct from s.title or i.description is distinct from s.description);`);
+lines.push("");
+
+// Quiz content is seed-owned for the same reason titles are: nothing in the
+// app writes config_json, so lib/programme/quiz-content.ts is the only place
+// questions exist. Without this the insert's `where not exists` guard means a
+// track seeded before the questions were written keeps `questions: []`
+// forever, and every quiz renders "This quiz hasn't been written yet" - which
+// also strands the certificate, since the summative quiz is half of G4.
+lines.push(`-- Sync quiz config from the spec. Seed-owned: questions live in`);
+lines.push(`-- lib/programme/quiz-content.ts and nothing in the app edits config_json,`);
+lines.push(`-- so re-running the seed is how an edited question reaches an existing`);
+lines.push(`-- track. Also repairs a pass_mark or question_count left over from an`);
+lines.push(`-- earlier version of the spec.`);
+lines.push(`update public.programme_track_items i`);
+lines.push(`   set config_json = s.config_json`);
+lines.push(`  from (values`);
+lines.push(
+  quizItems
+    .map(
+      (it) =>
+        `    (${it.dayIndex}, ${it.sortOrder}, ${jsonb(it.config)})`,
+    )
+    .join(",\n"),
+);
+lines.push(`  ) as s(day_index, sort_order, config_json)`);
+lines.push(` where i.day_index = s.day_index and i.sort_order = s.sort_order`);
+lines.push(`   and i.type = 'quiz'`);
+lines.push(`   and i.track_id = (select id from public.programme_tracks where slug = ${q(TRACK_SLUG)})`);
+lines.push(`   and i.config_json is distinct from s.config_json;`);
 lines.push("");
 lines.push(`-- Re-bind any day whose Learn video has since been added. Only fills nulls,`);
 lines.push(`-- so an admin's manual binding is never overwritten.`);
