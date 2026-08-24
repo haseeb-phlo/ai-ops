@@ -585,8 +585,12 @@ function DeleteCohort({ cohort }: { cohort: ExistingCohort }) {
         <form action={action} className="flex flex-wrap items-end gap-2">
           <input type="hidden" name="cohort_id" value={cohort.id} />
           <label className="space-y-1 text-xs">
-            <span className="block text-muted-foreground">
-              Type <span className="font-medium text-foreground">{cohort.name}</span>{" "}
+            <span className="block max-w-prose text-muted-foreground">
+              Deletes {cohort.memberCount} member
+              {cohort.memberCount === 1 ? "" : "s"} and everything they have
+              done in it, including their check-in answers unless they are in
+              a real cohort as well. Imported May answers are kept. Type{" "}
+              <span className="font-medium text-foreground">{cohort.name}</span>{" "}
               to confirm. This cannot be undone.
             </span>
             <Input
