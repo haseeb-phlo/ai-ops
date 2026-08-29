@@ -1,5 +1,11 @@
 import "server-only";
 import { resend, EMAIL_FROM } from "@/lib/resend";
+import {
+  backoffDelayMs,
+  isRateLimitError,
+  RATE_LIMIT_MAX_RETRIES,
+  sleep,
+} from "@/lib/email-throttle";
 
 const PHLO_NAVY = "#07073D";
 const PHLO_CYAN = "#46C1D1";
@@ -110,23 +116,32 @@ export async function sendDigestEmail(
 
   const html = renderHtml({ ...args, firstName });
 
-  try {
-    const result = await resend.emails.send({
-      from: EMAIL_FROM,
-      to: args.recipient.email,
-      subject,
-      html,
-      text,
-    });
-    if (result.error) {
-      return { ok: false, message: result.error.message };
+  // Rate-limited sends back off and retry rather than dropping the
+  // recipient - a 429 here means the whole run is going too fast, so the
+  // wait also slows the sends that follow.
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const result = await resend.emails.send({
+        from: EMAIL_FROM,
+        to: args.recipient.email,
+        subject,
+        html,
+        text,
+      });
+      if (result.error) {
+        if (isRateLimitError(result.error) && attempt < RATE_LIMIT_MAX_RETRIES) {
+          await sleep(backoffDelayMs(attempt));
+          continue;
+        }
+        return { ok: false, message: result.error.message };
+      }
+      return { ok: true, id: result.data?.id ?? null };
+    } catch (err) {
+      return {
+        ok: false,
+        message: err instanceof Error ? err.message : "Unknown email error",
+      };
     }
-    return { ok: true, id: result.data?.id ?? null };
-  } catch (err) {
-    return {
-      ok: false,
-      message: err instanceof Error ? err.message : "Unknown email error",
-    };
   }
 }
 
