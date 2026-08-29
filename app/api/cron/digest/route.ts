@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { appUrl } from "@/lib/app-url";
 import { isAllowedEmail } from "@/lib/auth-domain";
 import { isCronAuthorized, redactEmail } from "@/lib/cron-auth";
+import { SEND_INTERVAL_MS, sleep } from "@/lib/email-throttle";
 import { resolveDisplayName } from "@/lib/profile";
 import {
   sendDigestEmail,
@@ -405,7 +406,12 @@ export async function GET(request: NextRequest) {
   });
 
   // ----- Send ---------------------------------------------------------------
+  // Sends are paced SEND_INTERVAL_MS apart to stay under Resend's per-second
+  // cap (unpaced runs rate-limited ~30 recipients out of the 2026-06-24
+  // send). At ~0.8s per recipient the 300s maxDuration covers ~350
+  // recipients; batch the loop before the org grows past that.
   const results: { email: string; status: string; detail?: string }[] = [];
+  let firstSend = true;
   for (const [userId, email] of emailByUserId.entries()) {
     const peopleName = peopleByEmail.get(email.trim().toLowerCase()) ?? null;
     const displayName = resolveDisplayName(
@@ -449,6 +455,9 @@ export async function GET(request: NextRequest) {
       results.push({ email: redacted, status: "dry-run" });
       continue;
     }
+
+    if (!firstSend) await sleep(SEND_INTERVAL_MS);
+    firstSend = false;
 
     const result = await sendDigestEmail({
       recipient: { email, displayName },
