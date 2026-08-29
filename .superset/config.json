@@ -1,7 +1,7 @@
 {
   "setup": [
     "if [ -f \"$SUPERSET_ROOT_PATH/.env.local\" ]; then cp \"$SUPERSET_ROOT_PATH/.env.local\" .env.local; echo \"env: copied .env.local from $SUPERSET_ROOT_PATH\"; else echo \"env: MISSING $SUPERSET_ROOT_PATH/.env.local - see CLAUDE.md > Environment\"; exit 1; fi",
-    "npm ci --no-audit --fund=false"
+    "npm ci --no-audit --fund=false; if [ ! -x node_modules/.bin/next ]; then echo \"deps: install left node_modules/.bin empty - reinstalling from scratch\"; rm -rf node_modules; npm ci --no-audit --fund=false; fi; if [ ! -x node_modules/.bin/next ]; then echo \"deps: FAILED - node_modules/.bin is still empty. Run by hand: rm -rf node_modules && npm ci\"; exit 1; fi; echo \"deps: ok ($(ls node_modules/.bin | wc -l | tr -d ' ') binaries linked)\""
   ],
   "run": ["npm run dev"]
 }
