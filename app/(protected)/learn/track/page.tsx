@@ -101,10 +101,6 @@ export default async function TrackPage({
     certificateDeclinedAt: state.membership.certificateDeclinedAt,
   });
 
-  const awaitingCount = state.items.filter((r) =>
-    isAwaitingContent(r.item),
-  ).length;
-
   const completedContent = state.gates.g1.current;
 
   // The soonest date anything still locked becomes available, so the panel can
@@ -232,7 +228,6 @@ export default async function TrackPage({
           nextOpensOn={nextOpensOn}
           completedCount={completedContent}
           totalCount={totalContent}
-          awaitingVideoCount={awaitingCount}
           isComplete={state.membership.completedAt !== null}
           nextSteps={state.nextSteps}
         />
