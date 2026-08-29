@@ -28,7 +28,6 @@ export function TodayPanel({
   nextOpensOn,
   completedCount,
   totalCount,
-  awaitingVideoCount,
   isComplete,
   nextSteps,
 }: {
@@ -38,7 +37,6 @@ export function TodayPanel({
   nextOpensOn: string | null;
   completedCount: number;
   totalCount: number;
-  awaitingVideoCount: number;
   isComplete: boolean;
   /** The shortest route back to green. Empty when already there. */
   nextSteps: StepsToGreen;
@@ -119,18 +117,6 @@ export function TodayPanel({
         </span>
       </div>
 
-      {!nextSteps.reachable && (
-        <div className="mt-4 border-t border-border pt-4">
-          <p className="text-xs font-medium text-foreground">
-            A live session has passed without an attendance mark
-          </p>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            Ask your lead about a make-up session. That is the one thing that
-            reopens it, and nothing else on your track is affected.
-          </p>
-        </div>
-      )}
-
       {nextSteps.reachable && nextSteps.steps.length > 0 && (
         <div className="mt-4 border-t border-border pt-4">
           <p className="text-xs font-medium text-foreground">
@@ -148,13 +134,6 @@ export function TodayPanel({
             ))}
           </ul>
         </div>
-      )}
-
-      {awaitingVideoCount > 0 && (
-        <p className="mt-2 text-xs text-muted-foreground">
-          {awaitingVideoCount} video{awaitingVideoCount === 1 ? " is" : "s are"}{" "}
-          still being recorded. They will not count against you.
-        </p>
       )}
     </section>
   );
