@@ -2,6 +2,7 @@ import "server-only";
 import { askClaude, CLAUDE_MODEL } from "@/lib/anthropic";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { maybeCompleteProgramme } from "./complete-action";
+import { announceCompletion } from "./announce-completion";
 import {
   buildFeedbackRewritePrompt,
   buildReviewPrompt,
@@ -168,13 +169,22 @@ export async function runAiReview(submissionId: string): Promise<ReviewOutcome> 
       .maybeSingle<{ id: string }>();
 
     // An approval can be the fifth signed example, which flips G3 and can be
-    // the last thing between someone and their certificate. The human
-    // sign-off action does this; without it here, an automatic approval
-    // satisfies the gate in the data and nothing ever notices.
+    // the last thing between someone and finishing. The human sign-off action
+    // does this; without it here, an automatic approval satisfies the gate in
+    // the data and nothing ever notices.
     //
     // Only when the write actually landed - if a human got there first, this
     // already ran on their path.
-    if (applied) await maybeCompleteProgramme(submission.cohort_member_id, supabase);
+    //
+    // Announced inline rather than deferred: this whole function already runs
+    // in an after() callback or a cron sweep, so there is no response waiting
+    // on it and nothing to gain from nesting another one.
+    if (applied) {
+      const memberId = submission.cohort_member_id;
+      if (await maybeCompleteProgramme(memberId, supabase)) {
+        await announceCompletion(memberId);
+      }
+    }
     return "approved";
   }
 

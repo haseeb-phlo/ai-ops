@@ -1,11 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { requireWriter } from "@/lib/auth";
 import { parseQuizConfig, scoreAttempt } from "@/lib/programme/quiz";
 import { maybeCompleteProgramme } from "@/lib/programme/complete-action";
+import { announceCompletion } from "@/lib/programme/announce-completion";
 import { resolveWritableMembership } from "@/lib/programme/membership-lookup";
 
 /**
@@ -13,7 +15,7 @@ import { resolveWritableMembership } from "@/lib/programme/membership-lookup";
  *
  * Marking happens SERVER-SIDE against config_json. The client is sent the
  * questions and options but never the correct index, so the answer key is not
- * sitting in the page source of a quiz that gates a certificate.
+ * sitting in the page source of a quiz that gates completion.
  */
 
 const SubmitSchema = z.object({
@@ -124,10 +126,19 @@ export async function submitQuizAttempt(
   }
 
   // The summative quiz is half of G4, so passing it can be the last thing
-  // standing between someone and their certificate.
+  // standing between someone and finishing the programme.
   const justCompletedProgramme = passed
     ? await maybeCompleteProgramme(membership.id)
     : false;
+
+  // Deferred: the member is watching a score screen render, and the DM plus
+  // the channel post are two network calls they should not wait on.
+  if (justCompletedProgramme) {
+    const memberId = membership.id;
+    after(async () => {
+      await announceCompletion(memberId);
+    });
+  }
 
   revalidatePath("/learn/track");
   revalidatePath("/learn");

@@ -96,7 +96,7 @@ function GateFunnel({
             <span className="text-sm opacity-70">/{funnel.total}</span>
           </p>
           <p className="mt-0.5 text-3xs leading-tight text-secondary-foreground/80">
-            Certificate earned
+            Programme complete
           </p>
         </div>
       </div>

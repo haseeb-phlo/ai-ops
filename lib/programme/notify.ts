@@ -26,6 +26,12 @@ export type NotificationKind =
   | "lead_digest"
   | "cohort_summary"
   | "signoff_rejected"
+  /**
+   * The programme-completion DM and its cohort-channel post. The string is a
+   * legacy name pinned by a CHECK constraint on programme_notification_sends;
+   * renaming it needs a migration and buys nothing, since it appears only in
+   * the admin send log. The two sends differ by period key.
+   */
   | "certificate_issued"
   | "day_90_nudge";
 

@@ -2,8 +2,9 @@
  * The four completion gates, G1-G4.
  *
  * All four must pass for a member to complete the programme and earn a
- * certificate. Each is a pure function of already-loaded data so the whole set
- * is testable without a database and cheap to recompute on every render.
+ * complete the programme. Each is a pure function of already-loaded data so
+ * the whole set is testable without a database and cheap to recompute on every
+ * render.
  */
 
 export const GATE_IDS = ["g1", "g2", "g3", "g4"] as const;

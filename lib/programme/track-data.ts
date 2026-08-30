@@ -59,8 +59,6 @@ export type TrackState = {
     joinedAt: string;
     isChampion: boolean;
     completedAt: string | null;
-    certificateIssuedAt: string | null;
-    certificateDeclinedAt: string | null;
   };
   today: string;
   hasBaseline: boolean;
@@ -120,7 +118,7 @@ export const loadTrackState = cache(
     const { data: memberships } = await supabase
       .from("programme_cohort_members")
       .select(
-        "id, cohort_id, joined_at, is_champion, completed_at, certificate_issued_at, certificate_declined_at, programme_cohorts!inner(id, name, start_date, status, track_id, session_dates, is_test)",
+        "id, cohort_id, joined_at, is_champion, completed_at, programme_cohorts!inner(id, name, start_date, status, track_id, session_dates, is_test)",
       )
       .eq("user_id", userId)
       .in("programme_cohorts.status", ["live", "planned", "complete", "archived"])
@@ -131,8 +129,6 @@ export const loadTrackState = cache(
         joined_at: string;
         is_champion: boolean;
         completed_at: string | null;
-        certificate_issued_at: string | null;
-        certificate_declined_at: string | null;
         programme_cohorts: {
           id: string;
           name: string;
@@ -149,9 +145,8 @@ export const loadTrackState = cache(
     // A finished cohort is still readable. `complete` and `archived` used to
     // be filtered out here, which meant marking a cohort complete - the
     // normal end of a cohort - made every member's track return null and
-    // rendered "You're not in a cohort yet". The certificate page reads
-    // through this same loader, so it took away certificates people had
-    // earned. Read them all, and rank them instead.
+    // rendered "You're not in a cohort yet", hiding the record of what people
+    // had finished. Read them all, and rank them instead.
     //
     // Which one wins lives in membership.ts, because the write actions have to
     // reach the same answer as this loader or a submission made on one cohort
@@ -496,8 +491,6 @@ export const loadTrackState = cache(
         joinedAt: membership.joined_at,
         isChampion: membership.is_champion,
         completedAt: membership.completed_at,
-        certificateIssuedAt: membership.certificate_issued_at,
-        certificateDeclinedAt: membership.certificate_declined_at,
       },
       today,
       hasBaseline,

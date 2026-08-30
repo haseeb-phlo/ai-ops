@@ -34,6 +34,28 @@ export function todayInLondon(now: Date = new Date()): IsoDate {
   }).format(now);
 }
 
+/**
+ * The hour of day (0-23) in Europe/London.
+ *
+ * Vercel schedules crons in UTC, and London is UTC+1 for half the year, so a
+ * fixed UTC hour drifts by one hour across the DST boundary. A job that has to
+ * land at a stated local time therefore runs on both candidate UTC hours and
+ * uses this to decide which firing is the real one.
+ */
+export function hourInLondon(now: Date = new Date()): number {
+  const hour = Number(
+    new Intl.DateTimeFormat("en-GB", {
+      timeZone: LONDON,
+      hour: "2-digit",
+      hour12: false,
+    }).format(now),
+  );
+  // Some engines render midnight as "24" under hour12:false. Irrelevant to the
+  // 3pm/4pm firings this was written for, but it is a shared helper now and a
+  // function that can return 24 for midnight is a trap for the next caller.
+  return hour % 24;
+}
+
 /** Days since the epoch for an ISO date. Timezone-free by construction. */
 function toDayNumber(iso: IsoDate): number {
   if (!ISO_DATE_RE.test(iso)) {
@@ -152,4 +174,24 @@ export function unlockDateFor(
 /** True when `unlockDate` is today or in the past, in London terms. */
 export function hasReached(unlockDate: IsoDate, today: IsoDate): boolean {
   return toDayNumber(unlockDate) <= toDayNumber(today);
+}
+
+/** How many working days the programme runs for. Day 1 is the start Monday. */
+export const PROGRAMME_DAYS = 15;
+
+/**
+ * The cohort's last day: day 15, which is the Friday of week 3 given that
+ * cohorts start on a Monday.
+ *
+ * Derived rather than assumed. `isMonday` is enforced when a cohort is
+ * created, but computing this from working-day arithmetic means the date stays
+ * right even if that ever loosens, and it does not need a weekday to be
+ * hardcoded anywhere.
+ *
+ * Deliberately NOT `unlockDateFor(start, 15)`: under the default weekly unlock
+ * that returns the MONDAY of week 3, which is when day 15 becomes visible, not
+ * when the programme ends.
+ */
+export function finalDayDate(startDate: IsoDate): IsoDate {
+  return addWorkingDays(startDate, PROGRAMME_DAYS - 1);
 }

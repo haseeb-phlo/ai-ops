@@ -76,14 +76,7 @@ export function QuizRunner({
           {state.justCompletedProgramme && (
             <p className="mt-3 text-sm font-medium">
               That was the last thing outstanding. You&apos;ve completed the
-              Core Programme.{" "}
-              <Link
-                href="/learn/track/certificate"
-                className="underline underline-offset-4"
-              >
-                See your certificate
-              </Link>
-              .
+              Core Programme.
             </p>
           )}
         </div>
