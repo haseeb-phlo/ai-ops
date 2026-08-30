@@ -20,6 +20,14 @@
     {
       "path": "/api/cron/programme-notify?job=day_90",
       "schedule": "30 8 * * *"
+    },
+    {
+      "path": "/api/cron/programme-notify?job=cohort_completion",
+      "schedule": "0 15 * * 5"
+    },
+    {
+      "path": "/api/cron/programme-notify?job=cohort_completion",
+      "schedule": "0 16 * * 5"
     }
   ]
 }

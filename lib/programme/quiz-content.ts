@@ -330,7 +330,7 @@ export const WEEK_2_QUESTIONS: QuizQuestion[] = [
 ];
 
 /* ------------------------------------------------------------------ */
-/* Week 3 - day 15. Ten questions, pass 8. Gates the certificate (G4). */
+/* Week 3 - day 15. Ten questions, pass 8. Gates completion (G4). */
 /* ------------------------------------------------------------------ */
 
 export const WEEK_3_QUESTIONS: QuizQuestion[] = [

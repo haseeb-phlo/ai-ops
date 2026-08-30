@@ -74,7 +74,7 @@ describe("Core Programme track shape", () => {
   it("uses the same ten-question, 8/10 bar for all three quizzes", () => {
     // A consistent bar is simpler to explain than a sliding one, and keeps
     // "passed a Phlo AI quiz" meaning the same thing all the way through.
-    // Only the final one gates the certificate, via G4.
+    // Only the final one gates completion, via G4.
     const byDay = new Map(QUIZ_SPECS.map((q) => [q.dayIndex, q]));
     for (const day of [5, 10, 15] as const) {
       expect(byDay.get(day), `day ${day}`).toMatchObject({

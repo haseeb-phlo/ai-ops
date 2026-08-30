@@ -16,7 +16,7 @@ import { ScoreRadar } from "./score-radar";
  * Screen 1 - "Your AI Score". Renders immediately on submit, every wave.
  *
  * Screen 2 (the day-15 graduation view) is the same component with
- * `graduation` set: it adds the three stat rows and the certificate footer.
+ * `graduation` set: it adds the three stat rows and the day-90 note.
  */
 export function ResultScreen({
   current,

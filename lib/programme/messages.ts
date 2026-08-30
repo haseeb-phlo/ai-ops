@@ -120,29 +120,58 @@ export function rejectionText(input: RejectionNotice): string {
   ].join("\n\n");
 }
 
-export type CertificateIssued = {
+export type ProgrammeCompleted = {
   firstName: string;
   cohortName: string;
-  certificateUrl: string;
+  trackUrl: string;
 };
 
-/** The DM to the person. */
-export function certificateIssuedText(input: CertificateIssued): string {
+/** The DM to the person, sent the moment the fourth gate passes. */
+export function programmeCompleteText(input: ProgrammeCompleted): string {
   return [
-    `${input.firstName}, your Core Programme certificate has been approved.`,
+    `${input.firstName}, you have completed the Core Programme.`,
     `All four gates, ${input.cohortName}. That is the whole fifteen days done.`,
-    input.certificateUrl,
+    input.trackUrl,
   ].join("\n\n");
 }
 
-/** The public post in the cohort channel. Batched when several land together. */
-export function certificateAnnouncementText(names: string[]): string {
-  if (names.length === 1) {
-    return `${names[0]} has completed the Core Programme.`;
-  }
+/**
+ * Joins names or Slack mentions into a readable list.
+ *
+ * No Oxford comma, per house style: "Sam, Jo and Pat".
+ */
+export function joinNames(names: readonly string[]): string {
+  if (names.length === 0) return "";
+  if (names.length === 1) return names[0];
   const last = names[names.length - 1];
-  const rest = names.slice(0, -1).join(", ");
-  return `${rest} and ${last} have completed the Core Programme.`;
+  return `${names.slice(0, -1).join(", ")} and ${last}`;
+}
+
+export type CohortCompletion = {
+  cohortName: string;
+  /**
+   * One entry per person, already resolved: a Slack mention like "<@U123>"
+   * where we have an id, otherwise their plain display name. Resolved by the
+   * caller because a missing Slack account must cost someone their tag, never
+   * their place on the list.
+   */
+  mentions: readonly string[];
+};
+
+/**
+ * The one channel post at the end of the programme.
+ *
+ * ONE POST PER COHORT, not one per person. Announcing each completion as it
+ * landed meant a cohort channel could take ten separate posts on the last
+ * afternoon, which reads as noise rather than as an occasion. This goes out
+ * once, at 4pm on the final Friday, naming everyone who got there.
+ */
+export function cohortCompletionText(input: CohortCompletion): string {
+  return [
+    `*${input.cohortName} - the Core Programme is done*`,
+    `Congratulations to ${joinNames(input.mentions)}.`,
+    "Fifteen days of videos, worked examples, live sessions and signed examples, finished alongside the day job. Their prompts are in the library if you want to steal one.",
+  ].join("\n\n");
 }
 
 export type DayNinetyNudge = {

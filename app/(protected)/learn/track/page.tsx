@@ -2,7 +2,6 @@ import Link from "next/link";
 import { ArrowRightIcon } from "lucide-react";
 import { getSessionUser } from "@/lib/auth";
 import { loadTrackState } from "@/lib/programme/track-data";
-import { certificateState } from "@/lib/programme/completion";
 import { isAwaitingContent } from "@/lib/programme/content-readiness";
 import { unlockDateFor, weekOf } from "@/lib/programme/working-days";
 import { PageContainer, PageHeader } from "@/components/page-header";
@@ -95,11 +94,6 @@ export default async function TrackPage({
     dayItems.map((r) => [r.item.day_index, r.unlockDate]),
   );
 
-  const certificate = certificateState({
-    completedAt: state.membership.completedAt,
-    certificateIssuedAt: state.membership.certificateIssuedAt,
-    certificateDeclinedAt: state.membership.certificateDeclinedAt,
-  });
 
   const completedContent = state.gates.g1.current;
 
@@ -186,31 +180,16 @@ export default async function TrackPage({
         <BaselineGateCard />
       ) : (
         <>
-          {certificate === "issued" && (
-            <Link
-              href={`/learn/track/certificate?cohort=${state.cohort.id}`}
-              className="flex items-center justify-between gap-3 rounded-lg border border-border bg-secondary px-5 py-4 text-secondary-foreground transition hover:border-primary/40"
-            >
-              <span>
-                <span className="block text-sm font-semibold tracking-tight">
-                  You&apos;ve completed the Core Programme
-                </span>
-                <span className="block text-xs text-secondary-foreground/80">
-                  All four gates passed.
-                </span>
-              </span>
-              <span className="text-sm font-medium">See your certificate</span>
-            </Link>
-          )}
-
-          {certificate === "awaiting_approval" && (
-            <div className="rounded-lg border border-border bg-background px-5 py-4">
-              <p className="text-sm font-semibold tracking-tight text-foreground">
-                All four gates passed
+          {/* One card, keyed on the completion latch. There is no approval
+              step to wait on any more, so there is no in-between state. */}
+          {state.membership.completedAt && (
+            <div className="rounded-lg border border-border bg-secondary px-5 py-4 text-secondary-foreground">
+              <p className="text-sm font-semibold tracking-tight">
+                You&apos;ve completed the Core Programme
               </p>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                Your certificate is with an admin for approval. You&apos;ll get
-                a message when it&apos;s ready - nothing else to do.
+              <p className="mt-0.5 text-xs text-secondary-foreground/80">
+                All four gates passed. Everything stays here if you want to go
+                back over it.
               </p>
             </div>
           )}

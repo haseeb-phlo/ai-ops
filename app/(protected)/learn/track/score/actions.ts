@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
@@ -13,6 +14,7 @@ import {
 } from "@/lib/programme/questions";
 import { scoreAnswer, type Answers } from "@/lib/programme/score";
 import { maybeCompleteProgramme } from "@/lib/programme/complete-action";
+import { announceCompletion } from "@/lib/programme/announce-completion";
 import { pickMembership } from "@/lib/programme/membership";
 import type { ActionState } from "../../topics";
 
@@ -163,11 +165,19 @@ export async function submitAiScore(formData: FormData): Promise<ActionState> {
   // The post wave is one half of G4, so submitting it can complete someone.
   // Evaluated for every live membership rather than only the attributed one:
   // gates are computed per membership, and an admin walking a preview run
-  // should still reach the certificate on it. Each call is guarded on
-  // completed_at, so this stays a single announcement either way.
+  // should still finish it. Each call is guarded on completed_at, so this
+  // stays a single announcement either way.
   if (parsed.data.wave === "post") {
     for (const m of memberships ?? []) {
-      await maybeCompleteProgramme(m.id);
+      const justCompleted = await maybeCompleteProgramme(m.id);
+      // Deferred, and it has to be: this path ends in a redirect, so awaiting
+      // Slack here would stall the navigation that shows them their score.
+      if (justCompleted) {
+        const memberId = m.id;
+        after(async () => {
+          await announceCompletion(memberId);
+        });
+      }
     }
   }
 

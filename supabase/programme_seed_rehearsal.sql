@@ -267,9 +267,10 @@ select m.id, i.id, v.score, '{}'::jsonb, v.at
       where a.cohort_member_id = m.id and a.track_item_id = i.id
    );
 
--- 9. Completion and certificates -----------------------------------------
--- Ten completed. Eight have their certificate issued; two sit in the approval
--- queue, so that screen has something in it.
+-- 9. Completion ------------------------------------------------------------
+-- Ten completed, so the reporting screens and the gate funnel have something
+-- in them. There is no issuing step any more: passing all four gates IS
+-- completion, and it announces itself.
 update public.programme_cohort_members m
    set completed_at = timestamptz '2026-06-19 17:00:00+00'
   from public.programme_cohorts c, auth.users u
@@ -277,16 +278,6 @@ update public.programme_cohort_members m
    and c.name = 'Rehearsal cohort'
    and u.email not in ('rehearsal11@wearephlo.com', 'rehearsal12@wearephlo.com')
    and m.completed_at is null;
-
-update public.programme_cohort_members m
-   set certificate_issued_at = timestamptz '2026-06-20 09:00:00+00'
-  from public.programme_cohorts c, auth.users u
- where c.id = m.cohort_id and u.id = m.user_id
-   and c.name = 'Rehearsal cohort'
-   and u.email not in ('rehearsal9@wearephlo.com', 'rehearsal10@wearephlo.com',
-                       'rehearsal11@wearephlo.com', 'rehearsal12@wearephlo.com')
-   and m.completed_at is not null
-   and m.certificate_issued_at is null;
 
 update public.programme_cohort_members m
    set rag_status = case

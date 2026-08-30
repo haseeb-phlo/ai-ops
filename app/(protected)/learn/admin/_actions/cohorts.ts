@@ -385,7 +385,7 @@ export async function deleteCohort(
       ].filter(Boolean);
       return {
         kind: "error",
-        message: `People have done work in this cohort - ${parts.join(", ")}. Set it to Complete or Archived instead: it drops out of the active views, everyone keeps their record and their certificate, and nothing new unlocks.`,
+        message: `People have done work in this cohort - ${parts.join(", ")}. Set it to Complete or Archived instead: it drops out of the active views, everyone keeps their record, and nothing new unlocks.`,
       };
     }
     if (result?.reason === "name_mismatch") {

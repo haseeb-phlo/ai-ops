@@ -6,8 +6,14 @@ import { appUrl } from "@/lib/app-url";
 import { isAllowedEmail } from "@/lib/auth-domain";
 import { resolveDisplayName } from "@/lib/profile";
 import { slackEnabled } from "@/lib/slack";
-import { todayInLondon, workingDaysBetween } from "@/lib/programme/working-days";
 import {
+  finalDayDate,
+  hourInLondon,
+  todayInLondon,
+  workingDaysBetween,
+} from "@/lib/programme/working-days";
+import {
+  cohortCompletionText,
   cohortSummaryText,
   dayNinetyText,
   leadDigestText,
@@ -26,14 +32,16 @@ import type { RagStatus } from "@/lib/programme/rag";
 /**
  * Programme notifications.
  *
- * One handler, three jobs, selected by `?job=`:
- *   member_reminder - Mondays: DM anyone with outstanding items
- *   lead_digest     - Fridays: DM each team lead their team plus sign-off queue
- *   day_90          - daily sweep: nudge cohorts that finished 90 days ago
+ * One handler, four jobs, selected by `?job=`:
+ *   member_reminder   - Mondays: DM anyone with outstanding items
+ *   lead_digest       - Fridays: DM each lead their team plus sign-off queue
+ *   day_90            - daily sweep: nudge cohorts that finished 90 days ago
+ *   cohort_completion - 4pm on a cohort's final Friday: one channel post
+ *                       naming everyone who finished
  *
- * One route rather than three because they share all the plumbing - auth, the
- * admin client, recipient resolution, claim-before-send - and three copies of
- * that is three places for it to drift.
+ * One route rather than four because they share all the plumbing - auth, the
+ * admin client, recipient resolution, claim-before-send - and four copies of
+ * that is four places for it to drift.
  *
  * EVERY send claims first. A retried cron, a double fire, or someone hitting
  * the URL twice is a no-op rather than a second DM to a hundred people.
@@ -44,7 +52,15 @@ export const maxDuration = 300;
 
 const NO_STORE: HeadersInit = { "Cache-Control": "no-store, private" };
 
-const JOBS = ["member_reminder", "lead_digest", "day_90"] as const;
+const JOBS = [
+  "member_reminder",
+  "lead_digest",
+  "day_90",
+  "cohort_completion",
+] as const;
+
+/** London hour the end-of-programme roundup goes out. */
+const COMPLETION_POST_HOUR = 16;
 type Job = (typeof JOBS)[number];
 
 function isoWeekKey(now: Date): string {
@@ -178,7 +194,10 @@ export async function GET(request: NextRequest) {
     };
   };
 
-  const results: { to: string; via: string }[] = [];
+  // `preview` is only filled on a dry run. The completion roundup tags
+  // real people in a public channel, so being able to read the exact text
+  // before it goes is worth the extra field.
+  const results: { to: string; via: string; preview?: string }[] = [];
 
   const send = async (args: {
     kind: NotificationKind;
@@ -454,6 +473,93 @@ export async function GET(request: NextRequest) {
           }),
         });
       }
+    }
+  }
+
+  /* ---------------- Final Friday, 4pm: one roundup per cohort -------- */
+  if (job === "cohort_completion") {
+    // Vercel schedules crons in UTC and London is UTC+1 for half the year, so
+    // a single fixed UTC hour would land at 4pm for only half the year. The
+    // job is scheduled on BOTH candidate hours and the earlier firing does
+    // nothing when it is not yet 4pm in London. In the other half of the year
+    // both firings clear this check, and the claim below makes the second a
+    // no-op.
+    if (hourInLondon(now) < COMPLETION_POST_HOUR) {
+      return NextResponse.json(
+        { ok: true, job, skipped: "before-4pm-london", today },
+        { headers: NO_STORE },
+      );
+    }
+
+    for (const cohort of liveCohorts) {
+      if (!cohort.slack_channel) continue;
+      // Only on this cohort's own last day - day 15, the Friday of week 3.
+      if (finalDayDate(cohort.start_date) !== today) continue;
+
+      const finished = members
+        .filter((m) => m.cohort_id === cohort.id && m.completed_at !== null)
+        .flatMap((m) => {
+          const recipient = recipientFor(m.user_id);
+          return recipient
+            ? [{ recipient, optedOut: m.notification_opt_out }]
+            : [];
+        });
+
+      // Nobody got there: say nothing. A congratulation with no names is
+      // worse than silence, and the people who did not finish do not need
+      // that posted in their own channel.
+      if (finished.length === 0) continue;
+
+      // A tag for anyone we can ping, a plain name for everyone else. TWO
+      // reasons someone gets the name instead, and they resolve the same way:
+      // no Slack account, which plenty of frontline staff do not have, or
+      // they have opted out of programme notifications, and `<@id>` is a
+      // notification. Neither costs them their place on the list - the credit
+      // is the point of the post, the ping is not.
+      const text = cohortCompletionText({
+        cohortName: cohort.name,
+        mentions: finished.map(({ recipient, optedOut }) =>
+          recipient.slackUserId && !optedOut
+            ? `<@${recipient.slackUserId}>`
+            : recipient.displayName,
+        ),
+      });
+
+      // Keyed on the cohort with no date: this is a one-off, forever. Even if
+      // the job ran again tomorrow it would not repeat.
+      const periodKey = `completion:${cohort.id}`;
+
+      if (dryRun) {
+        results.push({
+          to: `#${cohort.slack_channel}`,
+          via: "dry-run",
+          preview: text,
+        });
+        continue;
+      }
+      if (!(await claimSend(supabase, {
+        kind: "cohort_summary",
+        userId: null,
+        periodKey,
+        channel: cohort.slack_channel,
+      }))) {
+        continue;
+      }
+
+      const outcome = await notifyChannel({
+        channel: cohort.slack_channel,
+        text,
+      });
+      await recordOutcome(supabase, {
+        kind: "cohort_summary",
+        userId: null,
+        periodKey,
+        outcome,
+      });
+      results.push({
+        to: `#${cohort.slack_channel}`,
+        via: outcome.ok ? outcome.via : `failed:${outcome.reason}`,
+      });
     }
   }
 

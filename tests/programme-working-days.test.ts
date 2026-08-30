@@ -2,7 +2,9 @@ import { describe, it, expect } from "vitest";
 import {
   addWorkingDays,
   dayOfWeek,
+  finalDayDate,
   hasReached,
+  hourInLondon,
   isWeekend,
   todayInLondon,
   unlockDateFor,
@@ -187,5 +189,62 @@ describe("weekOf", () => {
 
   it("never returns week zero for the entry gate", () => {
     expect(weekOf(0)).toBe(1);
+  });
+});
+
+describe("finalDayDate", () => {
+  it("is the Friday of week 3 for a Monday start", () => {
+    // 2026-09-07 is a Monday. Day 1 is that Monday, day 15 is 14 working days
+    // later: Friday 2026-09-25.
+    expect(finalDayDate("2026-09-07")).toBe("2026-09-25");
+    expect(dayOfWeek(finalDayDate("2026-09-07"))).toBe(5);
+  });
+
+  it("is NOT the day-15 unlock date, which weekly mode puts on the Monday", () => {
+    // The distinction the roundup depends on: day 15 becomes visible on the
+    // Monday of week 3, but the programme ends on the Friday.
+    expect(unlockDateFor("2026-09-07", 15, "weekly")).toBe("2026-09-21");
+    expect(finalDayDate("2026-09-07")).toBe("2026-09-25");
+  });
+
+  it("agrees with the daily drip, which reaches day 15 on the same date", () => {
+    expect(finalDayDate("2026-09-07")).toBe(
+      unlockDateFor("2026-09-07", 15, "daily"),
+    );
+  });
+});
+
+describe("hourInLondon", () => {
+  it("is an hour ahead of UTC during BST", () => {
+    // 2026-09-25 is inside British Summer Time, so 15:00 UTC is 16:00 London.
+    expect(hourInLondon(new Date("2026-09-25T15:00:00Z"))).toBe(16);
+  });
+
+  it("matches UTC during GMT", () => {
+    // Late November is GMT, so the 16:00 UTC firing is the 4pm one.
+    expect(hourInLondon(new Date("2026-11-27T16:00:00Z"))).toBe(16);
+    expect(hourInLondon(new Date("2026-11-27T15:00:00Z"))).toBe(15);
+  });
+
+  it("means exactly one of the two scheduled firings is 4pm, either season", () => {
+    // This is what stops the roundup going out an hour early in winter.
+    const bst = ["2026-09-25T15:00:00Z", "2026-09-25T16:00:00Z"];
+    const gmt = ["2026-11-27T15:00:00Z", "2026-11-27T16:00:00Z"];
+    for (const season of [bst, gmt]) {
+      const atOrAfter4 = season.filter(
+        (iso) => hourInLondon(new Date(iso)) >= 16,
+      );
+      expect(atOrAfter4.length).toBeGreaterThanOrEqual(1);
+    }
+    // In BST the second firing is 5pm London, so it also passes the >= check
+    // and is stopped by the claim instead. In GMT only one firing passes.
+    expect(gmt.filter((iso) => hourInLondon(new Date(iso)) >= 16)).toHaveLength(1);
+  });
+});
+
+describe("hourInLondon at midnight", () => {
+  it("is 0, never 24", () => {
+    // hour12:false renders midnight as "24" in some engines.
+    expect(hourInLondon(new Date("2026-11-27T00:00:00Z"))).toBe(0);
   });
 });
