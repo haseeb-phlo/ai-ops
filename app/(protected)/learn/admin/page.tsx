@@ -266,6 +266,12 @@ export default async function ProgrammeAdminPage({
               <CohortPicker cohorts={cohortList} selectedId={selectedId} />
             )}
             <Link
+              href="/learn/library"
+              className="text-sm text-muted-foreground hover:text-foreground"
+            >
+              Video library
+            </Link>
+            <Link
               href="/learn/track"
               className="text-sm text-muted-foreground hover:text-foreground"
             >
