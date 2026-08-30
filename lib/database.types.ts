@@ -1044,6 +1044,39 @@ export type Database = {
           },
         ]
       }
+      programme_notification_sends: {
+        Row: {
+          channel: string | null
+          detail: string | null
+          id: string
+          kind: string
+          period_key: string
+          sent_at: string
+          succeeded: boolean
+          user_id: string | null
+        }
+        Insert: {
+          channel?: string | null
+          detail?: string | null
+          id?: string
+          kind: string
+          period_key: string
+          sent_at?: string
+          succeeded?: boolean
+          user_id?: string | null
+        }
+        Update: {
+          channel?: string | null
+          detail?: string | null
+          id?: string
+          kind?: string
+          period_key?: string
+          sent_at?: string
+          succeeded?: boolean
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       programme_pending_enrolments: {
         Row: {
           added_by: string | null
@@ -1077,53 +1110,20 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "programme_pending_enrolments_cohort_id_fkey"
-            columns: ["cohort_id"]
-            isOneToOne: false
-            referencedRelation: "programme_cohorts"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "programme_pending_enrolments_claimed_member_id_fkey"
             columns: ["claimed_member_id"]
             isOneToOne: false
             referencedRelation: "programme_cohort_members"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "programme_pending_enrolments_cohort_id_fkey"
+            columns: ["cohort_id"]
+            isOneToOne: false
+            referencedRelation: "programme_cohorts"
+            referencedColumns: ["id"]
+          },
         ]
-      }
-      programme_notification_sends: {
-        Row: {
-          channel: string | null
-          detail: string | null
-          id: string
-          kind: string
-          period_key: string
-          sent_at: string
-          succeeded: boolean
-          user_id: string | null
-        }
-        Insert: {
-          channel?: string | null
-          detail?: string | null
-          id?: string
-          kind: string
-          period_key: string
-          sent_at?: string
-          succeeded?: boolean
-          user_id?: string | null
-        }
-        Update: {
-          channel?: string | null
-          detail?: string | null
-          id?: string
-          kind?: string
-          period_key?: string
-          sent_at?: string
-          succeeded?: boolean
-          user_id?: string | null
-        }
-        Relationships: []
       }
       programme_quiz_attempts: {
         Row: {
@@ -1900,6 +1900,7 @@ export type Database = {
         Args: { p_cohort_member_id: string }
         Returns: boolean
       }
+      programme_claim_pending_enrolments: { Args: never; Returns: number }
       programme_cohort_day_activity: {
         Args: { p_cohort_id: string }
         Returns: {
@@ -1976,7 +1977,6 @@ export type Database = {
           user_id: string
         }[]
       }
-      programme_claim_pending_enrolments: { Args: Record<PropertyKey, never>; Returns: number }
       user_id_for_email: { Args: { p_email: string }; Returns: string }
     }
     Enums: {
