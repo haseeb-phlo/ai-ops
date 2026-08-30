@@ -116,8 +116,10 @@ export async function maybeCompleteProgramme(
   // This used to be missing, and the omission was invisible from the outside:
   // the member's track page reads the union and showed every gate green, while
   // this function counted item_progress alone, decided G1 had not passed, and
-  // never stamped anyone complete. Nobody got a certificate they had earned.
-  // Both sides now go through resolveCompletedItemIds.
+  // never stamped anyone complete. So somebody could finish the programme,
+  // see four green gates, and never be told they had finished - the DM this
+  // return value fires is the only thing that says so. Both sides now go
+  // through resolveCompletedItemIds.
   const trackVideoIds = itemList
     .map((i) => i.learn_video_id)
     .filter((id): id is string => Boolean(id));

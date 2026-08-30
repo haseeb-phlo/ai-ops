@@ -16,8 +16,8 @@
  * `track-data.ts` and NOT in `complete-action.ts`, which computed the same
  * gate from item_progress alone. The two disagreed: someone working through
  * the library saw every gate green on their track page and was never stamped
- * complete, so no certificate was ever issued. Same inputs, one function, one
- * answer.
+ * complete, so the DM that tells a person they have finished never fired.
+ * Same inputs, one function, one answer.
  *
  * ## Why completions are scoped to `joined_at`
  *
