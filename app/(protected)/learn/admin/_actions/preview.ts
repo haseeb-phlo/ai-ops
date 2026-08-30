@@ -8,7 +8,7 @@ import { requireWriter } from "@/lib/auth";
  * A private run through the programme, for an admin.
  *
  * The point is to experience it exactly as a member does - the entry gate, the
- * drip, marking a video, submitting work, the quiz, the certificate - rather
+ * drip, marking a video, submitting work, the quiz, completing it - rather
  * than to look at a mock of it. So this enrols you for real, in a cohort
  * marked `is_test`, backdated so nothing is locked.
  *

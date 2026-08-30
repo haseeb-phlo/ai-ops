@@ -1,11 +1,12 @@
 import { describe, it, expect } from "vitest";
 import {
-  certificateAnnouncementText,
-  certificateIssuedText,
+  cohortCompletionText,
   cohortSummaryText,
   dayNinetyText,
   leadDigestText,
   memberReminderText,
+  joinNames,
+  programmeCompleteText,
   rejectionText,
 } from "@/lib/programme/messages";
 
@@ -46,12 +47,16 @@ const ALL = [
     comment: "Add the actual prompt.",
     trackUrl: "https://x/learn/track",
   }),
-  certificateIssuedText({
+  programmeCompleteText({
     firstName: "Sam",
     cohortName: "Cohort 1",
-    certificateUrl: "https://x/learn/track/certificate",
+    trackUrl: "https://x/learn/track",
   }),
   dayNinetyText({ firstName: "Sam", scoreUrl: "https://x/learn/track/score" }),
+  cohortCompletionText({
+    cohortName: "Cohort 1A",
+    mentions: ["<@U1>", "<@U2>", "Pat Okafor"],
+  }),
 ];
 
 describe("house style", () => {
@@ -163,24 +168,74 @@ describe("leadDigestText", () => {
   });
 });
 
-describe("certificateAnnouncementText", () => {
-  it("reads naturally for one person", () => {
-    expect(certificateAnnouncementText(["Sam"])).toBe(
-      "Sam has completed the Core Programme.",
-    );
-  });
-
-  it("batches same-day completions into one message", () => {
-    // Three separate posts in a channel is spam; one is an announcement.
-    expect(certificateAnnouncementText(["Sam", "Jo", "Pat"])).toBe(
-      "Sam, Jo and Pat have completed the Core Programme.",
-    );
+describe("joinNames", () => {
+  it("reads naturally for one, two or three", () => {
+    expect(joinNames(["Sam"])).toBe("Sam");
+    expect(joinNames(["Sam", "Jo"])).toBe("Sam and Jo");
+    expect(joinNames(["Sam", "Jo", "Pat"])).toBe("Sam, Jo and Pat");
   });
 
   it("uses no Oxford comma", () => {
-    expect(certificateAnnouncementText(["Sam", "Jo", "Pat"])).not.toContain(
-      ", and",
-    );
+    expect(joinNames(["Sam", "Jo", "Pat"])).not.toContain(", and");
+  });
+
+  it("is empty for nobody, so a caller can test before posting", () => {
+    expect(joinNames([])).toBe("");
+  });
+});
+
+describe("cohortCompletionText", () => {
+  it("is ONE post naming everyone, not one post each", () => {
+    const text = cohortCompletionText({
+      cohortName: "Cohort 1A",
+      mentions: ["<@U1>", "<@U2>", "<@U3>"],
+    });
+    expect(text).toContain("Congratulations to <@U1>, <@U2> and <@U3>.");
+    expect(text).toContain("Cohort 1A");
+  });
+
+  it("keeps someone without a Slack account on the list, untagged", () => {
+    // A missing Slack account is common on the frontline. It must cost the
+    // ping, never the credit.
+    const text = cohortCompletionText({
+      cohortName: "Cohort 1A",
+      mentions: ["<@U1>", "Pat Okafor"],
+    });
+    expect(text).toContain("<@U1> and Pat Okafor");
+  });
+
+  it("carries no praise padding", () => {
+    // The tone rules ban filler. "Congratulations" is the message; the rest
+    // has to say something specific or not be there.
+    const text = cohortCompletionText({
+      cohortName: "Cohort 1A",
+      mentions: ["<@U1>"],
+    });
+    for (const slop of [
+      "great job",
+      "excellent work",
+      "keep up the",
+      "well done team",
+      "amazing",
+      "incredible",
+      "journey",
+      "delve",
+      "leverage",
+      "elevate",
+      "seamless",
+    ]) {
+      expect(text.toLowerCase()).not.toContain(slop);
+    }
+  });
+
+  it("is British English", () => {
+    const text = cohortCompletionText({
+      cohortName: "Cohort 1A",
+      mentions: ["<@U1>"],
+    });
+    expect(text).toContain("Programme");
+    expect(text.toLowerCase()).not.toContain("program ");
+    expect(text.toLowerCase()).not.toContain("recognize");
   });
 });
 

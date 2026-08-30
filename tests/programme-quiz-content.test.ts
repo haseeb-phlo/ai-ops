@@ -93,7 +93,7 @@ describe("quiz content", () => {
   });
 
   it("makes the final quiz span all three weeks, not just week 3", () => {
-    // It gates the certificate, so it should test the programme, not the
+    // It gates completion, so it should test the programme, not the
     // fortnight people most recently watched.
     const days = QUIZ_CONTENT_BY_DAY[15].map((q) => q.day);
     expect(days.some((d) => d <= 5)).toBe(true);

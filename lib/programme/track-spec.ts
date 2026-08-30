@@ -72,7 +72,7 @@ export const QUIZ_SPECS = [
   // All three pass at 8/10. The weekly checks gate nothing and allow unlimited
   // retakes, so a consistent bar is simpler to explain than a sliding one, and
   // it keeps "passed a Phlo AI quiz" meaning the same thing all the way
-  // through. The final is the one that gates the certificate via G4.
+  // through. The final is the one that gates completion via G4.
 ] as const;
 
 /**
