@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { isCronAuthorized } from "@/lib/cron-auth";
 import { computeGates } from "@/lib/programme/gates";
 import { computeRag, type RagStatus } from "@/lib/programme/rag";
+import { countOverdue } from "@/lib/programme/overdue";
 import { resolveItemStates, outstandingItems, type ItemState } from "@/lib/programme/unlock";
 import { todayInLondon, unlockDateFor } from "@/lib/programme/working-days";
 import { isG2Impossible, satisfiedSessionIds } from "@/lib/programme/attendance";
@@ -146,6 +147,7 @@ export async function GET(request: NextRequest) {
     const summative = itemList.find(
       (i) => i.type === "quiz" && i.config_json?.summative === true,
     );
+    const summativeIds = new Set(summative ? [summative.id] : []);
 
     const progressByMember = new Map<string, Map<string, ItemState>>();
     for (const p of progress ?? []) {
@@ -167,6 +169,7 @@ export async function GET(request: NextRequest) {
         today,
         hasBaseline: true,
         progressByItemId: memberProgress,
+        summativeItemIds: summativeIds,
       });
 
       const satisfied = satisfiedSessionIds(
@@ -208,9 +211,15 @@ export async function GET(request: NextRequest) {
       });
 
       const rag: RagStatus = computeRag({
-        outstandingCount: outstandingItems(resolved).filter(
-          (r) => !isAwaitingContent(r.item),
-        ).length,
+        // Late, not merely open. The nightly sweep exists precisely because
+        // the passage of time changes this number, so it is the one caller
+        // that must not go back to counting everything available.
+        overdueCount: countOverdue(
+          outstandingItems(resolved)
+            .filter((r) => !isAwaitingContent(r.item))
+            .map((r) => ({ dayIndex: r.item.day_index })),
+          { startDate: cohort.start_date, today },
+        ),
         hasOutstandingRejection: live.some((s) => s.signoff_status === "rejected"),
         hasImpossibleGate: isG2Impossible({
           sessions: sessionItems.map((i) => ({

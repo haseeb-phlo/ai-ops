@@ -10,6 +10,7 @@ import fixture from "@/lib/programme/may-2026-distribution.json";
 import { ImportPanel } from "./_components/import-panel";
 import { ProgrammeTabs } from "./_components/programme-tabs";
 import { RosterGrid } from "./_components/roster-grid";
+import { EnrolPanel } from "./_components/enrol-panel";
 import { CohortDashboard } from "./_components/cohort-dashboard";
 import { CohortPicker } from "./_components/cohort-picker";
 import { CohortManager } from "./_components/cohort-manager";
@@ -139,7 +140,8 @@ export default async function ProgrammeAdminPage({
   // Who can be named as a cohort's approver. Anyone with an account: the
   // approver is a job, not a role, and for the first cohorts it is whoever
   // owns the programme rather than whoever the org tree points at.
-  const approvers = (await loadImpersonableUsers())
+  const accountHolders = await loadImpersonableUsers();
+  const approvers = accountHolders
     .map((u) => ({ userId: u.userId, displayName: u.displayName }))
     .sort((a, b) => a.displayName.localeCompare(b.displayName));
 
@@ -186,6 +188,31 @@ export default async function ProgrammeAdminPage({
       (memberCountByCohort.get(m.cohort_id) ?? 0) + 1,
     );
   }
+  // Who is enrolable. `people` is the org list (138 rows); only 75 of them
+  // have ever signed in, so the panel works from addresses throughout and
+  // lets the claim RPC bind the rest when they arrive.
+  const [{ data: orgPeople }, { data: activeMemberRows }] = await Promise.all([
+    supabase
+      .from("people")
+      .select("email")
+      .order("email")
+      .returns<{ email: string }[]>(),
+    supabase
+      .from("programme_cohort_members")
+      .select("user_id, programme_cohorts!inner(status)")
+      .in("programme_cohorts.status", ["planned", "live"])
+      .returns<{ user_id: string }[]>(),
+  ]);
+
+  const emailByUserId = new Map(
+    accountHolders.map((u) => [u.userId, u.email.toLowerCase()]),
+  );
+  const committedEmails = new Set(
+    (activeMemberRows ?? [])
+      .map((m) => emailByUserId.get(m.user_id))
+      .filter((e): e is string => Boolean(e)),
+  );
+
   // Default to the first live cohort, falling back to the most recent.
   const selectedId =
     cohortParam ??
@@ -193,6 +220,21 @@ export default async function ProgrammeAdminPage({
     cohortList[0]?.id ??
     null;
   const view = selectedId ? await loadCohortAdminView(selectedId) : null;
+
+  const { data: pendingRows } = selectedId
+    ? await supabase
+        .from("programme_pending_enrolments")
+        .select("id, email, created_at")
+        .eq("cohort_id", selectedId)
+        .is("claimed_at", null)
+        .order("email")
+        .returns<{ id: string; email: string; created_at: string }[]>()
+    : { data: [] as { id: string; email: string; created_at: string }[] };
+
+  const pendingEmails = new Set((pendingRows ?? []).map((p) => p.email));
+  const notEnrolledEmails = (orgPeople ?? [])
+    .map((p) => p.email.toLowerCase())
+    .filter((e) => !committedEmails.has(e) && !pendingEmails.has(e));
 
   const noCohorts = (
     <EmptyState
@@ -286,11 +328,23 @@ export default async function ProgrammeAdminPage({
         }
         roster={
           view ? (
-            view.members.length === 0 ? (
+            <div className="space-y-6">
+              <EnrolPanel
+                cohortId={view.cohort.id}
+                cohortName={view.cohort.name}
+                cohortStatus={view.cohort.status}
+                notEnrolledEmails={notEnrolledEmails}
+                pending={(pendingRows ?? []).map((p) => ({
+                  id: p.id,
+                  email: p.email,
+                  addedAt: p.created_at,
+                }))}
+              />
+              {view.members.length === 0 ? (
               <EmptyState
                 icon={<UsersIcon aria-hidden />}
                 title="No members in this cohort"
-                description="Add people to the cohort to mark their attendance."
+                description="Enrol people above, then come back here to mark their attendance."
               />
             ) : (
               <RosterGrid
@@ -307,7 +361,8 @@ export default async function ProgrammeAdminPage({
                   slotDates: s.slotDates,
                 }))}
               />
-            )
+              )}
+            </div>
           ) : (
             noCohorts
           )

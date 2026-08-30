@@ -5,6 +5,8 @@ import { computeGates, g3Routes, type G3Route, type GateSet } from "./gates";
 import { stepsToGreen, type StepsToGreen } from "./next-steps";
 import { type DayActivity } from "./activity";
 import { computeRag, type RagStatus } from "./rag";
+import { countOverdue, overdueOnly } from "./overdue";
+import { resolveCompletedItemIds } from "./completed-items";
 import {
   resolveItemStates,
   outstandingItems,
@@ -78,7 +80,10 @@ export type TrackState = {
   completedItemIds: Set<string>;
   gates: GateSet;
   rag: RagStatus;
+  /** Unlocked, actionable, unfinished - however recently it opened. */
   outstandingCount: number;
+  /** The subset of those whose day has already passed. Drives RAG. */
+  overdueCount: number;
   /** The complete ways left to clear G3. Empty once it has passed. */
   g3Routes: G3Route[];
   /** The shortest route back to green, or none when already there. */
@@ -247,7 +252,7 @@ export const loadTrackState = cache(
       ),
     );
     const videosById = new Map<string, TrackVideo>();
-    let learnCompletions = new Set<string>();
+    let learnCompletions: { video_id: string; created_at: string }[] = [];
     if (videoIds.length > 0) {
       const [{ data: videos }, { data: completions }] = await Promise.all([
         supabase
@@ -257,13 +262,13 @@ export const loadTrackState = cache(
           .returns<TrackVideo[]>(),
         supabase
           .from("learn_video_completions")
-          .select("video_id")
+          .select("video_id, created_at")
           .eq("user_id", userId)
           .in("video_id", videoIds)
-          .returns<{ video_id: string }[]>(),
+          .returns<{ video_id: string; created_at: string }[]>(),
       ]);
       for (const v of videos ?? []) videosById.set(v.id, v);
-      learnCompletions = new Set((completions ?? []).map((c) => c.video_id));
+      learnCompletions = completions ?? [];
     }
 
     const progressByItemId = new Map<string, ItemState>();
@@ -271,23 +276,20 @@ export const loadTrackState = cache(
       progressByItemId.set(p.track_item_id, p.status);
     }
 
-    // Completion is the UNION of our durable record and Learn's own signal.
+    // Completion is the union of our durable record and Learn's own signal,
+    // with library ticks scoped to this membership. The rule and the reasoning
+    // live in completed-items.ts, shared with the completion stamper so the
+    // page and the certificate cannot disagree about who has finished.
     //
-    // Reading the union rather than only item_progress means a video ticked on
-    // /learn before the member ever opened the track still counts. Reading
-    // item_progress as part of the union (rather than deferring to Learn) means
-    // un-ticking on /learn cannot regress someone past G1 once the track has
-    // recorded the completion.
-    const completedItemIds = new Set<string>();
-    for (const item of items) {
-      if (progressByItemId.get(item.id) === "complete") {
-        completedItemIds.add(item.id);
-        continue;
-      }
-      if (item.learn_video_id && learnCompletions.has(item.learn_video_id)) {
-        completedItemIds.add(item.id);
-      }
-    }
+    // A preview run passes no joined_at: it is a sandbox with no real history
+    // to protect, and scoping there would only hide the admin's own videos
+    // from the screens they are checking.
+    const completedItemIds = resolveCompletedItemIds({
+      items,
+      progress: progressRows ?? [],
+      learnCompletions,
+      joinedAt: cohort.is_test ? null : membership.joined_at,
+    });
 
     const waves = new Set((responseRows ?? []).map((r) => r.wave));
     const hasBaseline = waves.has("cohort_baseline");
@@ -305,6 +307,13 @@ export const loadTrackState = cache(
     // with the submission slots locked behind it.
     const entryGateOpen = hasBaseline || cohort.is_test;
 
+    // Found before unlock resolution because the gate exemption needs it: the
+    // final quiz opens by date for somebody who never checked in, every other
+    // quiz waits behind the gate like the rest of the programme.
+    const summativeItem = items.find(
+      (i) => i.type === "quiz" && i.config_json?.summative === true,
+    );
+
     const resolved = resolveItemStates({
       items,
       startDate: cohort.start_date,
@@ -312,6 +321,7 @@ export const loadTrackState = cache(
       hasBaseline,
       enforceBaselineGate: !cohort.is_test,
       progressByItemId: effectiveProgress,
+      summativeItemIds: new Set(summativeItem ? [summativeItem.id] : []),
     });
 
     // ---- Gates ----------------------------------------------------------
@@ -343,9 +353,6 @@ export const loadTrackState = cache(
       (s) => s.signoff_status === "rejected",
     );
 
-    const summativeItem = items.find(
-      (i) => i.type === "quiz" && i.config_json?.summative === true,
-    );
     const summativeQuizPassMark = Number(
       summativeItem?.config_json?.pass_mark ?? 8,
     );
@@ -381,12 +388,20 @@ export const loadTrackState = cache(
     });
 
     // Same exclusion for RAG: an unrecorded day is our backlog, not theirs.
-    const outstandingCount = outstandingItems(resolved).filter(
+    const outstandingActionable = outstandingItems(resolved).filter(
       (r) => !isAwaitingContent(r.item),
-    ).length;
+    );
+    const outstandingCount = outstandingActionable.length;
+
+    // RAG counts what is LATE, not what is open - under weekly unlock those
+    // are very different numbers on a Monday. See overdue.ts.
+    const overdueCount = countOverdue(
+      outstandingActionable.map((r) => ({ dayIndex: r.item.day_index })),
+      { startDate: cohort.start_date, today },
+    );
 
     const rag = computeRag({
-      outstandingCount,
+      overdueCount,
       hasOutstandingRejection,
       hasImpossibleGate,
       joinedOn: membership.joined_at.slice(0, 10),
@@ -418,16 +433,18 @@ export const loadTrackState = cache(
     // ---- G3 routes, next steps, activity -------------------------------
     const routes = g3Routes({ approvedSignedExamples, capstoneCredits });
 
-    const outstandingActionable = outstandingItems(resolved).filter(
-      (r) => !isAwaitingContent(r.item),
-    );
     const rejected = live.find((s) => s.signoff_status === "rejected");
+    // The route back to green has to be built from the same items that took
+    // it away, or it lists work that was never what the status was about.
     const nextSteps = stepsToGreen({
       rag,
-      outstanding: outstandingActionable.map((r) => ({
-        dayIndex: r.item.day_index,
-        title: r.item.title,
-      })),
+      outstanding: overdueOnly(
+        outstandingActionable.map((r) => ({
+          dayIndex: r.item.day_index,
+          title: r.item.title,
+        })),
+        { startDate: cohort.start_date, today },
+      ),
       hasOutstandingRejection,
       rejectedTitle: rejected?.track_item_id
         ? (items.find((i) => i.id === rejected.track_item_id)?.title ?? null)
@@ -509,6 +526,7 @@ export const loadTrackState = cache(
       gates,
       rag,
       outstandingCount,
+      overdueCount,
       g3Routes: routes,
       nextSteps,
       activity,

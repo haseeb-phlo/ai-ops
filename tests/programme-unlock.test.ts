@@ -121,8 +121,8 @@ describe("the baseline gate", () => {
   });
 });
 
-describe("quiz and post check-in are gate-exempt", () => {
-  it("unlock on their date even with no baseline response", () => {
+describe("the final measurement is gate-exempt", () => {
+  it("unlocks on its date even with no baseline response", () => {
     // Someone who skipped the baseline can still be measured at the end.
     const r = resolveItemStates({
       items,
@@ -130,19 +130,36 @@ describe("quiz and post check-in are gate-exempt", () => {
       today: "2026-09-18", // day 15
       hasBaseline: false,
       unlockMode: "daily",
+      summativeItemIds: new Set(["d15q"]),
     });
     expect(stateOf(r, "d15q")).toBe("available");
     expect(stateOf(r, "d15p")).toBe("available");
-    expect(stateOf(r, "d5q")).toBe("available"); // day 5 already passed
   });
 
-  it("stay locked before their date", () => {
+  it("does NOT exempt an ordinary mid-programme quiz", () => {
+    // The exemption protects the end-of-programme measurement. Applied to
+    // every quiz it became a side door: under weekly unlock day five's quiz
+    // opens on the first morning, so somebody who skipped the mandatory
+    // check-in could sit it without ever having checked in.
+    const r = resolveItemStates({
+      items,
+      startDate: START,
+      today: "2026-09-18",
+      hasBaseline: false,
+      unlockMode: "daily",
+      summativeItemIds: new Set(["d15q"]),
+    });
+    expect(stateOf(r, "d5q")).toBe("locked");
+  });
+
+  it("stays locked before its date", () => {
     const r = resolveItemStates({
       items,
       startDate: START,
       today: START,
       hasBaseline: true,
       unlockMode: "daily",
+      summativeItemIds: new Set(["d15q"]),
     });
     expect(stateOf(r, "d5q")).toBe("locked");
     expect(stateOf(r, "d15q")).toBe("locked");

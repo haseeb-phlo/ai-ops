@@ -3,6 +3,7 @@ import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { computeGates, type GateSet } from "./gates";
 import { computeRag, type RagStatus } from "./rag";
+import { countOverdue } from "./overdue";
 import { resolveItemStates, outstandingItems, type ItemState } from "./unlock";
 import { todayInLondon, unlockDateFor } from "./working-days";
 import {
@@ -185,6 +186,7 @@ export const loadCohortAdminView = cache(
     const summativeQuizPassMark = Number(
       summativeItem?.config_json?.pass_mark ?? 8,
     );
+    const summativeIds = new Set(summativeItem ? [summativeItem.id] : []);
 
     const sessions: SessionColumn[] = sessionItems.map((i) => ({
       trackItemId: i.id,
@@ -259,6 +261,7 @@ export const loadCohortAdminView = cache(
         // member; progress already reflects what they've actually done.
         hasBaseline: true,
         progressByItemId: progress,
+        summativeItemIds: summativeIds,
       });
 
       const completedItemIds = new Set(
@@ -288,12 +291,18 @@ export const loadCohortAdminView = cache(
         hasPostResponse: postUserIds.has(member.user_id),
       });
 
-      const outstandingCount = outstandingItems(resolved).filter(
+      const outstandingActionable = outstandingItems(resolved).filter(
         (r) => !isAwaitingContent(r.item),
-      ).length;
+      );
+      const outstandingCount = outstandingActionable.length;
 
       const rag = computeRag({
-        outstandingCount,
+        // Late, not merely open - the admin heatmap has to agree with the
+        // member's own banner. See overdue.ts.
+        overdueCount: countOverdue(
+          outstandingActionable.map((r) => ({ dayIndex: r.item.day_index })),
+          { startDate: cohort.start_date, today },
+        ),
         hasOutstandingRejection: live.some(
           (s) => s.signoff_status === "rejected",
         ),

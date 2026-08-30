@@ -105,7 +105,7 @@ export async function addVideo(
     return { kind: "error", message: `Could not add video: ${error.message}` };
   }
 
-  revalidatePath("/learn");
+  revalidatePath("/learn/library");
   revalidatePath("/");
   return { kind: "success" };
 }
@@ -178,7 +178,7 @@ export async function editVideo(
     };
   }
 
-  revalidatePath("/learn");
+  revalidatePath("/learn/library");
   revalidatePath("/");
   return { kind: "success" };
 }
@@ -193,7 +193,7 @@ export async function deleteVideo(formData: FormData): Promise<void> {
 
   const supabase = await createClient();
   await supabase.from("learn_videos").delete().eq("id", id);
-  revalidatePath("/learn");
+  revalidatePath("/learn/library");
   revalidatePath("/");
 }
 
@@ -238,7 +238,7 @@ export async function reorderVideos(ids: string[]): Promise<ActionState> {
     return { kind: "error", message: `Could not save order: ${failed.error.message}` };
   }
 
-  revalidatePath("/learn");
+  revalidatePath("/learn/library");
   revalidatePath("/");
   return { kind: "success" };
 }
@@ -264,7 +264,7 @@ export async function recordPlay(formData: FormData): Promise<void> {
     video_id: parsed.data.video_id,
     user_id: user.id,
   });
-  revalidatePath("/learn");
+  revalidatePath("/learn/library");
 }
 
 const ToggleCompletionSchema = z.object({
@@ -320,7 +320,10 @@ export async function toggleVideoCompletion(
     }
   }
 
-  revalidatePath("/learn");
+  // The track reads this same signal, so a tick made in the library has to
+  // reach the member's timeline as well as the grid it was made in.
+  revalidatePath("/learn/library");
+  revalidatePath("/learn/track");
   revalidatePath("/");
   return { kind: "success" };
 }
@@ -377,7 +380,7 @@ export async function addVideoResourceUrl(
     };
   }
 
-  revalidatePath("/learn");
+  revalidatePath("/learn/library");
   return { kind: "success" };
 }
 
@@ -457,7 +460,7 @@ export async function addVideoResourceFile(
     };
   }
 
-  revalidatePath("/learn");
+  revalidatePath("/learn/library");
   return { kind: "success" };
 }
 
@@ -482,7 +485,7 @@ export async function deleteVideoResource(formData: FormData): Promise<void> {
       .remove([row.storage_path]);
   }
   await supabase.from("learn_video_resources").delete().eq("id", id);
-  revalidatePath("/learn");
+  revalidatePath("/learn/library");
 }
 
 // Mint a short-lived signed URL for a file attachment. The bucket is

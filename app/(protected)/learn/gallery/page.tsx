@@ -1,7 +1,10 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { SparklesIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionUser } from "@/lib/auth";
+import { loadTrackState } from "@/lib/programme/track-data";
+import { learnAccess, canManageLibrary } from "@/lib/programme/learn-access";
 import { resolveDisplayName } from "@/lib/profile";
 import { PageContainer, PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -24,7 +27,19 @@ export default async function GalleryPage({
   searchParams: Promise<{ cohort?: string; team?: string; kind?: string }>;
 }) {
   const filters = await searchParams;
-  await getSessionUser();
+  const user = await getSessionUser();
+
+  // Gated with the rest of Learn. The gallery is other people's programme work,
+  // so it belongs to the people doing the programme; showing it to someone
+  // still waiting for their cohort is the open-library problem again, one
+  // surface along. /learn explains what to do about it.
+  const track = await loadTrackState(user.id, user.email);
+  const access = learnAccess({
+    inCohort: track !== null,
+    entryGateOpen: track?.entryGateOpen ?? false,
+  });
+  if (access !== "open" && !canManageLibrary(user.realRole)) redirect("/learn");
+
   const supabase = await createClient();
 
   const { data: rows } = await supabase

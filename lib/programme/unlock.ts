@@ -6,8 +6,9 @@
  *   1. The day-0 baseline check-in is ALWAYS available. It is the entry gate.
  *   2. Until a cohort_baseline response exists, NOTHING else is available.
  *      That is what makes the check-in mandatory rather than a suggestion.
- *   3. The day-15 quiz and post check-in unlock BY DATE regardless of rule 2,
- *      so someone who never did the baseline can still be measured at the end.
+ *   3. The FINAL measurement - the summative quiz and the post check-in -
+ *      unlocks by date regardless of rule 2, so someone who never did the
+ *      baseline can still be measured at the end.
  *   4. Everything else unlocks on start_date + (day_index - 1) working days.
  *
  * And one invariant that overrides all of them: an item that has been started
@@ -40,8 +41,17 @@ export type ResolvedItem<T extends TrackItemLike = TrackItemLike> = {
   unlockDate: IsoDate;
 };
 
-/** Item types that ignore the baseline gate and unlock purely by date. */
-const GATE_EXEMPT_TYPES = new Set(["quiz", "questionnaire_post"]);
+/**
+ * The post check-in ignores the baseline gate and unlocks purely by date.
+ *
+ * Quizzes used to be here too, as a whole type, and that was too broad: under
+ * weekly unlock the week-one quiz opens on the cohort's first morning, so
+ * exempting every quiz meant somebody who had skipped the mandatory check-in
+ * could still walk into day five's assessment on day one. The exemption is
+ * meant to protect the FINAL measurement, not to leave a side door into the
+ * programme. `summativeItemIds` names the quiz it actually applies to.
+ */
+const GATE_EXEMPT_TYPES = new Set(["questionnaire_post"]);
 
 /** Item types that ARE the baseline gate. */
 const BASELINE_TYPES = new Set(["questionnaire_baseline"]);
@@ -77,6 +87,12 @@ export function resolveItemStates<T extends TrackItemLike>(args: {
   enforceBaselineGate?: boolean;
   /** Existing progress, by track item id. Absent means never touched. */
   progressByItemId?: ReadonlyMap<string, ItemState>;
+  /**
+   * The quiz (or quizzes) that measure the end of the programme, which are
+   * exempt from the baseline gate for the same reason the post check-in is.
+   * Everything else of type "quiz" is ordinary gated content.
+   */
+  summativeItemIds?: ReadonlySet<string>;
   /** Defaults to weekly - see UnlockMode for why. */
   unlockMode?: UnlockMode;
 }): ResolvedItem<T>[] {
@@ -99,7 +115,10 @@ export function resolveItemStates<T extends TrackItemLike>(args: {
       return { item, state: "available", unlockDate };
     }
 
-    if (GATE_EXEMPT_TYPES.has(item.type)) {
+    if (
+      GATE_EXEMPT_TYPES.has(item.type) ||
+      args.summativeItemIds?.has(item.id)
+    ) {
       return {
         item,
         state: dateReached ? "available" : "locked",

@@ -34,7 +34,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { href: "/interventions", label: "Initiatives", icon: SparklesIcon },
   { href: "/roadmap", label: "Roadmap", icon: KanbanSquareIcon },
   { href: "/suggestions", label: "Suggestions", icon: LightbulbIcon },
-  { href: "/learn", label: "Learn", icon: GraduationCapIcon },
+  { href: "/learn", label: "AI Training", icon: GraduationCapIcon },
   { href: "/map", label: "People", icon: UsersIcon },
 ];
 

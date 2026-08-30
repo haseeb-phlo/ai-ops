@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeftIcon } from "lucide-react";
+import { ArrowRightIcon } from "lucide-react";
 import { getSessionUser } from "@/lib/auth";
 import { loadTrackState } from "@/lib/programme/track-data";
 import { certificateState } from "@/lib/programme/completion";
@@ -134,11 +134,11 @@ export default async function TrackPage({
         description={`${state.cohort.name} · started ${state.cohort.startDate}`}
         actions={
           <Link
-            href="/learn"
+            href="/learn/gallery"
             className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
           >
-            <ArrowLeftIcon className="size-4" aria-hidden />
-            All of Learn
+            Prompt library
+            <ArrowRightIcon className="size-4" aria-hidden />
           </Link>
         }
       />

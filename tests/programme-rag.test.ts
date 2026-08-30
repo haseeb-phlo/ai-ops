@@ -9,7 +9,7 @@ import {
 const START = "2026-08-31"; // Monday
 
 const onTrack: RagInput = {
-  outstandingCount: 0,
+  overdueCount: 0,
   hasOutstandingRejection: false,
   hasImpossibleGate: false,
   joinedOn: START,
@@ -18,30 +18,30 @@ const onTrack: RagInput = {
 };
 
 describe("thresholds", () => {
-  it("is green with nothing outstanding", () => {
+  it("is green with nothing late", () => {
     expect(computeRag(onTrack)).toBe("green");
   });
 
-  it("is GREEN with exactly one outstanding item", () => {
+  it("is GREEN with exactly one late item", () => {
     // The playbook defines green as 0 and amber as 2-4, leaving 1 undefined.
-    // One item is normal mid-day progress, so it stays green.
-    expect(computeRag({ ...onTrack, outstandingCount: 1 })).toBe("green");
+    // One item left over from yesterday is normal progress, so it stays green.
+    expect(computeRag({ ...onTrack, overdueCount: 1 })).toBe("green");
   });
 
   it("turns amber at two", () => {
-    expect(computeRag({ ...onTrack, outstandingCount: 2 })).toBe("amber");
+    expect(computeRag({ ...onTrack, overdueCount: 2 })).toBe("amber");
   });
 
   it("stays amber through four", () => {
-    expect(computeRag({ ...onTrack, outstandingCount: 4 })).toBe("amber");
+    expect(computeRag({ ...onTrack, overdueCount: 4 })).toBe("amber");
   });
 
   it("turns red at five", () => {
-    expect(computeRag({ ...onTrack, outstandingCount: 5 })).toBe("red");
+    expect(computeRag({ ...onTrack, overdueCount: 5 })).toBe("red");
   });
 
   it("stays red well beyond five", () => {
-    expect(computeRag({ ...onTrack, outstandingCount: 30 })).toBe("red");
+    expect(computeRag({ ...onTrack, overdueCount: 30 })).toBe("red");
   });
 });
 
@@ -56,7 +56,7 @@ describe("rejected submissions", () => {
     expect(
       computeRag({
         ...onTrack,
-        outstandingCount: 6,
+        overdueCount: 6,
         hasOutstandingRejection: true,
       }),
     ).toBe("red");
@@ -96,7 +96,7 @@ describe("mid-cohort joiner grace", () => {
     expect(
       computeRag({
         ...onTrack,
-        outstandingCount: 4,
+        overdueCount: 4,
         joinedOn: "2026-09-09",
         today: "2026-09-11", // 2 working days in
       }),
@@ -107,7 +107,7 @@ describe("mid-cohort joiner grace", () => {
     expect(
       computeRag({
         ...onTrack,
-        outstandingCount: 4,
+        overdueCount: 4,
         joinedOn: "2026-09-09", // Wednesday
         today: "2026-09-16", // 5 working days later
       }),
@@ -130,7 +130,7 @@ describe("mid-cohort joiner grace", () => {
     expect(
       computeRag({
         ...onTrack,
-        outstandingCount: 5,
+        overdueCount: 5,
         joinedOn: "2026-09-09",
         today: "2026-09-10",
       }),

@@ -6,25 +6,30 @@
  * doesn't recompute it per cell.
  *
  * The playbook's thresholds:
- *   green - all unlocked items complete and no rejected submission outstanding
- *   amber - 2-4 unlocked items incomplete, OR a rejection awaiting resubmission
- *   red   - >=5 unlocked items incomplete, OR a gate has become impossible
+ *   green - nothing late and no rejected submission outstanding
+ *   amber - 2-4 items late, OR a rejection awaiting resubmission
+ *   red   - >=5 items late, OR a gate has become impossible
  *
- * SPEC GAP, resolved here: exactly ONE incomplete item falls between the
- * playbook's green (zero) and amber (two to four). It is treated as GREEN -
- * a single outstanding item is normal mid-day progress, and flagging it would
- * make amber meaningless on any day someone hasn't yet watched that morning's
- * video. AMBER_MIN_OUTSTANDING encodes the choice in one place.
+ * LATE, not merely open. The playbook wrote these thresholds against a daily
+ * unlock; the app unlocks a week at a time, so counting everything available
+ * made the first morning of a cohort read red for everybody. `overdue.ts`
+ * draws the distinction and owns the reasoning - this file only counts.
+ *
+ * SPEC GAP, resolved here: exactly ONE late item falls between the playbook's
+ * green (zero) and amber (two to four). It is treated as GREEN - a single
+ * item left over from yesterday is normal progress, and flagging it would make
+ * amber meaningless on any day someone hasn't yet watched one video.
+ * AMBER_MIN_OUTSTANDING encodes the choice in one place.
  */
 
 import { workingDaysBetween, type IsoDate } from "./working-days";
 
 export type RagStatus = "green" | "amber" | "red";
 
-/** Below this many outstanding items, a member is still green. */
+/** Below this many LATE items, a member is still green. */
 export const AMBER_MIN_OUTSTANDING = 2;
 
-/** At or above this many outstanding items, a member is red. */
+/** At or above this many LATE items, a member is red. */
 export const RED_MIN_OUTSTANDING = 5;
 
 /**
@@ -34,8 +39,11 @@ export const RED_MIN_OUTSTANDING = 5;
 export const JOINER_GRACE_WORKING_DAYS = 5;
 
 export type RagInput = {
-  /** Unlocked items the member has not completed. */
-  outstandingCount: number;
+  /**
+   * Unlocked, actionable items the member has not completed whose own day has
+   * already passed. NOT the count of everything open - see overdue.ts.
+   */
+  overdueCount: number;
   /** A submission was rejected and has not been resubmitted. */
   hasOutstandingRejection: boolean;
   /**
@@ -71,10 +79,10 @@ export function computeRag(input: RagInput): RagStatus {
   // that has already happened. This outranks the grace window.
   if (input.hasImpossibleGate) return "red";
 
-  if (input.outstandingCount >= RED_MIN_OUTSTANDING) return "red";
+  if (input.overdueCount >= RED_MIN_OUTSTANDING) return "red";
 
   const wouldBeAmber =
-    input.outstandingCount >= AMBER_MIN_OUTSTANDING ||
+    input.overdueCount >= AMBER_MIN_OUTSTANDING ||
     input.hasOutstandingRejection;
 
   if (!wouldBeAmber) return "green";

@@ -45,5 +45,20 @@ export async function GET(request: NextRequest) {
     console.warn("[auth-callback] AI Score link failed", linkError.message);
   }
 
+  // Turn any cohort enrolment recorded against this email into a real
+  // membership. Most of the company has never signed in, so a roster is
+  // enrolled by address and materialises here, on the person's first visit.
+  //
+  // Non-fatal for the same reason as the line above, and more emphatically:
+  // being unable to sign in because of a training enrolment would be a far
+  // worse failure than an enrolment that waits for the next sign-in. The
+  // function is written not to raise; this is the second belt.
+  const { error: enrolError } = await supabase.rpc(
+    "programme_claim_pending_enrolments",
+  );
+  if (enrolError) {
+    console.warn("[auth-callback] cohort claim failed", enrolError.message);
+  }
+
   return NextResponse.redirect(`${origin}${next}`);
 }

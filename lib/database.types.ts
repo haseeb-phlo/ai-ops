@@ -1044,6 +1044,54 @@ export type Database = {
           },
         ]
       }
+      programme_pending_enrolments: {
+        Row: {
+          added_by: string | null
+          claimed_at: string | null
+          claimed_member_id: string | null
+          cohort_id: string
+          created_at: string
+          email: string
+          id: string
+          team_lead_user_id: string | null
+        }
+        Insert: {
+          added_by?: string | null
+          claimed_at?: string | null
+          claimed_member_id?: string | null
+          cohort_id: string
+          created_at?: string
+          email: string
+          id?: string
+          team_lead_user_id?: string | null
+        }
+        Update: {
+          added_by?: string | null
+          claimed_at?: string | null
+          claimed_member_id?: string | null
+          cohort_id?: string
+          created_at?: string
+          email?: string
+          id?: string
+          team_lead_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "programme_pending_enrolments_cohort_id_fkey"
+            columns: ["cohort_id"]
+            isOneToOne: false
+            referencedRelation: "programme_cohorts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "programme_pending_enrolments_claimed_member_id_fkey"
+            columns: ["claimed_member_id"]
+            isOneToOne: false
+            referencedRelation: "programme_cohort_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       programme_notification_sends: {
         Row: {
           channel: string | null
@@ -1928,6 +1976,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      programme_claim_pending_enrolments: { Args: Record<PropertyKey, never>; Returns: number }
       user_id_for_email: { Args: { p_email: string }; Returns: string }
     }
     Enums: {

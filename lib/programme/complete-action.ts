@@ -5,6 +5,7 @@ import { decideCompletion } from "./completion";
 import { parseQuizConfig, bestScore } from "./quiz";
 import { satisfiedSessionIds } from "./attendance";
 import { gateableContentItemIds } from "./content-readiness";
+import { resolveCompletedItemIds } from "./completed-items";
 
 /**
  * Stamps completion when all four gates pass, exactly once.
@@ -32,7 +33,7 @@ export async function maybeCompleteProgramme(
   const { data: member } = await supabase
     .from("programme_cohort_members")
     .select(
-      "id, user_id, completed_at, cohort_id, programme_cohorts!inner(track_id)",
+      "id, user_id, completed_at, cohort_id, joined_at, programme_cohorts!inner(track_id, is_test)",
     )
     .eq("id", cohortMemberId)
     .maybeSingle<{
@@ -40,7 +41,8 @@ export async function maybeCompleteProgramme(
       user_id: string;
       completed_at: string | null;
       cohort_id: string;
-      programme_cohorts: { track_id: string };
+      joined_at: string;
+      programme_cohorts: { track_id: string; is_test: boolean };
     }>();
 
   if (!member || member.completed_at) return false;
@@ -103,6 +105,33 @@ export async function maybeCompleteProgramme(
   ]);
 
   const itemList = items ?? [];
+
+  // Learn's own completion signal, which is half of what counts as done.
+  //
+  // This used to be missing, and the omission was invisible from the outside:
+  // the member's track page reads the union and showed every gate green, while
+  // this function counted item_progress alone, decided G1 had not passed, and
+  // never stamped anyone complete. Nobody got a certificate they had earned.
+  // Both sides now go through resolveCompletedItemIds.
+  const trackVideoIds = itemList
+    .map((i) => i.learn_video_id)
+    .filter((id): id is string => Boolean(id));
+  const { data: learnCompletions } = trackVideoIds.length
+    ? await supabase
+        .from("learn_video_completions")
+        .select("video_id, created_at")
+        .eq("user_id", member.user_id)
+        .in("video_id", trackVideoIds)
+        .returns<{ video_id: string; created_at: string }[]>()
+    : { data: [] as { video_id: string; created_at: string }[] };
+
+  const completedItemIds = resolveCompletedItemIds({
+    items: itemList,
+    progress: progress ?? [],
+    learnCompletions: learnCompletions ?? [],
+    joinedAt: member.programme_cohorts.is_test ? null : member.joined_at,
+  });
+
   const summative = itemList.find(
     (i) =>
       i.type === "quiz" &&
@@ -119,11 +148,7 @@ export async function maybeCompleteProgramme(
 
   const gates = computeGates({
     contentItemIds: gateableContentItemIds(itemList),
-    completedItemIds: new Set(
-      (progress ?? [])
-        .filter((p) => p.status === "complete")
-        .map((p) => p.track_item_id),
-    ),
+    completedItemIds,
     sessionItemIds: itemList.filter((i) => i.type === "session").map((i) => i.id),
     satisfiedSessionItemIds: satisfiedSessionIds(
       (attendance ?? []).map((a) => ({
