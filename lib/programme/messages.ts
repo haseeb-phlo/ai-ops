@@ -25,11 +25,17 @@ export type MemberReminder = {
   hasRejection: boolean;
 };
 
+/**
+ * The daily nudge, sent at 4pm rather than the Monday morning it was written
+ * for - hence no "Morning". Late afternoon is deliberate: it lands when
+ * there is still time to clear a ten-minute item today, and reads as a prompt
+ * rather than as a Monday-morning summons.
+ */
 export function memberReminderText(input: MemberReminder): string {
   const lines: string[] = [];
   const openings = input.hasRejection
-    ? `Morning ${input.firstName}. Your team lead sent one of your examples back with a note.`
-    : `Morning ${input.firstName}.`;
+    ? `${input.firstName}, your team lead sent one of your examples back with a note.`
+    : `${input.firstName}, a quick one on the Core Programme.`;
   lines.push(openings);
 
   if (input.outstandingCount > 0) {
@@ -38,7 +44,7 @@ export function memberReminderText(input: MemberReminder): string {
         ? ` (day${input.openDays.length === 1 ? "" : "s"} ${input.openDays.slice(0, 4).join(", ")})`
         : "";
     lines.push(
-      `You have ${input.outstandingCount} thing${input.outstandingCount === 1 ? "" : "s"} open on the Core Programme${days}. Most days are about ten minutes.`,
+      `You have ${input.outstandingCount} thing${input.outstandingCount === 1 ? "" : "s"} still open${days}. Most days are about ten minutes, so there is time before you log off.`,
     );
   }
 

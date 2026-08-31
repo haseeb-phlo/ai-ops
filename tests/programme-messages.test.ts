@@ -95,7 +95,7 @@ describe("memberReminderText", () => {
       hasRejection: false,
     });
     expect(text).toContain("Sam");
-    expect(text).toContain("3 things open");
+    expect(text).toContain("3 things still open");
     expect(text).toContain("days 4, 5");
     expect(text).toContain("ten minutes");
   });
@@ -119,7 +119,7 @@ describe("memberReminderText", () => {
       trackUrl: "https://x",
       hasRejection: false,
     });
-    expect(text).toContain("1 thing open");
+    expect(text).toContain("1 thing still open");
     expect(text).toContain("day 4");
   });
 

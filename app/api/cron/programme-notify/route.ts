@@ -33,7 +33,7 @@ import type { RagStatus } from "@/lib/programme/rag";
  * Programme notifications.
  *
  * One handler, four jobs, selected by `?job=`:
- *   member_reminder   - Mondays: DM anyone with outstanding items
+ *   member_reminder   - 4pm each weekday: DM anyone with outstanding items
  *   lead_digest       - Fridays: DM each lead their team plus sign-off queue
  *   day_90            - daily sweep: nudge cohorts that finished 90 days ago
  *   cohort_completion - 4pm on a cohort's final Friday: one channel post
@@ -61,6 +61,9 @@ const JOBS = [
 
 /** London hour the end-of-programme roundup goes out. */
 const COMPLETION_POST_HOUR = 16;
+
+/** London hour the daily member reminder goes out. */
+const MEMBER_REMINDER_HOUR = 16;
 type Job = (typeof JOBS)[number];
 
 function isoWeekKey(now: Date): string {
@@ -239,6 +242,18 @@ export async function GET(request: NextRequest) {
 
   /* ---------------- Monday: nudge members with work open ------------- */
   if (job === "member_reminder") {
+    // 4pm London, on the same dual-hour trick cohort_completion uses: Vercel
+    // schedules in UTC, London is UTC+1 for half the year, so the job runs on
+    // both candidate hours and the wrong one returns here. The per-day claim
+    // below makes the second firing a no-op in the half of the year where
+    // both clear this check.
+    if (hourInLondon(now) < MEMBER_REMINDER_HOUR) {
+      return NextResponse.json(
+        { ok: true, job, skipped: "before-4pm-london", today },
+        { headers: NO_STORE },
+      );
+    }
+
     // Progress per member, to say what is actually outstanding rather than
     // just "you have things to do".
     const { data: progress } = await supabase
@@ -310,8 +325,12 @@ export async function GET(request: NextRequest) {
       await send({
         kind: "member_reminder",
         userId: member.user_id,
-        periodKey: `${member.id}:${week}`,
-        subject: "Your Core Programme week",
+        // DATE, not ISO week. This was `${member.id}:${week}` while the job
+        // ran on Mondays, and leaving it that way when the schedule went
+        // daily would have claimed Monday's send and then silently skipped
+        // Tuesday to Friday - the job still returning 200 having "finished".
+        periodKey: `${member.id}:${today}`,
+        subject: "Your Core Programme day",
         text: memberReminderText({
           firstName: firstNameOf(recipient.displayName),
           outstandingCount: outstanding,
