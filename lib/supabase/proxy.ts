@@ -43,6 +43,17 @@ export async function updateSession(request: NextRequest) {
   if (!user && !isAuthRoute && !isCronRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
+    // Carry where they were going, so signing in resumes it instead of
+    // dumping everyone on the dashboard. This matters most for the cohort
+    // join link (/learn/join?code=AI-1A) shared in Slack: the code lives in
+    // the query string, and replacing the pathname alone used to drop the
+    // destination while keeping a now-meaningless `?code=` on /login - which
+    // also collides with the `code` param Supabase's own callback uses.
+    //
+    // The whole path+query goes into ONE encoded `next` value for that
+    // reason: nothing from the original URL is left loose at the top level.
+    const destination = `${path}${request.nextUrl.search}`;
+    url.search = `?next=${encodeURIComponent(destination)}`;
     return NextResponse.redirect(url);
   }
 

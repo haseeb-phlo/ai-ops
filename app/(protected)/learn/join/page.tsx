@@ -31,13 +31,17 @@ export default async function JoinPage({
         description="Phlo's 15-day AI training. Enter the code from your invite."
       />
       <JoinForm prefilled={code ?? null} />
+      {/* This paragraph used to promise an open library to browse in the
+          meantime. That stopped being true when Learn became a gate: without
+          a cohort you get a locked empty state, so the old copy sent people
+          to a dead end and made the programme look broken on the one screen
+          they had been invited to. Say what is actually true instead. */}
       <p className="max-w-prose text-sm text-muted-foreground">
-        Haven&apos;t got a code? The programme runs in cohorts - you&apos;ll be
-        invited when yours starts. Everything in{" "}
-        <a href="/learn" className="text-primary underline underline-offset-4">
-          Learn
-        </a>{" "}
-        is open to browse in the meantime.
+        Haven&apos;t got a code? The programme runs in cohorts, and the
+        training opens when yours starts - there is nothing to browse before
+        then. You&apos;ll be added to a cohort Slack channel and invited from
+        there. If you think you should already be on one, ask whoever invited
+        you or message a super-admin in Slack.
       </p>
     </PageContainer>
   );

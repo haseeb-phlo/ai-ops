@@ -23,6 +23,19 @@ type Status =
 
 const RESEND_COOLDOWN_SECONDS = 30;
 
+/**
+ * Where to go after signing in.
+ *
+ * Open-redirect guard, the same rule /auth/callback applies to its own `next`:
+ * relative paths under our origin only. This copy is NOT redundant - the
+ * 6-digit code path verifies in the browser and never reaches the callback, so
+ * it is the only guard on that route.
+ */
+function safeNext(raw: string | null): string {
+  if (!raw) return "/";
+  return raw.startsWith("/") && !raw.startsWith("//") ? raw : "/";
+}
+
 function friendlySignInError({
   slug,
   errorCode,
@@ -77,6 +90,17 @@ export default function LoginPage() {
   const [code, setCode] = useState("");
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const [linkError, setLinkError] = useState<string | null>(null);
+  // Where proxy.ts wanted to send them before the sign-in gate.
+  //
+  // Read once, in a lazy initialiser, for two reasons: the error handling
+  // below rewrites the URL and would otherwise take `next` with it, and this
+  // value is only ever read inside submit handlers - never rendered - so
+  // resolving to "/" on the server costs no hydration mismatch.
+  const [nextPath] = useState(() =>
+    typeof window === "undefined"
+      ? "/"
+      : safeNext(new URLSearchParams(window.location.search).get("next")),
+  );
   // Seconds remaining before "Resend code" re-enables. Started after every
   // successful send so a user can't hammer the OTP endpoint.
   const [resendCooldown, setResendCooldown] = useState(0);
@@ -137,7 +161,9 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        // The link half of the email. `next` rides through the callback,
+        // which applies its own open-redirect guard before honouring it.
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`,
       },
     });
 
@@ -195,7 +221,28 @@ export default function LoginPage() {
       });
       return;
     }
-    router.replace("/");
+
+    // The two first-sign-in claims that /auth/callback runs. This path never
+    // reaches it - verifyOtp completes in the browser - so without these,
+    // whether your roster enrolment materialises depends on whether you
+    // clicked the link in the email or typed the code out of it. Both are
+    // granted to `authenticated` and are idempotent.
+    //
+    // Non-fatal, exactly as in the callback: failing to sign in because of a
+    // training enrolment would be far worse than an enrolment that waits for
+    // the next visit.
+    const [linkResult, claimResult] = await Promise.all([
+      supabase.rpc("link_ai_score_responses"),
+      supabase.rpc("programme_claim_pending_enrolments"),
+    ]);
+    if (linkResult.error) {
+      console.warn("[login] AI Score link failed", linkResult.error.message);
+    }
+    if (claimResult.error) {
+      console.warn("[login] cohort claim failed", claimResult.error.message);
+    }
+
+    router.replace(nextPath);
     router.refresh();
   }
 
