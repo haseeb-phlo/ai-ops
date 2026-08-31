@@ -59,6 +59,27 @@ export const DAY_TOPICS: readonly string[] = [
 export const SESSION_DAYS = [3, 8, 13] as const;
 
 /**
+ * Day 1's exercise, which is the one exception to the pattern below.
+ *
+ * Every other day pairs its video with "apply the technique to something on
+ * your own desk". Day 1 cannot: its topic is when to use AI and when not to,
+ * which is a judgement rather than a technique, so there is no technique yet
+ * to apply. Worse, on the cohort's first morning a good number of people do
+ * not yet have an account to apply anything in - the welcome post in both
+ * cohort channels asks them to sort exactly that out.
+ *
+ * So day 1 buys the setup the remaining fourteen days assume, and then ends on
+ * the single judgement the day is actually teaching. Naming a task you would
+ * NOT hand over is the honest version of this topic: a programme that only
+ * ever asks where AI helps has quietly answered its own first question.
+ */
+const DAY_ONE_EXERCISE = {
+  title: "Set up Claude, and find your line",
+  description:
+    "Sign in to Claude with your Phlo email, install the desktop app, then run one real task from this week through it. Finish by writing down one task you would deliberately NOT give AI, and why - knowing where that line sits is the whole of today.",
+} as const;
+
+/**
  * One quiz at the end of each week. Weeks 1 and 2 are short formative checks;
  * week 3 is the longer summative quiz that gate G4 reads.
  *
@@ -140,8 +161,12 @@ export function buildTrackItems(): TrackItemSpec[] {
     // ("watched everything") satisfiable without doing any of the exercises.
     items.push({
       type: "use_example",
-      title: `${topic} - try it yourself`,
-      description: "Apply the day's technique to something on your own desk.",
+      title:
+        dayIndex === 1 ? DAY_ONE_EXERCISE.title : `${topic} - try it yourself`,
+      description:
+        dayIndex === 1
+          ? DAY_ONE_EXERCISE.description
+          : "Apply the day's technique to something on your own desk.",
       dayIndex,
       sortOrder: SORT.use_example,
     });

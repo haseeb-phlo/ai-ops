@@ -24,7 +24,7 @@ with track as (
   values
     ('questionnaire_baseline', 'Your AI Score - 3-minute check-in', 'A quick self-assessment. It sets your starting point and unlocks the programme.', 0, 0, null, '{}'::jsonb),
     ('video', 'When to use AI and when not to', null, 1, 0, 'When to use AI and when not to', '{}'::jsonb),
-    ('use_example', 'When to use AI and when not to - try it yourself', 'Apply the day''s technique to something on your own desk.', 1, 1, null, '{}'::jsonb),
+    ('use_example', 'Set up Claude, and find your line', 'Sign in to Claude with your Phlo email, install the desktop app, then run one real task from this week through it. Finish by writing down one task you would deliberately NOT give AI, and why - knowing where that line sits is the whole of today.', 1, 1, null, '{}'::jsonb),
     ('submission_slot', 'Work sample (before)', null, 1, 4, null, '{"kind":"work_sample_pre","visibility":"private"}'::jsonb),
     ('video', 'CRISPE Framework', null, 2, 0, 'CRISPE Framework', '{}'::jsonb),
     ('use_example', 'CRISPE Framework - try it yourself', 'Apply the day''s technique to something on your own desk.', 2, 1, null, '{}'::jsonb),
@@ -88,7 +88,7 @@ update public.programme_track_items i
   from (values
     (0, 0, 'Your AI Score - 3-minute check-in', 'A quick self-assessment. It sets your starting point and unlocks the programme.'),
     (1, 0, 'When to use AI and when not to', null),
-    (1, 1, 'When to use AI and when not to - try it yourself', 'Apply the day''s technique to something on your own desk.'),
+    (1, 1, 'Set up Claude, and find your line', 'Sign in to Claude with your Phlo email, install the desktop app, then run one real task from this week through it. Finish by writing down one task you would deliberately NOT give AI, and why - knowing where that line sits is the whole of today.'),
     (1, 4, 'Work sample (before)', null),
     (2, 0, 'CRISPE Framework', null),
     (2, 1, 'CRISPE Framework - try it yourself', 'Apply the day''s technique to something on your own desk.'),
