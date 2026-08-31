@@ -45,6 +45,15 @@ export type TrackItemView = {
    */
   dayArrived?: boolean;
   /**
+   * Locked by week one's checkpoint rather than by its date - rule 2b.
+   *
+   * Needed because the two are indistinguishable from `state` alone, and the
+   * date is actively misleading here: a day held by the checkpoint has a
+   * release date that has already passed, so "Unlocks 7 Sep" on the 8th reads
+   * as a bug rather than as a thing the member can do something about.
+   */
+  blockedByWeekOne?: boolean;
+  /**
    * The date this item's day opens, for the "Released on ..." line.
    *
    * Carried separately from `unlockDate` because the two answer different
@@ -195,7 +204,9 @@ export function TrackItemCard({
                   )}
                 />
                 {locked
-                  ? `Unlocks ${format(new Date(`${item.unlockDate}T00:00:00`), "d MMM")}`
+                  ? item.blockedByWeekOne
+                    ? "Submit week 1 first"
+                    : `Unlocks ${format(new Date(`${item.unlockDate}T00:00:00`), "d MMM")}`
                   : awaitingVideo
                     ? "Coming soon"
                     : style.label}
@@ -300,6 +311,7 @@ export function TrackItemCard({
                 <SubmissionDialog
                   cohortId={cohortId}
                   trackItemId={item.id}
+                  kind={item.submission?.kind ?? "signed_example"}
                   title={item.title}
                   isResubmission={item.submission?.signoffStatus === "rejected"}
                   rejectionComment={item.submission?.signoffComment ?? null}

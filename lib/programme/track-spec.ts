@@ -127,12 +127,14 @@ export const QUIZ_SPECS = [
  * backlog, five asked for a week apart is a habit.
  */
 export const SUBMISSION_SLOT_SPECS = [
+  { kind: "work_sample_pre", dayIndex: 1, title: "Work sample (before)", visibility: "private" },
   { kind: "signed_example", dayIndex: 3, title: "Signed example 1", visibility: "cohort" },
   { kind: "signed_example", dayIndex: 6, title: "Signed example 2", visibility: "cohort" },
   { kind: "signed_example", dayIndex: 9, title: "Signed example 3", visibility: "cohort" },
   { kind: "signed_example", dayIndex: 12, title: "Signed example 4", visibility: "cohort" },
   { kind: "signed_example", dayIndex: 14, title: "Signed example 5", visibility: "cohort" },
   { kind: "capstone", dayIndex: 13, title: "Capstone", visibility: "cohort" },
+  { kind: "work_sample_post", dayIndex: 15, title: "Work sample (after)", visibility: "private" },
 ] as const;
 
 /** Render order within a single day. */

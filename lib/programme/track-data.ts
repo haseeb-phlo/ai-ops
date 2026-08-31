@@ -13,7 +13,12 @@ import {
   type ItemState,
   type ResolvedItem,
 } from "./unlock";
-import { todayInLondon, hasReached, unlockDateFor } from "./working-days";
+import {
+  todayInLondon,
+  hasReached,
+  unlockDateFor,
+  weekOf,
+} from "./working-days";
 import { pickMembership, rankMemberships } from "./membership";
 import { gateableContentItemIds, isAwaitingContent } from "./content-readiness";
 
@@ -71,6 +76,16 @@ export type TrackState = {
    * measure and would only lock the sandbox shut. See unlock.ts.
    */
   entryGateOpen: boolean;
+  /**
+   * Week one's checkpoint - rule 2b in unlock.ts. Week two stays shut until
+   * both of week one's submissions exist, and `outstanding` is what the page
+   * names so the member can see the wall before walking into it.
+   */
+  weekOneGate: {
+    satisfied: boolean;
+    required: { id: string; title: string; dayIndex: number }[];
+    outstanding: { id: string; title: string; dayIndex: number }[];
+  };
   hasPostResponse: boolean;
   items: ResolvedItem<TrackItemRow>[];
   videosById: Map<string, TrackVideo>;
@@ -309,12 +324,40 @@ export const loadTrackState = cache(
       (i) => i.type === "quiz" && i.config_json?.summative === true,
     );
 
+    // ---- Week one's checkpoint (rule 2b) --------------------------------
+    // Both of week one's submissions must exist before week two opens. Built
+    // here rather than in unlock.ts because it needs the submission rows, and
+    // computed before resolveItemStates because it is an input to it.
+    //
+    // SUBMITTED, not approved, and not superseded - a resubmission after a
+    // rejection supersedes the original, and the member has still submitted.
+    const liveSubmissions = (submissionRows ?? []).filter(
+      (s) => !s.superseded_by,
+    );
+    const submittedItemIds = new Set(
+      liveSubmissions
+        .map((s) => s.track_item_id)
+        .filter((id): id is string => id !== null),
+    );
+    const weekOneRequired = items
+      .filter((i) => i.type === "submission_slot" && weekOf(i.day_index) === 1)
+      .map((i) => ({ id: i.id, title: i.title, dayIndex: i.day_index }));
+    const weekOneOutstanding = weekOneRequired.filter(
+      (i) => !submittedItemIds.has(i.id),
+    );
+    // A preview run is exempt, for the same reason the entry gate exempts it:
+    // it is excluded from every report, so there is nothing to protect and the
+    // gate could only hold the sandbox shut a week in.
+    const weekOneSubmissionsIn =
+      cohort.is_test || weekOneOutstanding.length === 0;
+
     const resolved = resolveItemStates({
       items,
       startDate: cohort.start_date,
       today,
       hasBaseline,
       enforceBaselineGate: !cohort.is_test,
+      weekOneSubmissionsIn,
       progressByItemId: effectiveProgress,
       summativeItemIds: new Set(summativeItem ? [summativeItem.id] : []),
     });
@@ -374,6 +417,11 @@ export const loadTrackState = cache(
     // the member attending or being excused with a make-up.
     const hasImpossibleGate = sessionItems.some((item) => {
       if (satisfiedSessionItemIds.has(item.id)) return false;
+      // Never terminal for a session they were locked out of. Week two's
+      // session still passes on its date while rule 2b holds it shut, and
+      // calling G2 impossible for missing a session nobody let them into
+      // turns a recoverable "submit week one" into a permanent red.
+      if (!weekOneSubmissionsIn && weekOf(item.day_index) > 1) return false;
       const dates = cohort.session_dates?.[item.id] ?? [];
       // Fallback for a cohort whose session has no date set yet: the session's
       // own programme day. "daily" is named rather than left to the default,
@@ -518,6 +566,11 @@ export const loadTrackState = cache(
       today,
       hasBaseline,
       entryGateOpen,
+      weekOneGate: {
+        satisfied: weekOneSubmissionsIn,
+        required: weekOneRequired,
+        outstanding: weekOneOutstanding,
+      },
       hasPostResponse,
       items: resolved,
       videosById,

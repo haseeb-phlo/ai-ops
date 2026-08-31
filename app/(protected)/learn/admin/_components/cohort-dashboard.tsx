@@ -1,8 +1,12 @@
 "use client";
 
+import { useState, useTransition } from "react";
+import { DownloadIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import { PROGRAMME_RAG, type ProgrammeRagStatus } from "@/lib/status";
 import { GATE_DESCRIPTION, GATE_IDS, GATE_LABEL } from "@/lib/programme/gates";
+import { exportWorkSamplePairs } from "../actions";
 
 export type HeatmapMember = {
   cohortMemberId: string;
@@ -28,11 +32,13 @@ const DAY_LABEL: Record<string, string> = {
 };
 
 export function CohortDashboard({
+  cohortId,
   members,
   dayIndexes,
   funnel,
   attendance,
 }: {
+  cohortId: string;
   members: HeatmapMember[];
   dayIndexes: number[];
   funnel: { total: number; perGate: Record<string, number>; complete: number };
@@ -49,6 +55,7 @@ export function CohortDashboard({
       <GateFunnel funnel={funnel} />
       <Heatmap members={members} dayIndexes={dayIndexes} />
       <AttendanceSummary rows={attendance} />
+      <ExportCard cohortId={cohortId} />
     </div>
   );
 }
@@ -227,3 +234,54 @@ function AttendanceSummary({
   );
 }
 
+function ExportCard({ cohortId }: { cohortId: string }) {
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  const download = () => {
+    setError(null);
+    startTransition(async () => {
+      const result = await exportWorkSamplePairs(cohortId);
+      if (!result.ok) {
+        setError(result.message);
+        return;
+      }
+      const blob = new Blob([result.csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = result.filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+  };
+
+  return (
+    <section className="rounded-lg border border-border bg-background p-4">
+      <h3 className="text-sm font-semibold tracking-tight text-foreground">
+        Work samples for blind scoring
+      </h3>
+      <p className="mt-1 max-w-prose text-sm text-muted-foreground">
+        Before/after pairs, keyed by a stable hash. No name, email or team -
+        the scorer shouldn&apos;t be able to tell whose work they&apos;re
+        reading, and the file leaves our control once it&apos;s downloaded.
+      </p>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="mt-3"
+        onClick={download}
+        disabled={pending}
+      >
+        <DownloadIcon aria-hidden />
+        {pending ? "Preparing…" : "Download CSV"}
+      </Button>
+      {error && (
+        <p className="mt-2 text-sm text-destructive" role="alert">
+          {error}
+        </p>
+      )}
+    </section>
+  );
+}

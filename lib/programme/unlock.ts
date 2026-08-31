@@ -7,9 +7,20 @@
  *   2. Until a cohort_baseline response exists, NOTHING else is available.
  *      That is what makes the check-in mandatory rather than a suggestion.
  *   3. The FINAL measurement - the summative quiz and the post check-in -
- *      unlocks by date regardless of rule 2, so someone who never did the
- *      baseline can still be measured at the end.
+ *      unlocks by date regardless of rules 2 and 2b, so someone who never did
+ *      the baseline can still be measured at the end.
  *   4. Everything else unlocks on start_date + (day_index - 1) working days.
+ *
+ * And rule 2b, which is rule 2 one week later: until BOTH of week one's
+ * submissions are in, nothing from week two onward unlocks. Week one is the
+ * checkpoint the programme actually cares about - the "before" work sample is
+ * a measurement that stops meaning anything once someone has had a week of
+ * training, and the first signed example is the first evidence that any of
+ * this reached their actual desk. Neither is worth collecting late.
+ *
+ * SUBMITTED, not approved. Sign-off routes to one person for the whole
+ * cohort, so gating on approval would let a slow review queue hold twenty
+ * people out of week two. The bar is that the work exists.
  *
  * And one invariant that overrides all of them: an item that has been started
  * or completed NEVER re-locks. Shift workers catch up whenever they can, and a
@@ -22,6 +33,7 @@ import {
   DEFAULT_UNLOCK_MODE,
   hasReached,
   unlockDateFor,
+  weekOf,
   type IsoDate,
   type UnlockMode,
 } from "./working-days";
@@ -63,6 +75,15 @@ export function resolveItemStates<T extends TrackItemLike>(args: {
   today: IsoDate;
   /** True once the member has a wave='cohort_baseline' response. */
   hasBaseline: boolean;
+  /**
+   * Whether week one's submissions are in - rule 2b.
+   *
+   * Defaults to TRUE, i.e. ungated, so every existing caller and test keeps
+   * its behaviour and only a caller that has actually checked can shut week
+   * two. The same defaulting reason as `enforceBaselineGate`, opposite
+   * polarity, because this one names the satisfied state.
+   */
+  weekOneSubmissionsIn?: boolean;
   /**
    * Whether rule 2 applies. Defaults to true, and only a TEST cohort turns it
    * off.
@@ -128,6 +149,14 @@ export function resolveItemStates<T extends TrackItemLike>(args: {
     }
 
     if (!args.hasBaseline && (args.enforceBaselineGate ?? true)) {
+      return { item, state: "locked", unlockDate };
+    }
+
+    // Rule 2b. Sits AFTER the gate-exempt check above, so the post check-in
+    // and the summative quiz stay reachable - a member who never submits week
+    // one must still be measurable at the end, and locking day 15 behind day 1
+    // would make G4 permanently unreachable rather than merely unmet.
+    if (weekOf(item.day_index) > 1 && !(args.weekOneSubmissionsIn ?? true)) {
       return { item, state: "locked", unlockDate };
     }
 

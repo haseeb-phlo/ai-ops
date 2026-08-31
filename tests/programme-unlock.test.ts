@@ -309,3 +309,66 @@ describe("weekly unlock, still supported though no longer the default", () => {
     expect(stateOf(r, "gate")).toBe("available");
   });
 });
+
+describe("week one's checkpoint (rule 2b)", () => {
+  // Far enough in that dates alone would have opened everything.
+  const LATE = "2026-09-18";
+  const shut = (overrides = {}) =>
+    resolveItemStates({
+      items,
+      startDate: START,
+      today: LATE,
+      hasBaseline: true,
+      unlockMode: "daily",
+      weekOneSubmissionsIn: false,
+      ...overrides,
+    });
+
+  it("leaves week one open", () => {
+    const r = shut();
+    for (const id of ["gate", "d1v", "d1u", "d5q"]) {
+      expect(stateOf(r, id)).not.toBe("locked");
+    }
+  });
+
+  it("shuts week two and week three", () => {
+    const r = shut();
+    expect(stateOf(r, "d8s")).toBe("locked");
+    expect(stateOf(r, "d15v")).toBe("locked");
+  });
+
+  it("never shuts the final measurement", () => {
+    // The same exemption the baseline gate makes. Locking these behind week
+    // one would put G4 permanently out of reach for anyone who did not
+    // submit - unmet is recoverable, unreachable is not.
+    const r = shut({ summativeItemIds: new Set(["d15q"]) });
+    expect(stateOf(r, "d15q")).toBe("available");
+    expect(stateOf(r, "d15p")).toBe("available");
+  });
+
+  it("opens week two the moment the submissions land", () => {
+    const r = shut({ weekOneSubmissionsIn: true });
+    expect(stateOf(r, "d8s")).toBe("available");
+    expect(stateOf(r, "d15v")).toBe("available");
+  });
+
+  it("defaults to ungated, so a caller that has not checked shuts nothing", () => {
+    const r = resolveItemStates({
+      items,
+      startDate: START,
+      today: LATE,
+      hasBaseline: true,
+      unlockMode: "daily",
+    });
+    expect(stateOf(r, "d8s")).toBe("available");
+  });
+
+  it("does not re-lock work already started", () => {
+    // The invariant that outranks every other rule: a member who got into
+    // week two before the checkpoint existed keeps what they touched.
+    const r = shut({
+      progressByItemId: new Map([["d8s", "started" as ItemState]]),
+    });
+    expect(stateOf(r, "d8s")).toBe("started");
+  });
+});

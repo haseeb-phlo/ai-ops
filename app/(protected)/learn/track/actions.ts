@@ -260,15 +260,30 @@ export async function submitProgrammeSubmission(
     return { kind: "error", message: "That slot isn't on your track." };
   }
 
-  // Every slot on the track is now a signed example or the capstone. The
-  // work-sample kinds are gone, and with them the branch that made a
-  // submission private, self-approving and exempt from review.
   const kind = item.config_json?.kind ?? "signed_example";
+  const isWorkSample = kind.startsWith("work_sample");
 
-  const visibility = parsed.data.share_publicly ? "public_gallery" : "cohort";
+  // Work samples feed external blind scoring and are never shown to peers.
+  const visibility = isWorkSample
+    ? "private"
+    : parsed.data.share_publicly
+      ? "public_gallery"
+      : "cohort";
 
-  if (!parsed.data.prompt_text) {
+  if (!isWorkSample && !parsed.data.prompt_text) {
     return { kind: "error", message: "Add the prompt you used." };
+  }
+
+  // A work sample asks for one field and used to require none of them, so the
+  // slot could be submitted empty - which marked the item done and filed a row
+  // carrying nothing. That is worse than not submitting: the before/after
+  // export reads artefact_url off these, so an empty "before" silently becomes
+  // a member with no baseline to measure against, discovered at the end.
+  if (isWorkSample && !parsed.data.artefact_url) {
+    return {
+      kind: "error",
+      message: "Add a link to the work itself - that is the whole submission.",
+    };
   }
 
   // Any live (non-superseded) submission against this slot.
@@ -295,7 +310,8 @@ export async function submitProgrammeSubmission(
       task_solved: parsed.data.task_solved ?? null,
       time_saved_estimate: parsed.data.time_saved_estimate ?? null,
       visibility,
-      signoff_status: "pending",
+      // Work samples need no human sign-off; everything else queues for a lead.
+      signoff_status: isWorkSample ? "approved" : "pending",
     })
     .select("id")
     .maybeSingle<{ id: string }>();
@@ -330,7 +346,7 @@ export async function submitProgrammeSubmission(
   // spinner while a model thinks. A nightly sweep catches anything this
   // never reached, and either way an unreviewed submission just waits for a
   // human - which is where it would have waited anyway.
-  {
+  if (!isWorkSample) {
     const submissionId = created.id;
     after(async () => {
       await runAiReview(submissionId);

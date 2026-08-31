@@ -77,6 +77,8 @@ export default async function TrackPage({
         startDate: state.cohort.startDate,
         today: state.today,
       }),
+      blockedByWeekOne:
+        !state.weekOneGate.satisfied && weekOf(resolved.item.day_index) > 1,
       // Daily arithmetic, matching hasDayArrived - so the date the card
       // prints is exactly the date it starts showing the item.
       releaseDate: unlockDateFor(
@@ -215,6 +217,29 @@ export default async function TrackPage({
             g3Routes={state.g3Routes}
           />
         </>
+      )}
+
+      {/* Week one's checkpoint, said up front rather than at the wall.
+          Without this the first sign of it is week two failing to open on
+          the Monday, by which point the "before" sample it is asking for has
+          stopped being a before. Shown from day one, and only while
+          something is actually outstanding. */}
+      {state.entryGateOpen && !state.weekOneGate.satisfied && (
+        <div className="rounded-md border border-border border-l-2 border-l-warning bg-background px-4 py-3">
+          <p className="text-sm font-medium text-foreground">
+            {state.weekOneGate.outstanding.length === 1
+              ? "One thing to submit before week 2 opens"
+              : `${state.weekOneGate.outstanding.length} things to submit before week 2 opens`}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Week 2 stays shut until{" "}
+            {state.weekOneGate.outstanding
+              .map((i) => `${i.title} (day ${i.dayIndex})`)
+              .join(" and ")}{" "}
+            {state.weekOneGate.outstanding.length === 1 ? "is" : "are"} in. You
+            do not need them signed off - submitting is enough.
+          </p>
+        </div>
       )}
 
       {state.entryGateOpen && (
