@@ -125,7 +125,19 @@ export async function GET(request: NextRequest) {
       }[]
     >();
 
-  const liveCohorts = (cohorts ?? []).filter((c) => !c.is_test);
+  // Preview runs INCLUDED. They used to be filtered out here, which meant the
+  // one cohort anybody walks before launch was the one that never sent
+  // anything - so the reminders, the digest and the roundup went out for the
+  // first time to a real cohort, having never been seen.
+  //
+  // Safe because a preview has exactly one member, its own admin, so the DMs
+  // it produces go to the person testing it. Channel posts need
+  // `slack_channel` set on the cohort; unset, notifyChannel no-ops.
+  //
+  // This is deliberately NOT the same decision as reporting, which still
+  // excludes test cohorts: a preview must be able to show you what a message
+  // looks like without its answers entering the numbers.
+  const liveCohorts = cohorts ?? [];
   if (liveCohorts.length === 0) {
     return NextResponse.json(
       { ok: true, job, skipped: "no-live-cohorts" },
@@ -480,7 +492,9 @@ export async function GET(request: NextRequest) {
         { id: string; name: string; start_date: string; is_test: boolean }[]
       >();
 
-    for (const cohort of (past ?? []).filter((c) => !c.is_test)) {
+    // Preview runs included here too, for the same reason as the live list
+    // above: every message the programme can send should be seeable in one.
+    for (const cohort of past ?? []) {
       // Day 15 is 14 working days in; 90 calendar days after that.
       const endedDaysAgo = Math.floor(
         (Date.parse(`${today}T00:00:00Z`) -
