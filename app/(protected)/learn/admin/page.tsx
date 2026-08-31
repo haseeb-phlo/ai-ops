@@ -184,9 +184,16 @@ export default async function ProgrammeAdminPage({
       .filter((e): e is string => Boolean(e)),
   );
 
-  // Default to the first live cohort, falling back to the most recent.
+  // Default to the first live REAL cohort, falling back to any live one and
+  // then to the most recent.
+  //
+  // The is_test check is what makes this useful: a super admin's own preview
+  // run is permanently live, so once real cohorts went live too, "first live
+  // cohort" could land the admin on their sandbox - and every count, roster
+  // and sign-off queue on the page would quietly be the sandbox's.
   const selectedId =
     cohortParam ??
+    cohortList.find((c) => c.status === "live" && !c.is_test)?.id ??
     cohortList.find((c) => c.status === "live")?.id ??
     cohortList[0]?.id ??
     null;
