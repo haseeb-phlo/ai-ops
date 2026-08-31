@@ -274,6 +274,18 @@ export async function submitProgrammeSubmission(
     return { kind: "error", message: "Add the prompt you used." };
   }
 
+  // A work sample asks for one field and used to require none of them, so the
+  // slot could be submitted empty - which marked the item done and filed a row
+  // carrying nothing. That is worse than not submitting: the before/after
+  // export reads artefact_url off these, so an empty "before" silently becomes
+  // a member with no baseline to measure against, discovered at the end.
+  if (isWorkSample && !parsed.data.artefact_url) {
+    return {
+      kind: "error",
+      message: "Add a link to the work itself - that is the whole submission.",
+    };
+  }
+
   // Any live (non-superseded) submission against this slot.
   const { data: existing } = await supabase
     .from("programme_submissions")

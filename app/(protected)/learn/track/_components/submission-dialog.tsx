@@ -91,6 +91,10 @@ export function SubmissionDialog({
               name="artefact_url"
               type="url"
               placeholder="https://…"
+              // Required for a work sample, which has no other field: without
+              // it the form submits empty and ticks the slot off. The server
+              // enforces this too - this only saves a round trip.
+              required={isWorkSample}
             />
           </div>
 
