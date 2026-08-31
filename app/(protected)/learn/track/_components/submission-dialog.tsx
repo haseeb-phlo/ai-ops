@@ -69,7 +69,7 @@ export function SubmissionDialog({
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>
             {isWorkSample
-              ? "One piece of work you did with Claude - a conversation, a draft, a summary, an analysis, anything at all. Send it exactly as it is; it is not meant to be tidied up. This one is private: only admins see it, and it measures the programme rather than you."
+              ? "Submit a piece of work you've done using Claude - a Project, a Cowork session, an Artefact, a Scheduled Task or anything at all. Send it exactly as it is; it is not meant to be tidied up. This is private and it measures the programme rather than you."
               : "Share what you made with Claude and the prompt behind it. Your team lead signs it off."}
           </DialogDescription>
         </DialogHeader>
