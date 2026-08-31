@@ -48,6 +48,12 @@ export const ADMIN_NAV_ITEM: NavItem = {
 /**
  * Shared active-route test: exact match for the dashboard root, prefix
  * match (with a path-segment boundary) for everything else.
+ *
+ * Also used by the AI Training section strip in
+ * `lib/programme/learn-nav.ts`, which is the second level of this
+ * vocabulary: the pages inside one section rather than the sections
+ * themselves. Nothing else lists app sections; anything that lists the
+ * pages inside /learn belongs there, not here.
  */
 export function isNavActive(pathname: string, href: string): boolean {
   if (href === "/") return pathname === "/";

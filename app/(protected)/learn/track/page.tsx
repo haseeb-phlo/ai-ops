@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { ArrowRightIcon } from "lucide-react";
 import { getSessionUser } from "@/lib/auth";
 import { loadTrackState } from "@/lib/programme/track-data";
 import { isAwaitingContent } from "@/lib/programme/content-readiness";
@@ -144,15 +143,6 @@ export default async function TrackPage({
       <PageHeader
         title="Core Programme"
         description={`${state.cohort.name} · started ${state.cohort.startDate}`}
-        actions={
-          <Link
-            href="/learn/gallery"
-            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-          >
-            Prompt library
-            <ArrowRightIcon className="size-4" aria-hidden />
-          </Link>
-        }
       />
 
       {(state.cohort.status === "complete" ||

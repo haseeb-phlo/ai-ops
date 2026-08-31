@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { getSessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { loadCohortAdminView } from "@/lib/programme/cohort-admin";
@@ -239,23 +238,9 @@ export default async function ProgrammeAdminPage({
         title="Programme admin"
         description="Attendance, progress and the AI Score baseline."
         actions={
-          <>
-            {cohortList.length > 0 && (
-              <CohortPicker cohorts={cohortList} selectedId={selectedId} />
-            )}
-            <Link
-              href="/learn/library"
-              className="text-sm text-muted-foreground hover:text-foreground"
-            >
-              Video library
-            </Link>
-            <Link
-              href="/learn/track"
-              className="text-sm text-muted-foreground hover:text-foreground"
-            >
-              Member view
-            </Link>
-          </>
+          cohortList.length > 0 ? (
+            <CohortPicker cohorts={cohortList} selectedId={selectedId} />
+          ) : undefined
         }
       />
 

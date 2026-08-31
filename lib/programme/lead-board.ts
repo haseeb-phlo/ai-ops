@@ -68,60 +68,91 @@ export type LeadBoard = {
   autoApproved: ReviewedSubmission[];
 };
 
-export const loadLeadBoard = cache(
-  async (userId: string): Promise<LeadBoard> => {
-    const supabase = await createClient();
+const LED_MEMBER_SELECT =
+  "id, user_id, rag_status, rag_computed_at, completed_at, programme_cohorts!inner(name, status, default_approver_user_id)";
 
-    // Two routes onto this board: named as someone's team lead, or named as a
-    // cohort's default approver. The second exists because the org tree routes
-    // every exec to the CEO, so early cohorts name the programme owner instead.
-    //
-    // TWO QUERIES, NOT ONE `or`. The obvious version is a single `.or()`
-    // listing both, and it does not work: `team_lead_user_id` is a column on
-    // this table while `default_approver_user_id` lives on the embedded
-    // cohort, and PostgREST cannot mix the two in one logic tree. It does not
-    // degrade either - it rejects the whole request with PGRST100, which
-    // arrives here as `data: null` and turns into `isLead: false`. That reads
-    // exactly like "nobody is assigned to you", so the board went quietly
-    // empty for every lead and every approver rather than erroring visibly.
-    const memberSelect =
-      "id, user_id, rag_status, rag_computed_at, completed_at, programme_cohorts!inner(name, status, default_approver_user_id)";
-    type MemberRow = {
-      id: string;
-      user_id: string;
-      rag_status: RagStatus | null;
-      rag_computed_at: string | null;
-      completed_at: string | null;
-      programme_cohorts: {
-        name: string;
-        status: string;
-        default_approver_user_id: string | null;
-      };
-    };
+type LedMemberRow = {
+  id: string;
+  user_id: string;
+  rag_status: RagStatus | null;
+  rag_computed_at: string | null;
+  completed_at: string | null;
+  programme_cohorts: {
+    name: string;
+    status: string;
+    default_approver_user_id: string | null;
+  };
+};
+
+/**
+ * Who this person signs off for.
+ *
+ * Its own function so the AI Training section nav can ask the cheap question
+ * ("do they lead anybody?") without loading the whole board, and - the reason
+ * it is a shared function and not a second query - so that question can never
+ * answer differently from the board itself. cache() makes the nav's call and
+ * the board's first step one round trip per request.
+ *
+ * Two routes onto this board: named as someone's team lead, or named as a
+ * cohort's default approver. The second exists because the org tree routes
+ * every exec to the CEO, so early cohorts name the programme owner instead.
+ *
+ * TWO QUERIES, NOT ONE `or`. The obvious version is a single `.or()`
+ * listing both, and it does not work: `team_lead_user_id` is a column on
+ * this table while `default_approver_user_id` lives on the embedded
+ * cohort, and PostgREST cannot mix the two in one logic tree. It does not
+ * degrade either - it rejects the whole request with PGRST100, which
+ * arrives here as `data: null` and turns into `isLead: false`. That reads
+ * exactly like "nobody is assigned to you", so the board went quietly
+ * empty for every lead and every approver rather than erroring visibly.
+ */
+const loadLedMembers = cache(
+  async (userId: string): Promise<LedMemberRow[]> => {
+    const supabase = await createClient();
 
     const [{ data: ledRows }, { data: approverRows }] = await Promise.all([
       supabase
         .from("programme_cohort_members")
-        .select(memberSelect)
+        .select(LED_MEMBER_SELECT)
         .eq("team_lead_user_id", userId)
         .in("programme_cohorts.status", ["live", "planned", "complete"])
-        .returns<MemberRow[]>(),
+        .returns<LedMemberRow[]>(),
       supabase
         .from("programme_cohort_members")
-        .select(memberSelect)
+        .select(LED_MEMBER_SELECT)
         .eq("programme_cohorts.default_approver_user_id", userId)
         .in("programme_cohorts.status", ["live", "planned", "complete"])
-        .returns<MemberRow[]>(),
+        .returns<LedMemberRow[]>(),
     ]);
 
     // Both routes can name the same person, so merge on member id rather than
     // concatenating - otherwise they are listed twice and their pending count
     // is doubled.
-    const byId = new Map<string, MemberRow>();
+    const byId = new Map<string, LedMemberRow>();
     for (const row of [...(ledRows ?? []), ...(approverRows ?? [])]) {
       byId.set(row.id, row);
     }
-    const members = [...byId.values()];
+    return [...byId.values()];
+  },
+);
+
+/**
+ * Does this person lead anybody - i.e. is /learn/leads worth a tab in the AI
+ * Training section nav?
+ *
+ * There is no "team lead" role, so this is the only way to ask. The board
+ * itself stays reachable by everyone and shows an empty state, which is what
+ * makes it safe for the nav to hide the tab rather than gate the page.
+ */
+export async function isProgrammeLead(userId: string): Promise<boolean> {
+  return (await loadLedMembers(userId)).length > 0;
+}
+
+export const loadLeadBoard = cache(
+  async (userId: string): Promise<LeadBoard> => {
+    const supabase = await createClient();
+
+    const members = await loadLedMembers(userId);
     if (members.length === 0) {
       return { isLead: false, members: [], pending: [], autoApproved: [] };
     }
