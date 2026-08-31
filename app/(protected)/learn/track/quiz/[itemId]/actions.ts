@@ -1,13 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { after } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { requireWriter } from "@/lib/auth";
 import { parseQuizConfig, scoreAttempt } from "@/lib/programme/quiz";
 import { maybeCompleteProgramme } from "@/lib/programme/complete-action";
-import { announceCompletion } from "@/lib/programme/announce-completion";
 import { resolveWritableMembership } from "@/lib/programme/membership-lookup";
 
 /**
@@ -127,18 +125,12 @@ export async function submitQuizAttempt(
 
   // The summative quiz is half of G4, so passing it can be the last thing
   // standing between someone and finishing the programme.
+  // Still returned to the caller: the result screen reads it to say "that was
+  // the last gate". It no longer triggers a DM - the only completion
+  // announcement left is the cohort roundup on the final Friday.
   const justCompletedProgramme = passed
     ? await maybeCompleteProgramme(membership.id)
     : false;
-
-  // Deferred: the member is watching a score screen render, and the DM plus
-  // the channel post are two network calls they should not wait on.
-  if (justCompletedProgramme) {
-    const memberId = membership.id;
-    after(async () => {
-      await announceCompletion(memberId);
-    });
-  }
 
   revalidatePath("/learn/track");
   revalidatePath("/learn");

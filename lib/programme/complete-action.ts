@@ -14,15 +14,15 @@ import { resolveCompletedItemIds } from "./completed-items";
  * approving the fifth signed example, submitting the post check-in. It is safe
  * to call speculatively - it no-ops unless this is genuinely the moment.
  *
- * Returns true only on the transition, so the caller can show "you're done"
- * and fire the announcement. The UPDATE is guarded on `completed_at is null`,
- * so two concurrent calls cannot both report the transition and announce the
- * same person twice.
+ * Returns true only on the transition, so a caller can distinguish "finished
+ * just now" from "finished last week". The UPDATE is guarded on `completed_at
+ * is null`, so two concurrent calls cannot both report the transition.
  *
- * IT DOES NOT ANNOUNCE. Every caller that gets `true` should hand the member
- * id to `announceCompletion` from ./announce-completion - wrapped in `after()`
- * when it is on a request path, because that call talks to Slack and to
- * Resend and has no business holding up the response that completed someone.
+ * IT DOES NOT ANNOUNCE, and nothing else does either any more. There used to
+ * be a per-person DM here; the only completion announcement left is the single
+ * cohort roundup posted at 4pm on the final Friday by the `cohort_completion`
+ * job. The member sees their own completion on /learn/track, which is where
+ * they already are when it happens.
  *
  * @param client Pass one when there is no user session to borrow - the
  * automatic reviewer runs in an after() callback and in a cron sweep, and

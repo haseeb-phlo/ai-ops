@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { after } from "next/server";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
@@ -14,7 +13,6 @@ import {
 } from "@/lib/programme/questions";
 import { scoreAnswer, type Answers } from "@/lib/programme/score";
 import { maybeCompleteProgramme } from "@/lib/programme/complete-action";
-import { announceCompletion } from "@/lib/programme/announce-completion";
 import { pickMembership } from "@/lib/programme/membership";
 import type { ActionState } from "../../topics";
 
@@ -169,15 +167,7 @@ export async function submitAiScore(formData: FormData): Promise<ActionState> {
   // stays a single announcement either way.
   if (parsed.data.wave === "post") {
     for (const m of memberships ?? []) {
-      const justCompleted = await maybeCompleteProgramme(m.id);
-      // Deferred, and it has to be: this path ends in a redirect, so awaiting
-      // Slack here would stall the navigation that shows them their score.
-      if (justCompleted) {
-        const memberId = m.id;
-        after(async () => {
-          await announceCompletion(memberId);
-        });
-      }
+      await maybeCompleteProgramme(m.id);
     }
   }
 

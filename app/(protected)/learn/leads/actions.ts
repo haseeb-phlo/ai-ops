@@ -1,12 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { after } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { requireWriter } from "@/lib/auth";
 import { maybeCompleteProgramme } from "@/lib/programme/complete-action";
-import { announceCompletion } from "@/lib/programme/announce-completion";
 import { notifyRejection } from "@/lib/programme/notify-rejection";
 
 /**
@@ -124,14 +122,7 @@ export async function signOffSubmission(
       .eq("id", parsed.data.submission_id)
       .maybeSingle<{ cohort_member_id: string }>();
     if (submission) {
-      const memberId = submission.cohort_member_id;
-      // Deferred so a lead clearing a sign-off queue is never made to wait on
-      // somebody else's DM.
-      if (await maybeCompleteProgramme(memberId)) {
-        after(async () => {
-          await announceCompletion(memberId);
-        });
-      }
+      await maybeCompleteProgramme(submission.cohort_member_id);
     }
   }
 
