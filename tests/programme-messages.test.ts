@@ -73,8 +73,21 @@ describe("house style", () => {
       expect(text.toLowerCase()).not.toContain("you are behind");
       expect(text.toLowerCase()).not.toContain("you have failed");
       expect(text.toLowerCase()).not.toContain("urgent");
-      expect(text).not.toContain("!");
     }
+  });
+
+  it("keeps exclamation marks out of anything that asks for work", () => {
+    // The ban used to cover every message, which read as a blanket style rule
+    // and was really a pressure rule: an exclamation mark in a nudge or a
+    // sent-back note is a robot raising its voice at someone mid-shift.
+    //
+    // It is the opposite in the two messages that congratulate. Those are the
+    // only place the programme gets to sound pleased, and holding them to the
+    // register of a reminder made finishing fifteen days land flat.
+    const asksForWork = ALL.filter(
+      (t) => !t.includes("completed the Core Programme") && !t.includes("Congratulations"),
+    );
+    for (const text of asksForWork) expect(text).not.toContain("!");
   });
 
   it("gives exactly one link per message", () => {
@@ -95,7 +108,7 @@ describe("memberReminderText", () => {
       hasRejection: false,
     });
     expect(text).toContain("Sam");
-    expect(text).toContain("3 things still open");
+    expect(text).toContain("3 things open");
     expect(text).toContain("days 4, 5");
     expect(text).toContain("ten minutes");
   });
@@ -108,7 +121,12 @@ describe("memberReminderText", () => {
       trackUrl: "https://x",
       hasRejection: true,
     });
-    expect(text.split("\n")[0]).toContain("sent one of your examples back");
+    expect(text.split("\n")[0]).toContain(
+      "one of your examples has been sent back",
+    );
+    // Names no reviewer: sign-off can route to a cohort default approver or an
+    // AI-assisted review, neither of which is "your team lead".
+    expect(text).not.toContain("team lead");
   });
 
   it("gets the singular right", () => {
@@ -119,7 +137,7 @@ describe("memberReminderText", () => {
       trackUrl: "https://x",
       hasRejection: false,
     });
-    expect(text).toContain("1 thing still open");
+    expect(text).toContain("1 thing open");
     expect(text).toContain("day 4");
   });
 

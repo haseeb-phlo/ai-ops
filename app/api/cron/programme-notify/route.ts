@@ -33,7 +33,7 @@ import type { RagStatus } from "@/lib/programme/rag";
  * Programme notifications.
  *
  * One handler, four jobs, selected by `?job=`:
- *   member_reminder   - 4pm each weekday: DM anyone with outstanding items
+ *   member_reminder   - Mondays 9am: DM anyone with outstanding items
  *   lead_digest       - Fridays: DM each lead their team plus sign-off queue
  *   day_90            - daily sweep: nudge cohorts that finished 90 days ago
  *   cohort_completion - 4pm on a cohort's final Friday: one channel post
@@ -62,8 +62,8 @@ const JOBS = [
 /** London hour the end-of-programme roundup goes out. */
 const COMPLETION_POST_HOUR = 16;
 
-/** London hour the daily member reminder goes out. */
-const MEMBER_REMINDER_HOUR = 16;
+/** London hour the Monday member reminder goes out. */
+const MEMBER_REMINDER_HOUR = 9;
 type Job = (typeof JOBS)[number];
 
 function isoWeekKey(now: Date): string {
@@ -242,9 +242,9 @@ export async function GET(request: NextRequest) {
 
   /* ---------------- Monday: nudge members with work open ------------- */
   if (job === "member_reminder") {
-    // 4pm London, on the same dual-hour trick cohort_completion uses: Vercel
+    // 9am London, on the same dual-hour trick cohort_completion uses: Vercel
     // schedules in UTC, London is UTC+1 for half the year, so the job runs on
-    // both candidate hours and the wrong one returns here. The per-day claim
+    // both candidate hours and the wrong one returns here. The per-week claim
     // below makes the second firing a no-op in the half of the year where
     // both clear this check.
     if (hourInLondon(now) < MEMBER_REMINDER_HOUR) {
@@ -325,12 +325,13 @@ export async function GET(request: NextRequest) {
       await send({
         kind: "member_reminder",
         userId: member.user_id,
-        // DATE, not ISO week. This was `${member.id}:${week}` while the job
-        // ran on Mondays, and leaving it that way when the schedule went
-        // daily would have claimed Monday's send and then silently skipped
-        // Tuesday to Friday - the job still returning 200 having "finished".
-        periodKey: `${member.id}:${today}`,
-        subject: "Your Core Programme day",
+        // ISO WEEK, matching the Monday schedule. This must track the
+        // cadence: keyed on the date while the job ran daily, and keyed on
+        // the week now it is Mondays again. Get it wrong in either direction
+        // and the claim either suppresses sends that should go or lets both
+        // of the dual-hour firings through.
+        periodKey: `${member.id}:${week}`,
+        subject: "Your Core Programme week",
         text: memberReminderText({
           firstName: firstNameOf(recipient.displayName),
           outstandingCount: outstanding,

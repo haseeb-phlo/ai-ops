@@ -25,17 +25,17 @@ export type MemberReminder = {
   hasRejection: boolean;
 };
 
-/**
- * The daily nudge, sent at 4pm rather than the Monday morning it was written
- * for - hence no "Morning". Late afternoon is deliberate: it lands when
- * there is still time to clear a ten-minute item today, and reads as a prompt
- * rather than as a Monday-morning summons.
- */
+/** The Monday 9am nudge. */
 export function memberReminderText(input: MemberReminder): string {
   const lines: string[] = [];
+  // The sent-back opening names no one. It used to say "your team lead", which
+  // is wrong whenever the reviewer was not them - sign-off can route to a
+  // cohort's default approver, and an AI-assisted review is not a team lead at
+  // all. The passive is the accurate voice here, and the note itself is in the
+  // rejection DM that already went out.
   const openings = input.hasRejection
-    ? `${input.firstName}, your team lead sent one of your examples back with a note.`
-    : `${input.firstName}, a quick one on the Core Programme.`;
+    ? `${input.firstName}, one of your examples has been sent back with a note.`
+    : `Morning ${input.firstName}.`;
   lines.push(openings);
 
   if (input.outstandingCount > 0) {
@@ -44,7 +44,7 @@ export function memberReminderText(input: MemberReminder): string {
         ? ` (day${input.openDays.length === 1 ? "" : "s"} ${input.openDays.slice(0, 4).join(", ")})`
         : "";
     lines.push(
-      `You have ${input.outstandingCount} thing${input.outstandingCount === 1 ? "" : "s"} still open${days}. Most days are about ten minutes, so there is time before you log off.`,
+      `You have ${input.outstandingCount} thing${input.outstandingCount === 1 ? "" : "s"} open on the Core Programme${days}. Most days are about ten minutes.`,
     );
   }
 
@@ -104,7 +104,7 @@ export function cohortSummaryText(input: CohortSummary): string {
     );
   }
   lines.push(
-    "Got something good working? Drop it in the thread so someone else can steal it.",
+    "Got something good working? Drop it in the thread so someone else can get inspired.",
   );
   return lines.join("\n");
 }
@@ -136,7 +136,7 @@ export type ProgrammeCompleted = {
 export function programmeCompleteText(input: ProgrammeCompleted): string {
   return [
     `${input.firstName}, you have completed the Core Programme.`,
-    `All four gates, ${input.cohortName}. That is the whole fifteen days done.`,
+    `All four gates, ${input.cohortName}. That is the whole fifteen days done. Congratulations!`,
     input.trackUrl,
   ].join("\n\n");
 }
@@ -176,7 +176,7 @@ export function cohortCompletionText(input: CohortCompletion): string {
   return [
     `*${input.cohortName} - the Core Programme is done*`,
     `Congratulations to ${joinNames(input.mentions)}.`,
-    "Fifteen days of videos, worked examples, live sessions and signed examples, finished alongside the day job. Their prompts are in the library if you want to steal one.",
+    "Fifteen days of videos, worked examples, live sessions and signed examples, finished alongside the day job.",
   ].join("\n\n");
 }
 
