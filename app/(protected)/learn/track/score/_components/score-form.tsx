@@ -1,12 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { ChevronDownIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  QUESTIONS,
+  questionsForWave,
   type Question,
   type Wave,
 } from "@/lib/programme/questions";
@@ -58,7 +57,6 @@ export function ScoreForm({
   });
   const [touched, setTouched] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
-  const [showOptional, setShowOptional] = useState(false);
   const [pending, startTransition] = useTransition();
 
   // Measured client-side and sent with the submission. Part 7 uses the median
@@ -77,17 +75,23 @@ export function ScoreForm({
     setTouched((prev) => new Set(prev).add(qid));
   };
 
+  // Only what THIS wave asks. QUESTIONS is the full historical set and
+  // rendering it directly is what put "How many hours per week does AI save
+  // you" on the page twice - once as q19b's bands, once as q19's free-text
+  // box, which May asked and nothing since should.
+  const asked = useMemo(() => questionsForWave(wave), [wave]);
+
   const sections = useMemo(
     () => ({
-      A: QUESTIONS.filter((q) => q.section === "A"),
-      C: QUESTIONS.filter((q) => q.section === "C"),
-      D: QUESTIONS.filter((q) => q.section === "D"),
-      E: QUESTIONS.filter((q) => q.section === "E"),
+      A: asked.filter((q) => q.section === "A"),
+      C: asked.filter((q) => q.section === "C"),
+      D: asked.filter((q) => q.section === "D"),
+      E: asked.filter((q) => q.section === "E"),
     }),
-    [],
+    [asked],
   );
 
-  const required = QUESTIONS.filter((q) => q.required);
+  const required = asked.filter((q) => q.required);
   const answeredRequired = required.filter((q) => answers[q.id]).length;
   const progress = Math.round((answeredRequired / required.length) * 100);
   const missing = required.filter((q) => !answers[q.id]);
@@ -205,40 +209,30 @@ export function ScoreForm({
         ))}
       </Section>
 
-      {/* Optional free text, collapsed. Never blocks submission. */}
+      {/* Free text, always open. It used to be behind an expander, which
+          made the most useful answers in the whole instrument the ones you
+          had to go looking for - and a collapsed section on a form people
+          are told takes three minutes reads as "not for you". Still never
+          blocks submission. */}
       <div className="rounded-lg border border-border bg-background">
-        <button
-          type="button"
-          onClick={() => setShowOptional((v) => !v)}
-          className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-medium text-foreground"
-          aria-expanded={showOptional}
-        >
+        <div className="px-4 py-3 text-sm font-medium text-foreground">
           Want to add anything?
-          <ChevronDownIcon
-            aria-hidden
-            className={cn(
-              "size-4 text-muted-foreground transition-transform",
-              showOptional && "rotate-180",
-            )}
-          />
-        </button>
-        {showOptional && (
-          <div className="space-y-5 border-t border-border p-4">
-            <p className="text-xs text-muted-foreground">
-              All optional - skip anything you&apos;d rather not answer.
-            </p>
-            {sections.E.map((q) => (
-              <QuestionField
-                key={q.id}
-                question={q}
-                value={answers[q.id] ?? ""}
-                onChange={(v) => setAnswer(q.id, v)}
-                carriedForward={false}
-                prefillLabel={prefillLabel}
-              />
-            ))}
-          </div>
-        )}
+        </div>
+        <div className="space-y-5 border-t border-border p-4">
+          <p className="text-xs text-muted-foreground">
+            Skip anything you&apos;d rather not answer.
+          </p>
+          {sections.E.map((q) => (
+            <QuestionField
+              key={q.id}
+              question={q}
+              value={answers[q.id] ?? ""}
+              onChange={(v) => setAnswer(q.id, v)}
+              carriedForward={false}
+              prefillLabel={prefillLabel}
+            />
+          ))}
+        </div>
       </div>
 
       {error && (
@@ -299,9 +293,6 @@ function QuestionField({
     <fieldset id={name} className="space-y-2">
       <legend className="flex flex-wrap items-baseline gap-2 text-sm text-foreground">
         <span className={compact ? "" : "font-medium"}>{question.text}</span>
-        {!question.required && (
-          <span className="text-xs text-muted-foreground">(optional)</span>
-        )}
         {carriedForward && prefillLabel && (
           <span className="rounded bg-muted px-1.5 py-0.5 text-3xs font-medium uppercase tracking-wide text-muted-foreground">
             from {prefillLabel}

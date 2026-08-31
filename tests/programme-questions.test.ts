@@ -9,6 +9,7 @@ import {
   MAY_QID_BY_COLUMN_ORDER,
   QUESTIONS,
   QUESTION_BY_ID,
+  questionsForWave,
   REQUIRED_QUESTION_IDS,
   normalizeAnswerText,
 } from "@/lib/programme/questions";
@@ -169,6 +170,40 @@ describe("compulsory questions", () => {
       if (/^q(\d+)$/.test(q.id) && Number(q.id.slice(1)) <= 23) {
         expect(q.addedInWave).toBeUndefined();
       }
+    }
+  });
+});
+
+describe("questionsForWave", () => {
+  it("asks how many hours AI saves you exactly once", () => {
+    // q19 (free text, May) and q19b (bands) ask the same thing. Both shipped
+    // in the cohort_baseline form, so section D asked it twice in a row.
+    const asked = questionsForWave("cohort_baseline");
+    const hours = asked.filter((q) =>
+      q.text.toLowerCase().startsWith("how many hours per week does ai save"),
+    );
+    expect(hours).toHaveLength(1);
+    expect(hours[0].id).toBe("q19b");
+    expect(hours[0].kind).toBe("choice");
+  });
+
+  it("still asks the free-text version in the wave it belongs to", () => {
+    const asked = questionsForWave("may_2026");
+    expect(asked.map((q) => q.id)).toContain("q19");
+    // And not the band version, which did not exist then.
+    expect(asked.map((q) => q.id)).not.toContain("q19b");
+  });
+
+  it("keeps the retired question resolvable, because May answers exist", () => {
+    // Retired from the form, NOT deleted: 108 May responses carry q19
+    // answers, the import maps headers onto it and the export names it.
+    expect(QUESTION_BY_ID.get("q19")).toBeDefined();
+    expect(QUESTION_BY_ID.get("q19")?.retiredAfterWave).toBe("may_2026");
+  });
+
+  it("drops it from every wave after May", () => {
+    for (const wave of ["cohort_baseline", "post", "day_90"] as const) {
+      expect(questionsForWave(wave).map((q) => q.id)).not.toContain("q19");
     }
   });
 });

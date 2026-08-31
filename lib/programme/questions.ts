@@ -70,6 +70,16 @@ export type Question = {
   section: "A" | "C" | "D" | "E";
   /** Set when the question did not exist in the May 2026 wave. */
   addedInWave?: Wave;
+  /**
+   * Last wave this question is ASKED in. Later waves skip it.
+   *
+   * Retired rather than deleted, and the distinction matters: 108 May 2026
+   * responses carry answers to q19, the May import maps two spreadsheet
+   * headers onto it, and the reporting export resolves its text through
+   * QUESTION_BY_ID. Deleting the row would orphan all three - the historical
+   * answers would still be in the database with nothing able to name them.
+   */
+  retiredAfterWave?: Wave;
 };
 
 /** The seven radar axes, in FIXED render order. Never reorder. */
@@ -259,6 +269,10 @@ export const QUESTIONS: readonly Question[] = [
     kind: "text",
     required: false,
     section: "D",
+    // Superseded by q19b, which asks the same thing as a band. Both shipped
+    // together in the cohort_baseline form, so section D asked how many hours
+    // AI saves you twice in a row - once as a dropdown, once as a box.
+    retiredAfterWave: "may_2026",
   },
   {
     id: "q19b",
@@ -288,6 +302,24 @@ export const QUESTIONS: readonly Question[] = [
 export const QUESTION_BY_ID: ReadonlyMap<string, Question> = new Map(
   QUESTIONS.map((q) => [q.id, q]),
 );
+
+/**
+ * The questions a given wave actually asks.
+ *
+ * QUESTIONS is the full historical set, because every wave's answers have to
+ * stay resolvable; this is the subset a respondent sees. Use it for anything
+ * member-facing - QUESTIONS directly is for import, export and lookup.
+ */
+export function questionsForWave(wave: Wave): readonly Question[] {
+  const index = WAVES.indexOf(wave);
+  return QUESTIONS.filter((q) => {
+    if (q.addedInWave && WAVES.indexOf(q.addedInWave) > index) return false;
+    if (q.retiredAfterWave && WAVES.indexOf(q.retiredAfterWave) < index) {
+      return false;
+    }
+    return true;
+  });
+}
 
 /** Ids a respondent must answer before the form will submit. */
 export const REQUIRED_QUESTION_IDS: readonly string[] = QUESTIONS.filter(
