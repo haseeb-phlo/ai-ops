@@ -163,36 +163,14 @@ export default async function TrackPage({
         </p>
       )}
 
-      {state.cohort.isTest && (
-        <p className="rounded-md border border-border border-l-2 border-l-warning bg-background px-3 py-2 text-xs text-foreground">
-          This is your private preview run, not a real cohort. Nothing here
-          reaches reporting or notifications.
-          {state.otherCohorts.length > 0 && (
-            <>
-              {" "}
-              <Link
-                href={`/learn/track?cohort=${state.otherCohorts[0].id}`}
-                className="text-primary underline underline-offset-4"
-              >
-                Switch to {state.otherCohorts[0].name}
-              </Link>
-            </>
-          )}
-        </p>
-      )}
+      {/* No preview-run banner, and no cross-link to one. A preview exists to
+          show you the member's page; anything drawn onto it that a member
+          would not see is the page lying to you about itself.
 
-      {!state.cohort.isTest && state.otherCohorts.some((c) => c.isTest) && (
-        <p className="text-xs text-muted-foreground">
-          You also have a{" "}
-          <Link
-            href={`/learn/track?cohort=${state.otherCohorts.find((c) => c.isTest)!.id}`}
-            className="text-primary underline underline-offset-4"
-          >
-            preview run
-          </Link>
-          .
-        </p>
-      )}
+          The banner had also gone stale in a way that mattered - it promised
+          the preview reached neither reporting nor notifications, and the
+          preview now sends. The cohort's name is in the header above, which
+          is how you tell which one you are looking at. */}
 
       {!state.entryGateOpen ? (
         <BaselineGateCard />
