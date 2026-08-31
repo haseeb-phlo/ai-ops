@@ -119,7 +119,7 @@ export type TrackState = {
  * The member's current programme state, or null when they aren't in a live
  * cohort (which is most people until they're enrolled).
  */
-export const loadTrackState = cache(
+const loadTrackStateFor = cache(
   async (
     userId: string,
     userEmail: string,
@@ -129,7 +129,7 @@ export const loadTrackState = cache(
      * sandbox should never quietly replace the programme they are actually
      * doing. The preview is reachable by passing its id explicitly.
      */
-    preferredCohortId?: string | null,
+    preferredCohortId: string | null,
   ): Promise<TrackState | null> => {
     const supabase = await createClient();
 
@@ -586,3 +586,22 @@ export const loadTrackState = cache(
     };
   },
 );
+
+/**
+ * NORMALISES THE OPTIONAL ARGUMENT BEFORE cache() SEES IT.
+ *
+ * `cache()` keys on the arguments it is called with, so `(id, email)` and
+ * `(id, email, null)` are two different entries and would each run the whole
+ * multi-query load. That was harmless while only pages called this; it stopped
+ * being harmless when learn/layout.tsx started asking on every /learn route,
+ * because /learn/track asks with `cohortParam ?? null` and would have paid
+ * twice on the section's busiest page. A default applied inside the memoized
+ * function would not have helped - it is applied after the key is computed.
+ */
+export function loadTrackState(
+  userId: string,
+  userEmail: string,
+  preferredCohortId: string | null = null,
+): Promise<TrackState | null> {
+  return loadTrackStateFor(userId, userEmail, preferredCohortId);
+}

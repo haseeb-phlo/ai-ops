@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { SparklesIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
@@ -143,14 +142,6 @@ export default async function GalleryPage({
       <PageHeader
         title="Prompt library"
         description="Prompts from across Phlo that a team lead has signed off as genuinely useful. Copy one and make it yours."
-        actions={
-          <Link
-            href="/learn"
-            className="text-sm text-muted-foreground hover:text-foreground"
-          >
-            Back to Learn
-          </Link>
-        }
       />
 
       {entries.length > 0 && (

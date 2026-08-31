@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { LockIcon } from "lucide-react";
 import { getSessionUser } from "@/lib/auth";
 import { loadTrackState } from "@/lib/programme/track-data";
-import { learnAccess, canManageLibrary } from "@/lib/programme/learn-access";
+import { learnAccess } from "@/lib/programme/learn-access";
 import { PageContainer, PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { buttonVariants } from "@/components/ui/button";
@@ -46,24 +46,6 @@ export default async function LearnPage() {
       <PageHeader
         title="AI Training"
         description="Phlo's 15-day AI programme, run in cohorts."
-        actions={
-          canManageLibrary(user.realRole) ? (
-            <>
-              <Link
-                href="/learn/library"
-                className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-              >
-                Video library
-              </Link>
-              <Link
-                href="/learn/admin"
-                className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-              >
-                Programme admin
-              </Link>
-            </>
-          ) : undefined
-        }
       />
 
       {access === "checkin" ? (

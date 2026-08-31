@@ -61,14 +61,6 @@ export default async function LeadsPage() {
               ? `${needAttention} of your team need a nudge`
               : "Everyone's on track."
         }
-        actions={
-          <Link
-            href="/learn/gallery"
-            className="text-sm text-muted-foreground hover:text-foreground"
-          >
-            Prompt library
-          </Link>
-        }
       />
 
       <section className="space-y-3">

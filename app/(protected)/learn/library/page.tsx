@@ -1,6 +1,5 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeftIcon, PlayIcon } from "lucide-react";
+import { PlayIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionUser } from "@/lib/auth";
 import { fetchLoomOembed } from "@/lib/loom";
@@ -222,18 +221,7 @@ export default async function LibraryPage() {
       <PageHeader
         title="Video library"
         description="Every Loom walkthrough and its supporting materials. Members see these through their programme track, not here."
-        actions={
-          <>
-            <Link
-              href="/learn/admin"
-              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-            >
-              <ArrowLeftIcon aria-hidden className="size-3.5" />
-              Programme admin
-            </Link>
-            <AddVideoDialog />
-          </>
-        }
+        actions={<AddVideoDialog />}
       />
 
       {videoRows.length > 0 && (
