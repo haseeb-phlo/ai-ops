@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { isNavActive } from "@/lib/navigation";
 import {
+  isFocusedLearnRoute,
   LEARN_SECTIONS,
   LEARN_SECTION_KEYS,
   learnNavSections,
@@ -75,5 +76,22 @@ describe("learnNavSections", () => {
       expect(isNavActive("/learn", LEARN_SECTIONS[key].href)).toBe(false);
       expect(isNavActive("/learn/join", LEARN_SECTIONS[key].href)).toBe(false);
     }
+  });
+});
+
+describe("isFocusedLearnRoute", () => {
+  it("hides the strip for the whole of a quiz, attempt and result alike", () => {
+    expect(isFocusedLearnRoute("/learn/track/quiz/abc")).toBe(true);
+  });
+
+  it("leaves every section's own route alone", () => {
+    for (const key of LEARN_SECTION_KEYS) {
+      expect(isFocusedLearnRoute(LEARN_SECTIONS[key].href)).toBe(false);
+    }
+    expect(isFocusedLearnRoute("/learn")).toBe(false);
+    // The AI Score check-in is the same shape of surface - a form holding
+    // unsubmitted answers - and keeps the strip. Listed here so the boundary
+    // is a decision on the record rather than an omission.
+    expect(isFocusedLearnRoute("/learn/track/score")).toBe(false);
   });
 });
