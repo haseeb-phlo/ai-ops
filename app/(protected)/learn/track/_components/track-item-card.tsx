@@ -117,7 +117,6 @@ export function TrackItemCard({
   // Defaults to true so a caller that has not been taught about day pacing
   // shows everything rather than silently blanking the whole track.
   const dayArrived = item.dayArrived ?? true;
-  const showThumbnail = Boolean(item.video?.thumbnail_url) && dayArrived;
   // Everything below the header hangs off this rather than off `locked`, so a
   // day still to come renders as its release line and nothing else - no
   // player, no "coming soon" placeholder, no submit button.
@@ -242,18 +241,14 @@ export function TrackItemCard({
                   className="group relative flex aspect-video w-full items-center justify-center overflow-hidden rounded-md bg-muted"
                   aria-label={`Play ${item.video.title}`}
                 >
-                  {/* Still frame only once the day has come round. A day
-                      that is open only because it was started early should
-                      not advertise itself alongside today's - the video
-                      stays playable, it just is not sold. */}
-                  {showThumbnail && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={item.video.thumbnail_url!}
-                      alt=""
-                      className="absolute inset-0 h-full w-full object-cover"
-                    />
-                  )}
+                  {/* No still frame, for any day. It used to render for a
+                      day that had arrived, gated on the same predicate as the
+                      title - but a thumbnail is a picture OF the content, and
+                      the whole point of the day-by-day drip is that you meet
+                      the content on its day. A play button on a plain panel
+                      says "there is a video here" without saying what is in
+                      it, which is all this card needs to say. The library
+                      keeps its thumbnails; that is an admin surface. */}
                   <span className="relative flex size-11 items-center justify-center rounded-full bg-black/70 text-white transition group-hover:bg-black/85">
                     <PlayIcon className="size-5" aria-hidden />
                   </span>
@@ -306,7 +301,6 @@ export function TrackItemCard({
                   cohortId={cohortId}
                   trackItemId={item.id}
                   title={item.title}
-                  kind={item.submission?.kind ?? "signed_example"}
                   isResubmission={item.submission?.signoffStatus === "rejected"}
                   rejectionComment={item.submission?.signoffComment ?? null}
                 />
