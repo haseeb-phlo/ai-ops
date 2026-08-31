@@ -87,9 +87,13 @@ export function stepsToGreen(input: {
 
     steps.push({
       key: "catch-up",
+      // The day is part of the name, not decoration. Every day's exercise is
+      // titled just "Task" now that the topic is on the video above it, so
+      // "Finish Task" would name nothing at all - and even for a video,
+      // "Finish Artifacts" reads better with the day it belongs to attached.
       title:
         take.length === 1
-          ? `Finish ${take[0].title}`
+          ? `Finish day ${take[0].dayIndex}: ${take[0].title}`
           : `Finish ${describeDays(days)}`,
       why:
         take.length === 1

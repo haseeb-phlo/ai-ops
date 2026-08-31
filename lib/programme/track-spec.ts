@@ -36,8 +36,21 @@ export type TrackItemSpec = {
   config?: Record<string, unknown>;
 };
 
-/** The 15 daily topics, verbatim from the programme playbook. */
+/**
+ * The 15 daily topics.
+ *
+ * Day 1 is "What is AI and how does it work?" - foundations before judgement.
+ * Adding it shifted every other topic one day later, and a 15-day programme
+ * has no room for sixteen: "Choosing the right tool + measuring time saved"
+ * came off the end rather than any topic being reordered out of sequence.
+ *
+ * The question mark on day 1 is load-bearing. Videos bind by exact
+ * (lowercased) title match against `learn_videos`, and the library row is
+ * titled "What is AI and how does it work?" - drop the mark and the seed binds
+ * null, leaving day 1 reading "coming soon" on the cohort's first morning.
+ */
 export const DAY_TOPICS: readonly string[] = [
+  "What is AI and how does it work?",
   "When to use AI and when not to",
   "CRISPE Framework",
   "Connectors & MCP",
@@ -52,31 +65,37 @@ export const DAY_TOPICS: readonly string[] = [
   "Design",
   "Dispatch + Plugins",
   "Claude everywhere",
-  "Choosing the right tool + measuring time saved",
 ] as const;
+
+/**
+ * What day 1's video covers, shown under its title.
+ *
+ * Prose rather than a list because the card renders a description as a single
+ * paragraph - newlines collapse, so a bulleted string would run together into
+ * something that reads like a mistake.
+ */
+const DAY_ONE_VIDEO_DESCRIPTION =
+  "Prediction rather than lookup, the context window, training cutoff vs live data, the three failure sources and Time-Back Log setup.";
 
 /** Live sessions land mid-week in each of the three weeks. */
 export const SESSION_DAYS = [3, 8, 13] as const;
 
 /**
- * Day 1's exercise, which is the one exception to the pattern below.
+ * Day 1's task, which is the one exception to the pattern below.
  *
- * Every other day pairs its video with "apply the technique to something on
- * your own desk". Day 1 cannot: its topic is when to use AI and when not to,
- * which is a judgement rather than a technique, so there is no technique yet
- * to apply. Worse, on the cohort's first morning a good number of people do
- * not yet have an account to apply anything in - the welcome post in both
- * cohort channels asks them to sort exactly that out.
+ * Every other day asks you to apply the day's technique to something on your
+ * own desk. Day 1 has no technique to apply - it explains how the thing works
+ * before asking anyone to use it - and on the cohort's first morning a good
+ * number of people do not yet have an account to apply anything in. The
+ * welcome post in both cohort channels asks them to sort exactly that out.
  *
- * So day 1 buys the setup the remaining fourteen days assume, and then ends on
- * the single judgement the day is actually teaching. Naming a task you would
- * NOT hand over is the honest version of this topic: a programme that only
- * ever asks where AI helps has quietly answered its own first question.
+ * So day 1 buys the setup the remaining fourteen days assume. Running one real
+ * task through it is the part that matters: an account nobody has opened is
+ * not setup, it is a licence.
  */
 const DAY_ONE_EXERCISE = {
-  title: "Set up Claude, and find your line",
   description:
-    "Sign in to Claude with your Phlo email, install the desktop app, then run one real task from this week through it. Finish by writing down one task you would deliberately NOT give AI, and why - knowing where that line sits is the whole of today.",
+    "Sign in to Claude with your Phlo email, install the desktop app, then run one real task from this week through it.",
 } as const;
 
 /**
@@ -154,6 +173,7 @@ export function buildTrackItems(): TrackItemSpec[] {
     items.push({
       type: "video",
       title: topic,
+      description: dayIndex === 1 ? DAY_ONE_VIDEO_DESCRIPTION : undefined,
       dayIndex,
       sortOrder: SORT.video,
       learnVideoTitle: topic,
@@ -162,10 +182,14 @@ export function buildTrackItems(): TrackItemSpec[] {
     // "now go do it" half of the day, and binding it to the same video would
     // let one tick on /learn complete both items - which would make G1
     // ("watched everything") satisfiable without doing any of the exercises.
+    // Titled just "Task". It used to be `${topic} - try it yourself`, which
+    // sat directly under a video already carrying the topic - so every day
+    // printed its subject twice and then added four words that said nothing.
+    // The card groups items under their day, so the noun alone is unambiguous
+    // and the description carries the actual instruction.
     items.push({
       type: "use_example",
-      title:
-        dayIndex === 1 ? DAY_ONE_EXERCISE.title : `${topic} - try it yourself`,
+      title: "Task",
       description:
         dayIndex === 1
           ? DAY_ONE_EXERCISE.description

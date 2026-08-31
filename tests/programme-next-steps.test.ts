@@ -29,15 +29,18 @@ describe("the shortest route back to green", () => {
     expect(out.steps[0].why).toContain("5 items");
   });
 
-  it("names the single item when only one stands in the way", () => {
+  it("names the single item, with the day it belongs to", () => {
     const out = stepsToGreen({
       ...base,
       outstanding: [
-        { dayIndex: 4, title: "Projects - try it yourself" },
+        { dayIndex: 4, title: "Task" },
         { dayIndex: 5, title: "Week 1 check" },
       ],
     });
-    expect(out.steps[0].title).toBe("Finish Projects - try it yourself");
+    // The day is load-bearing: every day's exercise is titled just "Task"
+    // now that the topic lives on the video above it, so the title alone
+    // would name nothing.
+    expect(out.steps[0].title).toBe("Finish day 4: Task");
   });
 
   it("takes the earliest days first", () => {
