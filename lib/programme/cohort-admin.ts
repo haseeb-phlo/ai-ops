@@ -63,11 +63,6 @@ export type CohortAdminView = {
     string,
     ReturnType<typeof summariseAttendance>
   >;
-  workSamplePairs: {
-    cohortMemberId: string;
-    preRef: string | null;
-    postRef: string | null;
-  }[];
 };
 
 export const loadCohortAdminView = cache(
@@ -378,17 +373,6 @@ export const loadCohortAdminView = cache(
       ]),
     );
 
-    const workSamplePairs = members.map((member) => {
-      const live = submissionsByMember.get(member.id) ?? [];
-      return {
-        cohortMemberId: member.id,
-        preRef:
-          live.find((s) => s.kind === "work_sample_pre")?.artefact_url ?? null,
-        postRef:
-          live.find((s) => s.kind === "work_sample_post")?.artefact_url ?? null,
-      };
-    });
-
     return {
       cohort: {
         id: cohort.id,
@@ -403,7 +387,6 @@ export const loadCohortAdminView = cache(
       dayIndexes,
       funnel: buildGateFunnel(adminMembers.map((m) => m.gates)),
       attendanceBySession: attendanceBySession,
-      workSamplePairs,
     };
   },
 );

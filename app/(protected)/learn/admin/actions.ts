@@ -14,7 +14,6 @@ import {
   ATTENDANCE_STATUSES,
   type AttendanceStatus,
 } from "@/lib/programme/attendance";
-import { buildWorkSampleCsv } from "@/lib/programme/anonymise";
 import { loadCohortAdminView } from "@/lib/programme/cohort-admin";
 
 /**
@@ -318,21 +317,3 @@ export async function recomputeCohortRag(cohortId: string): Promise<number> {
  * in the output, because the scorer must not be able to tell whose work they
  * are reading and the file leaves our control on download.
  */
-export async function exportWorkSamplePairs(
-  cohortId: string,
-): Promise<{ ok: true; csv: string; filename: string } | { ok: false; message: string }> {
-  const gate = await requireWriter();
-  if (!gate.ok) return { ok: false, message: gate.error };
-  if (gate.user.realRole !== "super_admin") {
-    return { ok: false, message: "Only super admins can export." };
-  }
-
-  const view = await loadCohortAdminView(cohortId);
-  if (!view) return { ok: false, message: "Cohort not found." };
-
-  return {
-    ok: true,
-    csv: buildWorkSampleCsv(view.workSamplePairs),
-    filename: `work-samples-${view.cohort.name.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.csv`,
-  };
-}

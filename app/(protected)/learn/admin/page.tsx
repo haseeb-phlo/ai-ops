@@ -285,7 +285,6 @@ export default async function ProgrammeAdminPage({
         dashboard={
           view ? (
             <CohortDashboard
-              cohortId={view.cohort.id}
               members={view.members.map((m) => ({
                 cohortMemberId: m.cohortMemberId,
                 displayName: m.displayName,

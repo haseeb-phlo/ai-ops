@@ -14,8 +14,8 @@ const countOf = (type: string) => items.filter((i) => i.type === type).length;
 describe("Core Programme track shape", () => {
   it("produces 46 items in total", () => {
     // 1 baseline + 30 video/use_example + 3 sessions + 3 quizzes
-    // + 8 submission slots + 1 post check-in.
-    expect(items).toHaveLength(46);
+    // + 6 submission slots + 1 post check-in.
+    expect(items).toHaveLength(44);
   });
 
   it("has one baseline gate on day 0 and nothing else there", () => {
@@ -96,20 +96,26 @@ describe("Core Programme track shape", () => {
     }
   });
 
-  it("provides five signed_example slots, a capstone, and two work samples", () => {
+  it("provides five signed_example slots and a capstone, and nothing else", () => {
     const kinds = SUBMISSION_SLOT_SPECS.map((s) => s.kind);
     expect(kinds.filter((k) => k === "signed_example")).toHaveLength(5);
     expect(kinds.filter((k) => k === "capstone")).toHaveLength(1);
-    expect(kinds.filter((k) => k === "work_sample_pre")).toHaveLength(1);
-    expect(kinds.filter((k) => k === "work_sample_post")).toHaveLength(1);
-    expect(countOf("submission_slot")).toBe(8);
+    expect(countOf("submission_slot")).toBe(6);
   });
 
-  it("keeps work samples private", () => {
+  it("asks for nothing on day 1 but the video and the task", () => {
+    // The before/after work samples used to bracket the programme on days 1
+    // and 15. Both are gone, so the first morning carries no submission at
+    // all - asserted on the built items rather than the spec, because the
+    // spec's literal types make the comparison unreachable to the compiler.
+    const dayOne = items.filter((i) => i.dayIndex === 1);
+    expect(dayOne.map((i) => i.type).sort()).toEqual(["use_example", "video"]);
+  });
+
+  it("makes every submission visible to the cohort", () => {
+    // Nothing is private any more - the private kinds were the work samples.
     for (const slot of SUBMISSION_SLOT_SPECS) {
-      if (slot.kind.startsWith("work_sample")) {
-        expect(slot.visibility).toBe("private");
-      }
+      expect(slot.visibility).toBe("cohort");
     }
   });
 
