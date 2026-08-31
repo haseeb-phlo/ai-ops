@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { format } from "date-fns";
 import { getSessionUser } from "@/lib/auth";
 import { loadTrackState } from "@/lib/programme/track-data";
 import { isAwaitingContent } from "@/lib/programme/content-readiness";
@@ -142,7 +143,16 @@ export default async function TrackPage({
     <PageContainer>
       <PageHeader
         title="Core Programme"
-        description={`${state.cohort.name} · started ${state.cohort.startDate}`}
+        // British format, not the ISO date the column stores. "2026-08-31" is
+        // a database value shown to a person; "31 August 2026" is the date.
+        //
+        // The Prompt library link that used to sit here is gone deliberately:
+        // it moved into the shared Learn nav upstream, and putting it back
+        // would give the page two routes to the same place.
+        description={`${state.cohort.name} · started ${format(
+          new Date(`${state.cohort.startDate}T00:00:00`),
+          "d MMMM yyyy",
+        )}`}
       />
 
       {(state.cohort.status === "complete" ||
