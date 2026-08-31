@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { format } from "date-fns";
 import { DownloadIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -31,12 +32,22 @@ const DAY_LABEL: Record<string, string> = {
   locked: "locked",
 };
 
+export type WorkSampleRow = {
+  cohortMemberId: string;
+  displayName: string;
+  preRef: string | null;
+  postRef: string | null;
+  preSubmittedAt: string | null;
+  postSubmittedAt: string | null;
+};
+
 export function CohortDashboard({
   cohortId,
   members,
   dayIndexes,
   funnel,
   attendance,
+  workSamples,
 }: {
   cohortId: string;
   members: HeatmapMember[];
@@ -49,12 +60,14 @@ export function CohortDashboard({
     excused: number;
     unmarked: number;
   }[];
+  workSamples: WorkSampleRow[];
 }) {
   return (
     <div className="space-y-6">
       <GateFunnel funnel={funnel} />
       <Heatmap members={members} dayIndexes={dayIndexes} />
       <AttendanceSummary rows={attendance} />
+      <WorkSampleTable rows={workSamples} />
       <ExportCard cohortId={cohortId} />
     </div>
   );
@@ -231,6 +244,103 @@ function AttendanceSummary({
         </tbody>
       </table>
     </section>
+  );
+}
+
+/**
+ * Who submitted what, with names on it.
+ *
+ * Deliberately NOT the same thing as the CSV below. That file is anonymised
+ * because an external scorer must not know whose work they are reading; this
+ * table exists because the person running the programme has to be able to
+ * chase the people who have not submitted, and a hashed key cannot be chased.
+ *
+ * Work samples are private and self-approving, so they appear on no other
+ * screen - not the sign-off queue, which only lists what needs a decision,
+ * and not the gallery, which is approved public work. Without this the only
+ * way to read them was the anonymised export.
+ */
+function WorkSampleTable({ rows }: { rows: WorkSampleRow[] }) {
+  const submitted = rows.filter((r) => r.preRef).length;
+
+  return (
+    <section className="rounded-lg border border-border bg-background p-4">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h3 className="text-sm font-semibold tracking-tight text-foreground">
+          Work samples
+        </h3>
+        <span className="text-xs text-muted-foreground">
+          {submitted} of {rows.length} have submitted a before sample
+        </span>
+      </div>
+      <p className="mt-1 max-w-prose text-sm text-muted-foreground">
+        Private to admins. These are the before/after pair the programme is
+        measured on - the blind-scoring file below is the same links with the
+        names taken off.
+      </p>
+
+      <div className="mt-3 overflow-x-auto">
+        <table className="w-full min-w-[32rem] border-collapse text-sm">
+          <thead>
+            <tr className="border-b border-border text-left">
+              <th className="py-2 pr-3 font-medium text-muted-foreground">
+                Member
+              </th>
+              <th className="py-2 pr-3 font-medium text-muted-foreground">
+                Before (day 1)
+              </th>
+              <th className="py-2 font-medium text-muted-foreground">
+                After (day 15)
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.cohortMemberId} className="border-b border-border">
+                <td className="py-2 pr-3 text-foreground">{row.displayName}</td>
+                <td className="py-2 pr-3">
+                  <SampleCell url={row.preRef} at={row.preSubmittedAt} />
+                </td>
+                <td className="py-2">
+                  <SampleCell url={row.postRef} at={row.postSubmittedAt} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {rows.length === 0 && (
+        <p className="mt-3 text-sm text-muted-foreground">
+          Nobody is enrolled on this cohort yet.
+        </p>
+      )}
+    </section>
+  );
+}
+
+function SampleCell({ url, at }: { url: string | null; at: string | null }) {
+  if (!url) {
+    return <span className="text-muted-foreground">Not submitted</span>;
+  }
+  return (
+    <span className="inline-flex flex-wrap items-baseline gap-x-2">
+      {/* Opens in a new tab: these are external links and losing the admin
+          page mid-review is a nuisance. rel is set because target="_blank"
+          without it hands the opened page a handle back to this one. */}
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-primary underline underline-offset-4"
+      >
+        Open
+      </a>
+      {at && (
+        <span className="text-xs text-muted-foreground">
+          {format(new Date(at), "d MMM")}
+        </span>
+      )}
+    </span>
   );
 }
 

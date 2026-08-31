@@ -63,10 +63,22 @@ export type CohortAdminView = {
     string,
     ReturnType<typeof summariseAttendance>
   >;
-  workSamplePairs: {
+  /**
+   * Before/after work samples, WITH the member's name on them.
+   *
+   * Two readers, and the difference between them is the point. This is the
+   * programme owner's view: who has submitted, who has not, and a link they
+   * can open. The blind-scoring CSV is built from the same rows with the name
+   * dropped and the id hashed - see exportWorkSamplePairs, where that mapping
+   * is written out rather than implied, because it is the anonymity boundary.
+   */
+  workSamples: {
     cohortMemberId: string;
+    displayName: string;
     preRef: string | null;
     postRef: string | null;
+    preSubmittedAt: string | null;
+    postSubmittedAt: string | null;
   }[];
 };
 
@@ -142,7 +154,7 @@ export const loadCohortAdminView = cache(
       supabase
         .from("programme_submissions")
         .select(
-          "cohort_member_id, track_item_id, kind, signoff_status, signoff_rubric_json, artefact_url, superseded_by",
+          "cohort_member_id, track_item_id, kind, signoff_status, signoff_rubric_json, artefact_url, superseded_by, created_at",
         )
         .returns<
           {
@@ -151,6 +163,7 @@ export const loadCohortAdminView = cache(
             kind: string;
             signoff_status: string;
             signoff_rubric_json: Record<string, unknown> | null;
+            created_at: string;
             artefact_url: string | null;
             superseded_by: string | null;
           }[]
@@ -378,14 +391,17 @@ export const loadCohortAdminView = cache(
       ]),
     );
 
-    const workSamplePairs = members.map((member) => {
-      const live = submissionsByMember.get(member.id) ?? [];
+    const workSamples = adminMembers.map((member) => {
+      const live = submissionsByMember.get(member.cohortMemberId) ?? [];
+      const pre = live.find((s) => s.kind === "work_sample_pre");
+      const post = live.find((s) => s.kind === "work_sample_post");
       return {
-        cohortMemberId: member.id,
-        preRef:
-          live.find((s) => s.kind === "work_sample_pre")?.artefact_url ?? null,
-        postRef:
-          live.find((s) => s.kind === "work_sample_post")?.artefact_url ?? null,
+        cohortMemberId: member.cohortMemberId,
+        displayName: member.displayName,
+        preRef: pre?.artefact_url ?? null,
+        postRef: post?.artefact_url ?? null,
+        preSubmittedAt: pre?.created_at ?? null,
+        postSubmittedAt: post?.created_at ?? null,
       };
     });
 
@@ -403,7 +419,7 @@ export const loadCohortAdminView = cache(
       dayIndexes,
       funnel: buildGateFunnel(adminMembers.map((m) => m.gates)),
       attendanceBySession: attendanceBySession,
-      workSamplePairs,
+      workSamples,
     };
   },
 );

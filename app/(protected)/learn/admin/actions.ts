@@ -332,7 +332,16 @@ export async function exportWorkSamplePairs(
 
   return {
     ok: true,
-    csv: buildWorkSampleCsv(view.workSamplePairs),
+    // The anonymity boundary, written out rather than implied: the view
+    // carries names so the admin table can show them, and exactly three
+    // fields cross into the file the external scorer reads.
+    csv: buildWorkSampleCsv(
+      view.workSamples.map(({ cohortMemberId, preRef, postRef }) => ({
+        cohortMemberId,
+        preRef,
+        postRef,
+      })),
+    ),
     filename: `work-samples-${view.cohort.name.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.csv`,
   };
 }
