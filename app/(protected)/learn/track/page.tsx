@@ -3,7 +3,11 @@ import { ArrowRightIcon } from "lucide-react";
 import { getSessionUser } from "@/lib/auth";
 import { loadTrackState } from "@/lib/programme/track-data";
 import { isAwaitingContent } from "@/lib/programme/content-readiness";
-import { unlockDateFor, weekOf } from "@/lib/programme/working-days";
+import {
+  hasDayArrived,
+  unlockDateFor,
+  weekOf,
+} from "@/lib/programme/working-days";
 import { PageContainer, PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { GraduationCapIcon } from "lucide-react";
@@ -68,6 +72,11 @@ export default async function TrackPage({
       state: resolved.state as ProgrammeItemState,
       unlockDate: resolved.unlockDate,
       awaitingVideo: isAwaitingContent(resolved.item),
+      dayArrived: hasDayArrived({
+        dayIndex: resolved.item.day_index,
+        startDate: state.cohort.startDate,
+        today: state.today,
+      }),
       video: resolved.item.learn_video_id
         ? (state.videosById.get(resolved.item.learn_video_id) ?? null)
         : null,

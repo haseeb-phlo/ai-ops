@@ -176,6 +176,30 @@ export function hasReached(unlockDate: IsoDate, today: IsoDate): boolean {
   return toDayNumber(unlockDate) <= toDayNumber(today);
 }
 
+/**
+ * True when a programme day has come round - today, or already gone.
+ *
+ * Uses DAILY arithmetic on purpose, even though access is weekly. Weekly
+ * unlock means the whole of week one is reachable on the Monday, so "is this
+ * item open" and "is this the day for it" stopped being the same question.
+ * This answers the second one, which is the programme's actual pace.
+ *
+ * The same distinction `overdue.ts` draws, one day earlier: `isOverdue` is
+ * strictly past, this includes today. Day 0 is the entry gate and is always
+ * considered arrived.
+ */
+export function hasDayArrived(args: {
+  dayIndex: number;
+  startDate: IsoDate;
+  today: IsoDate;
+}): boolean {
+  if (args.dayIndex <= 0) return true;
+  return hasReached(
+    unlockDateFor(args.startDate, args.dayIndex, "daily"),
+    args.today,
+  );
+}
+
 /** How many working days the programme runs for. Day 1 is the start Monday. */
 export const PROGRAMME_DAYS = 15;
 

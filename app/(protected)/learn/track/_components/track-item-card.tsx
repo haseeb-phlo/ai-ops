@@ -36,6 +36,14 @@ export type TrackItemView = {
   /** Set for submission_slot items. */
   /** Video day with nothing recorded yet: shown, but not a to-do. */
   awaitingVideo?: boolean;
+  /**
+   * Whether this item's own day has come round yet.
+   *
+   * Distinct from `state`, and only because unlock is weekly: on the Monday
+   * every day of the week is "available", so being open says nothing about
+   * whether it is today's. Drives the still frame - see below.
+   */
+  dayArrived?: boolean;
   submission?: {
     kind: string;
     signoffStatus: ProgrammeSignoffStatus | null;
@@ -88,6 +96,10 @@ export function TrackItemCard({
   // satisfiable for content that hasn't been recorded. Use examples have no
   // video by design, so they stay completable.
   const awaitingVideo = item.awaitingVideo ?? (item.type === "video" && !item.video);
+  // Defaults to true so any caller that hasn't been taught about day pacing
+  // keeps the old behaviour rather than silently losing every thumbnail.
+  const showThumbnail =
+    Boolean(item.video?.thumbnail_url) && (item.dayArrived ?? true);
   const canComplete =
     !locked &&
     !optimisticComplete &&
@@ -193,10 +205,16 @@ export function TrackItemCard({
                   className="group relative flex aspect-video w-full items-center justify-center overflow-hidden rounded-md bg-muted"
                   aria-label={`Play ${item.video.title}`}
                 >
-                  {item.video.thumbnail_url && (
+                  {/* Still frame only once the day has come round. Weekly
+                      unlock opens all five days on the Monday, so without
+                      this the whole week's thumbnails sit on screen at once
+                      and day one stops looking like day one. The video is
+                      still playable - working ahead is allowed, it just is
+                      not advertised. */}
+                  {showThumbnail && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={item.video.thumbnail_url}
+                      src={item.video.thumbnail_url!}
                       alt=""
                       className="absolute inset-0 h-full w-full object-cover"
                     />

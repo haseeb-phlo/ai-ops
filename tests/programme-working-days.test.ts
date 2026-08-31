@@ -3,6 +3,7 @@ import {
   addWorkingDays,
   dayOfWeek,
   finalDayDate,
+  hasDayArrived,
   hasReached,
   hourInLondon,
   isWeekend,
@@ -246,5 +247,57 @@ describe("hourInLondon at midnight", () => {
   it("is 0, never 24", () => {
     // hour12:false renders midnight as "24" in some engines.
     expect(hourInLondon(new Date("2026-11-27T00:00:00Z"))).toBe(0);
+  });
+});
+
+describe("hasDayArrived", () => {
+  // Cohort 1A/1B start: Monday 31 August 2026.
+  const startDate = "2026-08-31";
+
+  it("counts today as arrived, so day 1 is arrived on the start Monday", () => {
+    expect(
+      hasDayArrived({ dayIndex: 1, startDate, today: "2026-08-31" }),
+    ).toBe(true);
+  });
+
+  it("does not count the rest of the week, though weekly unlock opens it", () => {
+    // The whole point: days 2-5 are AVAILABLE on the Monday but have not
+    // come round. This is what keeps four extra thumbnails off day one.
+    for (const dayIndex of [2, 3, 4, 5]) {
+      expect(hasDayArrived({ dayIndex, startDate, today: "2026-08-31" })).toBe(
+        false,
+      );
+    }
+  });
+
+  it("arrives a day at a time as the week goes on", () => {
+    expect(hasDayArrived({ dayIndex: 2, startDate, today: "2026-09-01" })).toBe(
+      true,
+    );
+    expect(hasDayArrived({ dayIndex: 3, startDate, today: "2026-09-01" })).toBe(
+      false,
+    );
+  });
+
+  it("skips the weekend, so day 6 arrives on the Monday not the Saturday", () => {
+    // Day 5 is Friday 4 Sep. Day 6 is Monday 7 Sep, not Saturday 5 Sep.
+    expect(hasDayArrived({ dayIndex: 6, startDate, today: "2026-09-05" })).toBe(
+      false,
+    );
+    expect(hasDayArrived({ dayIndex: 6, startDate, today: "2026-09-07" })).toBe(
+      true,
+    );
+  });
+
+  it("treats past days as arrived", () => {
+    expect(hasDayArrived({ dayIndex: 1, startDate, today: "2026-09-10" })).toBe(
+      true,
+    );
+  });
+
+  it("treats the day-0 entry gate as always arrived", () => {
+    expect(hasDayArrived({ dayIndex: 0, startDate, today: "2026-08-31" })).toBe(
+      true,
+    );
   });
 });
