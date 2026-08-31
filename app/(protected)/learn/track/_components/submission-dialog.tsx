@@ -69,8 +69,8 @@ export function SubmissionDialog({
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>
             {isWorkSample
-              ? "Just the artefact - a link to a piece of work, as it is. This one is private: only admins see it, and it measures the programme rather than you."
-              : "Share what you made and the prompt behind it. Your team lead signs it off."}
+              ? "One piece of work you did with Claude - a conversation, a draft, a summary, an analysis, anything at all. Send it exactly as it is; it is not meant to be tidied up. This one is private: only admins see it, and it measures the programme rather than you."
+              : "Share what you made with Claude and the prompt behind it. Your team lead signs it off."}
           </DialogDescription>
         </DialogHeader>
 
@@ -85,7 +85,9 @@ export function SubmissionDialog({
 
         <form action={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="artefact_url">Link to what you made</Label>
+            <Label htmlFor="artefact_url">
+              {isWorkSample ? "Link to the work" : "Link to what you made"}
+            </Label>
             <Input
               id="artefact_url"
               name="artefact_url"
@@ -99,20 +101,30 @@ export function SubmissionDialog({
             {/* The step people get stuck on. A Claude conversation is private
                 by default, so pasting the address from the browser bar gives
                 a link only the author can open - it looks fine to them and
-                404s for everyone else. Say how to make a real one, and say
-                what to check, without naming exact button positions that
-                move between releases. */}
-            <p className="text-xs text-muted-foreground">
-              In Claude, open the conversation, use <strong>Share</strong> to
-              create a public link, then copy that. It looks like
-              claude.ai/share/… - the address in your browser bar is not the
-              same thing and nobody else can open it. A Google Doc or Sheet
-              works too, set to &quot;anyone with the link can view&quot;.
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Worth checking: paste it into a private window. If it opens
-              without asking you to sign in, it will open for us.
-            </p>
+                404s for everyone else.
+
+                Numbered, not prose. This was one paragraph carrying three
+                separate instructions plus a warning, which is exactly the
+                shape people skim past - and the run-on ran two words
+                together where an inline <strong> met a line break. */}
+            <div className="rounded-md border border-border bg-muted/30 p-3">
+              <p className="text-xs font-medium text-foreground">
+                Getting a link other people can open
+              </p>
+              <ol className="mt-1.5 list-decimal space-y-1 pl-4 text-xs text-muted-foreground">
+                <li>Open the conversation in Claude.</li>
+                <li>Use Share to create a public link.</li>
+                <li>Copy that link. It looks like claude.ai/share/…</li>
+              </ol>
+              <p className="mt-2 text-xs text-muted-foreground">
+                The address in your browser bar is not the same thing, and
+                nobody else can open it.
+              </p>
+              <p className="mt-1.5 text-xs text-muted-foreground">
+                Worth checking: paste it into a private window. If it opens
+                without asking you to sign in, it will open for us.
+              </p>
+            </div>
           </div>
 
           {!isWorkSample && (
