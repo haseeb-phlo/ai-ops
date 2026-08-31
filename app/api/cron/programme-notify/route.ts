@@ -302,6 +302,16 @@ export async function GET(request: NextRequest) {
       }
 
       const cohort = liveCohorts.find((c) => c.id === member.cohort_id)!;
+
+      // Nothing automatic on a cohort's first day. A cohort starts on a
+      // Monday and this job runs on Mondays, so day one always collides with
+      // it - and the first thing a member hears from the programme should be
+      // the launch message a person writes, not a nudge about work they have
+      // had no time to be late for.
+      //
+      // Cheap in practice: on day one nobody is overdue, so almost everyone
+      // is filtered out above anyway. This covers the rest.
+      if (cohort.start_date === today) continue;
       const done = doneByMember.get(member.id) ?? new Set();
       const openDays = [
         ...new Set(
