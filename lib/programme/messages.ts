@@ -52,16 +52,37 @@ export function memberReminderText(input: MemberReminder): string {
   return lines.join("\n\n");
 }
 
+export type LeadDigestMember = {
+  name: string;
+  /**
+   * Slack mention like "<@U123>", or null when there is nobody to ping - no
+   * Slack account, or they have opted out of programme notifications.
+   */
+  mention: string | null;
+  rag: "green" | "amber" | "red";
+};
+
 export type LeadDigest = {
   firstName: string;
-  members: { name: string; rag: "green" | "amber" | "red" }[];
+  members: LeadDigestMember[];
   pendingSignOffs: number;
   boardUrl: string;
+  /**
+   * Render the named people as Slack mentions. True for the Slack DM, false
+   * for the email fallback, where "<@U123>" is not a name but a literal.
+   */
+  tagged: boolean;
 };
 
 export function leadDigestText(input: LeadDigest): string {
   const behind = input.members.filter((m) => m.rag === "red");
   const slipping = input.members.filter((m) => m.rag === "amber");
+  // A mention in a DM the named person is not in does not notify them - it
+  // renders as their name, linked to their profile. So this is a nicety for
+  // the lead reading it, not a ping for the person named, which is the right
+  // way round for a message about somebody's progress.
+  const nameOf = (m: LeadDigestMember) =>
+    input.tagged && m.mention ? m.mention : m.name;
 
   const lines = [`Morning ${input.firstName}. Your team's week on the Core Programme.`];
 
@@ -72,11 +93,9 @@ export function leadDigestText(input: LeadDigest): string {
   }
 
   if (behind.length > 0) {
-    lines.push(
-      `Worth a word with: ${behind.map((m) => m.name).join(", ")}.`,
-    );
+    lines.push(`Worth a word with: ${joinNames(behind.map(nameOf))}.`);
   } else if (slipping.length > 0) {
-    lines.push(`Slipping a little: ${slipping.map((m) => m.name).join(", ")}.`);
+    lines.push(`Slipping a little: ${joinNames(slipping.map(nameOf))}.`);
   } else if (input.pendingSignOffs === 0) {
     lines.push("Everyone is on track and there is nothing waiting on you.");
   }
@@ -88,6 +107,12 @@ export function leadDigestText(input: LeadDigest): string {
 export type CohortSummary = {
   cohortName: string;
   weekNumber: number;
+  /**
+   * Who finished this week - Slack mentions where we have one, plain names
+   * otherwise, resolved by the caller exactly as cohortCompletionText's are.
+   * This only ever goes to a channel, so a mention is always the right
+   * rendering and there is no email fallback to corrupt.
+   */
   completedNames: string[];
   onTrack: number;
   total: number;
@@ -100,7 +125,7 @@ export function cohortSummaryText(input: CohortSummary): string {
   ];
   if (input.completedNames.length > 0) {
     lines.push(
-      `Finished this week: ${input.completedNames.join(", ")}. Nice work.`,
+      `Finished this week: ${joinNames(input.completedNames)}. Nice work.`,
     );
   }
   lines.push(
@@ -122,21 +147,6 @@ export function rejectionText(input: RejectionNotice): string {
     `${input.firstName}, ${input.leadName} has sent your ${input.itemTitle.toLowerCase()} back for another go.`,
     `Their note: "${input.comment}"`,
     `Resubmit whenever you are ready - it goes straight back to them.`,
-    input.trackUrl,
-  ].join("\n\n");
-}
-
-export type ProgrammeCompleted = {
-  firstName: string;
-  cohortName: string;
-  trackUrl: string;
-};
-
-/** The DM to the person, sent the moment the fourth gate passes. */
-export function programmeCompleteText(input: ProgrammeCompleted): string {
-  return [
-    `${input.firstName}, you have completed the Core Programme.`,
-    `All four gates, ${input.cohortName}. That is the whole fifteen days done. Congratulations!`,
     input.trackUrl,
   ].join("\n\n");
 }

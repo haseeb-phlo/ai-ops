@@ -108,11 +108,19 @@ async function resolveSlackId(
  * Sends one message to one person: Slack if we can reach them, email if not.
  *
  * `subject` is only used by the email fallback - Slack DMs have no subject.
+ *
+ * `emailText` exists because the two transports do not read the same. A Slack
+ * mention is `<@U123>`, which renders as a name in Slack and as exactly that
+ * string in an email - so any message naming other people needs a second
+ * rendering, or the fallback ships raw ids to the one person least able to
+ * make sense of them. Omit it when the text has no mentions in it.
  */
 export async function notifyPerson(args: {
   supabase: Client;
   recipient: Recipient;
   text: string;
+  /** Plain-text rendering for the email fallback. Defaults to `text`. */
+  emailText?: string;
   subject: string;
 }): Promise<DeliveryOutcome> {
   const slackId = await resolveSlackId(args.supabase, args.recipient);
@@ -131,7 +139,7 @@ export async function notifyPerson(args: {
     from,
     to: args.recipient.email,
     subject: args.subject,
-    text: args.text,
+    text: args.emailText ?? args.text,
   });
 
   return sent.error

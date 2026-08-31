@@ -6,7 +6,6 @@ import {
   leadDigestText,
   memberReminderText,
   joinNames,
-  programmeCompleteText,
   rejectionText,
 } from "@/lib/programme/messages";
 
@@ -27,9 +26,10 @@ const ALL = [
   leadDigestText({
     firstName: "Alex",
     members: [
-      { name: "Sam", rag: "red" },
-      { name: "Jo", rag: "green" },
+      { name: "Sam", mention: null, rag: "red" },
+      { name: "Jo", mention: null, rag: "green" },
     ],
+    tagged: false,
     pendingSignOffs: 2,
     boardUrl: "https://x/learn/leads",
   }),
@@ -45,11 +45,6 @@ const ALL = [
     itemTitle: "Signed example 2",
     leadName: "Alex",
     comment: "Add the actual prompt.",
-    trackUrl: "https://x/learn/track",
-  }),
-  programmeCompleteText({
-    firstName: "Sam",
-    cohortName: "Cohort 1",
     trackUrl: "https://x/learn/track",
   }),
   dayNinetyText({ firstName: "Sam", scoreUrl: "https://x/learn/track/score" }),
@@ -81,12 +76,11 @@ describe("house style", () => {
     // and was really a pressure rule: an exclamation mark in a nudge or a
     // sent-back note is a robot raising its voice at someone mid-shift.
     //
-    // It is the opposite in the two messages that congratulate. Those are the
-    // only place the programme gets to sound pleased, and holding them to the
-    // register of a reminder made finishing fifteen days land flat.
-    const asksForWork = ALL.filter(
-      (t) => !t.includes("completed the Core Programme") && !t.includes("Congratulations"),
-    );
+    // The completion roundup is the exception and keeps the freedom, because
+    // it is the one message that congratulates rather than asks. Nothing uses
+    // it today - it is scoped this way so that adding one there later is a
+    // wording choice rather than a test failure.
+    const asksForWork = ALL.filter((t) => !t.includes("Congratulations"));
     for (const text of asksForWork) expect(text).not.toContain("!");
   });
 
@@ -157,7 +151,8 @@ describe("leadDigestText", () => {
   it("leads with the sign-offs, which are the actionable part", () => {
     const text = leadDigestText({
       firstName: "Alex",
-      members: [{ name: "Sam", rag: "red" }],
+      members: [{ name: "Sam", mention: null, rag: "red" }],
+      tagged: false,
       pendingSignOffs: 2,
       boardUrl: "https://x",
     });
@@ -168,7 +163,8 @@ describe("leadDigestText", () => {
   it("says so plainly when there is nothing to do", () => {
     const text = leadDigestText({
       firstName: "Alex",
-      members: [{ name: "Jo", rag: "green" }],
+      members: [{ name: "Jo", mention: null, rag: "green" }],
+      tagged: false,
       pendingSignOffs: 0,
       boardUrl: "https://x",
     });
@@ -178,7 +174,8 @@ describe("leadDigestText", () => {
   it("mentions slipping members only when nobody is behind", () => {
     const text = leadDigestText({
       firstName: "Alex",
-      members: [{ name: "Jo", rag: "amber" }],
+      members: [{ name: "Jo", mention: null, rag: "amber" }],
+      tagged: false,
       pendingSignOffs: 0,
       boardUrl: "https://x",
     });

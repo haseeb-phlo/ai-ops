@@ -208,6 +208,8 @@ export async function GET(request: NextRequest) {
     periodKey: string;
     subject: string;
     text: string;
+    /** Plain rendering for the email fallback, when `text` carries mentions. */
+    emailText?: string;
   }) => {
     const recipient = recipientFor(args.userId);
     if (!recipient) return;
@@ -227,6 +229,7 @@ export async function GET(request: NextRequest) {
       recipient,
       subject: args.subject,
       text: args.text,
+      emailText: args.emailText,
     });
     await recordOutcome(supabase, {
       kind: args.kind,
@@ -378,25 +381,32 @@ export async function GET(request: NextRequest) {
       const recipient = recipientFor(leadUserId);
       if (!recipient) continue;
 
+      // Resolved once, rendered twice: Slack gets the mentions, the email
+      // fallback gets the same people as plain names. Same list either way.
+      const digest = {
+        firstName: firstNameOf(recipient.displayName),
+        members: led.map((m) => {
+          const person = recipientFor(m.user_id);
+          return {
+            name: firstNameOf(person?.displayName ?? "A colleague"),
+            mention: person?.slackUserId ? `<@${person.slackUserId}>` : null,
+            rag: m.rag_status ?? "green",
+          };
+        }),
+        pendingSignOffs: led.reduce(
+          (n, m) => n + (pendingByMember.get(m.id) ?? 0),
+          0,
+        ),
+        boardUrl: `${url}/learn/leads`,
+      };
+
       await send({
         kind: "lead_digest",
         userId: leadUserId,
         periodKey: week,
         subject: "Your team's Core Programme week",
-        text: leadDigestText({
-          firstName: firstNameOf(recipient.displayName),
-          members: led.map((m) => ({
-            name: firstNameOf(
-              recipientFor(m.user_id)?.displayName ?? "A colleague",
-            ),
-            rag: m.rag_status ?? "green",
-          })),
-          pendingSignOffs: led.reduce(
-            (n, m) => n + (pendingByMember.get(m.id) ?? 0),
-            0,
-          ),
-          boardUrl: `${url}/learn/leads`,
-        }),
+        text: leadDigestText({ ...digest, tagged: true }),
+        emailText: leadDigestText({ ...digest, tagged: false }),
       });
     }
 
