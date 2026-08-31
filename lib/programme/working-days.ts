@@ -129,20 +129,28 @@ export function workingDaysBetween(from: IsoDate, to: IsoDate): number {
  *   "daily"  - one day at a time, the playbook's original drip.
  *   "weekly" - the whole week opens on its Monday.
  *
- * Weekly is the default, and the reasoning is worth keeping next to the code.
- * The real cadence of this programme is the three live sessions, one per week,
- * not the fifteen videos. Phlo runs shifts, so a daily lock stops someone who
- * has a quiet Tuesday and a brutal Wednesday from working when they can - and
- * the playbook already concedes the point by saying unlocked items never
- * re-lock and shift workers catch up whenever. A daily lock therefore adds
- * friction without adding structure.
+ * DAILY is the default. Weekly was tried and reverted, and the history is
+ * worth keeping because a good deal of code downstream was written against it.
  *
- * Weekly still drips: nobody can take all fifteen days on the first morning,
- * so the sessions still land in sequence and the spacing survives.
+ * The case for weekly was that Phlo runs shifts, so a daily lock stops someone
+ * with a quiet Tuesday and a brutal Wednesday from working when they can. That
+ * is a real cost, but it is already paid for elsewhere: an item that has been
+ * started or completed never re-locks, so anyone who gets ahead stays ahead,
+ * and nobody who falls behind loses access to what they missed.
+ *
+ * What weekly cost in exchange was the shape of the thing. Fifteen days that
+ * open five at a time is three chapters, not fifteen days - the first morning
+ * presented thirteen items and four videos for days that had not happened, and
+ * a programme that says "about ten minutes a day" stopped looking like one.
+ *
+ * Two modules exist because of the weekly experiment and both stay, because
+ * both are right under daily too: `overdue.ts` separates "open" from "late",
+ * and the quiz gate exemption in unlock.ts is narrowed to the summative quiz
+ * alone. See each for its own reasoning.
  */
 export type UnlockMode = "daily" | "weekly";
 
-export const DEFAULT_UNLOCK_MODE: UnlockMode = "weekly";
+export const DEFAULT_UNLOCK_MODE: UnlockMode = "daily";
 
 /** Which week (1-3) a programme day belongs to. */
 export function weekOf(dayIndex: number): number {
@@ -179,10 +187,14 @@ export function hasReached(unlockDate: IsoDate, today: IsoDate): boolean {
 /**
  * True when a programme day has come round - today, or already gone.
  *
- * Uses DAILY arithmetic on purpose, even though access is weekly. Weekly
- * unlock means the whole of week one is reachable on the Monday, so "is this
- * item open" and "is this the day for it" stopped being the same question.
- * This answers the second one, which is the programme's actual pace.
+ * Uses DAILY arithmetic explicitly rather than the default, so it keeps
+ * meaning the same thing if the mode ever moves again - which it has once
+ * already.
+ *
+ * Still needed under daily unlock, though the overlap with "is it locked" is
+ * now large: an item that has been started or completed never re-locks, so a
+ * future day CAN be unlocked and on screen. This is what stops such a day
+ * advertising itself with a still frame before it arrives.
  *
  * The same distinction `overdue.ts` draws, one day earlier: `isOverdue` is
  * strictly past, this includes today. Day 0 is the entry gate and is always
@@ -212,9 +224,10 @@ export const PROGRAMME_DAYS = 15;
  * right even if that ever loosens, and it does not need a weekday to be
  * hardcoded anywhere.
  *
- * Deliberately NOT `unlockDateFor(start, 15)`: under the default weekly unlock
- * that returns the MONDAY of week 3, which is when day 15 becomes visible, not
- * when the programme ends.
+ * Deliberately NOT `unlockDateFor(start, 15)`. Under daily unlock those two
+ * agree, so the distinction currently costs nothing - but under weekly they
+ * did not, and this function must keep meaning "when the programme ends"
+ * rather than "when day 15 becomes visible" whichever mode is set.
  */
 export function finalDayDate(startDate: IsoDate): IsoDate {
   return addWorkingDays(startDate, PROGRAMME_DAYS - 1);

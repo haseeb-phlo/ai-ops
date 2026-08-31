@@ -10,10 +10,11 @@
  *   amber - 2-4 items late, OR a rejection awaiting resubmission
  *   red   - >=5 items late, OR a gate has become impossible
  *
- * LATE, not merely open. The playbook wrote these thresholds against a daily
- * unlock; the app unlocks a week at a time, so counting everything available
- * made the first morning of a cohort read red for everybody. `overdue.ts`
- * draws the distinction and owns the reasoning - this file only counts.
+ * LATE, not merely open. This mattered acutely while the app unlocked a week
+ * at a time - counting everything available made the first morning of a
+ * cohort read red for everybody - and still matters under daily unlock,
+ * because work already started never re-locks. `overdue.ts` draws the
+ * distinction and owns the reasoning - this file only counts.
  *
  * SPEC GAP, resolved here: exactly ONE late item falls between the playbook's
  * green (zero) and amber (two to four). It is treated as GREEN - a single

@@ -44,12 +44,13 @@ export type ResolvedItem<T extends TrackItemLike = TrackItemLike> = {
 /**
  * The post check-in ignores the baseline gate and unlocks purely by date.
  *
- * Quizzes used to be here too, as a whole type, and that was too broad: under
- * weekly unlock the week-one quiz opens on the cohort's first morning, so
- * exempting every quiz meant somebody who had skipped the mandatory check-in
- * could still walk into day five's assessment on day one. The exemption is
- * meant to protect the FINAL measurement, not to leave a side door into the
- * programme. `summativeItemIds` names the quiz it actually applies to.
+ * Quizzes used to be here too, as a whole type, and that was too broad: it
+ * meant somebody who had skipped the mandatory check-in could walk straight
+ * into an assessment. Weekly unlock made that vivid - the week-one quiz opened
+ * on the cohort's first morning - but the exemption was always wrong in kind,
+ * because it is meant to protect the FINAL measurement rather than leave a
+ * side door into the programme. `summativeItemIds` names the quiz it actually
+ * applies to.
  */
 const GATE_EXEMPT_TYPES = new Set(["questionnaire_post"]);
 
@@ -93,7 +94,7 @@ export function resolveItemStates<T extends TrackItemLike>(args: {
    * Everything else of type "quiz" is ordinary gated content.
    */
   summativeItemIds?: ReadonlySet<string>;
-  /** Defaults to weekly - see UnlockMode for why. */
+  /** Defaults to daily - see UnlockMode for the mode's history. */
   unlockMode?: UnlockMode;
 }): ResolvedItem<T>[] {
   const progress = args.progressByItemId ?? new Map<string, ItemState>();

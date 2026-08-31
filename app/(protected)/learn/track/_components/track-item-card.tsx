@@ -39,9 +39,9 @@ export type TrackItemView = {
   /**
    * Whether this item's own day has come round yet.
    *
-   * Distinct from `state`, and only because unlock is weekly: on the Monday
-   * every day of the week is "available", so being open says nothing about
-   * whether it is today's. Drives the still frame - see below.
+   * Distinct from `state`: an item that has been started or completed never
+   * re-locks, so a future day can be open and on screen. Drives the still
+   * frame - see below.
    */
   dayArrived?: boolean;
   submission?: {
@@ -205,12 +205,10 @@ export function TrackItemCard({
                   className="group relative flex aspect-video w-full items-center justify-center overflow-hidden rounded-md bg-muted"
                   aria-label={`Play ${item.video.title}`}
                 >
-                  {/* Still frame only once the day has come round. Weekly
-                      unlock opens all five days on the Monday, so without
-                      this the whole week's thumbnails sit on screen at once
-                      and day one stops looking like day one. The video is
-                      still playable - working ahead is allowed, it just is
-                      not advertised. */}
+                  {/* Still frame only once the day has come round. A day
+                      that is open only because it was started early should
+                      not advertise itself alongside today's - the video
+                      stays playable, it just is not sold. */}
                   {showThumbnail && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img

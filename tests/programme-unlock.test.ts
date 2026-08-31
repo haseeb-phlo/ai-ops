@@ -270,7 +270,7 @@ describe("unlockedItems / outstandingItems", () => {
   });
 });
 
-describe("weekly unlock, the production default", () => {
+describe("weekly unlock, still supported though no longer the default", () => {
   it("opens the whole of week one on day one", () => {
     const r = resolveItemStates({
       items,

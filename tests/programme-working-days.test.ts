@@ -143,7 +143,7 @@ describe("todayInLondon", () => {
   });
 });
 
-describe("unlockDateFor - weekly mode, the default", () => {
+describe("unlockDateFor - weekly mode, supported but no longer the default", () => {
   it("opens a whole week on its Monday", () => {
     // The real cadence is the three live sessions, one per week. A daily lock
     // stops a shift worker with a quiet Tuesday from working when they can,
@@ -172,7 +172,7 @@ describe("unlockDateFor - weekly mode, the default", () => {
   });
 
   it("is the default when no mode is given", () => {
-    expect(unlockDateFor(START, 5)).toBe(unlockDateFor(START, 5, "weekly"));
+    expect(unlockDateFor(START, 5)).toBe(unlockDateFor(START, 5, "daily"));
   });
 
   it("leaves the day-0 gate open from the start either way", () => {
@@ -260,9 +260,10 @@ describe("hasDayArrived", () => {
     ).toBe(true);
   });
 
-  it("does not count the rest of the week, though weekly unlock opens it", () => {
-    // The whole point: days 2-5 are AVAILABLE on the Monday but have not
-    // come round. This is what keeps four extra thumbnails off day one.
+  it("does not count the rest of the week", () => {
+    // Under daily unlock these are locked anyway, but an item that was
+    // started early never re-locks - so this is what stops a day someone
+    // ran ahead on advertising itself beside today's.
     for (const dayIndex of [2, 3, 4, 5]) {
       expect(hasDayArrived({ dayIndex, startDate, today: "2026-08-31" })).toBe(
         false,

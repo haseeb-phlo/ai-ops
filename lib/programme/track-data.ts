@@ -375,10 +375,16 @@ export const loadTrackState = cache(
     const hasImpossibleGate = sessionItems.some((item) => {
       if (satisfiedSessionItemIds.has(item.id)) return false;
       const dates = cohort.session_dates?.[item.id] ?? [];
+      // Fallback for a cohort whose session has no date set yet: the session's
+      // own programme day. "daily" is named rather than left to the default,
+      // because this asks when the session WOULD have been - a question about
+      // the programme's pace, not about when the item became visible. Under
+      // weekly the default silently answered with that week's Monday, which
+      // could call a gate impossible days before the session it names.
       const last =
         dates.length > 0
           ? dates.slice().sort().at(-1)!
-          : unlockDateFor(cohort.start_date, item.day_index);
+          : unlockDateFor(cohort.start_date, item.day_index, "daily");
       return hasReached(last, today) && last !== today;
     });
 
@@ -388,8 +394,8 @@ export const loadTrackState = cache(
     );
     const outstandingCount = outstandingActionable.length;
 
-    // RAG counts what is LATE, not what is open - under weekly unlock those
-    // are very different numbers on a Monday. See overdue.ts.
+    // RAG counts what is LATE, not what is open. Work already started never
+    // re-locks, so those stay different numbers. See overdue.ts.
     const overdueCount = countOverdue(
       outstandingActionable.map((r) => ({ dayIndex: r.item.day_index })),
       { startDate: cohort.start_date, today },

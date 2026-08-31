@@ -100,9 +100,12 @@ export const QUIZ_SPECS = [
  * Submission slots, deliberately SPREAD across the programme rather than all
  * unlocked on day 1.
  *
- * This is a RAG consequence, not a stylistic choice: red is ">=5 unlocked
- * items incomplete", so opening all five signed_example slots at once would
- * put every member straight into red on their first day.
+ * Originally a RAG consequence rather than a stylistic choice: red was ">=5
+ * unlocked items incomplete", so opening all five signed_example slots at once
+ * put every member straight into red on their first day. RAG now counts what
+ * is LATE instead (see overdue.ts), so the spread is no longer load-bearing
+ * for that - but it stands on its own: five examples asked for at once is a
+ * backlog, five asked for a week apart is a habit.
  */
 export const SUBMISSION_SLOT_SPECS = [
   { kind: "work_sample_pre", dayIndex: 1, title: "Work sample (before)", visibility: "private" },
