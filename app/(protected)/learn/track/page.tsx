@@ -77,6 +77,13 @@ export default async function TrackPage({
         startDate: state.cohort.startDate,
         today: state.today,
       }),
+      // Daily arithmetic, matching hasDayArrived - so the date the card
+      // prints is exactly the date it starts showing the item.
+      releaseDate: unlockDateFor(
+        state.cohort.startDate,
+        resolved.item.day_index,
+        "daily",
+      ),
       video: resolved.item.learn_video_id
         ? (state.videosById.get(resolved.item.learn_video_id) ?? null)
         : null,

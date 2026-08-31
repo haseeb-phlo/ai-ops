@@ -40,10 +40,20 @@ export type TrackItemView = {
    * Whether this item's own day has come round yet.
    *
    * Distinct from `state`: an item that has been started or completed never
-   * re-locks, so a future day can be open and on screen. Drives the still
-   * frame - see below.
+   * re-locks, so a future day can be open and on screen. Drives everything
+   * the card is willing to say - see below.
    */
   dayArrived?: boolean;
+  /**
+   * The date this item's day opens, for the "Released on ..." line.
+   *
+   * Carried separately from `unlockDate` because the two answer different
+   * questions and only agree while unlock is daily: `unlockDate` is when the
+   * item becomes reachable, this is when its DAY comes round. It is computed
+   * from the same daily arithmetic as `dayArrived`, so the date shown is
+   * always the date the blanking stops.
+   */
+  releaseDate?: string;
   submission?: {
     kind: string;
     signoffStatus: ProgrammeSignoffStatus | null;
@@ -96,12 +106,24 @@ export function TrackItemCard({
   // satisfiable for content that hasn't been recorded. Use examples have no
   // video by design, so they stay completable.
   const awaitingVideo = item.awaitingVideo ?? (item.type === "video" && !item.video);
-  // Defaults to true so any caller that hasn't been taught about day pacing
-  // keeps the old behaviour rather than silently losing every thumbnail.
-  const showThumbnail =
-    Boolean(item.video?.thumbnail_url) && (item.dayArrived ?? true);
+  // A day that has not come round yet gives nothing away: no title, no
+  // description, no still frame, no player - just the date it opens.
+  //
+  // `locked` is not the same test and cannot stand in for it. An item that has
+  // been started never re-locks, so anyone who ran ahead under the old weekly
+  // unlock is carrying unlocked day-4 items around today; those are exactly
+  // the ones that would otherwise spoil the rest of the fortnight.
+  //
+  // Defaults to true so a caller that has not been taught about day pacing
+  // shows everything rather than silently blanking the whole track.
+  const dayArrived = item.dayArrived ?? true;
+  const showThumbnail = Boolean(item.video?.thumbnail_url) && dayArrived;
+  // Everything below the header hangs off this rather than off `locked`, so a
+  // day still to come renders as its release line and nothing else - no
+  // player, no "coming soon" placeholder, no submit button.
+  const revealed = dayArrived && !locked;
   const canComplete =
-    !locked &&
+    revealed &&
     !optimisticComplete &&
     !awaitingVideo &&
     (item.type === "video" || item.type === "use_example");
@@ -158,33 +180,48 @@ export function TrackItemCard({
         </span>
 
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-            <h4 className="text-sm font-medium text-foreground">{item.title}</h4>
-            <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-              <span
-                aria-hidden
-                className={cn(
-                  "size-1.5 shrink-0 rounded-full",
-                  awaitingVideo
-                    ? "bg-muted-foreground/30"
-                    : style.dotClassName,
-                )}
-              />
-              {locked
-                ? `Unlocks ${format(new Date(`${item.unlockDate}T00:00:00`), "d MMM")}`
-                : awaitingVideo
-                  ? "Coming soon"
-                  : style.label}
-            </span>
-          </div>
+          {dayArrived ? (
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+              <h4 className="text-sm font-medium text-foreground">
+                {item.title}
+              </h4>
+              <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span
+                  aria-hidden
+                  className={cn(
+                    "size-1.5 shrink-0 rounded-full",
+                    awaitingVideo
+                      ? "bg-muted-foreground/30"
+                      : style.dotClassName,
+                  )}
+                />
+                {locked
+                  ? `Unlocks ${format(new Date(`${item.unlockDate}T00:00:00`), "d MMM")}`
+                  : awaitingVideo
+                    ? "Coming soon"
+                    : style.label}
+              </span>
+            </div>
+          ) : (
+            // The whole row for a day still to come. One line, and the date is
+            // the only thing on it - printing a title beside it would give the
+            // day away, which is the thing this is here to prevent.
+            <h4 className="text-sm font-medium text-muted-foreground">
+              Released on{" "}
+              {format(
+                new Date(`${item.releaseDate ?? item.unlockDate}T00:00:00`),
+                "EEEE d MMMM",
+              )}
+            </h4>
+          )}
 
-          {item.description && (
+          {dayArrived && item.description && (
             <p className="mt-1 text-xs text-muted-foreground">
               {item.description}
             </p>
           )}
 
-          {!locked && item.video && (
+          {revealed && item.video && (
             <div className="mt-3">
               {playing ? (
                 <div className="relative aspect-video w-full overflow-hidden rounded-md bg-muted">
@@ -229,7 +266,7 @@ export function TrackItemCard({
               facing copy, not the admin instruction it used to show - during
               Cohort 1 several days are still in production, and "coming soon"
               with the topic named reads as planned rather than broken. */}
-          {!locked && !item.video && item.type === "video" && (
+          {revealed && !item.video && item.type === "video" && (
             <div className="mt-3 flex items-center gap-3 rounded-md border border-dashed border-border bg-muted/30 px-3 py-3">
               <span
                 aria-hidden
@@ -249,7 +286,7 @@ export function TrackItemCard({
             </div>
           )}
 
-          {!locked && item.type === "submission_slot" && (
+          {revealed && item.type === "submission_slot" && (
             <div className="mt-3 flex flex-wrap items-center gap-3">
               {item.submission?.signoffStatus && (
                 <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -277,7 +314,7 @@ export function TrackItemCard({
             </div>
           )}
 
-          {!locked && item.type === "quiz" && (
+          {revealed && item.type === "quiz" && (
             <Link
               href={`/learn/track/quiz/${item.id}?cohort=${cohortId}`}
               className={cn(buttonVariants({ variant: "outline", size: "sm" }), "mt-3")}
@@ -286,7 +323,7 @@ export function TrackItemCard({
             </Link>
           )}
 
-          {!locked &&
+          {revealed &&
             (item.type === "questionnaire_baseline" ||
               item.type === "questionnaire_post") && (
               <Link
@@ -300,7 +337,7 @@ export function TrackItemCard({
           {/* Feedback on an APPROVED submission had nowhere to appear: the
               resubmit dialog only opens when something was sent back, so an
               approving comment was written and never read. */}
-          {!locked &&
+          {revealed &&
             item.type === "submission_slot" &&
             item.submission?.signoffStatus === "approved" &&
             item.submission.signoffComment && (
