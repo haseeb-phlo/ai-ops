@@ -85,26 +85,20 @@ export function resolveItemStates<T extends TrackItemLike>(args: {
    */
   weekOneSubmissionsIn?: boolean;
   /**
-   * Whether rule 2 applies. Defaults to true, and only a TEST cohort turns it
-   * off.
+   * Whether rule 2 applies. Defaults to true, and NOTHING in production turns
+   * it off any more.
    *
-   * The gate exists so a cohort's before-and-after measurement always exists.
-   * A test cohort is excluded from every report, so there is nothing to
-   * measure and the gate can only do one thing: hold the sandbox shut on day
-   * 0, which is precisely where the person checking it needs to get past.
+   * It existed for preview runs: a test cohort is excluded from every report,
+   * so the gate had nothing to measure there and could only strand the person
+   * checking the programme on the day-0 card. That reasoning was sound and the
+   * conclusion was still wrong. The one cohort anybody walks before launch
+   * became the one cohort that did not behave like the real thing, so the
+   * walkthrough reassured you about a programme that did not exist - and the
+   * cost it avoided was three minutes of typing.
    *
-   * This is the same exception a test cohort already gets twice over -
-   * `programme_sign_off` allows self-sign-off in one because a preview run has
-   * one participant, and `enforce_single_active_cohort` ignores one because a
-   * sandbox is not an enrolment. The alternative, seeding a baseline response
-   * for the preview, is worse: `ai_score_responses` is unique on (email,
-   * wave), so a fabricated row would consume the person's one real baseline
-   * and their actual cohort would believe they had checked in with answers
-   * they never gave.
-   *
-   * The cost, stated plainly: with this off you cannot preview the locked-out
-   * day-0 experience itself. The day-0 card is still there and still links to
-   * the check-in, so the screen is walkable - it just is not compulsory.
+   * The parameter stays because the tests need to exercise both sides of rule
+   * 2, and because turning the gate off is a decision worth being able to make
+   * explicitly rather than by editing the rule.
    */
   enforceBaselineGate?: boolean;
   /** Existing progress, by track item id. Absent means never touched. */

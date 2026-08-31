@@ -291,14 +291,15 @@ const loadTrackStateFor = cache(
     // live in completed-items.ts, shared with the completion stamper so the
     // page and the certificate cannot disagree about who has finished.
     //
-    // A preview run passes no joined_at: it is a sandbox with no real history
-    // to protect, and scoping there would only hide the admin's own videos
-    // from the screens they are checking.
+    // A preview run is scoped the same way. It used to pass null, which let
+    // videos ticked long before the sandbox existed count inside it - handy
+    // for a walkthrough, and precisely the sort of difference that makes a
+    // preview reassure you about behaviour the real cohort does not have.
     const completedItemIds = resolveCompletedItemIds({
       items,
       progress: progressRows ?? [],
       learnCompletions,
-      joinedAt: cohort.is_test ? null : membership.joined_at,
+      joinedAt: membership.joined_at,
     });
 
     const waves = new Set((responseRows ?? []).map((r) => r.wave));
@@ -312,10 +313,12 @@ const loadTrackStateFor = cache(
     const effectiveProgress = new Map(progressByItemId);
     for (const id of completedItemIds) effectiveProgress.set(id, "complete");
 
-    // A preview run is excluded from every report, so the entry gate has
-    // nothing to protect there and does nothing but strand the admin on day 0
-    // with the submission slots locked behind it.
-    const entryGateOpen = hasBaseline || cohort.is_test;
+    // No exemption for a preview run. It used to be waved through here, and
+    // the effect was that the one cohort anybody actually walked before
+    // launch was the one cohort that did not behave like the real thing -
+    // which is the opposite of what a preview is for. Whatever a member meets
+    // on day 0, the person checking the programme meets too.
+    const entryGateOpen = hasBaseline;
 
     // Found before unlock resolution because the gate exemption needs it: the
     // final quiz opens by date for somebody who never checked in, every other
@@ -345,18 +348,16 @@ const loadTrackStateFor = cache(
     const weekOneOutstanding = weekOneRequired.filter(
       (i) => !submittedItemIds.has(i.id),
     );
-    // A preview run is exempt, for the same reason the entry gate exempts it:
-    // it is excluded from every report, so there is nothing to protect and the
-    // gate could only hold the sandbox shut a week in.
-    const weekOneSubmissionsIn =
-      cohort.is_test || weekOneOutstanding.length === 0;
+    // No preview exemption here either, for the same reason as the entry
+    // gate: a sandbox that skips the checkpoint cannot show you what the
+    // checkpoint does.
+    const weekOneSubmissionsIn = weekOneOutstanding.length === 0;
 
     const resolved = resolveItemStates({
       items,
       startDate: cohort.start_date,
       today,
       hasBaseline,
-      enforceBaselineGate: !cohort.is_test,
       weekOneSubmissionsIn,
       progressByItemId: effectiveProgress,
       summativeItemIds: new Set(summativeItem ? [summativeItem.id] : []),

@@ -136,7 +136,9 @@ export async function maybeCompleteProgramme(
     items: itemList,
     progress: progress ?? [],
     learnCompletions: learnCompletions ?? [],
-    joinedAt: member.programme_cohorts.is_test ? null : member.joined_at,
+    // Scoped for a preview run too - see track-data.ts. The two must agree
+    // or the completion latch and the member's own page count differently.
+    joinedAt: member.joined_at,
   });
 
   const summative = itemList.find(
