@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { isNavActive } from "@/lib/navigation";
 import {
+  isFocusedLearnRoute,
   LEARN_SECTIONS,
   type LearnSectionKey,
 } from "@/lib/programme/learn-nav";
@@ -41,6 +42,12 @@ export function LearnNav({
   sections: readonly LearnSectionKey[];
 }) {
   const pathname = usePathname() ?? "";
+
+  // A focused task suppresses the strip whatever the viewer can reach - see
+  // isFocusedLearnRoute. This is the only conditional chrome here; everywhere
+  // else the strip is present precisely when it has somewhere to send you.
+  if (isFocusedLearnRoute(pathname)) return null;
+
   const elsewhere = sections.filter(
     (key) => !isNavActive(pathname, LEARN_SECTIONS[key].href),
   );

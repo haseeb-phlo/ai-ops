@@ -17,7 +17,7 @@ npm run lint     # eslint (flat config in eslint.config.mjs)
 npm run test     # vitest
 ```
 
-Run one test file with `npm run test -- tests/metrics.test.ts`, one case with `-t "name"`. Vitest is `jsdom` + globals; the `@/*` alias is mirrored in `vitest.config.ts`. The suite covers pure logic only - a consequence of the `"use server"` split described below, not an oversight.
+Run one test file with `npm run test -- tests/metrics.test.ts`, one case with `-t "name"`. Vitest is `jsdom` + globals; the `@/*` alias is mirrored in `vitest.config.ts`. The suite is almost entirely pure logic - a consequence of the `"use server"` split described below, not an oversight. `tests/learn-nav-strip.test.tsx` is the one component test, because what the AI Training strip renders depends on the current pathname and no pure function can be asked that; it renders `LearnNav` with `usePathname` and `next/link` mocked. `vitest.config.ts` already carries `@vitejs/plugin-react` and a `*.test.tsx` glob for this.
 
 Schema changes: `npm run db:new <name>` → edit the migration → `supabase db push` (**applies to the linked remote project**, not a local DB) → `npm run db:types`. Full pipeline notes in `.claude/rules/supabase-db.md`.
 

@@ -1,3 +1,4 @@
+import { isNavActive } from "@/lib/navigation";
 import type { LearnAccess } from "./learn-access";
 
 /**
@@ -84,4 +85,24 @@ export function learnNavSections(input: {
     admin: input.isAdmin,
   };
   return LEARN_SECTION_KEYS.filter((key) => visible[key]);
+}
+
+/**
+ * Routes inside the section that hide the strip outright, however many
+ * sections the viewer can reach.
+ *
+ * A quiz attempt is unsaved client state: the answers live in QuizRunner
+ * until the form is submitted and nothing guards a navigation away, so a
+ * five-tab strip pinned to the top of the page for the length of an attempt
+ * is five ways to lose the lot. The quiz asks for one thing and offers one
+ * way out instead - a single back link, which scrolls away as you answer and
+ * is offered again on the marked result.
+ *
+ * One entry today. Anything else under /learn that holds unsubmitted work in
+ * client state belongs here too.
+ */
+const FOCUSED_ROUTES = ["/learn/track/quiz"] as const;
+
+export function isFocusedLearnRoute(pathname: string): boolean {
+  return FOCUSED_ROUTES.some((route) => isNavActive(pathname, route));
 }

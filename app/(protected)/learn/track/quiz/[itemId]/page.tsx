@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { loadTrackState } from "@/lib/programme/track-data";
 import { bestScore, hasPassed, parseQuizConfig } from "@/lib/programme/quiz";
 import { PageContainer, PageHeader } from "@/components/page-header";
+import { BackLink } from "@/components/ui/nav-link";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ClipboardCheckIcon } from "lucide-react";
 import { QuizRunner } from "./_components/quiz-runner";
@@ -68,6 +69,13 @@ export default async function QuizPage({
 
   return (
     <PageContainer className="max-w-3xl">
+      {/* The section strip hides itself on a quiz (isFocusedLearnRoute), so
+          this is the way out of an attempt and it has to be here: without it
+          the only exit is the sidebar, and somebody who opened the wrong day
+          is stuck on a form they did not want. One link, not a strip - it
+          scrolls away as you answer, and QuizRunner offers it again once the
+          attempt is marked. */}
+      <BackLink href="/learn/track">Back to the programme</BackLink>
       <PageHeader
         title={resolved.item.title}
         description={
