@@ -7,6 +7,11 @@ import { createClient } from "@/lib/supabase/server";
 import { runAiReview } from "@/lib/programme/ai-review-run";
 import { resolveWritableMembership } from "@/lib/programme/membership-lookup";
 import { requireWriter } from "@/lib/auth";
+import {
+  TASK_LINK_KEY,
+  TASK_LINK_MAX_LENGTH,
+  normaliseTaskLink,
+} from "@/lib/programme/task-link";
 import type { ActionState } from "../topics";
 
 /**
@@ -183,6 +188,116 @@ export async function markTrackItemStarted(formData: FormData): Promise<void> {
   );
 
   revalidatePath("/learn/track");
+}
+
+/* ------------------------------------------------------------------ */
+/* Task output links                                                    */
+/* ------------------------------------------------------------------ */
+
+const TaskLinkSchema = z.object({
+  track_item_id: z.string().uuid(),
+  cohort_id: z.string().uuid().optional(),
+  output_url: z.string().trim().min(1).max(TASK_LINK_MAX_LENGTH),
+});
+
+/**
+ * Files the link to what a member produced for a day's Task.
+ *
+ * Written to their own progress row's `meta_json`, NOT to
+ * `programme_submissions` - task-link.ts has the reasoning. The practical
+ * consequence is the one that matters here: fifteen links a member never
+ * reach the sign-off queue, which exists for the five signed examples and the
+ * capstone.
+ *
+ * Saving a link completes the task, on the same principle as a submission
+ * slot: the evidence is the completion. It never re-stamps `completed_at`,
+ * so replacing a link a week later does not move the day the work was done -
+ * which the activity heatmap and the overdue sweep both read.
+ */
+export async function saveTaskOutputLink(
+  formData: FormData,
+): Promise<ActionState> {
+  const gate = await requireWriter();
+  if (!gate.ok) return { kind: "error", message: gate.error };
+  const user = gate.user;
+
+  const parsed = TaskLinkSchema.safeParse({
+    track_item_id: formData.get("track_item_id"),
+    cohort_id: (formData.get("cohort_id") as string) || undefined,
+    output_url: formData.get("output_url"),
+  });
+  if (!parsed.success) {
+    return { kind: "error", message: "Add the link to your output." };
+  }
+
+  const link = normaliseTaskLink(parsed.data.output_url);
+  if (!link) {
+    return {
+      kind: "error",
+      message: "That does not look like a link. Paste the whole thing, like https://claude.ai/share/...",
+    };
+  }
+
+  const supabase = await createClient();
+
+  const membership = await resolveWritableMembership(
+    user.id,
+    parsed.data.cohort_id,
+  );
+  if (!membership) {
+    return { kind: "error", message: "You're not in an active cohort." };
+  }
+
+  const { data: item } = await supabase
+    .from("programme_track_items")
+    .select("id, type, track_id")
+    .eq("id", parsed.data.track_item_id)
+    .maybeSingle<{ id: string; type: string; track_id: string }>();
+
+  if (!item || item.track_id !== membership.trackId) {
+    return { kind: "error", message: "That item isn't on your track." };
+  }
+
+  // Tasks only. A submission slot takes its link through the submission form,
+  // which has sign-off attached to it.
+  if (item.type !== "use_example") {
+    return {
+      kind: "error",
+      message: "This item is completed elsewhere in the programme.",
+    };
+  }
+
+  const { data: existing } = await supabase
+    .from("programme_item_progress")
+    .select("completed_at, meta_json")
+    .eq("cohort_member_id", membership.id)
+    .eq("track_item_id", item.id)
+    .maybeSingle<{
+      completed_at: string | null;
+      meta_json: Record<string, unknown> | null;
+    }>();
+
+  const { error } = await supabase.from("programme_item_progress").upsert(
+    {
+      cohort_member_id: membership.id,
+      track_item_id: item.id,
+      status: "complete",
+      completed_at: existing?.completed_at ?? new Date().toISOString(),
+      // Merged rather than replaced: meta_json is a shared bag and this owns
+      // one key in it.
+      meta_json: { ...(existing?.meta_json ?? {}), [TASK_LINK_KEY]: link },
+    },
+    { onConflict: "cohort_member_id,track_item_id" },
+  );
+
+  if (error) {
+    return { kind: "error", message: `Could not save: ${error.message}` };
+  }
+
+  revalidatePath("/learn/track");
+  revalidatePath("/learn");
+  revalidatePath("/");
+  return { kind: "success" };
 }
 
 /* ------------------------------------------------------------------ */

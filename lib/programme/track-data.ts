@@ -20,6 +20,7 @@ import {
   weekOf,
 } from "./working-days";
 import { pickMembership, rankMemberships } from "./membership";
+import { taskLinkFrom } from "./task-link";
 import { gateableContentItemIds, isAwaitingContent } from "./content-readiness";
 
 /**
@@ -113,6 +114,13 @@ export type TrackState = {
       reviewedByAi: boolean;
     }
   >;
+  /**
+   * The link a member filed against a Task, per use_example item id.
+   *
+   * Read off their own progress row rather than from submissions - see
+   * task-link.ts for why a daily task link is not a submission.
+   */
+  taskLinkByItemId: Map<string, string>;
 };
 
 /**
@@ -204,9 +212,15 @@ const loadTrackStateFor = cache(
         .returns<TrackItemRow[]>(),
       supabase
         .from("programme_item_progress")
-        .select("track_item_id, status")
+        .select("track_item_id, status, meta_json")
         .eq("cohort_member_id", membership.id)
-        .returns<{ track_item_id: string; status: ItemState }[]>(),
+        .returns<
+          {
+            track_item_id: string;
+            status: ItemState;
+            meta_json: Record<string, unknown> | null;
+          }[]
+        >(),
       supabase
         .from("ai_score_responses")
         .select("wave")
@@ -480,6 +494,12 @@ const loadTrackStateFor = cache(
       });
     }
 
+    const taskLinkByItemId = new Map<string, string>();
+    for (const row of progressRows ?? []) {
+      const link = taskLinkFrom(row.meta_json);
+      if (link) taskLinkByItemId.set(row.track_item_id, link);
+    }
+
     // ---- G3 routes, next steps, activity -------------------------------
     const routes = g3Routes({ approvedSignedExamples, capstoneCredits });
 
@@ -584,6 +604,7 @@ const loadTrackStateFor = cache(
       nextSteps,
       activity,
       submissionByItemId,
+      taskLinkByItemId,
     };
   },
 );

@@ -89,6 +89,7 @@ export default async function TrackPage({
       video: resolved.item.learn_video_id
         ? (state.videosById.get(resolved.item.learn_video_id) ?? null)
         : null,
+      outputUrl: state.taskLinkByItemId.get(resolved.item.id) ?? null,
       submission:
         resolved.item.type === "submission_slot"
           ? {

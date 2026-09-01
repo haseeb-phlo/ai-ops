@@ -27,7 +27,15 @@ with track as (
     ('use_example', 'Task', 'Sign in to Claude with your Phlo email, install the desktop app, then run one real task from this week through it.', 1, 1, null, '{}'::jsonb),
     ('submission_slot', 'Work sample (before)', null, 1, 4, null, '{"kind":"work_sample_pre","visibility":"private"}'::jsonb),
     ('video', 'When to use AI and when not to', null, 2, 0, 'When to use AI and when not to', '{}'::jsonb),
-    ('use_example', 'Task', 'Apply the day''s technique to something on your own desk.', 2, 1, null, '{}'::jsonb),
+    ('use_example', 'Task', 'Pick three jobs from this week:
+- one you are confident Claude will do well
+- one you are confident Claude will not do well
+- one where you are not sure whether it will produce the correct output
+Before you open Claude, predict each outcome and rate it Certain, Fairly confident or Guessing.
+Run all three separately, including the one you expect to fail, and compare the output to your predictions.
+If something worked that you expected not to, that is something to delegate to Claude immediately. Something that gave an incorrect output is one to be cautious about and double-check.
+If Claude did not produce the output you wanted for a specific task, try again. Add more context, add an example document, or split it into two steps, and see whether that helps.
+Submit the link to one of these, preferably the one with the output that surprised you the most.', 2, 1, null, '{}'::jsonb),
     ('video', 'CRISPE Framework', null, 3, 0, 'CRISPE Framework', '{}'::jsonb),
     ('use_example', 'Task', 'Apply the day''s technique to something on your own desk.', 3, 1, null, '{}'::jsonb),
     ('session', 'Live session 1', null, 3, 2, null, '{"slots":2}'::jsonb),
@@ -91,7 +99,15 @@ update public.programme_track_items i
     (1, 1, 'Task', 'Sign in to Claude with your Phlo email, install the desktop app, then run one real task from this week through it.'),
     (1, 4, 'Work sample (before)', null),
     (2, 0, 'When to use AI and when not to', null),
-    (2, 1, 'Task', 'Apply the day''s technique to something on your own desk.'),
+    (2, 1, 'Task', 'Pick three jobs from this week:
+- one you are confident Claude will do well
+- one you are confident Claude will not do well
+- one where you are not sure whether it will produce the correct output
+Before you open Claude, predict each outcome and rate it Certain, Fairly confident or Guessing.
+Run all three separately, including the one you expect to fail, and compare the output to your predictions.
+If something worked that you expected not to, that is something to delegate to Claude immediately. Something that gave an incorrect output is one to be cautious about and double-check.
+If Claude did not produce the output you wanted for a specific task, try again. Add more context, add an example document, or split it into two steps, and see whether that helps.
+Submit the link to one of these, preferably the one with the output that surprised you the most.'),
     (3, 0, 'CRISPE Framework', null),
     (3, 1, 'Task', 'Apply the day''s technique to something on your own desk.'),
     (3, 2, 'Live session 1', null),

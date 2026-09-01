@@ -6,13 +6,17 @@ import {
   CheckIcon,
   ClapperboardIcon,
   ClipboardCheckIcon,
+  ExternalLinkIcon,
   FileTextIcon,
+  LinkIcon,
   LockIcon,
   PlayIcon,
   UsersIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { loomEmbedUrl } from "@/lib/loom";
+import { parseItemCopy } from "@/lib/programme/item-copy";
+import { normaliseTaskLink, shortenTaskLink } from "@/lib/programme/task-link";
 import { cn } from "@/lib/utils";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
@@ -22,7 +26,12 @@ import {
   type ProgrammeSignoffStatus,
 } from "@/lib/status";
 import type { TrackVideo } from "@/lib/programme/track-data";
-import { markTrackItemComplete, markTrackItemStarted } from "../actions";
+import { Input } from "@/components/ui/input";
+import {
+  markTrackItemComplete,
+  markTrackItemStarted,
+  saveTaskOutputLink,
+} from "../actions";
 import { SubmissionDialog } from "./submission-dialog";
 
 export type TrackItemView = {
@@ -63,6 +72,11 @@ export type TrackItemView = {
    * always the date the blanking stops.
    */
   releaseDate?: string;
+  /**
+   * The link this member filed against a Task, if any. Only ever set for
+   * use_example items - see lib/programme/task-link.ts.
+   */
+  outputUrl?: string | null;
   submission?: {
     kind: string;
     signoffStatus: ProgrammeSignoffStatus | null;
@@ -108,6 +122,10 @@ export function TrackItemCard({
   const [pending, startTransition] = useTransition();
 
   const locked = item.state === "locked";
+  // Descriptions are plain text that may carry line breaks and "- " bullets;
+  // a one-line description parses to a single paragraph, which is what every
+  // description was before tasks grew steps. See lib/programme/item-copy.ts.
+  const copy = parseItemCopy(item.description);
   const Icon = TYPE_ICON[item.type] ?? FileTextIcon;
   const state: ProgrammeItemState = optimisticComplete ? "complete" : item.state;
   const style = PROGRAMME_ITEM_STATE[state];
@@ -225,10 +243,25 @@ export function TrackItemCard({
             </h4>
           )}
 
-          {dayArrived && item.description && (
-            <p className="mt-1 text-xs text-muted-foreground">
-              {item.description}
-            </p>
+          {dayArrived && copy.length > 0 && (
+            <div className="mt-1 space-y-1.5">
+              {copy.map((block, i) =>
+                block.kind === "list" ? (
+                  <ul
+                    key={i}
+                    className="list-disc space-y-0.5 pl-4 text-xs text-muted-foreground marker:text-muted-foreground/60"
+                  >
+                    {block.items.map((line, j) => (
+                      <li key={j}>{line}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p key={i} className="text-xs text-muted-foreground">
+                    {block.text}
+                  </p>
+                ),
+              )}
+            </div>
           )}
 
           {revealed && item.video && (
@@ -373,6 +406,16 @@ export function TrackItemCard({
             </Button>
           )}
 
+          {revealed && item.type === "use_example" && (
+            <TaskOutputLink
+              cohortId={cohortId}
+              itemId={item.id}
+              initialUrl={item.outputUrl ?? null}
+              complete={state === "complete"}
+              onSaved={() => setOptimisticComplete(true)}
+            />
+          )}
+
           {error && (
             <p className="mt-2 text-xs text-destructive" role="alert">
               {error}
@@ -381,5 +424,159 @@ export function TrackItemCard({
         </div>
       </div>
     </article>
+  );
+}
+
+/**
+ * Where a member files the link to what a Task produced.
+ *
+ * Inline rather than behind a dialog, which is how a submission slot does it.
+ * A slot asks for four fields and carries sign-off, so the dialog earns its
+ * click; this is one field asked fifteen times, and a box you have to open is
+ * a box most people leave shut.
+ *
+ * Optional on every day: saving a link completes the task, and so does the
+ * Mark complete button next to it. Day 2 asks for a link in its copy, most
+ * days do not, and a task whose output is a spreadsheet on a shared drive is
+ * still done.
+ */
+function TaskOutputLink({
+  cohortId,
+  itemId,
+  initialUrl,
+  complete,
+  onSaved,
+}: {
+  cohortId: string;
+  itemId: string;
+  initialUrl: string | null;
+  /** Only so the button does not offer to finish something already finished. */
+  complete: boolean;
+  /** Lets the card tick itself over without waiting for the revalidate. */
+  onSaved: () => void;
+}) {
+  const [saved, setSaved] = useState(initialUrl);
+  const [value, setValue] = useState("");
+  const [editing, setEditing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  const inputId = `task-link-${itemId}`;
+  const showForm = editing || !saved;
+
+  const handleSubmit = () => {
+    // Validated here as well as in the action, using the same module, so a
+    // typo comes back instantly rather than after a round trip.
+    const normalised = normaliseTaskLink(value);
+    if (!normalised) {
+      setError(
+        "That does not look like a link. Paste the whole thing, like https://claude.ai/share/...",
+      );
+      return;
+    }
+    setError(null);
+    startTransition(async () => {
+      const fd = new FormData();
+      fd.set("track_item_id", itemId);
+      fd.set("cohort_id", cohortId);
+      fd.set("output_url", normalised);
+      const result = await saveTaskOutputLink(fd);
+      if (result.kind === "error") {
+        setError(result.message);
+        return;
+      }
+      setSaved(normalised);
+      setValue("");
+      setEditing(false);
+      onSaved();
+    });
+  };
+
+  return (
+    <div className="mt-3">
+      {saved && !editing && (
+        <div className="flex flex-wrap items-center gap-2 rounded-md border border-border bg-muted/30 px-3 py-2">
+          <LinkIcon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+          <a
+            href={saved}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex min-w-0 items-center gap-1 text-xs text-foreground underline underline-offset-2 hover:no-underline"
+          >
+            <span className="truncate">{shortenTaskLink(saved)}</span>
+            <ExternalLinkIcon className="size-3 shrink-0" aria-hidden />
+          </a>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="ml-auto"
+            onClick={() => {
+              setValue(saved);
+              setEditing(true);
+            }}
+          >
+            Replace
+          </Button>
+        </div>
+      )}
+
+      {showForm && (
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            handleSubmit();
+          }}
+        >
+          <label
+            htmlFor={inputId}
+            className="text-3xs font-semibold uppercase tracking-[0.06em] text-muted-foreground"
+          >
+            Link to your output {!saved && <span className="font-normal normal-case tracking-normal">(optional)</span>}
+          </label>
+          <div className="mt-1.5 flex flex-wrap items-center gap-2">
+            <Input
+              id={inputId}
+              name="output_url"
+              type="url"
+              inputMode="url"
+              autoComplete="off"
+              value={value}
+              onChange={(event) => setValue(event.target.value)}
+              placeholder="https://claude.ai/share/..."
+              className="h-8 min-w-0 flex-1 text-xs"
+              disabled={pending}
+            />
+            <Button type="submit" variant="outline" size="sm" disabled={pending}>
+              {saved || complete ? "Save link" : "Save & mark done"}
+            </Button>
+            {editing && saved && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setEditing(false);
+                  setValue("");
+                  setError(null);
+                }}
+              >
+                Cancel
+              </Button>
+            )}
+          </div>
+          <p className="mt-1.5 text-xs text-muted-foreground">
+            In Claude, use Share to create a link, then paste it here. Anything
+            else that shows your output works too.
+          </p>
+        </form>
+      )}
+
+      {error && (
+        <p className="mt-2 text-xs text-destructive" role="alert">
+          {error}
+        </p>
+      )}
+    </div>
   );
 }

@@ -81,22 +81,48 @@ const DAY_ONE_VIDEO_DESCRIPTION =
 export const SESSION_DAYS = [3, 8, 13] as const;
 
 /**
- * Day 1's task, which is the one exception to the pattern below.
+ * What a day's task says when nothing better has been written for it.
  *
- * Every other day asks you to apply the day's technique to something on your
- * own desk. Day 1 has no technique to apply - it explains how the thing works
- * before asking anyone to use it - and on the cohort's first morning a good
- * number of people do not yet have an account to apply anything in. The
- * welcome post in both cohort channels asks them to sort exactly that out.
- *
- * So day 1 buys the setup the remaining fourteen days assume. Running one real
- * task through it is the part that matters: an account nobody has opened is
- * not setup, it is a licence.
+ * Held as a named constant rather than inlined so that "how many days are
+ * still on the placeholder" is one grep, not fifteen readings.
  */
-const DAY_ONE_EXERCISE = {
-  description:
-    "Sign in to Claude with your Phlo email, install the desktop app, then run one real task from this week through it.",
-} as const;
+const GENERIC_TASK =
+  "Apply the day's technique to something on your own desk.";
+
+/**
+ * The days whose task is written rather than generic.
+ *
+ * Day 1 is the setup day. It has no technique to apply - it explains how the
+ * thing works before asking anyone to use it - and on the cohort's first
+ * morning a good number of people do not yet have an account to apply
+ * anything in. So day 1 buys the setup the remaining fourteen days assume, and
+ * running one real task through it is the part that matters: an account
+ * nobody has opened is not setup, it is a licence.
+ *
+ * Day 2 is the first task with a shape of its own: a prediction, then the
+ * evidence against it. Sorting work into "AI can" and "AI cannot" from the
+ * outside is the thing everyone gets wrong in week one - people hand over what
+ * they are already comfortable with and never test the boundary - so the task
+ * makes them commit to a guess before they can see the answer.
+ *
+ * FORMATTING: these are plain text, and the card renders them through
+ * `parseItemCopy` (lib/programme/item-copy.ts) - one paragraph per line, and a
+ * line starting "- " becomes a bullet. No markdown, no blank-line semantics.
+ */
+const DAY_TASKS: Readonly<Record<number, string>> = {
+  1: "Sign in to Claude with your Phlo email, install the desktop app, then run one real task from this week through it.",
+  2: [
+    "Pick three jobs from this week:",
+    "- one you are confident Claude will do well",
+    "- one you are confident Claude will not do well",
+    "- one where you are not sure whether it will produce the correct output",
+    "Before you open Claude, predict each outcome and rate it Certain, Fairly confident or Guessing.",
+    "Run all three separately, including the one you expect to fail, and compare the output to your predictions.",
+    "If something worked that you expected not to, that is something to delegate to Claude immediately. Something that gave an incorrect output is one to be cautious about and double-check.",
+    "If Claude did not produce the output you wanted for a specific task, try again. Add more context, add an example document, or split it into two steps, and see whether that helps.",
+    "Submit the link to one of these, preferably the one with the output that surprised you the most.",
+  ].join("\n"),
+};
 
 /**
  * One quiz at the end of each week. Weeks 1 and 2 are short formative checks;
@@ -190,10 +216,7 @@ export function buildTrackItems(): TrackItemSpec[] {
     items.push({
       type: "use_example",
       title: "Task",
-      description:
-        dayIndex === 1
-          ? DAY_ONE_EXERCISE.description
-          : "Apply the day's technique to something on your own desk.",
+      description: DAY_TASKS[dayIndex] ?? GENERIC_TASK,
       dayIndex,
       sortOrder: SORT.use_example,
     });
