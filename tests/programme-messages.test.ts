@@ -42,7 +42,7 @@ const ALL = [
   }),
   rejectionText({
     firstName: "Sam",
-    itemTitle: "Signed example 2",
+    itemTitle: "Example 2",
     leadName: "Alex",
     comment: "Add the actual prompt.",
     trackUrl: "https://x/learn/track",
@@ -258,7 +258,7 @@ describe("rejectionText", () => {
   it("quotes the lead's comment, since that is the actionable part", () => {
     const text = rejectionText({
       firstName: "Sam",
-      itemTitle: "Signed example 2",
+      itemTitle: "Example 2",
       leadName: "Alex",
       comment: "Add the actual prompt.",
       trackUrl: "https://x",

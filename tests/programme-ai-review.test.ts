@@ -12,7 +12,7 @@ import {
 
 const submission = (over: Partial<SubmissionForReview> = {}): SubmissionForReview => ({
   kind: "signed_example",
-  slotTitle: "Signed example 1",
+  slotTitle: "Example 1",
   promptText:
     "You are a pharmacy operations analyst at Phlo. Given the attached weekly dispensing report, identify the three sites with the largest week-on-week increase in unfulfilled prescriptions and explain the most likely cause of each. Answer as a short bulleted brief for the ops lead.",
   taskSolved: "Weekly exception report I used to write by hand",

@@ -410,7 +410,7 @@ export const WEEK_3_QUESTIONS: QuizQuestion[] = [
       "Three weeks in, what is the most useful thing to do with a prompt you have refined and now rely on?",
     options: [
       "Keep it in a personal note so nobody changes it",
-      "Share it as a signed example or a Skill, so the team gets the benefit without rediscovering it",
+      "Share it as an example or a Skill, so the team gets the benefit without rediscovering it",
       "Keep it to yourself until it is perfect",
       "Rewrite it from scratch each time to keep it current",
     ],

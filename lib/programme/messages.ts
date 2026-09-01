@@ -186,7 +186,7 @@ export function cohortCompletionText(input: CohortCompletion): string {
   return [
     `*${input.cohortName} - the Core Programme is done*`,
     `Congratulations to ${joinNames(input.mentions)}.`,
-    "Fifteen days of videos, worked examples, live sessions and signed examples, finished alongside the day job.",
+    "Fifteen days of videos, daily tasks, live sessions and five examples signed off, finished alongside the day job.",
   ].join("\n\n");
 }
 

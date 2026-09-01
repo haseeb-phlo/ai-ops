@@ -105,6 +105,26 @@ describe("Core Programme track shape", () => {
     expect(countOf("submission_slot")).toBe(8);
   });
 
+  it("labels the slots Example N while the kind stays signed_example", () => {
+    // The label people read dropped "Signed" - it described the review rather
+    // than the thing. The kind is CHECK-constrained on programme_submissions
+    // and every gate, queue and export filters on it, so the mismatch is
+    // deliberate and this asserts both halves of it.
+    const examples = SUBMISSION_SLOT_SPECS.filter(
+      (s) => s.kind === "signed_example",
+    );
+    expect(examples.map((s) => s.title)).toEqual([
+      "Example 1",
+      "Example 2",
+      "Example 3",
+      "Example 4",
+      "Example 5",
+    ]);
+    for (const slot of SUBMISSION_SLOT_SPECS) {
+      expect(slot.title).not.toContain("Signed example");
+    }
+  });
+
   it("keeps work samples private", () => {
     for (const slot of SUBMISSION_SLOT_SPECS) {
       if (slot.kind.startsWith("work_sample")) {

@@ -105,6 +105,10 @@ const GENERIC_TASK =
  * they are already comfortable with and never test the boundary - so the task
  * makes them commit to a guess before they can see the answer.
  *
+ * Day 3 is the same idea one level up: rewrite a prompt you have already used
+ * with all six CRISPE parts and keep both chats, so the comparison is against
+ * your own earlier attempt rather than against an example someone else wrote.
+ *
  * FORMATTING: these are plain text, and the card renders them through
  * `parseItemCopy` (lib/programme/item-copy.ts) - one paragraph per line, and a
  * line starting "- " becomes a bullet. No markdown, no blank-line semantics.
@@ -121,6 +125,12 @@ const DAY_TASKS: Readonly<Record<number, string>> = {
     "If something worked that you expected not to, that is something to delegate to Claude immediately. Something that gave an incorrect output is one to be cautious about and double-check.",
     "If Claude did not produce the output you wanted for a specific task, try again. Add more context, add an example document, or split it into two steps, and see whether that helps.",
     "Submit the link to one of these, preferably the one with the output that surprised you the most.",
+  ].join("\n"),
+  3: [
+    "Take a prompt you've already used this week and rewrite it using CRISPE as a prompting framework: context, role, instructions, style, parameters, example.",
+    "Run both prompts and keep the better output.",
+    "Claude will now store the CRISPE context for this chat in its memory so you can prompt it without the full details next time, and you should still get a similar output.",
+    "Submit the better example from the two chats (with and without CRISPE).",
   ].join("\n"),
 };
 
@@ -152,13 +162,19 @@ export const QUIZ_SPECS = [
  * for that - but it stands on its own: five examples asked for at once is a
  * backlog, five asked for a week apart is a habit.
  */
+//
+// TITLED "Example N", KIND STILL `signed_example`. The label people read
+// dropped "Signed" - it described the review rather than the thing, and
+// members were submitting examples, not signatures. The kind is a
+// CHECK-constrained value on programme_submissions that every gate, queue and
+// export filters on, so it stays put. Do not "fix" the mismatch.
 export const SUBMISSION_SLOT_SPECS = [
   { kind: "work_sample_pre", dayIndex: 1, title: "Work sample (before)", visibility: "private" },
-  { kind: "signed_example", dayIndex: 3, title: "Signed example 1", visibility: "cohort" },
-  { kind: "signed_example", dayIndex: 6, title: "Signed example 2", visibility: "cohort" },
-  { kind: "signed_example", dayIndex: 9, title: "Signed example 3", visibility: "cohort" },
-  { kind: "signed_example", dayIndex: 12, title: "Signed example 4", visibility: "cohort" },
-  { kind: "signed_example", dayIndex: 14, title: "Signed example 5", visibility: "cohort" },
+  { kind: "signed_example", dayIndex: 3, title: "Example 1", visibility: "cohort" },
+  { kind: "signed_example", dayIndex: 6, title: "Example 2", visibility: "cohort" },
+  { kind: "signed_example", dayIndex: 9, title: "Example 3", visibility: "cohort" },
+  { kind: "signed_example", dayIndex: 12, title: "Example 4", visibility: "cohort" },
+  { kind: "signed_example", dayIndex: 14, title: "Example 5", visibility: "cohort" },
   { kind: "capstone", dayIndex: 13, title: "Capstone", visibility: "cohort" },
   { kind: "work_sample_post", dayIndex: 15, title: "Work sample (after)", visibility: "private" },
 ] as const;

@@ -95,4 +95,18 @@ describe("the track's own copy", () => {
       text: "Submit the link to one of these, preferably the one with the output that surprised you the most.",
     });
   });
+  it("names all six CRISPE parts in day 3's task", () => {
+    const day3 = tasks.find((t) => t.dayIndex === 3)!;
+    const text = (day3.description ?? "").toLowerCase();
+    for (const part of [
+      "context",
+      "role",
+      "instructions",
+      "style",
+      "parameters",
+      "example",
+    ]) {
+      expect(text, part).toContain(part);
+    }
+  });
 });

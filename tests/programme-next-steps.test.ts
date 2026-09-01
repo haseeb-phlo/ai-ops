@@ -63,10 +63,10 @@ describe("the shortest route back to green", () => {
       ...base,
       outstanding: items(4),
       hasOutstandingRejection: true,
-      rejectedTitle: "Signed example 2",
+      rejectedTitle: "Example 2",
     });
     expect(out.steps).toHaveLength(2);
-    expect(out.steps[0].title).toBe("Resubmit Signed example 2");
+    expect(out.steps[0].title).toBe("Resubmit Example 2");
     expect(out.steps[1].title).toContain("Finish");
   });
 

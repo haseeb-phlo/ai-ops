@@ -20,7 +20,7 @@ export const GATE_LABEL: Record<GateId, string> = {
 export const GATE_DESCRIPTION: Record<GateId, string> = {
   g1: "Every daily video and worked example complete",
   g2: "All three live sessions attended",
-  g3: "Five signed examples approved",
+  g3: "Five examples approved",
   g4: "Final quiz passed and end-of-programme check-in done",
 };
 
@@ -153,7 +153,7 @@ export function allGatesPassed(gates: GateSet): boolean {
  * would re-encode a number that is already on screen.
  */
 export type G3Route = {
-  /** Signed examples this route still needs approved. */
+  /** Examples this route still needs approved. */
   examples: number;
   /** True when the route leans on the capstone for the rest. */
   capstone: boolean;

@@ -30,8 +30,8 @@ const COUNT_WORD = ["no", "one", "two", "three", "four", "five"];
 function describeRoute(route: G3Route): string {
   const examples =
     route.examples === 1
-      ? "one more signed example"
-      : `${COUNT_WORD[route.examples] ?? route.examples} more signed examples`;
+      ? "one more example"
+      : `${COUNT_WORD[route.examples] ?? route.examples} more examples`;
 
   if (!route.capstone) return examples;
   return route.examples === 0
