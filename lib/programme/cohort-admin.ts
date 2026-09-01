@@ -5,7 +5,8 @@ import { computeGates, type GateSet } from "./gates";
 import { computeRag, type RagStatus } from "./rag";
 import { countOverdue } from "./overdue";
 import { resolveItemStates, outstandingItems, type ItemState } from "./unlock";
-import { todayInLondon, unlockDateFor } from "./working-days";
+import { hasDayArrived, todayInLondon, unlockDateFor } from "./working-days";
+import { taskLinksByDay } from "./task-link";
 import {
   isG2Impossible,
   satisfiedSessionIds,
@@ -39,6 +40,20 @@ export type AdminMember = {
   attendance: Map<string, { status: AttendanceStatus; makeUp: boolean; slot: number | null }>;
 };
 
+/**
+ * One member's Task links, for the admin table that chases the gaps.
+ *
+ * Every day has a Task and every Task takes a link, so this is a members x
+ * days grid with a hole wherever nobody filed one. Rows carry the count so
+ * the header can say "9 of 25" without the table recomputing it.
+ */
+export type TaskLinkRow = {
+  cohortMemberId: string;
+  displayName: string;
+  /** Link by day index. A missing day means nothing was filed. */
+  byDay: Record<number, string>;
+};
+
 export type SessionColumn = {
   trackItemId: string;
   title: string;
@@ -58,6 +73,9 @@ export type CohortAdminView = {
   members: AdminMember[];
   sessions: SessionColumn[];
   dayIndexes: number[];
+  /** Task links per member, and the days worth showing a column for. */
+  taskLinks: TaskLinkRow[];
+  taskDayIndexes: number[];
   funnel: GateFunnel;
   attendanceBySession: Map<
     string,
@@ -134,9 +152,14 @@ export const loadCohortAdminView = cache(
         >(),
       supabase
         .from("programme_item_progress")
-        .select("cohort_member_id, track_item_id, status")
+        .select("cohort_member_id, track_item_id, status, meta_json")
         .returns<
-          { cohort_member_id: string; track_item_id: string; status: ItemState }[]
+          {
+            cohort_member_id: string;
+            track_item_id: string;
+            status: ItemState;
+            meta_json: Record<string, unknown> | null;
+          }[]
         >(),
       supabase
         .from("programme_session_attendance")
@@ -210,6 +233,9 @@ export const loadCohortAdminView = cache(
 
     // Index everything by member so the per-member pass is cheap.
     const progressByMember = new Map<string, Map<string, ItemState>>();
+    // Same rows, kept separately: the task link a member filed lives in the
+    // progress row's meta_json, and resolveItemStates only wants the status.
+    const metaByMember = new Map<string, Map<string, unknown>>();
     for (const p of progressRows ?? []) {
       let map = progressByMember.get(p.cohort_member_id);
       if (!map) {
@@ -217,6 +243,13 @@ export const loadCohortAdminView = cache(
         progressByMember.set(p.cohort_member_id, map);
       }
       map.set(p.track_item_id, p.status);
+
+      let meta = metaByMember.get(p.cohort_member_id);
+      if (!meta) {
+        meta = new Map();
+        metaByMember.set(p.cohort_member_id, meta);
+      }
+      meta.set(p.track_item_id, p.meta_json);
     }
 
     const attendanceByUser = new Map<string, typeof attendanceRows>();
@@ -391,6 +424,30 @@ export const loadCohortAdminView = cache(
       ]),
     );
 
+    // Task days, capped at the days that have actually opened: a column of
+    // empty cells for day 12 in week one reads as fifteen people who have not
+    // submitted rather than a day nobody could have done yet.
+    const taskItems = items.filter((i) => i.type === "use_example");
+    const taskDayIndexes = taskItems
+      .filter((i) =>
+        hasDayArrived({
+          dayIndex: i.day_index,
+          startDate: cohort.start_date,
+          today,
+        }),
+      )
+      .map((i) => i.day_index)
+      .sort((a, b) => a - b);
+
+    const taskLinks: TaskLinkRow[] = adminMembers.map((member) => ({
+      cohortMemberId: member.cohortMemberId,
+      displayName: member.displayName,
+      byDay: taskLinksByDay({
+        taskItems,
+        metaByItemId: metaByMember.get(member.cohortMemberId) ?? new Map(),
+      }),
+    }));
+
     const workSamples = adminMembers.map((member) => {
       const live = submissionsByMember.get(member.cohortMemberId) ?? [];
       const pre = live.find((s) => s.kind === "work_sample_pre");
@@ -417,6 +474,8 @@ export const loadCohortAdminView = cache(
       members: adminMembers,
       sessions,
       dayIndexes,
+      taskLinks,
+      taskDayIndexes,
       funnel: buildGateFunnel(adminMembers.map((m) => m.gates)),
       attendanceBySession: attendanceBySession,
       workSamples,

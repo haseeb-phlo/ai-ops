@@ -5,6 +5,7 @@ import {
   normaliseTaskLink,
   shortenTaskLink,
   taskLinkFrom,
+  taskLinksByDay,
 } from "@/lib/programme/task-link";
 
 describe("normaliseTaskLink", () => {
@@ -87,5 +88,51 @@ describe("shortenTaskLink", () => {
     expect(short.length).toBeLessThanOrEqual(45);
     expect(short).toContain("claude.ai");
     expect(short).toContain("tail");
+  });
+});
+
+describe("taskLinksByDay", () => {
+  const taskItems = [
+    { id: "d1", day_index: 1 },
+    { id: "d2", day_index: 2 },
+    { id: "d3", day_index: 3 },
+  ];
+
+  it("keys a member's links by the day they belong to", () => {
+    const byDay = taskLinksByDay({
+      taskItems,
+      metaByItemId: new Map<string, unknown>([
+        ["d1", { [TASK_LINK_KEY]: "https://claude.ai/share/one" }],
+        ["d3", { [TASK_LINK_KEY]: "https://claude.ai/share/three" }],
+      ]),
+    });
+    expect(byDay).toEqual({
+      1: "https://claude.ai/share/one",
+      3: "https://claude.ai/share/three",
+    });
+  });
+
+  it("leaves a day out rather than filling it with an empty string", () => {
+    // The admin table reads a missing day as "chase this person", so a blank
+    // that looks like a link would hide exactly the thing it exists to show.
+    const byDay = taskLinksByDay({
+      taskItems,
+      metaByItemId: new Map<string, unknown>([
+        ["d1", {}],
+        ["d2", { [TASK_LINK_KEY]: "" }],
+        ["d3", null],
+      ]),
+    });
+    expect(byDay).toEqual({});
+  });
+
+  it("ignores progress rows for items that are not Tasks", () => {
+    const byDay = taskLinksByDay({
+      taskItems,
+      metaByItemId: new Map<string, unknown>([
+        ["video-1", { [TASK_LINK_KEY]: "https://claude.ai/share/nope" }],
+      ]),
+    });
+    expect(byDay).toEqual({});
   });
 });

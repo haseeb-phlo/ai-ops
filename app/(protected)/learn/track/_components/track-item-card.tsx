@@ -243,20 +243,29 @@ export function TrackItemCard({
             </h4>
           )}
 
+          {/* A task can run to eight lines, so this reads as body copy rather
+              than as the meta line it used to be: one step up in size, room
+              between the blocks, and a measure that stops a sentence running
+              the full width of a desktop card. */}
           {dayArrived && copy.length > 0 && (
-            <div className="mt-1 space-y-1.5">
+            <div className="mt-2 max-w-prose space-y-2.5">
               {copy.map((block, i) =>
                 block.kind === "list" ? (
                   <ul
                     key={i}
-                    className="list-disc space-y-0.5 pl-4 text-xs text-muted-foreground marker:text-muted-foreground/60"
+                    className="list-disc space-y-1.5 pl-5 text-sm leading-relaxed text-muted-foreground marker:text-muted-foreground/50"
                   >
                     {block.items.map((line, j) => (
-                      <li key={j}>{line}</li>
+                      <li key={j} className="pl-0.5">
+                        {line}
+                      </li>
                     ))}
                   </ul>
                 ) : (
-                  <p key={i} className="text-xs text-muted-foreground">
+                  <p
+                    key={i}
+                    className="text-sm leading-relaxed text-muted-foreground"
+                  >
                     {block.text}
                   </p>
                 ),
@@ -397,7 +406,7 @@ export function TrackItemCard({
               type="button"
               variant="outline"
               size="sm"
-              className="mt-3"
+              className="mt-4"
               onClick={handleComplete}
               disabled={pending}
             >
@@ -497,18 +506,18 @@ function TaskOutputLink({
   };
 
   return (
-    <div className="mt-3">
+    <div className="mt-4 border-t border-border pt-3">
       {saved && !editing && (
         <div className="flex flex-wrap items-center gap-2 rounded-md border border-border bg-muted/30 px-3 py-2">
-          <LinkIcon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+          <LinkIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
           <a
             href={saved}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex min-w-0 items-center gap-1 text-xs text-foreground underline underline-offset-2 hover:no-underline"
+            className="inline-flex min-w-0 items-center gap-1 text-sm text-foreground underline underline-offset-2 hover:no-underline"
           >
             <span className="truncate">{shortenTaskLink(saved)}</span>
-            <ExternalLinkIcon className="size-3 shrink-0" aria-hidden />
+            <ExternalLinkIcon className="size-3.5 shrink-0" aria-hidden />
           </a>
           <Button
             type="button"
@@ -532,13 +541,17 @@ function TaskOutputLink({
             handleSubmit();
           }}
         >
+          {/* Not labelled optional. It is not enforced - a task whose output
+              is a spreadsheet on a shared drive is still done - but the
+              programme tracks a link per person per day, and a field that
+              calls itself optional is a field most people skip. */}
           <label
             htmlFor={inputId}
-            className="text-3xs font-semibold uppercase tracking-[0.06em] text-muted-foreground"
+            className="text-sm font-medium text-foreground"
           >
-            Link to your output {!saved && <span className="font-normal normal-case tracking-normal">(optional)</span>}
+            Link to your output
           </label>
-          <div className="mt-1.5 flex flex-wrap items-center gap-2">
+          <div className="mt-2 flex flex-wrap items-center gap-2">
             <Input
               id={inputId}
               name="output_url"
@@ -548,7 +561,7 @@ function TaskOutputLink({
               value={value}
               onChange={(event) => setValue(event.target.value)}
               placeholder="https://claude.ai/share/..."
-              className="h-8 min-w-0 flex-1 text-xs"
+              className="min-w-0 flex-1"
               disabled={pending}
             />
             <Button type="submit" variant="outline" size="sm" disabled={pending}>
@@ -569,7 +582,7 @@ function TaskOutputLink({
               </Button>
             )}
           </div>
-          <p className="mt-1.5 text-xs text-muted-foreground">
+          <p className="mt-2 max-w-prose text-sm leading-relaxed text-muted-foreground">
             In Claude, use Share to create a link, then paste it here. Anything
             else that shows your output works too.
           </p>
@@ -577,7 +590,7 @@ function TaskOutputLink({
       )}
 
       {error && (
-        <p className="mt-2 text-xs text-destructive" role="alert">
+        <p className="mt-2 text-sm text-destructive" role="alert">
           {error}
         </p>
       )}

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { format } from "date-fns";
-import { DownloadIcon } from "lucide-react";
+import { DownloadIcon, ExternalLinkIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { PROGRAMME_RAG, type ProgrammeRagStatus } from "@/lib/status";
@@ -32,6 +32,12 @@ const DAY_LABEL: Record<string, string> = {
   locked: "locked",
 };
 
+export type TaskLinkRow = {
+  cohortMemberId: string;
+  displayName: string;
+  byDay: Record<number, string>;
+};
+
 export type WorkSampleRow = {
   cohortMemberId: string;
   displayName: string;
@@ -48,6 +54,8 @@ export function CohortDashboard({
   funnel,
   attendance,
   workSamples,
+  taskLinks,
+  taskDayIndexes,
 }: {
   cohortId: string;
   members: HeatmapMember[];
@@ -61,12 +69,15 @@ export function CohortDashboard({
     unmarked: number;
   }[];
   workSamples: WorkSampleRow[];
+  taskLinks: TaskLinkRow[];
+  taskDayIndexes: number[];
 }) {
   return (
     <div className="space-y-6">
       <GateFunnel funnel={funnel} />
       <Heatmap members={members} dayIndexes={dayIndexes} />
       <AttendanceSummary rows={attendance} />
+      <TaskLinkTable rows={taskLinks} dayIndexes={taskDayIndexes} />
       <WorkSampleTable rows={workSamples} />
       <ExportCard cohortId={cohortId} />
     </div>
@@ -243,6 +254,127 @@ function AttendanceSummary({
           ))}
         </tbody>
       </table>
+    </section>
+  );
+}
+
+/**
+ * Every member's Task link, day by day.
+ *
+ * The links are the only per-day evidence the programme collects. They are
+ * NOT submissions: they never enter the sign-off queue, never reach the
+ * gallery and are not reviewed, which is deliberate - fifteen days times a
+ * cohort is not a review workload anyone would survive. That leaves them
+ * readable nowhere, which is what this table fixes, on the same reasoning as
+ * the work samples below: an admin cannot chase a gap they cannot see.
+ *
+ * Columns stop at the last day that has opened, so an empty cell always means
+ * "nothing filed" rather than "not due yet".
+ */
+function TaskLinkTable({
+  rows,
+  dayIndexes,
+}: {
+  rows: TaskLinkRow[];
+  dayIndexes: number[];
+}) {
+  const possible = rows.length * dayIndexes.length;
+  const filed = rows.reduce(
+    (total, row) =>
+      total + dayIndexes.filter((day) => Boolean(row.byDay[day])).length,
+    0,
+  );
+
+  return (
+    <section className="rounded-lg border border-border bg-background p-4">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h3 className="text-sm font-semibold tracking-tight text-foreground">
+          Task links
+        </h3>
+        <span className="text-xs text-muted-foreground">
+          {filed} of {possible} filed
+        </span>
+      </div>
+      <p className="mt-1 max-w-prose text-sm text-muted-foreground">
+        What each person produced for each day&apos;s Task. Filed by the member
+        on their own timeline, not reviewed and not part of sign-off - this is
+        the record of who is actually doing the daily work.
+      </p>
+
+      {dayIndexes.length === 0 || rows.length === 0 ? (
+        <p className="mt-3 text-sm text-muted-foreground">
+          {rows.length === 0
+            ? "Nobody is enrolled on this cohort yet."
+            : "No Task has opened yet."}
+        </p>
+      ) : (
+        <div className="mt-3 overflow-x-auto">
+          <table className="w-full border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-border text-left">
+                <th className="py-2 pr-3 font-medium text-muted-foreground">
+                  Member
+                </th>
+                {dayIndexes.map((day) => (
+                  <th
+                    key={day}
+                    className="px-2 py-2 text-center font-medium text-muted-foreground"
+                  >
+                    <span className="font-mono text-3xs tabular-nums">
+                      D{day}
+                    </span>
+                  </th>
+                ))}
+                <th className="py-2 pl-3 text-right font-medium text-muted-foreground">
+                  Filed
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => {
+                const count = dayIndexes.filter((day) =>
+                  Boolean(row.byDay[day]),
+                ).length;
+                return (
+                  <tr key={row.cohortMemberId} className="border-b border-border">
+                    <td className="py-2 pr-3 whitespace-nowrap text-foreground">
+                      {row.displayName}
+                    </td>
+                    {dayIndexes.map((day) => {
+                      const url = row.byDay[day];
+                      return (
+                        <td key={day} className="px-2 py-2 text-center">
+                          {url ? (
+                            <a
+                              href={url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center justify-center text-foreground hover:text-primary"
+                              aria-label={`Open ${row.displayName}'s day ${day} Task link`}
+                            >
+                              <ExternalLinkIcon className="size-3.5" aria-hidden />
+                            </a>
+                          ) : (
+                            <span
+                              className="text-muted-foreground/50"
+                              aria-label={`${row.displayName} has filed nothing for day ${day}`}
+                            >
+                              &ndash;
+                            </span>
+                          )}
+                        </td>
+                      );
+                    })}
+                    <td className="py-2 pl-3 text-right font-mono text-3xs tabular-nums text-muted-foreground">
+                      {count}/{dayIndexes.length}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </section>
   );
 }

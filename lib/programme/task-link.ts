@@ -82,3 +82,24 @@ export function shortenTaskLink(href: string, maxLength = 44): string {
   const tail = display.slice(-Math.floor(maxLength / 2));
   return `${head}…${tail}`;
 }
+
+/**
+ * One member's filed links, keyed by programme day.
+ *
+ * Pure, because the admin table that reads it is the only thing standing
+ * between "everyone files a link" and "we think everyone files a link". A
+ * missing day is a member to chase, so the shape has to be exact.
+ */
+export function taskLinksByDay(args: {
+  /** The track's use_example items. */
+  taskItems: readonly { id: string; day_index: number }[];
+  /** This member's progress meta_json, keyed by track item id. */
+  metaByItemId: ReadonlyMap<string, unknown>;
+}): Record<number, string> {
+  const byDay: Record<number, string> = {};
+  for (const item of args.taskItems) {
+    const link = taskLinkFrom(args.metaByItemId.get(item.id));
+    if (link) byDay[item.day_index] = link;
+  }
+  return byDay;
+}

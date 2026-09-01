@@ -92,14 +92,19 @@ describe("a Task card's copy", () => {
 });
 
 describe("a Task card's output link", () => {
-  it("offers somewhere to file the link, marked optional", () => {
+  it("offers somewhere to file the link, and does not call it optional", () => {
+    // Not enforced, but the programme tracks a link per person per day and a
+    // field that calls itself optional is a field most people skip.
     const container = task();
     const input = container.querySelector<HTMLInputElement>(
       'input[name="output_url"]',
     );
     expect(input).not.toBeNull();
     expect(input!.placeholder).toContain("claude.ai/share");
-    expect(container.textContent).toContain("(optional)");
+    expect(container.querySelector("label")!.textContent?.trim()).toBe(
+      "Link to your output",
+    );
+    expect(container.textContent).not.toContain("optional");
   });
 
   it("labels the button so saving a link is visibly the same as finishing", () => {
