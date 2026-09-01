@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useId, useState, useTransition } from "react";
 import { format } from "date-fns";
 import {
   CheckIcon,
@@ -461,7 +461,11 @@ function TaskOutputLink({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const inputId = `task-link-${itemId}`;
+  // useId, not the item id: the page renders the same item twice - once in the
+  // focus card and once in the timeline below it - so an id derived from the
+  // item would appear twice in the document and the label would point at
+  // whichever copy the parser met first.
+  const inputId = useId();
   const showForm = editing || !saved;
 
   const handleSubmit = () => {

@@ -127,6 +127,18 @@ describe("a Task card's output link", () => {
     expect(container.querySelector('input[name="output_url"]')).toBeNull();
   });
 
+  it("keeps the field's id unique when the same item renders twice", () => {
+    // The page shows today twice: once in the focus card, once in the
+    // timeline below it. An id derived from the item would collide and the
+    // label would point at the wrong field.
+    const first = task();
+    const second = task();
+    const idOf = (c: HTMLElement) =>
+      c.querySelector<HTMLInputElement>('input[name="output_url"]')!.id;
+    expect(idOf(first)).not.toBe(idOf(second));
+    expect(first.querySelector("label")!.getAttribute("for")).toBe(idOf(first));
+  });
+
   it("offers no link field on a video", () => {
     const container = task({ type: "video", title: "When to use AI" });
     expect(container.querySelector('input[name="output_url"]')).toBeNull();
