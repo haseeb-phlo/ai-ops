@@ -36,11 +36,10 @@ Run all three separately, including the one you expect to fail, and compare the 
 If something worked that you expected not to, that is something to delegate to Claude immediately. Something that gave an incorrect output is one to be cautious about and double-check.
 If Claude did not produce the output you wanted for a specific task, try again. Add more context, add an example document, or split it into two steps, and see whether that helps.
 Submit the link to one of these, preferably the one with the output that surprised you the most.', 2, 1, null, '{}'::jsonb),
-    ('video', 'CRISPE Framework', null, 3, 0, 'CRISPE Framework', '{}'::jsonb),
-    ('use_example', 'Task', 'Take a prompt you''ve already used this week and rewrite it using CRISPE as a prompting framework: context, role, instructions, style, parameters, example.
-Run both prompts and keep the better output.
-Claude will now store the CRISPE context for this chat in its memory so you can prompt it without the full details next time, and you should still get a similar output.
-Submit the better example from the two chats (with and without CRISPE).', 3, 1, null, '{}'::jsonb),
+    ('video', 'Prompting', null, 3, 0, 'Prompting', '{}'::jsonb),
+    ('use_example', 'Task', 'Take a Project you''ve already built (or build a new one) and use the CRISPE framework in the instructions.
+Run a chat here again and check the output.
+Submit the Project as an example of one using a framework.', 3, 1, null, '{}'::jsonb),
     ('session', 'Live session 1', null, 3, 2, null, '{"slots":2}'::jsonb),
     ('submission_slot', 'Example 1', null, 3, 4, null, '{"kind":"signed_example","visibility":"cohort"}'::jsonb),
     ('video', 'Connectors & MCP', null, 4, 0, 'Connectors & MCP', '{}'::jsonb),
@@ -111,11 +110,10 @@ Run all three separately, including the one you expect to fail, and compare the 
 If something worked that you expected not to, that is something to delegate to Claude immediately. Something that gave an incorrect output is one to be cautious about and double-check.
 If Claude did not produce the output you wanted for a specific task, try again. Add more context, add an example document, or split it into two steps, and see whether that helps.
 Submit the link to one of these, preferably the one with the output that surprised you the most.'),
-    (3, 0, 'CRISPE Framework', null),
-    (3, 1, 'Task', 'Take a prompt you''ve already used this week and rewrite it using CRISPE as a prompting framework: context, role, instructions, style, parameters, example.
-Run both prompts and keep the better output.
-Claude will now store the CRISPE context for this chat in its memory so you can prompt it without the full details next time, and you should still get a similar output.
-Submit the better example from the two chats (with and without CRISPE).'),
+    (3, 0, 'Prompting', null),
+    (3, 1, 'Task', 'Take a Project you''ve already built (or build a new one) and use the CRISPE framework in the instructions.
+Run a chat here again and check the output.
+Submit the Project as an example of one using a framework.'),
     (3, 2, 'Live session 1', null),
     (3, 4, 'Example 1', null),
     (4, 0, 'Connectors & MCP', null),

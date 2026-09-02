@@ -48,11 +48,20 @@ export type TrackItemSpec = {
  * (lowercased) title match against `learn_videos`, and the library row is
  * titled "What is AI and how does it work?" - drop the mark and the seed binds
  * null, leaving day 1 reading "coming soon" on the cohort's first morning.
+ *
+ * Day 3 is the standing exception and has been since before it was renamed to
+ * "Prompting": the library row is titled "CRISP Framework", with no E, so no
+ * title this day has ever carried would match it. The live binding was made by
+ * hand in the admin Track-items screen and SURVIVES a rename here - the seed's
+ * re-bind only fills nulls and never overwrites - so this costs nothing today.
+ * It would leave day 3 unbound on a fresh seed of an empty database. Renaming
+ * the library row to match is the one-place fix; doing it in code here would
+ * only hide the mismatch.
  */
 export const DAY_TOPICS: readonly string[] = [
   "What is AI and how does it work?",
   "When to use AI and when not to",
-  "CRISPE Framework",
+  "Prompting",
   "Connectors & MCP",
   "Projects",
   "Catching confident wrong answers",
@@ -105,9 +114,12 @@ const GENERIC_TASK =
  * they are already comfortable with and never test the boundary - so the task
  * makes them commit to a guess before they can see the answer.
  *
- * Day 3 is the same idea one level up: rewrite a prompt you have already used
- * with all six CRISPE parts and keep both chats, so the comparison is against
- * your own earlier attempt rather than against an example someone else wrote.
+ * Day 3 moves the framework off the prompt and into a Project's instructions,
+ * which is where it earns its keep: CRISPE written into one chat's preamble is
+ * a thing you retype, and written into a Project it is standing context every
+ * chat inside it starts from. It also asks for a Project as the submitted
+ * example rather than a chat, so what gets shared is something a colleague can
+ * open and use rather than a transcript to read.
  *
  * FORMATTING: these are plain text, and the card renders them through
  * `parseItemCopy` (lib/programme/item-copy.ts) - one paragraph per line, and a
@@ -127,10 +139,9 @@ const DAY_TASKS: Readonly<Record<number, string>> = {
     "Submit the link to one of these, preferably the one with the output that surprised you the most.",
   ].join("\n"),
   3: [
-    "Take a prompt you've already used this week and rewrite it using CRISPE as a prompting framework: context, role, instructions, style, parameters, example.",
-    "Run both prompts and keep the better output.",
-    "Claude will now store the CRISPE context for this chat in its memory so you can prompt it without the full details next time, and you should still get a similar output.",
-    "Submit the better example from the two chats (with and without CRISPE).",
+    "Take a Project you've already built (or build a new one) and use the CRISPE framework in the instructions.",
+    "Run a chat here again and check the output.",
+    "Submit the Project as an example of one using a framework.",
   ].join("\n"),
 };
 

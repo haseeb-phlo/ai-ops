@@ -95,18 +95,22 @@ describe("the track's own copy", () => {
       text: "Submit the link to one of these, preferably the one with the output that surprised you the most.",
     });
   });
-  it("names all six CRISPE parts in day 3's task", () => {
+  it("puts day 3's framework in a Project's instructions, not in a prompt", () => {
+    // The day used to ask for a rewritten prompt and name all six CRISPE
+    // parts. It now asks for the framework in a Project's instructions, so
+    // what it has to name is the framework, the container and the thing to
+    // submit - and the submit line has to come last, next to the field that
+    // takes it.
     const day3 = tasks.find((t) => t.dayIndex === 3)!;
-    const text = (day3.description ?? "").toLowerCase();
-    for (const part of [
-      "context",
-      "role",
-      "instructions",
-      "style",
-      "parameters",
-      "example",
-    ]) {
-      expect(text, part).toContain(part);
-    }
+    const blocks = parseItemCopy(day3.description ?? null);
+    expect(blocks.every((b) => b.kind === "paragraph")).toBe(true);
+    const text = day3.description ?? "";
+    expect(text).toContain("CRISPE");
+    expect(text).toContain("Project");
+    expect(text).toContain("instructions");
+    expect(blocks.at(-1)).toEqual({
+      kind: "paragraph",
+      text: "Submit the Project as an example of one using a framework.",
+    });
   });
 });
