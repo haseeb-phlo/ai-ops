@@ -6,6 +6,8 @@ import {
   hasDayArrived,
   hasReached,
   hourInLondon,
+  openThroughInLondon,
+  PROGRAMME_OPEN_HOUR,
   isWeekend,
   todayInLondon,
   unlockDateFor,
@@ -300,5 +302,70 @@ describe("hasDayArrived", () => {
     expect(hasDayArrived({ dayIndex: 0, startDate, today: "2026-08-31" })).toBe(
       true,
     );
+  });
+});
+
+describe("openThroughInLondon", () => {
+  it("opens the day at 9am London, not at midnight", () => {
+    // 08:00 UTC on 1 September is 09:00 BST: the day is open.
+    expect(openThroughInLondon(new Date("2026-09-01T08:00:00Z"))).toBe(
+      "2026-09-01",
+    );
+    // One minute earlier it is not, and the programme is still open only
+    // through the day before.
+    expect(openThroughInLondon(new Date("2026-09-01T07:59:00Z"))).toBe(
+      "2026-08-31",
+    );
+  });
+
+  it("is 9am LONDON in winter too, not a fixed UTC hour", () => {
+    // Late November is GMT, so 08:00 UTC is 08:00 London - still shut, where
+    // in BST the same instant would have been 9am and open. A fixed UTC hour
+    // is exactly the DST bug hourInLondon exists to stop.
+    expect(openThroughInLondon(new Date("2026-11-27T08:00:00Z"))).toBe(
+      "2026-11-26",
+    );
+    expect(openThroughInLondon(new Date("2026-11-27T09:00:00Z"))).toBe(
+      "2026-11-27",
+    );
+  });
+
+  it("still reads yesterday just after midnight, which is the whole point", () => {
+    // 23:30 UTC on 31 August is 00:30 BST on 1 September. Under the old
+    // midnight unlock that instant opened day 2; now it does not.
+    expect(openThroughInLondon(new Date("2026-08-31T23:30:00Z"))).toBe(
+      "2026-08-31",
+    );
+    expect(todayInLondon(new Date("2026-08-31T23:30:00Z"))).toBe("2026-09-01");
+  });
+
+  it("steps back over a month boundary", () => {
+    expect(openThroughInLondon(new Date("2026-09-01T00:30:00Z"))).toBe(
+      "2026-08-31",
+    );
+  });
+
+  it("steps back a calendar day, so a Saturday morning reads Friday", () => {
+    // Saturday 5 September, 07:00 BST. Unlock dates are always weekdays and
+    // the comparison is <=, so Friday and Saturday exclude the same set - but
+    // this is the value, and it should not silently be a working-day step.
+    expect(openThroughInLondon(new Date("2026-09-05T06:00:00Z"))).toBe(
+      "2026-09-04",
+    );
+  });
+
+  it("agrees with today from the open hour onwards, all day", () => {
+    for (const hour of [9, 12, 18, 23]) {
+      const at = new Date(
+        `2026-11-27T${String(hour).padStart(2, "0")}:00:00Z`,
+      );
+      expect(openThroughInLondon(at)).toBe(todayInLondon(at));
+    }
+  });
+
+  it("opens at 9, which is the hour the member reminder goes out", () => {
+    // Not decoration: the reminder is meant to land as the day opens. If one
+    // of these moves without the other, people are told to do a locked day.
+    expect(PROGRAMME_OPEN_HOUR).toBe(9);
   });
 });

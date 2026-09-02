@@ -79,6 +79,10 @@ export default async function TrackPage({
       }),
       blockedByWeekOne:
         !state.weekOneGate.satisfied && weekOf(resolved.item.day_index) > 1,
+      // Its date is today, so the thing still holding it is the 9am open
+      // rather than a day that has not come round. Computed here, once, so
+      // the card and the focus panel cannot word the same wait differently.
+      opensToday: resolved.unlockDate === state.today,
       // Daily arithmetic, matching hasDayArrived - so the date the card
       // prints is exactly the date it starts showing the item.
       releaseDate: unlockDateFor(
@@ -225,6 +229,7 @@ export default async function TrackPage({
         <TodayPanel
           openCount={state.outstandingCount}
           nextOpensOn={nextOpensOn}
+          nextOpensToday={nextOpensOn === state.today}
           completedCount={completedContent}
           totalCount={totalContent}
           isComplete={state.membership.completedAt !== null}
@@ -240,6 +245,7 @@ export default async function TrackPage({
           days={days.map((day) => ({
             dayIndex: day,
             unlockDate: unlockByDay.get(day) ?? state.cohort.startDate,
+            opensToday: unlockByDay.get(day) === state.today,
             items: byDay.get(day) ?? [],
           }))}
           todayDayIndex={todayDayIndex}

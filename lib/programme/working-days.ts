@@ -20,6 +20,25 @@ const LONDON = "Europe/London";
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 /**
+ * The hour a programme day opens, in London time.
+ *
+ * Days used to open at midnight, because that is what a bare date comparison
+ * gives you for free - and nobody chose it. The effect was that a day arrived
+ * while everyone was asleep, so the 7am shift met a day it was already several
+ * hours into, and anyone glancing at the app late the night before found
+ * tomorrow's work already sitting there. Nine is when the working day starts,
+ * which is when a day's worth of it should appear.
+ *
+ * This is the same 9 as `MEMBER_REMINDER_HOUR` in the programme-notify cron,
+ * and deliberately so: the reminder goes out as the day opens, not before it.
+ * Move one and look at the other.
+ */
+export const PROGRAMME_OPEN_HOUR = 9;
+
+/** How that hour is written on screen. One spelling, in one place. */
+export const PROGRAMME_OPEN_LABEL = "9am";
+
+/**
  * Today's date in Europe/London, as "YYYY-MM-DD".
  *
  * Takes an optional instant so callers (and tests) can be deterministic. Using
@@ -166,6 +185,11 @@ export function weekOf(dayIndex: number): number {
  *         day 5 the Friday of week 1 and day 15 the Friday of week 3.
  * weekly: the Monday of that day's week, so days 1-5 all open on the start
  *         Monday, 6-10 a week later and 11-15 a week after that.
+ *
+ * A date, not an instant. The time of day a date opens at is
+ * `PROGRAMME_OPEN_HOUR`, and the only thing that applies it is
+ * `openThroughInLondon` - so this stays pure calendar arithmetic and the
+ * whole module keeps working in plain "YYYY-MM-DD" strings.
  */
 export function unlockDateFor(
   startDate: IsoDate,
@@ -182,6 +206,27 @@ export function unlockDateFor(
 /** True when `unlockDate` is today or in the past, in London terms. */
 export function hasReached(unlockDate: IsoDate, today: IsoDate): boolean {
   return toDayNumber(unlockDate) <= toDayNumber(today);
+}
+
+/**
+ * The date the programme is open THROUGH, at instant `now`.
+ *
+ * From 09:00 London this is today; before it, the previous calendar day. Pass
+ * it wherever unlock is being decided - `resolveItemStates` and friends - and
+ * keep `todayInLondon` for everything that asks which day it is rather than
+ * what has opened: overdue, RAG, the "Today" badge on the timeline. Those two
+ * questions were the same question while days opened at midnight and are not
+ * any more, and conflating them would quietly move the overdue line to 9am too.
+ *
+ * Steps back a CALENDAR day rather than a working one. Unlock dates are always
+ * weekdays and the comparison is `<=`, so Saturday and Friday exclude exactly
+ * the same set - and a calendar step is the one that stays obviously right if
+ * that ever stops being true.
+ */
+export function openThroughInLondon(now: Date = new Date()): IsoDate {
+  const today = todayInLondon(now);
+  if (hourInLondon(now) >= PROGRAMME_OPEN_HOUR) return today;
+  return fromDayNumber(toDayNumber(today) - 1);
 }
 
 /**

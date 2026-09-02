@@ -9,7 +9,8 @@
  *   3. The FINAL measurement - the summative quiz and the post check-in -
  *      unlocks by date regardless of rules 2 and 2b, so someone who never did
  *      the baseline can still be measured at the end.
- *   4. Everything else unlocks on start_date + (day_index - 1) working days.
+ *   4. Everything else unlocks on start_date + (day_index - 1) working days,
+ *      at 09:00 London on that day - see `openThroughInLondon`.
  *
  * And rule 2b, which is rule 2 one week later: until BOTH of week one's
  * submissions are in, nothing from week two onward unlocks. Week one is the
@@ -72,6 +73,15 @@ const BASELINE_TYPES = new Set(["questionnaire_baseline"]);
 export function resolveItemStates<T extends TrackItemLike>(args: {
   items: readonly T[];
   startDate: IsoDate;
+  /**
+   * The date the programme is open THROUGH, which is not always today: days
+   * open at 09:00 London, so before then it is yesterday. Callers get it from
+   * `openThroughInLondon`, never from `todayInLondon`.
+   *
+   * Still called `today` because it was exactly today for as long as days
+   * opened at midnight, and renaming it would churn every test to say the
+   * same thing. Read the name as "the day this resolver is standing on".
+   */
   today: IsoDate;
   /** True once the member has a wave='cohort_baseline' response. */
   hasBaseline: boolean;

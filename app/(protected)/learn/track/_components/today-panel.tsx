@@ -4,6 +4,7 @@ import { CheckIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 import type { StepsToGreen } from "@/lib/programme/next-steps";
+import { PROGRAMME_OPEN_LABEL } from "@/lib/programme/working-days";
 
 /**
  * The one panel that answers "what do I do now".
@@ -26,6 +27,7 @@ import type { StepsToGreen } from "@/lib/programme/next-steps";
 export function TodayPanel({
   openCount,
   nextOpensOn,
+  nextOpensToday,
   completedCount,
   totalCount,
   isComplete,
@@ -35,6 +37,8 @@ export function TodayPanel({
   openCount: number;
   /** When the next locked thing opens, if anything is still to come. */
   nextOpensOn: string | null;
+  /** That date is today, so the only thing left to wait for is 9am. */
+  nextOpensToday?: boolean;
   completedCount: number;
   totalCount: number;
   isComplete: boolean;
@@ -82,7 +86,9 @@ export function TodayPanel({
               </h2>
               <p className="mt-0.5 text-xs text-secondary-foreground/80">
                 {nextOpensOn
-                  ? `Nothing else to do. The next part opens on ${format(new Date(`${nextOpensOn}T00:00:00`), "EEEE d MMMM")}.`
+                  ? nextOpensToday
+                    ? `Nothing else to do. The next part opens at ${PROGRAMME_OPEN_LABEL} today.`
+                    : `Nothing else to do. The next part opens on ${format(new Date(`${nextOpensOn}T00:00:00`), "EEEE d MMMM")}.`
                   : "Nothing waiting on you."}
               </p>
             </>

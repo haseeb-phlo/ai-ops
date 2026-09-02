@@ -5,6 +5,7 @@ import { format } from "date-fns";
 import { ChevronLeftIcon, ChevronRightIcon, LockIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { dayStatus, type DayStatus } from "@/lib/programme/day-status";
+import { PROGRAMME_OPEN_LABEL } from "@/lib/programme/working-days";
 import { Button } from "@/components/ui/button";
 import { TrackItemCard, type TrackItemView } from "./track-item-card";
 
@@ -30,6 +31,8 @@ import { TrackItemCard, type TrackItemView } from "./track-item-card";
 export type FocusDay = {
   dayIndex: number;
   unlockDate: string;
+  /** Its unlock date is today and it is the 9am clock still holding it shut. */
+  opensToday: boolean;
   items: TrackItemView[];
 };
 
@@ -145,7 +148,10 @@ export function DayFocus({
             {locked && (
               <span className="flex items-center gap-1 text-3xs uppercase tracking-[0.06em] text-muted-foreground">
                 <LockIcon className="size-3" aria-hidden />
-                opens {format(new Date(day.unlockDate), "EEE d MMM")}
+                opens{" "}
+                {day.opensToday
+                  ? PROGRAMME_OPEN_LABEL
+                  : format(new Date(day.unlockDate), "EEE d MMM")}
               </span>
             )}
           </div>

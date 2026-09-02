@@ -17,6 +17,7 @@ import Link from "next/link";
 import { loomEmbedUrl } from "@/lib/loom";
 import { parseItemCopy } from "@/lib/programme/item-copy";
 import { normaliseTaskLink, shortenTaskLink } from "@/lib/programme/task-link";
+import { PROGRAMME_OPEN_LABEL } from "@/lib/programme/working-days";
 import { cn } from "@/lib/utils";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
@@ -62,6 +63,15 @@ export type TrackItemView = {
    * as a bug rather than as a thing the member can do something about.
    */
   blockedByWeekOne?: boolean;
+  /**
+   * True when this item's unlock date IS today and the clock is what is still
+   * holding it - days open at 9am, not at midnight.
+   *
+   * Without it the card spends every morning telling somebody a thing
+   * "unlocks 2 Sep" on the 2nd of September, which reads as a broken date
+   * rather than as an hour to wait for.
+   */
+  opensToday?: boolean;
   /**
    * The date this item's day opens, for the "Released on ..." line.
    *
@@ -224,7 +234,9 @@ export function TrackItemCard({
                 {locked
                   ? item.blockedByWeekOne
                     ? "Submit week 1 first"
-                    : `Unlocks ${format(new Date(`${item.unlockDate}T00:00:00`), "d MMM")}`
+                    : item.opensToday
+                      ? `Unlocks ${PROGRAMME_OPEN_LABEL}`
+                      : `Unlocks ${format(new Date(`${item.unlockDate}T00:00:00`), "d MMM")}`
                   : awaitingVideo
                     ? "Coming soon"
                     : style.label}

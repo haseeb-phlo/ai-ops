@@ -5,7 +5,11 @@ import { computeGates } from "@/lib/programme/gates";
 import { computeRag, type RagStatus } from "@/lib/programme/rag";
 import { countOverdue } from "@/lib/programme/overdue";
 import { resolveItemStates, outstandingItems, type ItemState } from "@/lib/programme/unlock";
-import { todayInLondon, unlockDateFor } from "@/lib/programme/working-days";
+import {
+  openThroughInLondon,
+  todayInLondon,
+  unlockDateFor,
+} from "@/lib/programme/working-days";
 import { isG2Impossible, satisfiedSessionIds } from "@/lib/programme/attendance";
 import { gateableContentItemIds, isAwaitingContent } from "@/lib/programme/content-readiness";
 import { sweepUnreviewedSubmissions } from "@/lib/programme/ai-review-run";
@@ -56,6 +60,11 @@ export async function GET(request: NextRequest) {
 
   const supabase = createAdminClient();
   const today = todayInLondon();
+  // This sweep runs at 06:00 UTC, before days open at 09:00 London, so the two
+  // dates differ on every run. Unlock takes the opened-through date; overdue
+  // and RAG take the calendar one, which is the whole point of the split -
+  // nothing becomes late three hours earlier because the sweep runs early.
+  const openThrough = openThroughInLondon();
 
   const { data: cohorts, error: cohortError } = await supabase
     .from("programme_cohorts")
@@ -166,7 +175,7 @@ export async function GET(request: NextRequest) {
       const resolved = resolveItemStates({
         items: itemList,
         startDate: cohort.start_date,
-        today,
+        today: openThrough,
         hasBaseline: true,
         progressByItemId: memberProgress,
         summativeItemIds: summativeIds,

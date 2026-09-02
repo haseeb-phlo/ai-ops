@@ -15,6 +15,7 @@ import {
 } from "./unlock";
 import {
   todayInLondon,
+  openThroughInLondon,
   hasReached,
   unlockDateFor,
   weekOf,
@@ -68,6 +69,11 @@ export type TrackState = {
     isChampion: boolean;
     completedAt: string | null;
   };
+  /**
+   * The calendar date in London - which day it is, not what has opened. Days
+   * open at 9am, so before then this is a day ahead of what the resolver used;
+   * that is what lets the page label a locked card "Today ... unlocks 9am".
+   */
   today: string;
   hasBaseline: boolean;
   /**
@@ -321,6 +327,11 @@ const loadTrackStateFor = cache(
     const hasPostResponse = waves.has("post");
 
     const today = todayInLondon();
+    // Days open at 09:00 London, so between midnight and nine the programme is
+    // still only open THROUGH yesterday. Unlock is the only thing that asks
+    // that question - overdue, RAG and the "Today" badge all want the calendar
+    // date, because "late" and "which day is it" did not move to 9am.
+    const openThrough = openThroughInLondon();
 
     // Feed the union into unlock resolution so a Learn-side completion shows as
     // complete on the timeline too.
@@ -370,7 +381,7 @@ const loadTrackStateFor = cache(
     const resolved = resolveItemStates({
       items,
       startDate: cohort.start_date,
-      today,
+      today: openThrough,
       hasBaseline,
       weekOneSubmissionsIn,
       progressByItemId: effectiveProgress,

@@ -5,7 +5,12 @@ import { computeGates, type GateSet } from "./gates";
 import { computeRag, type RagStatus } from "./rag";
 import { countOverdue } from "./overdue";
 import { resolveItemStates, outstandingItems, type ItemState } from "./unlock";
-import { hasDayArrived, todayInLondon, unlockDateFor } from "./working-days";
+import {
+  hasDayArrived,
+  openThroughInLondon,
+  todayInLondon,
+  unlockDateFor,
+} from "./working-days";
 import { taskLinksByDay } from "./task-link";
 import {
   isG2Impossible,
@@ -202,6 +207,10 @@ export const loadCohortAdminView = cache(
     const members = memberRows ?? [];
     const items = itemRows ?? [];
     const today = todayInLondon();
+    // What has actually opened, which before 9am London is yesterday. Used for
+    // the two questions about visibility - item states and which task columns
+    // exist - while `today` stays the calendar date for overdue and RAG.
+    const openThrough = openThroughInLondon();
 
     // Names: profiles are readable to any authenticated user; this page is
     // super-admin gated anyway.
@@ -302,7 +311,7 @@ export const loadCohortAdminView = cache(
       const resolved = resolveItemStates({
         items,
         startDate: cohort.start_date,
-        today,
+        today: openThrough,
         // The roster view doesn't need to re-derive the baseline gate per
         // member; progress already reflects what they've actually done.
         hasBaseline: true,
@@ -433,7 +442,7 @@ export const loadCohortAdminView = cache(
         hasDayArrived({
           dayIndex: i.day_index,
           startDate: cohort.start_date,
-          today,
+          today: openThrough,
         }),
       )
       .map((i) => i.day_index)

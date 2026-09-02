@@ -154,3 +154,40 @@ describe("a Task card's output link", () => {
     expect(container.querySelector('input[name="output_url"]')).toBeNull();
   });
 });
+
+describe("what a locked card says it is waiting for", () => {
+  it("names the hour, not the date, on the morning a day opens", () => {
+    // Days open at 9am London. Printing "Unlocks 1 Sep" at 07:00 on 1 Sep
+    // reads as a broken date rather than as an hour to wait for.
+    const container = task({
+      state: "locked",
+      unlockDate: "2026-09-01",
+      opensToday: true,
+    });
+    expect(container.textContent).toContain("Unlocks 9am");
+    expect(container.textContent).not.toContain("Unlocks 1 Sep");
+  });
+
+  it("still names the date for a day that is genuinely later", () => {
+    const container = task({
+      state: "locked",
+      unlockDate: "2026-09-04",
+      opensToday: false,
+    });
+    expect(container.textContent).toContain("Unlocks 4 Sep");
+  });
+
+  it("lets the week-one checkpoint speak first", () => {
+    // A day held by the checkpoint is not waiting for 9am, and saying so
+    // would send the member off to wait for a clock instead of submitting.
+    const container = task({
+      state: "locked",
+      unlockDate: "2026-09-01",
+      opensToday: true,
+      blockedByWeekOne: true,
+    });
+    expect(container.textContent).toContain("Submit week 1 first");
+    expect(container.textContent).not.toContain("Unlocks 9am");
+  });
+});
+
