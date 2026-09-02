@@ -18,8 +18,14 @@
  * these questions were written, shifting every topic one day later without
  * shifting the tags: D2 here is prompting, which the programme now calls
  * day 3. So do NOT put a `day` value into question prose. The one place that
- * did said "the prompt framework from day 2" and named the wrong day for
- * months.
+ * did said "the prompt framework from day 2"; it carried that from before the
+ * first cohort, though no member had reached a quiz to read it.
+ *
+ * One explanation still quotes the old numbering: the final quiz says
+ * "choosing the right container is most of what day 15 is about", and v5's
+ * D15 ("choosing the right tool") is the topic that came off the end when day
+ * 1 was added, so the programme's own day 15 is "Claude everywhere". Left for
+ * an editorial call rather than guessed at.
  *
  * The offset has a consequence worth fixing separately, because it needs new
  * questions rather than a renumber: week one's quiz is taken on day 5 and its
