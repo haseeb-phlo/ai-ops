@@ -59,23 +59,35 @@ export function DayFocus({
   cohortId,
   days,
   todayDayIndex,
+  requestedDay,
   weekOfDay,
 }: {
   /** Which cohort these items belong to, so a write lands on the right one. */
   cohortId: string;
   days: FocusDay[];
   todayDayIndex: number | null;
+  /**
+   * A day asked for by URL (`?day=3`), already validated by the page. Wins
+   * over today, because somebody following a link from Slack has been told
+   * which day they are going to.
+   */
+  requestedDay?: number | null;
   /** Passed in rather than imported so the week rule stays in one module. */
   weekOfDay: Record<number, number>;
 }) {
   /**
    * Where to land someone.
    *
-   * Today if today is a programme day. Otherwise the earliest day they can
-   * still act on, because that is the thing they came to do - not day one,
-   * which they finished a fortnight ago.
+   * A day named in the URL first - that is the whole point of a shared link,
+   * and it has to win even when today is a perfectly good programme day.
+   * Otherwise today. Otherwise the earliest day they can still act on,
+   * because that is the thing they came to do - not day one, which they
+   * finished a fortnight ago.
    */
   const initial = useMemo(() => {
+    if (requestedDay && days.some((d) => d.dayIndex === requestedDay)) {
+      return requestedDay;
+    }
     if (todayDayIndex && days.some((d) => d.dayIndex === todayDayIndex)) {
       return todayDayIndex;
     }
@@ -83,7 +95,7 @@ export function DayFocus({
       (d) => statusOf(d, false) === "open" || statusOf(d, false) === "current",
     );
     return firstOpen?.dayIndex ?? days[0]?.dayIndex ?? 1;
-  }, [days, todayDayIndex]);
+  }, [days, todayDayIndex, requestedDay]);
 
   const [selected, setSelected] = useState(initial);
 

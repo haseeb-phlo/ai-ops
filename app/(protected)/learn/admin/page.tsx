@@ -282,6 +282,7 @@ export default async function ProgrammeAdminPage({
               workSamples={view.workSamples}
               taskLinks={view.taskLinks}
               taskDayIndexes={view.taskDayIndexes}
+              dayLinks={view.dayLinks}
               funnel={view.funnel}
               attendance={view.sessions.map((s) => {
                 const summary = view.attendanceBySession.get(s.trackItemId)!;

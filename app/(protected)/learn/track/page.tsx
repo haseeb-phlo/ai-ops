@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import { getSessionUser } from "@/lib/auth";
 import { loadTrackState } from "@/lib/programme/track-data";
 import { isAwaitingContent } from "@/lib/programme/content-readiness";
+import { parseDayParam } from "@/lib/programme/day-link";
 import {
   hasDayArrived,
   unlockDateFor,
@@ -28,9 +29,9 @@ export const metadata = { title: "Core Programme" };
 export default async function TrackPage({
   searchParams,
 }: {
-  searchParams: Promise<{ cohort?: string }>;
+  searchParams: Promise<{ cohort?: string; day?: string }>;
 }) {
-  const { cohort: cohortParam } = await searchParams;
+  const { cohort: cohortParam, day: dayParam } = await searchParams;
   const user = await getSessionUser();
   const state = await loadTrackState(user.id, user.email, cohortParam ?? null);
 
@@ -143,6 +144,14 @@ export default async function TrackPage({
     days.find(
       (d) => unlockDateFor(state.cohort.startDate, d, "daily") === state.today,
     ) ?? null;
+
+  // A day named in the URL wins over "today", so a link posted in Slack opens
+  // the day it names. Validated rather than trusted - see parseDayParam.
+  //
+  // Nothing about unlock changes here. A day still to come renders as its
+  // release date and nothing else, so a link posted early gives nothing away,
+  // which is what makes it safe to schedule the whole fortnight of posts.
+  const requestedDay = parseDayParam(dayParam, days);
 
   const weeks = [1, 2, 3]
     .map((week) => ({
@@ -257,6 +266,7 @@ export default async function TrackPage({
             items: byDay.get(day) ?? [],
           }))}
           todayDayIndex={todayDayIndex}
+          requestedDay={requestedDay}
           weekOfDay={Object.fromEntries(days.map((d) => [d, weekOf(d)]))}
         />
       )}

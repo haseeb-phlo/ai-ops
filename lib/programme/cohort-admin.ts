@@ -59,6 +59,16 @@ export type TaskLinkRow = {
   byDay: Record<number, string>;
 };
 
+export type DayLink = {
+  dayIndex: number;
+  /** The day's topic, taken from its video item so the two cannot disagree. */
+  title: string;
+  /** The date it opens, in daily-unlock terms. */
+  date: string;
+  /** Whether it has opened yet - days open at 9am London. */
+  opened: boolean;
+};
+
 export type SessionColumn = {
   trackItemId: string;
   title: string;
@@ -78,6 +88,17 @@ export type CohortAdminView = {
   members: AdminMember[];
   sessions: SessionColumn[];
   dayIndexes: number[];
+  /**
+   * One shareable link per programme day, for the daily Slack post.
+   *
+   * The href is deliberately cohort-agnostic - `/learn/track?day=N` and no
+   * cohort id. A member lands on their OWN cohort's day N, which is what a
+   * link pasted into a channel has to do; pinning the cohort would send
+   * anyone in a different one to a track they cannot see. `opened` is here so
+   * the person posting can tell at a glance which day is live, on the same
+   * 9am clock the members are on.
+   */
+  dayLinks: DayLink[];
   /** Task links per member, and the days worth showing a column for. */
   taskLinks: TaskLinkRow[];
   taskDayIndexes: number[];
@@ -297,6 +318,25 @@ export const loadCohortAdminView = cache(
       ...new Set(items.filter((i) => i.day_index > 0).map((i) => i.day_index)),
     ].sort((a, b) => a - b);
 
+    // Titled from the day's video item, which carries the topic. Falling back
+    // to "Day N" rather than to an empty string, because a day whose video row
+    // is missing still has a link worth posting.
+    const titleByDay = new Map(
+      items
+        .filter((i) => i.type === "video" && i.day_index > 0)
+        .map((i) => [i.day_index, i.title]),
+    );
+    const dayLinks: DayLink[] = dayIndexes.map((dayIndex) => ({
+      dayIndex,
+      title: titleByDay.get(dayIndex) ?? `Day ${dayIndex}`,
+      date: unlockDateFor(cohort.start_date, dayIndex, "daily"),
+      opened: hasDayArrived({
+        dayIndex,
+        startDate: cohort.start_date,
+        today: openThrough,
+      }),
+    }));
+
     const adminMembers: AdminMember[] = members.map((member) => {
       const progress = progressByMember.get(member.id) ?? new Map();
       const attendanceRecords: AttendanceRecord[] = (
@@ -483,6 +523,7 @@ export const loadCohortAdminView = cache(
       members: adminMembers,
       sessions,
       dayIndexes,
+      dayLinks,
       taskLinks,
       taskDayIndexes,
       funnel: buildGateFunnel(adminMembers.map((m) => m.gates)),

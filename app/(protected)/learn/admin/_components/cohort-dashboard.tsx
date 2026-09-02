@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { PROGRAMME_RAG, type ProgrammeRagStatus } from "@/lib/status";
 import { GATE_DESCRIPTION, GATE_IDS, GATE_LABEL } from "@/lib/programme/gates";
 import { exportWorkSamplePairs } from "../actions";
+import { DayLinks } from "./day-links";
+import type { DayLink } from "@/lib/programme/cohort-admin";
 
 export type HeatmapMember = {
   cohortMemberId: string;
@@ -56,6 +58,7 @@ export function CohortDashboard({
   workSamples,
   taskLinks,
   taskDayIndexes,
+  dayLinks,
 }: {
   cohortId: string;
   members: HeatmapMember[];
@@ -71,12 +74,14 @@ export function CohortDashboard({
   workSamples: WorkSampleRow[];
   taskLinks: TaskLinkRow[];
   taskDayIndexes: number[];
+  dayLinks: DayLink[];
 }) {
   return (
     <div className="space-y-6">
       <GateFunnel funnel={funnel} />
       <Heatmap members={members} dayIndexes={dayIndexes} />
       <AttendanceSummary rows={attendance} />
+      <DayLinks days={dayLinks} />
       <TaskLinkTable rows={taskLinks} dayIndexes={taskDayIndexes} />
       <WorkSampleTable rows={workSamples} />
       <ExportCard cohortId={cohortId} />
