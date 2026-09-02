@@ -106,12 +106,6 @@ const TYPE_ICON: Record<string, typeof PlayIcon> = {
 };
 
 /**
- * One item on the timeline.
- *
- * Locked items still render - greyed, with their unlock date - because seeing
- * what's coming is most of what makes a 15-day programme feel finite.
- */
-/**
  * The panel a day's video sits behind: a button that plays in place, or an
  * anchor to the host when the video cannot be embedded.
  *
@@ -152,6 +146,12 @@ function PlaySurface(
   );
 }
 
+/**
+ * One item on the timeline.
+ *
+ * Locked items still render - greyed, with their unlock date - because seeing
+ * what's coming is most of what makes a 15-day programme feel finite.
+ */
 export function TrackItemCard({
   cohortId,
   item,
@@ -216,14 +216,24 @@ export function TrackItemCard({
 
   // Marks the item started whether it plays here or opens on its host: what
   // the day records is that they went to watch it, not which tab it ran in.
-  const handlePlay = () => {
-    setPlaying(true);
+  const markStarted = () => {
     startTransition(() => {
       const fd = new FormData();
       fd.set("track_item_id", item.id);
       fd.set("cohort_id", cohortId);
       void markTrackItemStarted(fd);
     });
+  };
+
+  // `playing` is only ever set for a video that plays HERE. A link-out opens
+  // on the host, so it records the start and leaves the flag alone: the panel
+  // it came from is still the thing on screen. Setting it anyway happens to
+  // render the same today, because the embed branch also checks `videoEmbed` -
+  // which is exactly the kind of inertness that stops being true the moment
+  // anything else reads `playing`.
+  const handlePlay = () => {
+    setPlaying(true);
+    markStarted();
   };
 
   const handleComplete = () => {
@@ -361,7 +371,7 @@ export function TrackItemCard({
                     : {
                         kind: "open" as const,
                         href: item.video.loom_share_url,
-                        onOpen: handlePlay,
+                        onOpen: markStarted,
                       })}
                 >
                   {/* No still frame, for any day. It used to render for a
