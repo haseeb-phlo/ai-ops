@@ -23,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { parseLoomId } from "@/lib/loom";
+import { parseVideoUrl } from "@/lib/video";
 import { addVideo } from "../actions";
 import {
   LEARN_SUBTOPICS,
@@ -62,9 +62,9 @@ export function AddVideoDialog({
       <DialogTrigger render={trigger ?? <Button>Add video</Button>} />
       <DialogContent className="gap-0 p-0 sm:max-w-lg">
         <DialogHeader className="gap-2 px-6 pt-5 pb-5">
-          <DialogTitle>Add Loom video</DialogTitle>
+          <DialogTitle>Add video</DialogTitle>
           <DialogDescription>
-            Paste a Loom share link. The video will appear on the Learn tab for
+            Paste a share link from anywhere. The video will appear on the Learn tab for
             everyone.
           </DialogDescription>
         </DialogHeader>
@@ -90,7 +90,7 @@ function AddVideoForm({
 }) {
   const [topic, setTopic] = useState<LearnTopic | "">(defaultTopic ?? "");
   const [subtopic, setSubtopic] = useState<string>("");
-  const [loomUrl, setLoomUrl] = useState("");
+  const [videoUrl, setVideoUrl] = useState("");
   const [state, formAction] = useActionState<ActionState, FormData>(addVideo, {
     kind: "idle",
   });
@@ -101,13 +101,16 @@ function AddVideoForm({
 
   const subtopicOptions = topic ? LEARN_SUBTOPICS[topic] ?? [] : [];
 
-  // Mirror of the server-side parseLoomId check so a bad link errors inline
-  // before a round-trip. (A full oEmbed preview is future work.)
-  const loomInvalid = loomUrl.trim().length > 0 && !parseLoomId(loomUrl);
+  // Mirror of the server-side `parseVideoUrl` check so a bad link errors
+  // inline before a round-trip. It is a much weaker claim than it used to be:
+  // the host no longer has to be Loom, so this only catches something that is
+  // not a link at all. Left as a mirror rather than deleted, because a typo
+  // still deserves to be caught before the dialog closes.
+  const urlInvalid = videoUrl.trim().length > 0 && !parseVideoUrl(videoUrl);
   const disabledHint = !topic
     ? "Choose a topic to save"
-    : loomInvalid
-      ? "Enter a valid Loom link"
+    : urlInvalid
+      ? "Enter a valid video link"
       : null;
 
   return (
@@ -181,25 +184,26 @@ function AddVideoForm({
         )}
 
         <div className="space-y-1.5">
-          <Label htmlFor="loom_url">Loom URL</Label>
+          <Label htmlFor="video_url">Video link</Label>
           <Input
-            id="loom_url"
-            name="loom_url"
+            id="video_url"
+            name="video_url"
             required
             type="url"
-            placeholder="https://www.loom.com/share/..."
-            value={loomUrl}
-            onChange={(e) => setLoomUrl(e.target.value)}
-            aria-invalid={loomInvalid || undefined}
+            placeholder="https://streamable.com/... or any share link"
+            value={videoUrl}
+            onChange={(e) => setVideoUrl(e.target.value)}
+            aria-invalid={urlInvalid || undefined}
           />
-          {loomInvalid ? (
+          {urlInvalid ? (
             <p role="alert" className="text-xs text-destructive">
-              That doesn&apos;t look like a Loom link. Paste a
-              https://www.loom.com/share/... URL.
+              That doesn&apos;t look like a link. Paste the https:// URL
+              you would share with someone.
             </p>
           ) : (
             <p className="text-xs text-muted-foreground">
-              Use the Share button in Loom and paste the link here.
+              Loom and Streamable play inside the card. Anything else is
+              saved as a link out.
             </p>
           )}
         </div>
@@ -229,7 +233,7 @@ function AddVideoForm({
         <Button type="button" variant="ghost" onClick={onCancel}>
           Cancel
         </Button>
-        <SubmitButton disabled={!topic || loomInvalid} />
+        <SubmitButton disabled={!topic || urlInvalid} />
       </DialogFooter>
     </form>
   );

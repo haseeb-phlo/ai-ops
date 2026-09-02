@@ -776,9 +776,10 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
-          loom_embed_id: string
+          loom_embed_id: string | null
           loom_share_url: string
           position: number
+          provider: string
           subtopic: string | null
           thumbnail_url: string | null
           title: string
@@ -789,9 +790,10 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
-          loom_embed_id: string
+          loom_embed_id?: string | null
           loom_share_url: string
           position?: number
+          provider?: string
           subtopic?: string | null
           thumbnail_url?: string | null
           title: string
@@ -802,9 +804,10 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
-          loom_embed_id?: string
+          loom_embed_id?: string | null
           loom_share_url?: string
           position?: number
+          provider?: string
           subtopic?: string | null
           thumbnail_url?: string | null
           title?: string

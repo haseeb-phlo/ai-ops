@@ -9,8 +9,9 @@ import {
   LinkIcon,
   PlusIcon,
   CheckIcon,
+  ExternalLinkIcon,
 } from "lucide-react";
-import { loomEmbedUrl } from "@/lib/loom";
+import { videoEmbedUrl } from "@/lib/video";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -43,12 +44,81 @@ function formatDuration(totalSeconds: number): string {
     : `${minutes}:${pad(seconds)}`;
 }
 
+/**
+ * The still frame, and the one control on it.
+ *
+ * Two shapes, one set of styles: `play` swaps the frame for an iframe in
+ * place, `open` is an anchor to the host. They were briefly inline ternaries
+ * around the same markup, which is how a link-out card ends up with a
+ * different hover state from a playable one.
+ */
+function VideoPoster(
+  props: {
+    title: string;
+    thumbnailUrl: string | null;
+    onThumbnailError: () => void;
+  } & (
+    | { kind: "play"; onPlay: () => void }
+    | { kind: "open"; href: string; onOpen: () => void }
+  ),
+) {
+  const shell =
+    "group absolute inset-0 flex items-center justify-center overflow-hidden";
+  const inner = (
+    <>
+      {props.thumbnailUrl && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={props.thumbnailUrl}
+          alt=""
+          aria-hidden
+          loading="lazy"
+          decoding="async"
+          onError={props.onThumbnailError}
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+      )}
+      <span className="absolute inset-0 bg-black/20 transition-colors group-hover:bg-black/30" />
+      <span className="relative flex size-12 items-center justify-center rounded-full bg-foreground text-background transition-transform group-hover:scale-105">
+        {props.kind === "play" ? (
+          <PlayIcon className="size-5 translate-x-px" />
+        ) : (
+          <ExternalLinkIcon className="size-5" />
+        )}
+      </span>
+    </>
+  );
+
+  return props.kind === "play" ? (
+    <button
+      type="button"
+      onClick={props.onPlay}
+      className={shell}
+      aria-label={`Play ${props.title}`}
+    >
+      {inner}
+    </button>
+  ) : (
+    <a
+      href={props.href}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={props.onOpen}
+      className={shell}
+      aria-label={`Open ${props.title} in a new tab`}
+    >
+      {inner}
+    </a>
+  );
+}
+
 export function VideoCard({
   id,
   title,
   description,
-  loomEmbedId,
-  loomShareUrl,
+  provider,
+  embedId,
+  shareUrl,
   thumbnailUrl,
   topic,
   subtopic,
@@ -63,8 +133,11 @@ export function VideoCard({
   id: string;
   title: string;
   description: string | null;
-  loomEmbedId: string;
-  loomShareUrl: string;
+  /** Which host this lives on - see lib/video.ts. */
+  provider: string;
+  /** Null for provider="link", which has no embed and opens in a new tab. */
+  embedId: string | null;
+  shareUrl: string;
   thumbnailUrl: string | null;
   topic: LearnTopic | null;
   subtopic: LearnSubtopic | null;
@@ -99,13 +172,23 @@ export function VideoCard({
     });
   };
 
-  const handlePlay = () => {
-    setPlaying(true);
+  // Null for a host we cannot embed, which is what turns the poster into a
+  // link out. Branching on this rather than on `embedId` being truthy is
+  // deliberate: reaching for the id directly is how you end up with an iframe
+  // pointed at a URL built from the string "null".
+  const embedUrl = videoEmbedUrl({ provider, embedId }, { autoplay: true });
+
+  const recordThePlay = () => {
     startTransition(() => {
       const fd = new FormData();
       fd.set("video_id", id);
       void recordPlay(fd);
     });
+  };
+
+  const handlePlay = () => {
+    setPlaying(true);
+    recordThePlay();
   };
 
   const handleDelete = () => {
@@ -140,38 +223,31 @@ export function VideoCard({
             {formatDuration(durationSeconds)}
           </span>
         )}
-        {playing ? (
+        {playing && embedUrl ? (
           <iframe
-            src={loomEmbedUrl(loomEmbedId, { autoplay: true })}
+            src={embedUrl}
             className="absolute inset-0 h-full w-full"
             allow="autoplay; fullscreen; picture-in-picture"
             allowFullScreen
             title={title}
           />
         ) : (
-          <button
-            type="button"
-            onClick={handlePlay}
-            className="group absolute inset-0 flex items-center justify-center overflow-hidden"
-            aria-label={`Play ${title}`}
-          >
-            {thumbnailUrl && !thumbFailed && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={thumbnailUrl}
-                alt=""
-                aria-hidden
-                loading="lazy"
-                decoding="async"
-                onError={() => setThumbFailed(true)}
-                className="absolute inset-0 h-full w-full object-cover"
-              />
-            )}
-            <span className="absolute inset-0 bg-black/20 transition-colors group-hover:bg-black/30" />
-            <span className="relative flex size-12 items-center justify-center rounded-full bg-foreground text-background transition-transform group-hover:scale-105">
-              <PlayIcon className="size-5 translate-x-px" />
-            </span>
-          </button>
+          <VideoPoster
+            title={title}
+            thumbnailUrl={thumbnailUrl && !thumbFailed ? thumbnailUrl : null}
+            onThumbnailError={() => setThumbFailed(true)}
+            // A real anchor when there is nothing to embed, so middle-click
+            // and "open in new tab" work and the play triangle becomes an
+            // external-link mark rather than promising something that will
+            // not happen in place. The play is recorded either way.
+            {...(embedUrl
+              ? { kind: "play" as const, onPlay: handlePlay }
+              : {
+                  kind: "open" as const,
+                  href: shareUrl,
+                  onOpen: recordThePlay,
+                })}
+          />
         )}
       </div>
 
@@ -214,7 +290,7 @@ export function VideoCard({
                     id={id}
                     title={title}
                     description={description}
-                    loomShareUrl={loomShareUrl}
+                    shareUrl={shareUrl}
                     topic={topic}
                     subtopic={subtopic}
                   />

@@ -46,7 +46,10 @@ export type TrackItemRow = {
 export type TrackVideo = {
   id: string;
   title: string;
-  loom_embed_id: string;
+  /** Which host the video lives on - see lib/video.ts. */
+  provider: string;
+  /** Null for provider="link", which cannot be embedded in the card. */
+  loom_embed_id: string | null;
   loom_share_url: string;
   thumbnail_url: string | null;
 };
@@ -287,7 +290,7 @@ const loadTrackStateFor = cache(
       const [{ data: videos }, { data: completions }] = await Promise.all([
         supabase
           .from("learn_videos")
-          .select("id, title, loom_embed_id, loom_share_url, thumbnail_url")
+          .select("id, title, provider, loom_embed_id, loom_share_url, thumbnail_url")
           .in("id", videoIds)
           .returns<TrackVideo[]>(),
         supabase

@@ -24,7 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { parseLoomId } from "@/lib/loom";
+import { parseVideoUrl } from "@/lib/video";
 import { editVideo } from "../actions";
 import {
   LEARN_SUBTOPICS,
@@ -45,14 +45,14 @@ export function EditVideoDialog({
   id,
   title,
   description,
-  loomShareUrl,
+  shareUrl,
   topic,
   subtopic,
 }: {
   id: string;
   title: string;
   description: string | null;
-  loomShareUrl: string;
+  shareUrl: string;
   topic: LearnTopic | null;
   subtopic: string | null;
 }) {
@@ -82,7 +82,7 @@ export function EditVideoDialog({
         <DialogHeader className="gap-2 px-6 pt-5 pb-5">
           <DialogTitle>Edit video</DialogTitle>
           <DialogDescription>
-            Update the title, description, topic, or Loom link.
+            Update the title, description, topic, or video link.
           </DialogDescription>
         </DialogHeader>
         <EditVideoForm
@@ -90,7 +90,7 @@ export function EditVideoDialog({
           id={id}
           title={title}
           description={description}
-          loomShareUrl={loomShareUrl}
+          shareUrl={shareUrl}
           topic={topic}
           subtopic={subtopic}
           onSuccess={() => setOpen(false)}
@@ -105,7 +105,7 @@ function EditVideoForm({
   id,
   title,
   description,
-  loomShareUrl,
+  shareUrl,
   topic,
   subtopic,
   onSuccess,
@@ -114,7 +114,7 @@ function EditVideoForm({
   id: string;
   title: string;
   description: string | null;
-  loomShareUrl: string;
+  shareUrl: string;
   topic: LearnTopic | null;
   subtopic: string | null;
   onSuccess: () => void;
@@ -122,7 +122,7 @@ function EditVideoForm({
 }) {
   const [topicValue, setTopicValue] = useState<LearnTopic | "">(topic ?? "");
   const [subtopicValue, setSubtopicValue] = useState<string>(subtopic ?? "");
-  const [loomUrl, setLoomUrl] = useState(loomShareUrl);
+  const [videoUrl, setVideoUrl] = useState(shareUrl);
   const [state, formAction] = useActionState<ActionState, FormData>(editVideo, {
     kind: "idle",
   });
@@ -133,13 +133,13 @@ function EditVideoForm({
 
   const subtopicOptions = topicValue ? LEARN_SUBTOPICS[topicValue] ?? [] : [];
 
-  // Mirror of the server-side parseLoomId check so a bad link errors inline
+  // Mirror of the server-side check - see add-video-dialog for why it stays
   // before a round-trip. (A full oEmbed preview is future work.)
-  const loomInvalid = loomUrl.trim().length > 0 && !parseLoomId(loomUrl);
+  const urlInvalid = videoUrl.trim().length > 0 && !parseVideoUrl(videoUrl);
   const disabledHint = !topicValue
     ? "Choose a topic to save"
-    : loomInvalid
-      ? "Enter a valid Loom link"
+    : urlInvalid
+      ? "Enter a valid video link"
       : null;
 
   return (
@@ -214,21 +214,21 @@ function EditVideoForm({
         )}
 
         <div className="space-y-1.5">
-          <Label htmlFor={`edit-loom-${id}`}>Loom URL</Label>
+          <Label htmlFor={`edit-video-${id}`}>Video link</Label>
           <Input
-            id={`edit-loom-${id}`}
-            name="loom_url"
+            id={`edit-video-${id}`}
+            name="video_url"
             required
             type="url"
-            value={loomUrl}
-            onChange={(e) => setLoomUrl(e.target.value)}
-            placeholder="https://www.loom.com/share/..."
-            aria-invalid={loomInvalid || undefined}
+            value={videoUrl}
+            onChange={(e) => setVideoUrl(e.target.value)}
+            placeholder="https://streamable.com/... or any share link"
+            aria-invalid={urlInvalid || undefined}
           />
-          {loomInvalid && (
+          {urlInvalid && (
             <p role="alert" className="text-xs text-destructive">
-              That doesn&apos;t look like a Loom link. Paste a
-              https://www.loom.com/share/... URL.
+              That doesn&apos;t look like a link. Paste the https:// URL
+              you would share with someone.
             </p>
           )}
         </div>
@@ -260,7 +260,7 @@ function EditVideoForm({
         <Button type="button" variant="ghost" onClick={onCancel}>
           Cancel
         </Button>
-        <SubmitButton disabled={!topicValue || loomInvalid} />
+        <SubmitButton disabled={!topicValue || urlInvalid} />
       </DialogFooter>
     </form>
   );

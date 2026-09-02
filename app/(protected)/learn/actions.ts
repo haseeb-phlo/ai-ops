@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionUser, requireWriter } from "@/lib/auth";
-import { fetchLoomOembed, parseLoomId } from "@/lib/loom";
+import { fetchVideoPoster, parseVideoUrl } from "@/lib/video";
 import { redealBucketPositions } from "./reorder";
 import {
   LEARN_SUBTOPICS,
@@ -34,7 +34,7 @@ function resolveSubtopic(
 const AddVideoSchema = z.object({
   title: z.string().min(1, "Title is required").max(200),
   description: z.string().max(1000).optional(),
-  loom_url: z.string().min(1, "Loom URL is required"),
+  video_url: z.string().min(1, "Video link is required"),
   topic: z.enum(LEARN_TOPICS, { error: "Pick a topic" }),
 });
 
@@ -51,7 +51,7 @@ export async function addVideo(
   const parsed = AddVideoSchema.safeParse({
     title: formData.get("title"),
     description: (formData.get("description") as string) || undefined,
-    loom_url: formData.get("loom_url"),
+    video_url: formData.get("video_url"),
     topic: formData.get("topic"),
   });
   if (!parsed.success) {
@@ -61,20 +61,25 @@ export async function addVideo(
     };
   }
 
-  const embedId = parseLoomId(parsed.data.loom_url);
-  if (!embedId) {
+  // Any host, not just Loom. `parseVideoUrl` rejects only something that is
+  // not a usable link at all: a recognised host gets a real embed, anything
+  // else is stored and linked out. See lib/video.ts.
+  const source = parseVideoUrl(parsed.data.video_url);
+  if (!source) {
     return {
       kind: "error",
       message:
-        "That doesn't look like a Loom URL. Paste a https://www.loom.com/share/... link.",
+        "That doesn't look like a video link. Paste the https:// URL you would share with someone.",
     };
   }
 
   const subtopic = resolveSubtopic(formData.get("subtopic"), parsed.data.topic);
   if (!subtopic.ok) return { kind: "error", message: subtopic.message };
 
-  const loomUrl = parsed.data.loom_url.trim();
-  const { thumbnailUrl } = await fetchLoomOembed(loomUrl);
+  // Resolved once, here, never at render - and stored with any signing
+  // parameters stripped, because some hosts only publish a poster frame
+  // behind an expiry short enough to rot the same day.
+  const { thumbnailUrl } = await fetchVideoPoster(source);
 
   const supabase = await createClient();
 
@@ -92,8 +97,9 @@ export async function addVideo(
   const { error } = await supabase.from("learn_videos").insert({
     title: parsed.data.title,
     description: parsed.data.description ?? null,
-    loom_share_url: loomUrl,
-    loom_embed_id: embedId,
+    provider: source.provider,
+    loom_share_url: source.shareUrl,
+    loom_embed_id: source.embedId,
     topic: parsed.data.topic,
     subtopic: subtopic.value,
     thumbnail_url: thumbnailUrl,
@@ -114,7 +120,7 @@ const EditVideoSchema = z.object({
   id: z.string().uuid(),
   title: z.string().min(1, "Title is required").max(200),
   description: z.string().max(1000).optional(),
-  loom_url: z.string().min(1, "Loom URL is required"),
+  video_url: z.string().min(1, "Video link is required"),
   topic: z.enum(LEARN_TOPICS, { error: "Pick a topic" }),
 });
 
@@ -132,7 +138,7 @@ export async function editVideo(
     id: formData.get("id"),
     title: formData.get("title"),
     description: (formData.get("description") as string) || undefined,
-    loom_url: formData.get("loom_url"),
+    video_url: formData.get("video_url"),
     topic: formData.get("topic"),
   });
   if (!parsed.success) {
@@ -142,20 +148,25 @@ export async function editVideo(
     };
   }
 
-  const embedId = parseLoomId(parsed.data.loom_url);
-  if (!embedId) {
+  // Any host, not just Loom. `parseVideoUrl` rejects only something that is
+  // not a usable link at all: a recognised host gets a real embed, anything
+  // else is stored and linked out. See lib/video.ts.
+  const source = parseVideoUrl(parsed.data.video_url);
+  if (!source) {
     return {
       kind: "error",
       message:
-        "That doesn't look like a Loom URL. Paste a https://www.loom.com/share/... link.",
+        "That doesn't look like a video link. Paste the https:// URL you would share with someone.",
     };
   }
 
   const subtopic = resolveSubtopic(formData.get("subtopic"), parsed.data.topic);
   if (!subtopic.ok) return { kind: "error", message: subtopic.message };
 
-  const loomUrl = parsed.data.loom_url.trim();
-  const { thumbnailUrl } = await fetchLoomOembed(loomUrl);
+  // Resolved once, here, never at render - and stored with any signing
+  // parameters stripped, because some hosts only publish a poster frame
+  // behind an expiry short enough to rot the same day.
+  const { thumbnailUrl } = await fetchVideoPoster(source);
 
   const supabase = await createClient();
   const { error } = await supabase
@@ -163,8 +174,9 @@ export async function editVideo(
     .update({
       title: parsed.data.title,
       description: parsed.data.description ?? null,
-      loom_share_url: loomUrl,
-      loom_embed_id: embedId,
+      provider: source.provider,
+      loom_share_url: source.shareUrl,
+      loom_embed_id: source.embedId,
       topic: parsed.data.topic,
       subtopic: subtopic.value,
       thumbnail_url: thumbnailUrl,

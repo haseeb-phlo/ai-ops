@@ -14,7 +14,7 @@ import {
   UsersIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { loomEmbedUrl } from "@/lib/loom";
+import { videoEmbedUrl } from "@/lib/video";
 import { parseItemCopy } from "@/lib/programme/item-copy";
 import { normaliseTaskLink, shortenTaskLink } from "@/lib/programme/task-link";
 import { PROGRAMME_OPEN_LABEL } from "@/lib/programme/working-days";
@@ -111,6 +111,47 @@ const TYPE_ICON: Record<string, typeof PlayIcon> = {
  * Locked items still render - greyed, with their unlock date - because seeing
  * what's coming is most of what makes a 15-day programme feel finite.
  */
+/**
+ * The panel a day's video sits behind: a button that plays in place, or an
+ * anchor to the host when the video cannot be embedded.
+ *
+ * One component rather than two branches around the same markup, so a
+ * link-out day cannot drift into a different hover state from a playable one.
+ */
+function PlaySurface(
+  props: {
+    title: string;
+    children: React.ReactNode;
+  } & (
+    | { kind: "play"; onPlay: () => void }
+    | { kind: "open"; href: string; onOpen: () => void }
+  ),
+) {
+  const shell =
+    "group relative flex aspect-video w-full items-center justify-center overflow-hidden rounded-md bg-muted";
+  return props.kind === "play" ? (
+    <button
+      type="button"
+      onClick={props.onPlay}
+      className={shell}
+      aria-label={`Play ${props.title}`}
+    >
+      {props.children}
+    </button>
+  ) : (
+    <a
+      href={props.href}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={props.onOpen}
+      className={shell}
+      aria-label={`Open ${props.title} in a new tab`}
+    >
+      {props.children}
+    </a>
+  );
+}
+
 export function TrackItemCard({
   cohortId,
   item,
@@ -164,6 +205,17 @@ export function TrackItemCard({
     !awaitingVideo &&
     (item.type === "video" || item.type === "use_example");
 
+  // Null for a host we cannot embed, which turns the panel into a link out.
+  // Branch on this, never on the id being truthy - see lib/video.ts.
+  const videoEmbed = item.video
+    ? videoEmbedUrl(
+        { provider: item.video.provider, embedId: item.video.loom_embed_id },
+        { autoplay: true },
+      )
+    : null;
+
+  // Marks the item started whether it plays here or opens on its host: what
+  // the day records is that they went to watch it, not which tab it ran in.
   const handlePlay = () => {
     setPlaying(true);
     startTransition(() => {
@@ -287,12 +339,10 @@ export function TrackItemCard({
 
           {revealed && item.video && (
             <div className="mt-3">
-              {playing ? (
+              {playing && videoEmbed ? (
                 <div className="relative aspect-video w-full overflow-hidden rounded-md bg-muted">
                   <iframe
-                    src={loomEmbedUrl(item.video.loom_embed_id, {
-                      autoplay: true,
-                    })}
+                    src={videoEmbed}
                     className="absolute inset-0 h-full w-full"
                     allow="autoplay; fullscreen; picture-in-picture"
                     allowFullScreen
@@ -300,11 +350,19 @@ export function TrackItemCard({
                   />
                 </div>
               ) : (
-                <button
-                  type="button"
-                  onClick={handlePlay}
-                  className="group relative flex aspect-video w-full items-center justify-center overflow-hidden rounded-md bg-muted"
-                  aria-label={`Play ${item.video.title}`}
+                // A real anchor for a host we cannot embed, so the day's video
+                // still opens - on the host's own page, in a new tab. Same
+                // panel either way: the day's card deliberately shows no still
+                // frame, so there is nothing to restyle.
+                <PlaySurface
+                  title={item.video.title}
+                  {...(videoEmbed
+                    ? { kind: "play" as const, onPlay: handlePlay }
+                    : {
+                        kind: "open" as const,
+                        href: item.video.loom_share_url,
+                        onOpen: handlePlay,
+                      })}
                 >
                   {/* No still frame, for any day. It used to render for a
                       day that had arrived, gated on the same predicate as the
@@ -315,9 +373,13 @@ export function TrackItemCard({
                       it, which is all this card needs to say. The library
                       keeps its thumbnails; that is an admin surface. */}
                   <span className="relative flex size-11 items-center justify-center rounded-full bg-black/70 text-white transition group-hover:bg-black/85">
-                    <PlayIcon className="size-5" aria-hidden />
+                    {videoEmbed ? (
+                      <PlayIcon className="size-5" aria-hidden />
+                    ) : (
+                      <ExternalLinkIcon className="size-5" aria-hidden />
+                    )}
                   </span>
-                </button>
+                </PlaySurface>
               )}
             </div>
           )}

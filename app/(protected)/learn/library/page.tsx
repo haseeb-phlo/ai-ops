@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { PlayIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionUser } from "@/lib/auth";
-import { fetchLoomOembed } from "@/lib/loom";
+import { fetchVideoPoster } from "@/lib/video";
 import { PageContainer, PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -26,8 +26,9 @@ type VideoRow = {
   id: string;
   title: string;
   description: string | null;
+  provider: string;
   loom_share_url: string;
-  loom_embed_id: string;
+  loom_embed_id: string | null;
   topic: LearnTopic | null;
   subtopic: LearnSubtopic | null;
   thumbnail_url: string | null;
@@ -82,7 +83,7 @@ export default async function LibraryPage() {
     supabase
       .from("learn_videos")
       .select(
-        "id, title, description, loom_share_url, loom_embed_id, topic, subtopic, thumbnail_url, added_by, created_at, position",
+        "id, title, description, provider, loom_share_url, loom_embed_id, topic, subtopic, thumbnail_url, added_by, created_at, position",
       )
       .order("position", { ascending: true })
       .order("created_at", { ascending: false })
@@ -103,21 +104,27 @@ export default async function LibraryPage() {
       .returns<ResourceRow[]>(),
   ]);
 
-  // Ask Loom's oEmbed endpoint for each video's duration (not persisted in
-  // the DB; the fetch is cached for a week per URL so this is cheap after
-  // the first render) and, in the same pass, backfill thumbnail_url for any
-  // rows that don't have one yet - older videos predate the column. The
-  // updates fire in parallel and we patch the in-memory rows so the current
-  // render shows thumbnails immediately. Failures are silent - the gradient
-  // placeholder still covers the play surface and the duration chip is
-  // simply omitted.
+  // Ask each video's host for its duration (not persisted in the DB; the
+  // fetch is cached for a week per URL so this is cheap after the first
+  // render) and, in the same pass, backfill thumbnail_url for any rows that
+  // don't have one yet - older videos predate the column. The updates fire in
+  // parallel and we patch the in-memory rows so the current render shows
+  // thumbnails immediately. Failures are silent - the gradient placeholder
+  // still covers the play surface and the duration chip is simply omitted.
+  //
+  // `fetchVideoPoster` handles whichever host the row is on, so this loop no
+  // longer assumes Loom - and it strips expiring signatures before the
+  // backfill writes, which matters here more than anywhere: a signed URL
+  // persisted by this path would look right for an hour and then 403.
   const videoRowsMutable = videos ?? [];
   const durationByVideo = new Map<string, number>();
   await Promise.all(
     videoRowsMutable.map(async (v) => {
-      const { thumbnailUrl, durationSeconds } = await fetchLoomOembed(
-        v.loom_share_url,
-      );
+      const { thumbnailUrl, durationSeconds } = await fetchVideoPoster({
+        provider: v.provider as "loom" | "streamable" | "link",
+        shareUrl: v.loom_share_url,
+        embedId: v.loom_embed_id,
+      });
       if (durationSeconds != null) durationByVideo.set(v.id, durationSeconds);
       if (v.thumbnail_url || !thumbnailUrl) return;
       v.thumbnail_url = thumbnailUrl;
@@ -200,8 +207,9 @@ export default async function LibraryPage() {
         id={v.id}
         title={v.title}
         description={v.description}
-        loomEmbedId={v.loom_embed_id}
-        loomShareUrl={v.loom_share_url}
+        provider={v.provider}
+        embedId={v.loom_embed_id}
+        shareUrl={v.loom_share_url}
         thumbnailUrl={v.thumbnail_url}
         topic={v.topic}
         subtopic={v.subtopic}
