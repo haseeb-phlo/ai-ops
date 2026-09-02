@@ -1,14 +1,30 @@
 /**
  * Knowledge-check questions for the three weekly quizzes.
  *
- * Drawn from the 15-day curriculum in "Phlo AI Training Programme v5":
- *   Week 1 (day 5)  - D1 when to use AI, D2 CRISPE, D3 Connectors & MCP,
- *                     D4 Projects, D5 catching confident wrong answers
+ * Drawn from the 15-day curriculum in "Phlo AI Training Programme v5", whose
+ * numbering these `day` tags still follow:
+ *   Week 1 (day 5)  - D1 when to use AI, D2 prompting/CRISPE,
+ *                     D3 Connectors & MCP, D4 Projects,
+ *                     D5 catching confident wrong answers
  *   Week 2 (day 10) - D6 Research/Memory/files out, D7 Cowork, D8 Skills,
  *                     D9 Scheduled Tasks, D10 Reverse Prompting
  *   Week 3 (day 15) - D11 Artifacts, D12 Design, D13 Dispatch + Plugins,
  *                     D14 Claude everywhere, D15 choosing the right tool,
  *                     plus a spiral back over weeks 1 and 2
+ *
+ * THAT LIST IS ONE BEHIND `DAY_TOPICS`, and knowing it is the difference
+ * between an edit that reads right and one that lies to a member. "What is AI
+ * and how does it work?" was inserted at the front of the programme after
+ * these questions were written, shifting every topic one day later without
+ * shifting the tags: D2 here is prompting, which the programme now calls
+ * day 3. So do NOT put a `day` value into question prose. The one place that
+ * did said "the prompt framework from day 2" and named the wrong day for
+ * months.
+ *
+ * The offset has a consequence worth fixing separately, because it needs new
+ * questions rather than a renumber: week one's quiz is taken on day 5 and its
+ * two D5 questions are about "catching confident wrong answers", which the
+ * programme teaches on day 6. Nothing draws on day 1 at all.
  *
  * HOUSE STYLE, enforced by tests/programme-quiz-content.test.ts:
  *   - no em dashes anywhere in a question, option or explanation; use a hyphen
@@ -36,7 +52,12 @@ export type QuizQuestion = {
   /** Index into `options`. */
   correct: 0 | 1 | 2 | 3;
   explanation: string;
-  /** Curriculum day this draws on, for editing against the video library. */
+  /**
+   * Curriculum day this draws on, in the v5 playbook's numbering - which is
+   * ONE BEHIND the programme's own day_index. Editorial only: which quiz a
+   * question lands in is decided by the array it sits in, not by this. See
+   * the offset note above before quoting it at a member.
+   */
   day: number;
 };
 
@@ -76,7 +97,7 @@ export const WEEK_1_QUESTIONS: QuizQuestion[] = [
   {
     day: 2,
     question:
-      "CRISPE is the prompt framework from day 2. What do its six parts stand for?",
+      "CRISPE is the prompt framework from day 3, Prompting. What do its six parts stand for?",
     options: [
       "Context, Role, Instructions, Style, Parameters, Example",
       "Clarity, Reasoning, Input, Scope, Precision, Evaluation",

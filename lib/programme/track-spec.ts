@@ -49,14 +49,14 @@ export type TrackItemSpec = {
  * titled "What is AI and how does it work?" - drop the mark and the seed binds
  * null, leaving day 1 reading "coming soon" on the cohort's first morning.
  *
- * Day 3 is the standing exception and has been since before it was renamed to
- * "Prompting": the library row is titled "CRISP Framework", with no E, so no
- * title this day has ever carried would match it. The live binding was made by
- * hand in the admin Track-items screen and SURVIVES a rename here - the seed's
- * re-bind only fills nulls and never overwrites - so this costs nothing today.
- * It would leave day 3 unbound on a fresh seed of an empty database. Renaming
- * the library row to match is the one-place fix; doing it in code here would
- * only hide the mismatch.
+ * Day 3 was the standing exception and is no longer: the library row was
+ * titled "CRISP Framework", with no E, so no title this day carried would ever
+ * have matched it, and the binding had to be made by hand in the admin
+ * Track-items screen. The day's video was replaced in September 2026 and the
+ * library is down to a single row titled "Prompting", which matches this
+ * topic exactly - so a fresh seed of an empty database now binds day 3 like
+ * every other day. Left recorded because the failure it caused was invisible:
+ * a day that reads "coming soon" for a video that exists.
  */
 export const DAY_TOPICS: readonly string[] = [
   "What is AI and how does it work?",
