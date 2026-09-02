@@ -29,9 +29,10 @@ const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
  * tomorrow's work already sitting there. Nine is when the working day starts,
  * which is when a day's worth of it should appear.
  *
- * This is the same 9 as `MEMBER_REMINDER_HOUR` in the programme-notify cron,
- * and deliberately so: the reminder goes out as the day opens, not before it.
- * Move one and look at the other.
+ * `MEMBER_REMINDER_HOUR` in the programme-notify cron is separately 9, so the
+ * Monday nudge lands as the day opens rather than ahead of it. Nothing binds
+ * the two constants - they are the same number for the same reason, not by
+ * import - so if you move this one, go and look at that one.
  */
 export const PROGRAMME_OPEN_HOUR = 9;
 

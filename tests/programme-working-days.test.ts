@@ -363,9 +363,11 @@ describe("openThroughInLondon", () => {
     }
   });
 
-  it("opens at 9, which is the hour the member reminder goes out", () => {
-    // Not decoration: the reminder is meant to land as the day opens. If one
-    // of these moves without the other, people are told to do a locked day.
+  it("opens at 9, the hour every label and the Monday nudge are written to", () => {
+    // This pins the number the UI copy and the notify cron were both written
+    // against. It cannot see MEMBER_REMINDER_HOUR - that lives in a route
+    // module - so it will not catch the two drifting apart; the docblock says
+    // to go and look, and this is what says the number moved at all.
     expect(PROGRAMME_OPEN_HOUR).toBe(9);
   });
 });

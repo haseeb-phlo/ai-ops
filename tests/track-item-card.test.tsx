@@ -177,6 +177,21 @@ describe("what a locked card says it is waiting for", () => {
     expect(container.textContent).toContain("Unlocks 4 Sep");
   });
 
+  it("falls back to the date when today's item is locked by something else", () => {
+    // The pre-baseline member's card. They see this timeline - it is not
+    // behind the entry-gate guard the panels above it use - and every item on
+    // it is held by the check-in, not by the clock. The page clears
+    // `opensToday` for them, so a 2pm visit reads "Unlocks 1 Sep" rather than
+    // naming an hour that went seven hours ago.
+    const container = task({
+      state: "locked",
+      unlockDate: "2026-09-01",
+      opensToday: false,
+    });
+    expect(container.textContent).toContain("Unlocks 1 Sep");
+    expect(container.textContent).not.toContain("Unlocks 9am");
+  });
+
   it("lets the week-one checkpoint speak first", () => {
     // A day held by the checkpoint is not waiting for 9am, and saying so
     // would send the member off to wait for a clock instead of submitting.

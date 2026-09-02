@@ -82,7 +82,15 @@ export default async function TrackPage({
       // Its date is today, so the thing still holding it is the 9am open
       // rather than a day that has not come round. Computed here, once, so
       // the card and the focus panel cannot word the same wait differently.
-      opensToday: resolved.unlockDate === state.today,
+      //
+      // The entry gate has to be open for that to be true. A member who has
+      // not done the check-in sees this timeline - it is NOT behind the
+      // `entryGateOpen` guard the panels above use - and every item on it is
+      // locked by the gate rather than by the clock. Without this clause such
+      // a member is told at 2pm to wait until 9am, an hour that went seven
+      // hours ago. Week one's checkpoint is the same problem one week later
+      // and is handled by `blockedByWeekOne`, which speaks first.
+      opensToday: state.entryGateOpen && resolved.unlockDate === state.today,
       // Daily arithmetic, matching hasDayArrived - so the date the card
       // prints is exactly the date it starts showing the item.
       releaseDate: unlockDateFor(
