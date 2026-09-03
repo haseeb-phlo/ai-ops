@@ -2,9 +2,10 @@
  * Knowledge-check questions for the three weekly quizzes.
  *
  * Drawn from the 15-day curriculum in "Phlo AI Training Programme v5", whose
- * numbering these `day` tags still follow:
+ * numbering these `day` tags follow, with one deliberate exception recorded
+ * below (D3 and D4 were crossed over when the programme swapped them):
  *   Week 1 (day 5)  - D1 when to use AI, D2 prompting/CRISPE,
- *                     D3 Connectors & MCP, D4 Projects,
+ *                     D3 Projects, D4 Connectors & MCP,
  *                     D5 catching confident wrong answers
  *   Week 2 (day 10) - D6 Research/Memory/files out, D7 Cowork, D8 Skills,
  *                     D9 Scheduled Tasks, D10 Reverse Prompting
@@ -20,6 +21,15 @@
  * day 3. So do NOT put a `day` value into question prose. The one place that
  * did said "the prompt framework from day 2"; it carried that from before the
  * first cohort, though no member had reached a quiz to read it.
+ *
+ * D3 and D4 were swapped here in September 2026, when the programme swapped
+ * its own days 4 and 5 to put Projects before Connectors. v5 ran them the
+ * other way. The tags were re-pointed rather than left on the playbook,
+ * because the whole value of a tag is the single offset above: "one behind,
+ * except these two, which are crossed" is a rule nobody applies correctly at
+ * the third reading. Nothing about which quiz a question lands in changed -
+ * that is the array it sits in, never this field - so the re-tag is
+ * editorial, and the week 1 set is still D1-D5.
  *
  * One explanation still quotes the old numbering: the final quiz says
  * "choosing the right container is most of what day 15 is about", and v5's
@@ -59,10 +69,10 @@ export type QuizQuestion = {
   correct: 0 | 1 | 2 | 3;
   explanation: string;
   /**
-   * Curriculum day this draws on, in the v5 playbook's numbering - which is
-   * ONE BEHIND the programme's own day_index. Editorial only: which quiz a
-   * question lands in is decided by the array it sits in, not by this. See
-   * the offset note above before quoting it at a member.
+   * Curriculum day this draws on, in the numbering the tags have always
+   * used - which is ONE BEHIND the programme's own day_index. Editorial
+   * only: which quiz a question lands in is decided by the array it sits in,
+   * not by this. See the offset note above before quoting it at a member.
    */
   day: number;
 };
@@ -138,7 +148,7 @@ export const WEEK_1_QUESTIONS: QuizQuestion[] = [
       "One good example beats a paragraph of formatting rules, and it removes the ambiguity that a description always leaves. The others all help, but describing a layout in words is slow and still gets misread.",
   },
   {
-    day: 3,
+    day: 4,
     question:
       "You pull the same figures out of the same system into Claude several times a day. What is that a signal for?",
     options: [
@@ -152,7 +162,7 @@ export const WEEK_1_QUESTIONS: QuizQuestion[] = [
       "Repetitive copy and paste is the clearest signal that a Connector would pay for itself. A Project holds standing context that does not change often; pasted figures go stale the moment you paste them. It was also the biggest awareness gap in the May baseline.",
   },
   {
-    day: 3,
+    day: 4,
     question:
       "A colleague worries that connecting a system to Claude will expose data they are not supposed to see. What is the accurate answer?",
     options: [
@@ -166,7 +176,7 @@ export const WEEK_1_QUESTIONS: QuizQuestion[] = [
       "A Connector is a route, not a promotion. It works with your existing access, so it cannot widen what you are allowed to see. Worth being clear on in a regulated business, because the fear is common and it stops people using something useful.",
   },
   {
-    day: 4,
+    day: 3,
     question:
       "Every week you re-explain the same background before you can ask your actual question: your team's terminology, the format you need and the standing constraints. What fixes that?",
     options: [
@@ -469,6 +479,10 @@ export const WEEK_3_QUESTIONS: QuizQuestion[] = [
       "Parameters cover the constraints: length, format, structure and what to leave out. Context and Role shape what it knows and how it thinks; when the content is right but the container is wrong, Parameters is the lever.",
   },
   {
+    // Kept at 4 through the D3/D4 swap rather than moved with the Projects
+    // questions: it reads as a Project question but the thing it actually
+    // tests is when live state beats a stored document, which is the
+    // Connectors lesson. 4 is now Connectors, so this is where it belongs.
     day: 4,
     question:
       "Your team has a Project full of reference documents and a Connector to the system those documents describe. When does the Connector earn its keep over the Project?",
