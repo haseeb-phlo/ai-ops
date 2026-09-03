@@ -118,7 +118,7 @@ export const SESSION_DAYS = [3, 8, 13] as const;
  * Held as a named constant rather than inlined so that "how many days are
  * still on the placeholder" is one grep, not fifteen readings.
  */
-const GENERIC_TASK =
+export const GENERIC_TASK =
   "Apply the day's technique to something on your own desk.";
 
 /**
@@ -162,12 +162,55 @@ const GENERIC_TASK =
  * a day drifts: see the header of quiz-content.ts, where the tags did exactly
  * that, and this pair has now moved once.
  *
+ * Days 5-15 were written in September 2026 and every day now carries a real
+ * task, so GENERIC_TASK is a fallback nothing currently reaches - which
+ * tests/programme-track-spec.test.ts asserts, because a day that quietly
+ * falls back to it reads as finished without being it.
+ *
+ * They share a shape, and it is worth keeping when one gets rewritten:
+ *
+ *   - The work comes off the member's own desk. "Pick the job you repeat",
+ *     not a worked example to follow. A task with its own subject teaches the
+ *     feature; a task with the member's subject changes their week, and the
+ *     programme is measured on time saved rather than on comprehension.
+ *   - There is one step that could fail, and it is the point of the day. The
+ *     fresh chat that proves a Project is briefed, the Skill asked for
+ *     without being named, the answer checked against the source rather than
+ *     against Claude. Without it "try the feature" is self-marking.
+ *   - The safety line sits where the tool actually touches real data - the
+ *     consent screen on a Connector, the scoped folder for Cowork, made-up
+ *     numbers in a published Artifact - and nowhere else. A blanket warning
+ *     on all fifteen days is a warning nobody reads by day four.
+ *   - Every one ends by asking for a link.
+ *
+ * That last one is a copy decision, not a mechanism. The link stays OPTIONAL
+ * in code (see task-link.ts): plenty of real output is a file on a shared
+ * drive, and a required field on unlinkable work buys filler links, which are
+ * worse than blanks because you can no longer tell which is which. Asking
+ * every day makes filing one the norm and puts the field in front of people;
+ * the Task links table on the admin cohort dashboard is what makes a gap
+ * visible.
+ *
+ * They are also independent of each other, deliberately, all the way through.
+ * The day 4 note explains why: a task that opens "the thing you built on day
+ * 3" fails outright for anyone who missed day 3.
+ *
+ * One is thinner than the rest and known to be. Day 14 is "Dispatch +
+ * Plugins" and there is no video script for it, so its task is built on the
+ * only grounded material available - the quiz's line that Plugins change what
+ * Claude can reach, where prompting only changes how well you ask. The
+ * diagnosis is a real lesson and the task teaches it, but nothing in there is
+ * specific to Dispatch. Whoever owns that video should add a step.
+ *
  * FORMATTING: these are plain text, and the card renders them through
  * `parseItemCopy` (lib/programme/item-copy.ts) - one paragraph per line, and a
  * line starting "- " becomes a bullet. No markdown, no blank-line semantics.
  */
 const DAY_TASKS: Readonly<Record<number, string>> = {
-  1: "Sign in to Claude with your Phlo email, install the desktop app, then run one real task from this week through it.",
+  1: [
+    "Sign in to Claude with your Phlo email, install the desktop app, then run one real task from this week through it.",
+    "Submit the link to that task.",
+  ].join("\n"),
   2: [
     "Pick three jobs from this week:",
     "- one you are confident Claude will do well",
@@ -193,6 +236,89 @@ const DAY_TASKS: Readonly<Record<number, string>> = {
     "Then test it. Start a brand-new chat inside the Project and ask for something you did not build it for. If it comes back in the right voice, following the rules you set, with nothing pasted, the brief is doing the work. If it does not, the instructions are too thin - add the line that was missing and run it again.",
     "Keep only slow-moving material in there: standards, templates, tone, examples you are proud of. Stock levels, ticket queues and today's numbers go stale the moment you paste them, and that is a Connector's job rather than a Project's.",
     "Submit the link to the Project.",
+  ].join("\n"),
+  5: [
+    "Find the copy-and-paste you do most often: the figures you lift out of one system so you can ask a question about them in another. That is the job for today.",
+    "Open Settings, then Connectors, and add the one tool that job needs. Only that one - there is no prize for connecting everything.",
+    "Read the consent screen before you approve it, and notice what access it is actually asking for. If it wants more than the job needs, stop and ask in the AI Ops channel rather than clicking through.",
+    "Then turn the Connector on in a chat and run the job with nothing pasted. Read the permission prompt when it appears - that prompt is the safety net, and approving it on autopilot is how you lose it.",
+    "Disconnect anything you added to have a look at and are not going to use.",
+    "Submit the link to the chat where Claude fetched it, instead of you.",
+  ].join("\n"),
+  6: [
+    "Go back to an answer Claude gave you this week that you acted on without checking. Something specific: a figure, a date, a rule, a cut-off time.",
+    "Verify it outside the conversation. Open the actual source - the contract, the system, the page, the person who owns it - and compare.",
+    "Then go looking for a wrong answer on purpose. Ask about something you know well enough to mark, and count the errors, including the ones that arrived sounding certain.",
+    "Two things that are not checking. Asking Claude whether it is sure tests whether the answer is consistent, not whether it is true. And a citation can be entirely real and still not support the sentence it is attached to, so follow one and read it.",
+    "Fluency is not accuracy. The output you should trust least is the one that reads best.",
+    "Submit the link to the chat you marked.",
+  ].join("\n"),
+  7: [
+    "Pick something you would normally lose an afternoon to: a comparison, a supplier or market scan, a written summary that means reading several sources first.",
+    "Run it with Research rather than a normal chat. It searches, reads and cross-references many sources and then writes the whole thing up, and it runs in the background - so start it and go and do something else.",
+    "Then ask for the result as a file rather than as chat text: a document, a spreadsheet or a deck. Reassembling a finished thing out of a chat by hand is the work you are meant to be stopping.",
+    "While you are in Settings, turn Memory on and read what it already holds about you. It saves you the re-briefing every time; it does not make anything more accurate, so nothing about the checking habit changes.",
+    "Submit the link to the Research chat, or to the file if it lives somewhere shareable.",
+  ].join("\n"),
+  8: [
+    "Pick a whole task you dread because it is assembly rather than thinking: merging several documents into one summary, reconciling two lists, tidying and renaming a folder, drafting a recurring update out of scattered notes.",
+    "Put only the files that task needs into one folder. Scoping it is the safety step, not a tidy-up - Cowork works on your actual computer, so point it at one folder rather than at everything you have.",
+    "Open Cowork in the desktop app, give it access to that folder, and hand over the whole goal in one sentence. Do not steer it click by click; the point is that you stop driving.",
+    "Watch it work and stop it if it heads somewhere wrong. Then read the deliverable properly before it goes anywhere - it did the assembly, you still own the call.",
+    "Nothing confidential or patient-identifiable in that folder unless the use has been approved.",
+    "Submit the link to what it produced.",
+  ].join("\n"),
+  9: [
+    "Think of one thing you explain to Claude again and again: how a report should be laid out, how a summary should be structured, the checks a piece of work has to pass before you will send it.",
+    "Write it down as a Skill. Open Customize, then Skills - and let the built-in skill-creator do the drafting, which means describing the task in a chat rather than writing anything from scratch.",
+    "Spend your effort on the description, because the description is the trigger. 'Use this when formatting a monthly performance report' fires when it should. 'Helps with reports' never fires at all.",
+    "Then prove it. Start a fresh chat, ask for the task, and do not name the Skill. If it did not fire, the description is too vague - sharpen it and go again.",
+    "One Skill, one job. And keep it about the method rather than the data: Skills are built to be shared across a team, so nothing confidential or patient-identifiable goes inside one.",
+    "Submit the link to the chat where your Skill fired on its own.",
+  ].join("\n"),
+  10: [
+    "Pick one job you do on a rhythm: the Monday write-up, the morning scan of Slack and flagged email, the weekly numbers somebody always asks you for.",
+    "Schedule it in Cowork. Type /schedule in the prompt box and describe what you want in plain English, including when it should run and what shape the output should come back in.",
+    "Run it once by hand before you trust it. Check the output is what you actually wanted, and fix the prompt now rather than living with a daily version of nearly right.",
+    "Pick a time you are genuinely at your desk. A scheduled task only runs while your machine is awake and the desktop app is open - if the laptop is shut at eight, that run waits until you open it.",
+    "Give it a name a colleague would understand, because they may well see it.",
+    "Submit the link to its first completed run.",
+  ].join("\n"),
+  11: [
+    "Find a prompt that is not working - one you have reworded twice and it still comes back the wrong shape.",
+    "Stop rewording it. Turn the questioning round instead: ask Claude what it needs from you in order to do this properly, and then answer its questions.",
+    "The questions are the point. What it asks about is almost always context you did not realise you were assuming, and that is the real problem rather than your phrasing.",
+    "Run the job again with what came out of the interview, and compare it against the version you were stuck on.",
+    "Learn the signal while you are here. One poor answer is normal and a follow-up is just conversation. The same wrong shape three times means the misunderstanding is upstream of the wording, and no rewrite will reach it.",
+    "Submit the link to the chat where you let it interview you.",
+  ].join("\n"),
+  12: [
+    "Pick something you rebuild from scratch most weeks: a status update, a meeting-prep sheet, a checklist, a small calculation you redo by hand every time.",
+    "Ask for it as an Artifact, in those words: 'make me a one-page X as an Artifact I can reuse', or 'build me a tool that works out Y'. Asking on purpose is most of the skill.",
+    "Then change it, because an Artifact is clay rather than stone. Refine it in plain English or edit it directly, and know that every version is kept so you can go back.",
+    "Publish it and put the link where your team will find it. That is the part that pays: one person builds it once and everybody uses it, with no account needed to open it.",
+    "Made-up numbers only in anything you publish. Publishing changes who can see it, so keep confidential detail, logins and keys out of it entirely.",
+    "Submit the published link.",
+  ].join("\n"),
+  13: [
+    "Describe one screen or document you wish already existed: a landing page, a settings screen, a pitch deck, a one-pager that would make an idea look finished.",
+    "Make it in Claude Design, then refine it once in plain English rather than taking the first version. A strong first draft that a person then shapes is the whole method.",
+    "Export what you end up with - to PowerPoint, or as a prototype link you can send somebody.",
+    "Two honest caveats. It is a research preview, so it is rougher than the rest of the tools here and what comes out is a draft rather than a finished brand. And keep confidential designs, patient-facing material and private code out of it.",
+    "Submit the link to the design, or to the file you exported.",
+  ].join("\n"),
+  14: [
+    "Find the thing Claude keeps failing at because it cannot reach or cannot do something, rather than because you asked badly.",
+    "Learn to tell those two apart, because the diagnosis is where the time goes. 'It misunderstood me' is a prompt problem and better wording fixes it. 'It cannot get to that' is a capability problem and no rewrite will ever reach it.",
+    "Then close the gap rather than rewriting the prompt: add the Plugin that gives Claude the thing it was missing, and run the same job again.",
+    "Prompting changes how well you use what is already there. Plugins change what is there.",
+    "Submit the link to the job you got working.",
+  ].join("\n"),
+  15: [
+    "Think about where you actually spend the day: a spreadsheet, your inbox, Slack, a browser tab, a document. Claude is available inside most of it.",
+    "Install it in the one you live in most. Then do the small job you would never normally open Claude for - the two-minute rewrite, the quick summary, the formula you would have looked up.",
+    "That is the point of today. The barrier was never capability, it was friction: stopping, switching app, re-explaining the context and pasting the answer back is enough to make anyone skip a small job. Small jobs are where most of the saving quietly adds up.",
+    "Submit the link to the thing you did without leaving the tool you were already in.",
   ].join("\n"),
 };
 
