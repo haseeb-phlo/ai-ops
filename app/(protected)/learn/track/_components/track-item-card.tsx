@@ -464,7 +464,14 @@ export function TrackItemCard({
                   know before deciding are that anything counts and that it is
                   not a test of them, so both belong out here. */}
               {isWorkSample && (
-                <p className="mt-2 max-w-prose text-sm leading-relaxed text-muted-foreground">
+                // No measure here either - same rule as the NO MEASURE note
+                // above. This was the one paragraph the `max-w-prose` cap
+                // survived on, so the brief broke two thirds of the way
+                // across the card while the day's copy above it ran the full
+                // width: one block indented differently from every other on
+                // the same card. It starts and stops on the same lines as the
+                // rest now, off the column's own `sm:pr-10`.
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                   Submit a piece of work you&apos;ve done using Claude - a
                   Project, a Cowork session, an Artefact, a Scheduled Task or
                   anything at all. Send it exactly as it is; it is not meant to
