@@ -340,29 +340,34 @@ export const QUIZ_SPECS = [
 ] as const;
 
 /**
- * Submission slots, deliberately SPREAD across the programme rather than all
- * unlocked on day 1.
+ * Submission slots: the two work samples and the capstone. Three, on days 1,
+ * 13 and 15.
  *
- * Originally a RAG consequence rather than a stylistic choice: red was ">=5
- * unlocked items incomplete", so opening all five signed_example slots at once
- * put every member straight into red on their first day. RAG now counts what
- * is LATE instead (see overdue.ts), so the spread is no longer load-bearing
- * for that - but it stands on its own: five examples asked for at once is a
- * backlog, five asked for a week apart is a habit.
+ * THE FIVE "Example N" SLOTS ARE GONE. They sat on days 3, 6, 9, 12 and 14
+ * and asked for a signed example of good work - which by then was a second,
+ * generic copy of something the member had already filed. Every day's Task
+ * carries its own link box (lib/programme/task-link.ts) and every task
+ * description ends by asking for the link, so the work arrives fifteen times,
+ * attached to the day that asked for it and to the brief it was answering. An
+ * Example slot asked for the same artefact again with the day stripped off
+ * it, and a member reasonably read the pair as two pieces of work.
+ *
+ * `signed_example` stays in the programme_submissions CHECK constraint and in
+ * every reader that filters on it: the live cohorts submitted against these
+ * slots before they were removed, and those rows and the G3 credit they carry
+ * are still real. Nothing here deletes them - the seed only inserts and syncs
+ * titles - so a cohort mid-flight keeps the five slots it started with, and
+ * only a fresh seed produces a track without them. See gates.ts for how G3
+ * counts for both populations at once.
+ *
+ * Their spread across the programme was load-bearing once - red was ">=5
+ * unlocked items incomplete", so opening all five on day 1 put every member
+ * straight into red - and stopped being so when RAG moved to counting what is
+ * LATE (see overdue.ts). Recorded because it is the reason the slots were
+ * spread rather than batched, not a reason to bring them back.
  */
-//
-// TITLED "Example N", KIND STILL `signed_example`. The label people read
-// dropped "Signed" - it described the review rather than the thing, and
-// members were submitting examples, not signatures. The kind is a
-// CHECK-constrained value on programme_submissions that every gate, queue and
-// export filters on, so it stays put. Do not "fix" the mismatch.
 export const SUBMISSION_SLOT_SPECS = [
   { kind: "work_sample_pre", dayIndex: 1, title: "Work sample (before)", visibility: "private" },
-  { kind: "signed_example", dayIndex: 3, title: "Example 1", visibility: "cohort" },
-  { kind: "signed_example", dayIndex: 6, title: "Example 2", visibility: "cohort" },
-  { kind: "signed_example", dayIndex: 9, title: "Example 3", visibility: "cohort" },
-  { kind: "signed_example", dayIndex: 12, title: "Example 4", visibility: "cohort" },
-  { kind: "signed_example", dayIndex: 14, title: "Example 5", visibility: "cohort" },
   { kind: "capstone", dayIndex: 13, title: "Capstone", visibility: "cohort" },
   { kind: "work_sample_post", dayIndex: 15, title: "Work sample (after)", visibility: "private" },
 ] as const;

@@ -166,9 +166,29 @@ cross join (values
 on conflict (email, wave) do nothing;
 
 -- 5. Progress: ten finished everything, two did not ----------------------
+--
+-- Each Task also carries the link the member filed against it, because that
+-- is what G3 counts now that the "Example N" slots are gone - a rehearsal
+-- cohort with no links would show a finished cohort stuck on 0/5 Shared.
+--
+-- Deliberately GAPPY: roughly one day in seven has no link, and which day
+-- depends on the person. The admin roster has a column per day whose whole
+-- job is showing a lead who has not filed one, and a fixture with fifteen
+-- ticks for everybody cannot tell you whether that column works.
 insert into public.programme_item_progress
-  (cohort_member_id, track_item_id, status, completed_at)
-select m.id, i.id, 'complete', timestamptz '2026-06-19 12:00:00+00'
+  (cohort_member_id, track_item_id, status, completed_at, meta_json)
+select m.id, i.id, 'complete', timestamptz '2026-06-19 12:00:00+00',
+       case
+         when i.type = 'use_example'
+          and (regexp_replace(split_part(u.email, '@', 1), '\D', '', 'g')::int
+               + i.day_index) % 7 <> 0
+         then jsonb_build_object(
+                'output_url',
+                'https://claude.ai/share/rehearsal-'
+                  || regexp_replace(split_part(u.email, '@', 1), '\D', '', 'g')
+                  || '-day' || i.day_index)
+         else '{}'::jsonb
+       end
   from public.programme_cohort_members m
   join public.programme_cohorts c on c.id = m.cohort_id
   join auth.users u on u.id = m.user_id
@@ -203,29 +223,37 @@ select c.id, i.id, m.user_id,
  where c.name = 'Rehearsal cohort' and t.slug = 'core-programme' and i.type = 'session'
 on conflict (cohort_id, track_item_id, user_id) do nothing;
 
--- 7. Submissions, including one sent back and one still pending ----------
+-- 7. Capstones, including one sent back and one still pending ------------
+--
+-- The capstone is the only reviewed submission left on the track: the five
+-- signed-example slots were removed, and the two work samples are private
+-- and never signed off. So this is what the sign-off queue, the rejection DM
+-- and the gallery all have to be demonstrated on.
 insert into public.programme_submissions
   (cohort_member_id, track_item_id, kind, prompt_text, task_solved,
    time_saved_estimate, visibility, signoff_status, signoff_rubric_json,
    signoff_comment, signed_by, signed_at)
-select m.id, i.id, 'signed_example',
+select m.id, i.id, 'capstone',
        'You are helping the ' || p.team || ' team at Phlo, a UK digital pharmacy.' || chr(10) ||
        'Take the attached weekly export and produce a short summary for the team' || chr(10) ||
        'meeting: the three numbers that moved most, one line on why, and anything' || chr(10) ||
        'that needs a decision. Match the tone of last week''s summary, which is' || chr(10) ||
        'also attached. Keep it under 200 words.',
        'The Monday summary that used to take most of an hour',
-       (array['2 hours a week', '45 minutes a week', '3 hours a week', '90 minutes a week'])[1 + (i.day_index % 4)],
-       case when i.day_index in (3, 6) then 'public_gallery' else 'cohort' end,
+       (array['2 hours a week', '45 minutes a week', '3 hours a week', '90 minutes a week'])[
+         1 + (regexp_replace(split_part(u.email, '@', 1), '\D', '', 'g')::int % 4)],
+       -- Half of them shared to the company gallery, so that screen has rows
+       -- and the cohort-only ones prove the visibility filter is doing work.
+       case when m.id::text ~ '^[0-7]' then 'public_gallery' else 'cohort' end,
        case
-         when u.email = 'rehearsal8@wearephlo.com' and i.day_index = 14 then 'rejected'
-         when u.email = 'rehearsal10@wearephlo.com' and i.day_index = 14 then 'pending'
+         when u.email = 'rehearsal8@wearephlo.com' then 'rejected'
+         when u.email = 'rehearsal10@wearephlo.com' then 'pending'
          else 'approved'
        end,
-       case when u.email = 'rehearsal8@wearephlo.com' and i.day_index = 14
+       case when u.email = 'rehearsal8@wearephlo.com'
             then '{}'::jsonb
-            else '{"accuracy": 4, "completeness": 4, "usefulness": 5, "reusability": 4}'::jsonb end,
-       case when u.email = 'rehearsal8@wearephlo.com' and i.day_index = 14
+            else '{"accuracy": 4, "completeness": 4, "usefulness": 5, "reusability": 4, "credits": 2}'::jsonb end,
+       case when u.email = 'rehearsal8@wearephlo.com'
             then 'Good result, but paste the actual prompt rather than describing it - the point is that someone else can run it.'
             else null end,
        m.team_lead_user_id,
@@ -239,7 +267,7 @@ select m.id, i.id, 'signed_example',
  where c.name = 'Rehearsal cohort'
    and t.slug = 'core-programme'
    and i.type = 'submission_slot'
-   and i.config_json->>'kind' = 'signed_example'
+   and i.config_json->>'kind' = 'capstone'
    and not (u.email in ('rehearsal11@wearephlo.com', 'rehearsal12@wearephlo.com') and i.day_index > 9)
    and not exists (
      select 1 from public.programme_submissions s

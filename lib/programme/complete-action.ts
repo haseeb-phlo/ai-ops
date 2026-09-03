@@ -6,6 +6,7 @@ import { parseQuizConfig, bestScore } from "./quiz";
 import { satisfiedSessionIds } from "./attendance";
 import { gateableContentItemIds } from "./content-readiness";
 import { resolveCompletedItemIds } from "./completed-items";
+import { filedTaskLinksByItem } from "./task-link";
 
 /**
  * Stamps completion when all four gates pass, exactly once.
@@ -69,9 +70,18 @@ export async function maybeCompleteProgramme(
       >(),
     supabase
       .from("programme_item_progress")
-      .select("track_item_id, status")
+      // meta_json for the Task links: G3 counts them, so the latch has to
+      // read the same column the member's page does or the two disagree
+      // about whether somebody has finished.
+      .select("track_item_id, status, meta_json")
       .eq("cohort_member_id", cohortMemberId)
-      .returns<{ track_item_id: string; status: string }[]>(),
+      .returns<
+        {
+          track_item_id: string;
+          status: string;
+          meta_json: Record<string, unknown> | null;
+        }[]
+      >(),
     supabase
       .from("programme_session_attendance")
       .select("track_item_id, status, meta_json")
@@ -169,6 +179,14 @@ export async function maybeCompleteProgramme(
     approvedSignedExamples: live.filter(
       (s) => s.kind === "signed_example" && s.signoff_status === "approved",
     ).length,
+    filedTaskLinks: filedTaskLinksByItem({
+      taskItemIds: new Set(
+        itemList.filter((i) => i.type === "use_example").map((i) => i.id),
+      ),
+      metaByItemId: new Map(
+        (progress ?? []).map((r) => [r.track_item_id, r.meta_json]),
+      ),
+    }).size,
     capstoneCredits: approvedCapstone
       ? Number(approvedCapstone.signoff_rubric_json?.credits ?? 2)
       : 0,

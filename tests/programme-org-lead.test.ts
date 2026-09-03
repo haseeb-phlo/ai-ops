@@ -60,8 +60,9 @@ describe("findLeadEmail", () => {
   });
 
   it("resolves a lead for every team in the people directory's tree", () => {
-    // A team with no owner means everyone on it enrols with no sign-off route
-    // and can never pass G3 - worth knowing before a cohort starts, not after.
+    // A team with no owner means everyone on it enrols with no sign-off
+    // route, so nothing they submit can be approved - worth knowing before a
+    // cohort starts, not after.
     const teams = new Set<string>();
     function walk(node: { teams: string[]; directs: { teams: string[]; directs: never[] }[] }) {
       for (const t of node.teams) teams.add(t);

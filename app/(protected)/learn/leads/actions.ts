@@ -113,8 +113,9 @@ export async function signOffSubmission(
     });
   }
 
-  // Approving the fifth signed example can be the last thing standing between
-  // a member and finishing, so check before revalidating.
+  // An approval can be the last thing standing between a member and
+  // finishing - the capstone is worth two of the five credits G3 wants - so
+  // check before revalidating.
   if (parsed.data.decision === "approved") {
     const { data: submission } = await supabase
       .from("programme_submissions")

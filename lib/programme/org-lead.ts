@@ -7,8 +7,8 @@
  *
  * It is a DEFAULT, not the truth: an admin can override it on the roster
  * before the cohort starts. Getting it roughly right beats leaving everyone
- * unassigned, because a member with no lead has no sign-off route and can
- * never pass G3.
+ * unassigned, because a member with no lead has no sign-off route, so
+ * nothing they submit can ever be approved.
  *
  * Lives here rather than in the join action because a `"use server"` module
  * may only export async functions - the same split as workflows' permissions.ts.

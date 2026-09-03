@@ -9,7 +9,6 @@ import {
   GATE_DESCRIPTION,
   GATE_IDS,
   GATE_LABEL,
-  type G3Route,
   type GateSet,
 } from "@/lib/programme/gates";
 
@@ -19,35 +18,26 @@ import {
  * Progress reads as "3/5" rather than a bar: the numbers are small and exact,
  * and a member needs to know how many more, not roughly how far.
  *
- * That exactness is also why the Shared gate gets a sentence underneath it.
- * Its arithmetic is substitution, not addition, so "3/5" is true and still
- * leaves a member unable to choose between a fourth example and the capstone.
- * The routes say what the number cannot; see g3Routes.
+ * The Shared gate still gets a sentence underneath it, but it is now a
+ * different sentence. It used to list the alternative routes to five,
+ * because the arithmetic was substitution and "3/5" could not say whether
+ * the shorter path was another example or the capstone. Every source adds
+ * now, so the only thing left to say is where to put the next one - and that
+ * is worth saying, because the Task link box is further down the page than
+ * this chip and nothing else connects the two.
  */
 
 const COUNT_WORD = ["no", "one", "two", "three", "four", "five"];
-
-function describeRoute(route: G3Route): string {
-  const examples =
-    route.examples === 1
-      ? "one more example"
-      : `${COUNT_WORD[route.examples] ?? route.examples} more examples`;
-
-  if (!route.capstone) return examples;
-  return route.examples === 0
-    ? "the capstone on its own, which covers two"
-    : `the capstone plus ${examples}`;
-}
 export function GateStrip({
   gates,
   rag,
-  g3Routes,
+  g3Remaining,
   className,
 }: {
   gates: GateSet;
   rag: ProgrammeRagStatus;
-  /** Complete ways left to clear the Shared gate. Empty once it has passed. */
-  g3Routes: G3Route[];
+  /** Pieces of work left to clear the Shared gate. Zero once it has passed. */
+  g3Remaining: number;
   className?: string;
 }) {
   const ragStyle = PROGRAMME_RAG[rag];
@@ -109,10 +99,11 @@ export function GateStrip({
         })}
       </ul>
 
-      {g3Routes.length > 0 && (
+      {g3Remaining > 0 && (
         <p className="mt-3 border-t border-border pt-3 text-xs text-muted-foreground">
-          Shared needs {describeRoute(g3Routes[0])}
-          {g3Routes.length > 1 && <>, or {describeRoute(g3Routes[1])}</>}.
+          Shared needs {COUNT_WORD[g3Remaining] ?? g3Remaining} more{" "}
+          {g3Remaining === 1 ? "piece" : "pieces"} of work - paste the link
+          under any day&apos;s Task.
         </p>
       )}
     </section>

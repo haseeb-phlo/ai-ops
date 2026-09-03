@@ -1,7 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
-import { computeGates, g3Routes, type G3Route, type GateSet } from "./gates";
+import { computeGates, g3Remaining, type GateSet } from "./gates";
 import { stepsToGreen, type StepsToGreen } from "./next-steps";
 import { type DayActivity } from "./activity";
 import { computeRag, type RagStatus } from "./rag";
@@ -21,7 +21,7 @@ import {
   weekOf,
 } from "./working-days";
 import { pickMembership, rankMemberships } from "./membership";
-import { taskLinkFrom } from "./task-link";
+import { filedTaskLinksByItem } from "./task-link";
 import { gateableContentItemIds, isAwaitingContent } from "./content-readiness";
 
 /**
@@ -107,8 +107,8 @@ export type TrackState = {
   outstandingCount: number;
   /** The subset of those whose day has already passed. Drives RAG. */
   overdueCount: number;
-  /** The complete ways left to clear G3. Empty once it has passed. */
-  g3Routes: G3Route[];
+  /** Pieces of work still to share for G3. Zero once it has passed. */
+  g3Remaining: number;
   /** The shortest route back to green, or none when already there. */
   nextSteps: StepsToGreen;
   /** One entry per programme day, for the activity heatmap. */
@@ -391,6 +391,20 @@ const loadTrackStateFor = cache(
       summativeItemIds: new Set(summativeItem ? [summativeItem.id] : []),
     });
 
+    // Built above the gates rather than beside the card data below, because
+    // G3 counts it: a filed link is one of the three things the Shared gate
+    // adds up. The same map feeds both, so the number on the chip and the
+    // links on the cards can never disagree.
+    const taskLinkByItemId = filedTaskLinksByItem({
+      taskItemIds: new Set(
+        items.filter((i) => i.type === "use_example").map((i) => i.id),
+      ),
+      metaByItemId: new Map(
+        (progressRows ?? []).map((r) => [r.track_item_id, r.meta_json]),
+      ),
+    });
+    const filedTaskLinks = taskLinkByItemId.size;
+
     // ---- Gates ----------------------------------------------------------
     // Videos with nothing recorded yet are excluded: a member cannot be
     // required to watch a video that does not exist, and counting them would
@@ -435,10 +449,17 @@ const loadTrackStateFor = cache(
       sessionItemIds: sessionItems.map((i) => i.id),
       satisfiedSessionItemIds,
       approvedSignedExamples,
+      filedTaskLinks,
       capstoneCredits,
       bestSummativeQuizScore,
       summativeQuizPassMark,
       hasPostResponse,
+    });
+
+    const g3Left = g3Remaining({
+      approvedSignedExamples,
+      filedTaskLinks,
+      capstoneCredits,
     });
 
     // ---- RAG ------------------------------------------------------------
@@ -508,14 +529,7 @@ const loadTrackStateFor = cache(
       });
     }
 
-    const taskLinkByItemId = new Map<string, string>();
-    for (const row of progressRows ?? []) {
-      const link = taskLinkFrom(row.meta_json);
-      if (link) taskLinkByItemId.set(row.track_item_id, link);
-    }
-
-    // ---- G3 routes, next steps, activity -------------------------------
-    const routes = g3Routes({ approvedSignedExamples, capstoneCredits });
+    // ---- Next steps, activity -------------------------------------------
 
     const rejected = live.find((s) => s.signoff_status === "rejected");
     // The route back to green has to be built from the same items that took
@@ -614,7 +628,7 @@ const loadTrackStateFor = cache(
       rag,
       outstandingCount,
       overdueCount,
-      g3Routes: routes,
+      g3Remaining: g3Left,
       nextSteps,
       activity,
       submissionByItemId,

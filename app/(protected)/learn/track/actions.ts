@@ -205,9 +205,9 @@ const TaskLinkSchema = z.object({
  *
  * Written to their own progress row's `meta_json`, NOT to
  * `programme_submissions` - task-link.ts has the reasoning. The practical
- * consequence is the one that matters here: fifteen links a member never
- * reach the sign-off queue, which exists for the five signed examples and the
- * capstone.
+ * consequence is the one that matters here: fifteen links a member files
+ * never reach the sign-off queue, which exists for the capstone and the two
+ * work samples. They still count toward G3; nobody has to mark them.
  *
  * Saving a link completes the task, on the same principle as a submission
  * slot: the evidence is the completion. It never re-stamps `completed_at`,

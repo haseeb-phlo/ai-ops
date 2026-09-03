@@ -16,8 +16,8 @@ insert into public.programme_tracks (name, slug, is_active)
 select 'Core Programme', 'core-programme', true
  where not exists (select 1 from public.programme_tracks where slug = 'core-programme');
 
--- 46 items: day 0 gate, 15 x (video + use_example), 3 sessions,
--- 3 quizzes (end of each week), 8 submission slots, 1 post check-in.
+-- 41 items: day 0 gate, 15 x (video + use_example), 3 sessions,
+-- 3 quizzes (end of each week), 3 submission slots, 1 post check-in.
 with track as (
   select id from public.programme_tracks where slug = 'core-programme'
 ), spec(type, title, description, day_index, sort_order, learn_video_title, config_json) as (
@@ -42,7 +42,6 @@ Submit the link to one of these, preferably the one with the output that surpris
 Run a chat here again and check the output.
 Submit the Project as an example of one using a framework.', 3, 1, null, '{}'::jsonb),
     ('session', 'Live session 1', null, 3, 2, null, '{"slots":2}'::jsonb),
-    ('submission_slot', 'Example 1', null, 3, 4, null, '{"kind":"signed_example","visibility":"cohort"}'::jsonb),
     ('video', 'Projects', null, 4, 0, 'Projects', '{}'::jsonb),
     ('use_example', 'Task', 'Pick one task you repeat: drafting replies, reviewing work, summarising the same kind of document, whatever comes round most weeks.
 Build it a Project, and give it all three parts:
@@ -67,7 +66,6 @@ Then go looking for a wrong answer on purpose. Ask about something you know well
 Two things that are not checking. Asking Claude whether it is sure tests whether the answer is consistent, not whether it is true. And a citation can be entirely real and still not support the sentence it is attached to, so follow one and read it.
 Fluency is not accuracy. The output you should trust least is the one that reads best.
 Submit the link to the chat you marked.', 6, 1, null, '{}'::jsonb),
-    ('submission_slot', 'Example 2', null, 6, 4, null, '{"kind":"signed_example","visibility":"cohort"}'::jsonb),
     ('video', 'Research, Memory & files out', null, 7, 0, 'Research, Memory & files out', '{}'::jsonb),
     ('use_example', 'Task', 'Pick something you would normally lose an afternoon to: a comparison, a supplier or market scan, a written summary that means reading several sources first.
 Run it with Research rather than a normal chat. It searches, reads and cross-references many sources and then writes the whole thing up, and it runs in the background - so start it and go and do something else.
@@ -89,7 +87,6 @@ Spend your effort on the description, because the description is the trigger. ''
 Then prove it. Start a fresh chat, ask for the task, and do not name the Skill. If it did not fire, the description is too vague - sharpen it and go again.
 One Skill, one job. And keep it about the method rather than the data: Skills are built to be shared across a team, so nothing confidential or patient-identifiable goes inside one.
 Submit the link to the chat where your Skill fired on its own.', 9, 1, null, '{}'::jsonb),
-    ('submission_slot', 'Example 3', null, 9, 4, null, '{"kind":"signed_example","visibility":"cohort"}'::jsonb),
     ('video', 'Scheduled Tasks', null, 10, 0, 'Scheduled Tasks', '{}'::jsonb),
     ('use_example', 'Task', 'Pick one job you do on a rhythm: the Monday write-up, the morning scan of Slack and flagged email, the weekly numbers somebody always asks you for.
 Schedule it in Cowork. Type /schedule in the prompt box and describe what you want in plain English, including when it should run and what shape the output should come back in.
@@ -112,7 +109,6 @@ Then change it, because an Artifact is clay rather than stone. Refine it in plai
 Publish it and put the link where your team will find it. That is the part that pays: one person builds it once and everybody uses it, with no account needed to open it.
 Made-up numbers only in anything you publish. Publishing changes who can see it, so keep confidential detail, logins and keys out of it entirely.
 Submit the published link.', 12, 1, null, '{}'::jsonb),
-    ('submission_slot', 'Example 4', null, 12, 4, null, '{"kind":"signed_example","visibility":"cohort"}'::jsonb),
     ('video', 'Design', null, 13, 0, 'Design', '{}'::jsonb),
     ('use_example', 'Task', 'Describe one screen or document you wish already existed: a landing page, a settings screen, a pitch deck, a one-pager that would make an idea look finished.
 Make it in Claude Design, then refine it once in plain English rather than taking the first version. A strong first draft that a person then shapes is the whole method.
@@ -127,7 +123,6 @@ Learn to tell those two apart, because the diagnosis is where the time goes. ''I
 Then close the gap rather than rewriting the prompt: add the Plugin that gives Claude the thing it was missing, and run the same job again.
 Prompting changes how well you use what is already there. Plugins change what is there.
 Submit the link to the job you got working.', 14, 1, null, '{}'::jsonb),
-    ('submission_slot', 'Example 5', null, 14, 4, null, '{"kind":"signed_example","visibility":"cohort"}'::jsonb),
     ('video', 'Claude everywhere', null, 15, 0, 'Claude everywhere', '{}'::jsonb),
     ('use_example', 'Task', 'Think about where you actually spend the day: a spreadsheet, your inbox, Slack, a browser tab, a document. Claude is available inside most of it.
 Install it in the one you live in most. Then do the small job you would never normally open Claude for - the two-minute rewrite, the quick summary, the formula you would have looked up.
@@ -174,7 +169,6 @@ Submit the link to one of these, preferably the one with the output that surpris
 Run a chat here again and check the output.
 Submit the Project as an example of one using a framework.'),
     (3, 2, 'Live session 1', null),
-    (3, 4, 'Example 1', null),
     (4, 0, 'Projects', null),
     (4, 1, 'Task', 'Pick one task you repeat: drafting replies, reviewing work, summarising the same kind of document, whatever comes round most weeks.
 Build it a Project, and give it all three parts:
@@ -199,7 +193,6 @@ Then go looking for a wrong answer on purpose. Ask about something you know well
 Two things that are not checking. Asking Claude whether it is sure tests whether the answer is consistent, not whether it is true. And a citation can be entirely real and still not support the sentence it is attached to, so follow one and read it.
 Fluency is not accuracy. The output you should trust least is the one that reads best.
 Submit the link to the chat you marked.'),
-    (6, 4, 'Example 2', null),
     (7, 0, 'Research, Memory & files out', null),
     (7, 1, 'Task', 'Pick something you would normally lose an afternoon to: a comparison, a supplier or market scan, a written summary that means reading several sources first.
 Run it with Research rather than a normal chat. It searches, reads and cross-references many sources and then writes the whole thing up, and it runs in the background - so start it and go and do something else.
@@ -221,7 +214,6 @@ Spend your effort on the description, because the description is the trigger. ''
 Then prove it. Start a fresh chat, ask for the task, and do not name the Skill. If it did not fire, the description is too vague - sharpen it and go again.
 One Skill, one job. And keep it about the method rather than the data: Skills are built to be shared across a team, so nothing confidential or patient-identifiable goes inside one.
 Submit the link to the chat where your Skill fired on its own.'),
-    (9, 4, 'Example 3', null),
     (10, 0, 'Scheduled Tasks', null),
     (10, 1, 'Task', 'Pick one job you do on a rhythm: the Monday write-up, the morning scan of Slack and flagged email, the weekly numbers somebody always asks you for.
 Schedule it in Cowork. Type /schedule in the prompt box and describe what you want in plain English, including when it should run and what shape the output should come back in.
@@ -244,7 +236,6 @@ Then change it, because an Artifact is clay rather than stone. Refine it in plai
 Publish it and put the link where your team will find it. That is the part that pays: one person builds it once and everybody uses it, with no account needed to open it.
 Made-up numbers only in anything you publish. Publishing changes who can see it, so keep confidential detail, logins and keys out of it entirely.
 Submit the published link.'),
-    (12, 4, 'Example 4', null),
     (13, 0, 'Design', null),
     (13, 1, 'Task', 'Describe one screen or document you wish already existed: a landing page, a settings screen, a pitch deck, a one-pager that would make an idea look finished.
 Make it in Claude Design, then refine it once in plain English rather than taking the first version. A strong first draft that a person then shapes is the whole method.
@@ -259,7 +250,6 @@ Learn to tell those two apart, because the diagnosis is where the time goes. ''I
 Then close the gap rather than rewriting the prompt: add the Plugin that gives Claude the thing it was missing, and run the same job again.
 Prompting changes how well you use what is already there. Plugins change what is there.
 Submit the link to the job you got working.'),
-    (14, 4, 'Example 5', null),
     (15, 0, 'Claude everywhere', null),
     (15, 1, 'Task', 'Think about where you actually spend the day: a spreadsheet, your inbox, Slack, a browser tab, a document. Claude is available inside most of it.
 Install it in the one you live in most. Then do the small job you would never normally open Claude for - the two-minute rewrite, the quick summary, the formula you would have looked up.

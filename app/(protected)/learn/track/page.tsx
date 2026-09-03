@@ -214,7 +214,7 @@ export default async function TrackPage({
           <GateStrip
             gates={state.gates}
             rag={state.rag}
-            g3Routes={state.g3Routes}
+            g3Remaining={state.g3Remaining}
           />
         </>
       )}

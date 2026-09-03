@@ -6,8 +6,9 @@
  * interchangeable and are not:
  *
  *   - `programme_submissions.kind` is a CHECK-constrained enum of things that
- *     go through sign-off - five signed examples, a capstone, two work
- *     samples. Every reader of that table filters on kind (see
+ *     go through sign-off - the capstone and the two work samples, and the
+ *     signed examples that live cohorts filed before those slots were
+ *     removed. Every reader of that table filters on kind (see
  *     cohort-admin.ts, lead-board.ts, complete-action.ts), so a new kind would
  *     be invisible to all of them anyway, while the two readers that DON'T
  *     filter are the lead digest and the RAG sweep - where fifteen task links
@@ -16,10 +17,16 @@
  *     what a task link is. It needs no migration and no new RLS: the member
  *     owns the row, leads and admins can already read it.
  *
- * The link is deliberately OPTIONAL. Day 2 asks for one in its copy; most days
- * do not, and a task whose output is a spreadsheet on a shared drive is still
- * done. Saving a link marks the task complete, but completing without one
- * stays a single click.
+ * A filed link is now ALSO a G3 credit, which is the one thing here that
+ * changed when the five "Example N" submission slots were removed. Those
+ * slots were the gate's currency; without them the capstone alone caps G3 at
+ * two of five and nobody completes. So the fifteen links became the currency
+ * they were already collecting in all but name - see gates.ts:g3Credits.
+ *
+ * That makes it optional per DAY and not optional overall: no single task
+ * demands a link, a task whose output is a spreadsheet on a shared drive is
+ * still done in a click, but five of the fifteen have to be filed to finish
+ * the programme. Worth knowing before writing copy that calls it optional.
  */
 
 /** Where the link lives inside `programme_item_progress.meta_json`. */
@@ -81,6 +88,33 @@ export function shortenTaskLink(href: string, maxLength = 44): string {
   const head = display.slice(0, Math.ceil(maxLength / 2) - 1);
   const tail = display.slice(-Math.floor(maxLength / 2));
   return `${head}…${tail}`;
+}
+
+/**
+ * A member's filed links, keyed by track item.
+ *
+ * Shared by every caller that builds a GateInput - the member's page, the
+ * completion latch, the admin cohort table, the nightly sweep - because they
+ * must agree on the count. The latch is the thing that stamps somebody
+ * complete, and a page showing five green gates over a latch that counted
+ * four is exactly the failure resolveCompletedItemIds was written to end.
+ *
+ * Restricted to Tasks: saveTaskOutputLink refuses every other item type, so
+ * this only ever agrees with it, and the count stays right if some later item
+ * type starts writing to the same meta key.
+ */
+export function filedTaskLinksByItem(args: {
+  /** Ids of the track's use_example items. */
+  taskItemIds: ReadonlySet<string>;
+  /** This member's progress meta_json, keyed by track item id. */
+  metaByItemId: ReadonlyMap<string, unknown>;
+}): Map<string, string> {
+  const byItem = new Map<string, string>();
+  for (const itemId of args.taskItemIds) {
+    const link = taskLinkFrom(args.metaByItemId.get(itemId));
+    if (link) byItem.set(itemId, link);
+  }
+  return byItem;
 }
 
 /**

@@ -456,13 +456,13 @@ export function TrackItemCard({
           {revealed && item.type === "submission_slot" && (
             <>
               {/* What a work sample IS, said on the card rather than inside
-                  the dialog. Every other slot names itself - "Example 1" after
-                  a day about prompting is self-explanatory - but "Work sample
-                  (before)" on day one is a title and a Submit button with no
-                  brief attached, and the brief only appeared once you had
-                  already decided to click. The two things people need to know
-                  before deciding are that anything counts and that it is not
-                  a test of them, so both belong out here. */}
+                  the dialog. "Capstone" on day 13 names itself, and so did
+                  the Example slots before they were removed - but "Work
+                  sample (before)" on day one is a title and a Submit button
+                  with no brief attached, and the brief only appeared once you
+                  had already decided to click. The two things people need to
+                  know before deciding are that anything counts and that it is
+                  not a test of them, so both belong out here. */}
               {isWorkSample && (
                 <p className="mt-2 max-w-prose text-sm leading-relaxed text-muted-foreground">
                   Submit a piece of work you&apos;ve done using Claude - a

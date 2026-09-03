@@ -219,6 +219,12 @@ export async function GET(request: NextRequest) {
         approvedSignedExamples: live.filter(
           (s) => s.kind === "signed_example" && s.signoff_status === "approved",
         ).length,
+        // Zero here for the same reason as capstoneCredits below: this call
+        // exists to keep "satisfied" from drifting, its result is discarded,
+        // and G3 is not the gate being asked about. The sweep does not load
+        // progress meta_json, and adding a column to make a thrown-away
+        // number accurate would be a query per cohort for nothing.
+        filedTaskLinks: 0,
         capstoneCredits: 0,
         bestSummativeQuizScore: scores.length ? Math.max(...scores) : null,
         summativeQuizPassMark: Number(summative?.config_json?.pass_mark ?? 8),

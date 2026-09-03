@@ -1,6 +1,11 @@
 import { describe, it, expect } from "vitest";
 import { parseItemCopy } from "@/lib/programme/item-copy";
 import {
+  CAPSTONE_MAX_CREDITS,
+  g3Credits,
+  G3_REQUIRED_CREDITS,
+} from "@/lib/programme/gates";
+import {
   buildTrackItems,
   DAY_TOPICS,
   GENERIC_TASK,
@@ -14,10 +19,10 @@ const items = buildTrackItems();
 const countOf = (type: string) => items.filter((i) => i.type === type).length;
 
 describe("Core Programme track shape", () => {
-  it("produces 46 items in total", () => {
+  it("produces 41 items in total", () => {
     // 1 baseline + 30 video/use_example + 3 sessions + 3 quizzes
-    // + 8 submission slots + 1 post check-in.
-    expect(items).toHaveLength(46);
+    // + 3 submission slots + 1 post check-in.
+    expect(items).toHaveLength(41);
   });
 
   it("has one baseline gate on day 0 and nothing else there", () => {
@@ -98,33 +103,43 @@ describe("Core Programme track shape", () => {
     }
   });
 
-  it("provides five signed_example slots, a capstone, and two work samples", () => {
+  it("provides a capstone and two work samples, and no example slots", () => {
     const kinds = SUBMISSION_SLOT_SPECS.map((s) => s.kind);
-    expect(kinds.filter((k) => k === "signed_example")).toHaveLength(5);
     expect(kinds.filter((k) => k === "capstone")).toHaveLength(1);
     expect(kinds.filter((k) => k === "work_sample_pre")).toHaveLength(1);
     expect(kinds.filter((k) => k === "work_sample_post")).toHaveLength(1);
-    expect(countOf("submission_slot")).toBe(8);
+    expect(countOf("submission_slot")).toBe(3);
   });
 
-  it("labels the slots Example N while the kind stays signed_example", () => {
-    // The label people read dropped "Signed" - it described the review rather
-    // than the thing. The kind is CHECK-constrained on programme_submissions
-    // and every gate, queue and export filters on it, so the mismatch is
-    // deliberate and this asserts both halves of it.
-    const examples = SUBMISSION_SLOT_SPECS.filter(
-      (s) => s.kind === "signed_example",
-    );
-    expect(examples.map((s) => s.title)).toEqual([
-      "Example 1",
-      "Example 2",
-      "Example 3",
-      "Example 4",
-      "Example 5",
-    ]);
+  it("asks for no signed examples, because the daily Task collects the work", () => {
+    // The five "Example N" slots were a second, generic copy of work already
+    // filed against the day that asked for it - see task-link.ts. The kind
+    // itself stays in the schema and in every reader that filters on it,
+    // because live cohorts have approved rows carrying it; what went is the
+    // asking. A slot reappearing here is a regression, not a restoration.
+    const kinds: readonly string[] = SUBMISSION_SLOT_SPECS.map((s) => s.kind);
+    expect(kinds).not.toContain("signed_example");
     for (const slot of SUBMISSION_SLOT_SPECS) {
-      expect(slot.title).not.toContain("Signed example");
+      expect(slot.title).not.toMatch(/example/i);
     }
+  });
+
+  it("leaves G3 reachable from the track this spec produces", () => {
+    // The guard for the whole class of bug that removing the Example slots
+    // walked into. computeGates is tested on synthetic numbers, so taking
+    // away the last thing G3 can count leaves every gate test green and
+    // nobody able to finish the programme - the gate is unreachable and
+    // nothing says so. This asks the only question that catches it: can a
+    // member who does everything on this track actually clear five credits?
+    const kinds: readonly string[] = SUBMISSION_SLOT_SPECS.map((s) => s.kind);
+    const best = g3Credits({
+      approvedSignedExamples: kinds.filter((k) => k === "signed_example")
+        .length,
+      filedTaskLinks: countOf("use_example"),
+      capstoneCredits:
+        kinds.filter((k) => k === "capstone").length * CAPSTONE_MAX_CREDITS,
+    });
+    expect(best).toBeGreaterThanOrEqual(G3_REQUIRED_CREDITS);
   });
 
   it("keeps work samples private", () => {
@@ -133,18 +148,6 @@ describe("Core Programme track shape", () => {
         expect(slot.visibility).toBe("private");
       }
     }
-  });
-
-  it("never opens five signed_example slots on the same day", () => {
-    // RAG turns red at >=5 incomplete unlocked items, so bunching the slots
-    // would put every member into red on day one. Spread is load-bearing.
-    const byDay = new Map<number, number>();
-    for (const slot of SUBMISSION_SLOT_SPECS) {
-      if (slot.kind !== "signed_example") continue;
-      byDay.set(slot.dayIndex, (byDay.get(slot.dayIndex) ?? 0) + 1);
-    }
-    for (const count of byDay.values()) expect(count).toBeLessThan(5);
-    expect(byDay.size).toBe(5);
   });
 
   it("puts the post check-in on day 15", () => {

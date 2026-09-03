@@ -89,8 +89,18 @@ lines.push(`insert into public.programme_tracks (name, slug, is_active)`);
 lines.push(`select ${q(TRACK_NAME)}, ${q(TRACK_SLUG)}, true`);
 lines.push(` where not exists (select 1 from public.programme_tracks where slug = ${q(TRACK_SLUG)});`);
 lines.push("");
-lines.push(`-- ${items.length} items: day 0 gate, 15 x (video + use_example), 3 sessions,`);
-lines.push(`-- 3 quizzes (end of each week), 8 submission slots, 1 post check-in.`);
+// Counted rather than typed. The tally is the first thing anyone reads in
+// the generated file, and a hand-written one goes stale the moment a slot is
+// added or removed - which is exactly when a reader is checking it.
+const countOf = (type) => items.filter((it) => it.type === type).length;
+lines.push(
+  `-- ${items.length} items: day 0 gate, ${countOf("video")} x (video + use_example), ` +
+    `${countOf("session")} sessions,`,
+);
+lines.push(
+  `-- ${countOf("quiz")} quizzes (end of each week), ` +
+    `${countOf("submission_slot")} submission slots, 1 post check-in.`,
+);
 lines.push(`with track as (`);
 lines.push(`  select id from public.programme_tracks where slug = ${q(TRACK_SLUG)}`);
 lines.push(`), spec(type, title, description, day_index, sort_order, learn_video_title, config_json) as (`);

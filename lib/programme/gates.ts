@@ -20,7 +20,7 @@ export const GATE_LABEL: Record<GateId, string> = {
 export const GATE_DESCRIPTION: Record<GateId, string> = {
   g1: "Every daily video and worked example complete",
   g2: "All three live sessions attended",
-  g3: "Five examples approved",
+  g3: "Five pieces of work shared",
   g4: "Final quiz passed and end-of-programme check-in done",
 };
 
@@ -33,10 +33,10 @@ export type GateResult = {
 
 export type GateSet = Record<GateId, GateResult>;
 
-/** Number of approved signed examples (or equivalent) G3 requires. */
+/** Pieces of work G3 requires a member to have shared. */
 export const G3_REQUIRED_CREDITS = 5;
 
-/** The most an approved capstone can substitute for. */
+/** The most an approved capstone is worth. */
 export const CAPSTONE_MAX_CREDITS = 2;
 
 export type GateInput = {
@@ -48,8 +48,21 @@ export type GateInput = {
   sessionItemIds: readonly string[];
   /** Session item ids the member attended, or was excused from with a make-up. */
   satisfiedSessionItemIds: ReadonlySet<string>;
-  /** Count of approved submissions with kind='signed_example'. */
+  /**
+   * Count of approved submissions with kind='signed_example'.
+   *
+   * Always zero on a track seeded after the Example slots were removed. It
+   * stays in the input because the cohorts that were running when they went
+   * still have approved rows, and a member is not made to re-earn a credit
+   * because the programme changed underneath them.
+   */
   approvedSignedExamples: number;
+  /**
+   * Days whose Task has a link filed against it - one credit each. This is
+   * the route every cohort seeded from the current spec takes; see
+   * lib/programme/task-link.ts.
+   */
+  filedTaskLinks: number;
   /**
    * Credits an approved capstone contributes, from its sign-off rubric.
    * Clamped to CAPSTONE_MAX_CREDITS. Zero when there's no approved capstone.
@@ -64,21 +77,32 @@ export type GateInput = {
 };
 
 /**
- * G3's arithmetic is SUBSTITUTION, not addition.
+ * G3 counts PIECES OF WORK SHARED, from whichever of the three sources a
+ * member has.
  *
- * The playbook says five approved signed examples, "where an approved capstone
- * may count as up to 2". That means the capstone replaces up to two of the
- * five - so three examples plus a 2-credit capstone passes at exactly five.
- * Read additively (5 examples AND a capstone) the gate would be unreachable
- * for anyone who relied on the capstone, which is the opposite of its intent.
+ * A filed Task link is one credit, an approved signed example is one, and an
+ * approved capstone is two. Plain addition, and that is a change: while the
+ * five "Example N" slots existed the capstone SUBSTITUTED for up to two of
+ * them, because the only other currency was an example and reading the two
+ * additively would have put the gate out of reach for anyone relying on the
+ * capstone.
+ *
+ * Removing those slots settles it the other way. A track seeded now asks for
+ * no examples at all, so the capstone alone would cap the gate at 2 of 5 and
+ * nobody would ever complete. Addition is the only reading under which both
+ * populations can pass: the cohorts that were mid-flight keep every example
+ * they had approved, and everyone else gets there by filing the links the
+ * daily Task already asks for.
  */
-export function g3Credits(
-  approvedSignedExamples: number,
-  capstoneCredits: number,
-): number {
+export function g3Credits(input: {
+  approvedSignedExamples: number;
+  filedTaskLinks: number;
+  capstoneCredits: number;
+}): number {
   return (
-    approvedSignedExamples +
-    Math.min(Math.max(capstoneCredits, 0), CAPSTONE_MAX_CREDITS)
+    input.approvedSignedExamples +
+    input.filedTaskLinks +
+    Math.min(Math.max(input.capstoneCredits, 0), CAPSTONE_MAX_CREDITS)
   );
 }
 
@@ -91,10 +115,7 @@ export function computeGates(input: GateInput): GateSet {
     input.satisfiedSessionItemIds.has(id),
   ).length;
 
-  const credits = g3Credits(
-    input.approvedSignedExamples,
-    input.capstoneCredits,
-  );
+  const credits = g3Credits(input);
 
   const quizPassed =
     input.bestSummativeQuizScore !== null &&
@@ -136,52 +157,29 @@ export function allGatesPassed(gates: GateSet): boolean {
 }
 
 /**
- * The routes still open to clearing G3.
+ * How many more pieces of work the Shared gate still needs.
  *
- * "3/5" is exact and says nothing about what to do next, because the gate's
- * arithmetic is substitution rather than addition: an approved capstone
- * replaces up to two of the five. Someone reading the number cannot tell
- * whether the shorter path is a fourth signed example or the capstone, and the
- * strip has no room to explain the rule in prose.
+ * This replaced a list of alternative ROUTES, and the reason it could is the
+ * reason the routes existed. They were there because G3's arithmetic used to
+ * be substitution: "3/5" was exact and still left a member unable to tell
+ * whether the shorter path was a fourth example or the capstone, so the strip
+ * spelled out each complete way to five.
  *
- * So state the routes instead of the rule. Each one is a complete way to reach
- * five credits from where the member actually is, and the caller renders them
- * as the alternatives they are.
+ * Now that every source adds, there is nothing left to disambiguate - one
+ * more credit is one more piece of work, whichever kind it is. Offering the
+ * capstone as an alternative would fail the routes' own honesty rule anyway:
+ * it is worth two credits and costs a full submission and a sign-off, where
+ * two Task links cost two pastes, so it is never the shorter road. It still
+ * counts for anyone who does it; it is just not advice.
  *
- * Deliberately NOT a progress bar. The gate strip's own reasoning applies: a
- * member needs to know how many more, not roughly how far, and a filled track
- * would re-encode a number that is already on screen.
+ * Deliberately NOT a progress bar. A member needs to know how many more, not
+ * roughly how far, and a filled track would re-encode a number already on
+ * screen.
  */
-export type G3Route = {
-  /** Examples this route still needs approved. */
-  examples: number;
-  /** True when the route leans on the capstone for the rest. */
-  capstone: boolean;
-};
-
-export function g3Routes(input: {
+export function g3Remaining(input: {
   approvedSignedExamples: number;
+  filedTaskLinks: number;
   capstoneCredits: number;
-}): G3Route[] {
-  const credits = g3Credits(
-    input.approvedSignedExamples,
-    input.capstoneCredits,
-  );
-  const short = G3_REQUIRED_CREDITS - credits;
-  if (short <= 0) return [];
-
-  const routes: G3Route[] = [{ examples: short, capstone: false }];
-
-  // A capstone already counted cannot be spent twice, so it stops being an
-  // alternative the moment it has credits. And when only one credit is
-  // missing the capstone is not a second route, just a longer version of the
-  // first - offering it there would be advice to do more work for nothing.
-  if (input.capstoneCredits <= 0 && short > 1) {
-    routes.push({
-      examples: Math.max(0, short - CAPSTONE_MAX_CREDITS),
-      capstone: true,
-    });
-  }
-
-  return routes;
+}): number {
+  return Math.max(0, G3_REQUIRED_CREDITS - g3Credits(input));
 }

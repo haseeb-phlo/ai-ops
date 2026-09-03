@@ -11,7 +11,7 @@ import {
   todayInLondon,
   unlockDateFor,
 } from "./working-days";
-import { taskLinksByDay } from "./task-link";
+import { filedTaskLinksByItem, taskLinksByDay } from "./task-link";
 import {
   isG2Impossible,
   satisfiedSessionIds,
@@ -337,6 +337,12 @@ export const loadCohortAdminView = cache(
       }),
     }));
 
+    // Hoisted out of the per-member loop: the same Set for every row, and
+    // G3 counts a filed Task link, so every member's gates need it.
+    const taskItemIds = new Set(
+      items.filter((i) => i.type === "use_example").map((i) => i.id),
+    );
+
     const adminMembers: AdminMember[] = members.map((member) => {
       const progress = progressByMember.get(member.id) ?? new Map();
       const attendanceRecords: AttendanceRecord[] = (
@@ -378,6 +384,10 @@ export const loadCohortAdminView = cache(
         sessionItemIds: sessionItems.map((i) => i.id),
         satisfiedSessionItemIds: satisfied,
         approvedSignedExamples,
+        filedTaskLinks: filedTaskLinksByItem({
+          taskItemIds: taskItemIds,
+          metaByItemId: metaByMember.get(member.id) ?? new Map(),
+        }).size,
         capstoneCredits: approvedCapstone
           ? Number(approvedCapstone.signoff_rubric_json?.credits ?? 2)
           : 0,

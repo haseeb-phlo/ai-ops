@@ -116,7 +116,7 @@ describe("memberReminderText", () => {
       hasRejection: true,
     });
     expect(text.split("\n")[0]).toContain(
-      "one of your examples has been sent back",
+      "one of your submissions has been sent back",
     );
     // Names no reviewer: sign-off can route to a cohort default approver or an
     // AI-assisted review, neither of which is "your team lead".

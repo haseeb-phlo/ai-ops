@@ -3,7 +3,7 @@ import {
   allGatesPassed,
   computeGates,
   g3Credits,
-  g3Routes,
+  g3Remaining,
   GATE_IDS,
   type GateInput,
 } from "@/lib/programme/gates";
@@ -13,7 +13,11 @@ const passing: GateInput = {
   completedItemIds: new Set(["a", "b", "c"]),
   sessionItemIds: ["s1", "s2", "s3"],
   satisfiedSessionItemIds: new Set(["s1", "s2", "s3"]),
-  approvedSignedExamples: 5,
+  // A member of a cohort seeded since the Example slots were removed: the
+  // five credits come from Task links, which is the only route such a
+  // member has.
+  approvedSignedExamples: 0,
+  filedTaskLinks: 5,
   capstoneCredits: 0,
   bestSummativeQuizScore: 8,
   summativeQuizPassMark: 8,
@@ -85,58 +89,87 @@ describe("G2 - sessions attended", () => {
   });
 });
 
-describe("G3 - approved examples, with capstone substitution", () => {
-  it("passes on five approved examples alone", () => {
+describe("G3 - pieces of work shared", () => {
+  it("passes on five filed Task links alone", () => {
     expect(computeGates(passing).g3.passed).toBe(true);
   });
 
-  it("fails on four examples with no capstone", () => {
-    expect(
-      computeGates({ ...passing, approvedSignedExamples: 4 }).g3.passed,
-    ).toBe(false);
+  it("fails on four", () => {
+    expect(computeGates({ ...passing, filedTaskLinks: 4 }).g3.passed).toBe(
+      false,
+    );
   });
 
-  it("passes on three examples plus a 2-credit capstone - the boundary", () => {
-    // Substitution, not addition: 3 + 2 = 5.
+  it("cannot be cleared by the capstone alone", () => {
+    // The regression guard for the whole change. Removing the five Example
+    // slots left the capstone as the only submission on the track, and a
+    // capstone is worth two - so if the gate ever goes back to counting
+    // submissions only, nobody completes the programme and nothing else in
+    // this file notices.
     expect(
       computeGates({
         ...passing,
-        approvedSignedExamples: 3,
+        filedTaskLinks: 0,
+        capstoneCredits: 2,
+      }).g3,
+    ).toMatchObject({ passed: false, current: 2, target: 5 });
+  });
+
+  it("adds the three sources rather than substituting between them", () => {
+    // Three links, a signed example a live cohort had approved before the
+    // slots went, and a capstone: 3 + 1 + 2 = 6, over the line.
+    expect(
+      computeGates({
+        ...passing,
+        filedTaskLinks: 3,
+        approvedSignedExamples: 1,
         capstoneCredits: 2,
       }).g3.passed,
     ).toBe(true);
   });
 
-  it("fails on two examples plus a capstone - one short", () => {
+  it("keeps the examples a mid-flight member already had approved", () => {
+    // The cohorts running when the slots were removed keep their slots and
+    // their approved rows. Three of those plus two links is five.
     expect(
       computeGates({
         ...passing,
-        approvedSignedExamples: 2,
-        capstoneCredits: 2,
+        approvedSignedExamples: 3,
+        filedTaskLinks: 2,
       }).g3.passed,
-    ).toBe(false);
+    ).toBe(true);
   });
 
   it("clamps an over-generous capstone to two credits", () => {
-    expect(g3Credits(2, 99)).toBe(4);
+    expect(
+      g3Credits({
+        approvedSignedExamples: 0,
+        filedTaskLinks: 2,
+        capstoneCredits: 99,
+      }),
+    ).toBe(4);
     expect(
       computeGates({
         ...passing,
-        approvedSignedExamples: 2,
+        filedTaskLinks: 2,
         capstoneCredits: 99,
       }).g3.passed,
     ).toBe(false);
   });
 
   it("ignores a negative capstone credit", () => {
-    expect(g3Credits(5, -3)).toBe(5);
+    expect(
+      g3Credits({
+        approvedSignedExamples: 0,
+        filedTaskLinks: 5,
+        capstoneCredits: -3,
+      }),
+    ).toBe(5);
   });
 
   it("caps the displayed progress at the target", () => {
     // "7/5" would look broken on the chip.
-    expect(
-      computeGates({ ...passing, approvedSignedExamples: 7 }).g3.current,
-    ).toBe(5);
+    expect(computeGates({ ...passing, filedTaskLinks: 7 }).g3.current).toBe(5);
   });
 });
 
@@ -201,7 +234,9 @@ describe("allGatesPassed", () => {
     for (const failing of [
       { completedItemIds: new Set(["a"]) },
       { satisfiedSessionItemIds: new Set(["s1"]) },
-      { approvedSignedExamples: 0 },
+      // The fixture's five credits are Task links, so this is the G3 knob
+      // now. Zeroing approvedSignedExamples would leave it passing.
+      { filedTaskLinks: 0 },
       { hasPostResponse: false },
     ]) {
       expect(
@@ -215,57 +250,46 @@ describe("allGatesPassed", () => {
   });
 });
 
-describe("the routes left to clearing G3", () => {
-  it("offers nothing once the gate has passed", () => {
-    expect(g3Routes({ approvedSignedExamples: 5, capstoneCredits: 0 })).toEqual(
-      [],
-    );
-    expect(g3Routes({ approvedSignedExamples: 3, capstoneCredits: 2 })).toEqual(
-      [],
-    );
+describe("what the Shared gate has left to do", () => {
+  const remaining = (
+    filedTaskLinks: number,
+    capstoneCredits = 0,
+    approvedSignedExamples = 0,
+  ) =>
+    g3Remaining({ approvedSignedExamples, filedTaskLinks, capstoneCredits });
+
+  it("asks for nothing once the gate has passed", () => {
+    expect(remaining(5)).toBe(0);
+    expect(remaining(3, 2)).toBe(0);
   });
 
-  it("offers the capstone as a genuine shortcut when two are missing", () => {
-    const routes = g3Routes({ approvedSignedExamples: 3, capstoneCredits: 0 });
-    expect(routes).toEqual([
-      { examples: 2, capstone: false },
-      { examples: 0, capstone: true },
-    ]);
+  it("never goes negative when a member is past the line", () => {
+    // The strip renders this number into a sentence, so "-2 more pieces of
+    // work" is a live possibility rather than a hypothetical.
+    expect(remaining(8)).toBe(0);
   });
 
-  it("keeps the capstone route honest when it cannot finish the job alone", () => {
-    // Two short of five after the capstone's two credits, so the route still
-    // needs an example. Saying "just do the capstone" here would be wrong.
-    const routes = g3Routes({ approvedSignedExamples: 1, capstoneCredits: 0 });
-    expect(routes[1]).toEqual({ examples: 2, capstone: true });
-  });
-
-  it("does not offer the capstone when only one credit is missing", () => {
-    // It would clear the gate, but it is strictly more work than one example.
-    const routes = g3Routes({ approvedSignedExamples: 4, capstoneCredits: 0 });
-    expect(routes).toEqual([{ examples: 1, capstone: false }]);
-  });
-
-  it("stops offering a capstone that has already been spent", () => {
-    const routes = g3Routes({ approvedSignedExamples: 1, capstoneCredits: 2 });
-    expect(routes).toEqual([{ examples: 2, capstone: false }]);
+  it("counts down as links are filed", () => {
+    expect(remaining(0)).toBe(5);
+    expect(remaining(2)).toBe(3);
+    expect(remaining(4)).toBe(1);
   });
 
   it("agrees with the gate about whether anything is left", () => {
-    for (let examples = 0; examples <= 6; examples += 1) {
+    for (let links = 0; links <= 6; links += 1) {
       for (const credits of [0, 1, 2]) {
-        const gates = computeGates({
-          ...passing,
-          approvedSignedExamples: examples,
-          capstoneCredits: credits,
-        });
-        const routes = g3Routes({
-          approvedSignedExamples: examples,
-          capstoneCredits: credits,
-        });
-        expect(routes.length === 0, `${examples}/${credits}`).toBe(
-          gates.g3.passed,
-        );
+        for (let examples = 0; examples <= 2; examples += 1) {
+          const gates = computeGates({
+            ...passing,
+            filedTaskLinks: links,
+            capstoneCredits: credits,
+            approvedSignedExamples: examples,
+          });
+          expect(
+            remaining(links, credits, examples) === 0,
+            `${links}/${credits}/${examples}`,
+          ).toBe(gates.g3.passed);
+        }
       }
     }
   });

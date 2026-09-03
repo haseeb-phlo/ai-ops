@@ -150,6 +150,7 @@ describe("buildGateFunnel", () => {
     sessionItemIds: ["s"],
     satisfiedSessionItemIds: new Set(["s"]),
     approvedSignedExamples: 5,
+    filedTaskLinks: 0,
     capstoneCredits: 0,
     bestSummativeQuizScore: 8,
     summativeQuizPassMark: 8,

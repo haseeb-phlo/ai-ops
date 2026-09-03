@@ -34,7 +34,7 @@ export function memberReminderText(input: MemberReminder): string {
   // all. The passive is the accurate voice here, and the note itself is in the
   // rejection DM that already went out.
   const openings = input.hasRejection
-    ? `${input.firstName}, one of your examples has been sent back with a note.`
+    ? `${input.firstName}, one of your submissions has been sent back with a note.`
     : `Morning ${input.firstName}.`;
   lines.push(openings);
 
@@ -186,7 +186,7 @@ export function cohortCompletionText(input: CohortCompletion): string {
   return [
     `*${input.cohortName} - the Core Programme is done*`,
     `Congratulations to ${joinNames(input.mentions)}.`,
-    "Fifteen days of videos, daily tasks, live sessions and five examples signed off, finished alongside the day job.",
+    "Fifteen days of videos, daily tasks, live sessions and five pieces of work shared, finished alongside the day job.",
   ].join("\n\n");
 }
 
