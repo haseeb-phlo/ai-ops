@@ -65,7 +65,7 @@ export type TrackItemView = {
   blockedByWeekOne?: boolean;
   /**
    * True when this item's unlock date IS today and the clock is what is still
-   * holding it - days open at 9am, not at midnight.
+   * holding it - days open at 7am, not at midnight.
    *
    * Without it the card spends every morning telling somebody a thing
    * "unlocks 2 Sep" on the 2nd of September, which reads as a broken date

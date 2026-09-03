@@ -306,26 +306,26 @@ describe("hasDayArrived", () => {
 });
 
 describe("openThroughInLondon", () => {
-  it("opens the day at 9am London, not at midnight", () => {
-    // 08:00 UTC on 1 September is 09:00 BST: the day is open.
-    expect(openThroughInLondon(new Date("2026-09-01T08:00:00Z"))).toBe(
+  it("opens the day at 7am London, not at midnight", () => {
+    // 06:00 UTC on 1 September is 07:00 BST: the day is open.
+    expect(openThroughInLondon(new Date("2026-09-01T06:00:00Z"))).toBe(
       "2026-09-01",
     );
     // One minute earlier it is not, and the programme is still open only
     // through the day before.
-    expect(openThroughInLondon(new Date("2026-09-01T07:59:00Z"))).toBe(
+    expect(openThroughInLondon(new Date("2026-09-01T05:59:00Z"))).toBe(
       "2026-08-31",
     );
   });
 
-  it("is 9am LONDON in winter too, not a fixed UTC hour", () => {
-    // Late November is GMT, so 08:00 UTC is 08:00 London - still shut, where
-    // in BST the same instant would have been 9am and open. A fixed UTC hour
+  it("is 7am LONDON in winter too, not a fixed UTC hour", () => {
+    // Late November is GMT, so 06:00 UTC is 06:00 London - still shut, where
+    // in BST the same instant would have been 7am and open. A fixed UTC hour
     // is exactly the DST bug hourInLondon exists to stop.
-    expect(openThroughInLondon(new Date("2026-11-27T08:00:00Z"))).toBe(
+    expect(openThroughInLondon(new Date("2026-11-27T06:00:00Z"))).toBe(
       "2026-11-26",
     );
-    expect(openThroughInLondon(new Date("2026-11-27T09:00:00Z"))).toBe(
+    expect(openThroughInLondon(new Date("2026-11-27T07:00:00Z"))).toBe(
       "2026-11-27",
     );
   });
@@ -346,16 +346,20 @@ describe("openThroughInLondon", () => {
   });
 
   it("steps back a calendar day, so a Saturday morning reads Friday", () => {
-    // Saturday 5 September, 07:00 BST. Unlock dates are always weekdays and
-    // the comparison is <=, so Friday and Saturday exclude the same set - but
+    // Saturday 5 September, 05:00 BST - before the open, which is the only
+    // time this branch runs at all. Unlock dates are always weekdays and the
+    // comparison is <=, so Friday and Saturday exclude the same set - but
     // this is the value, and it should not silently be a working-day step.
-    expect(openThroughInLondon(new Date("2026-09-05T06:00:00Z"))).toBe(
+    expect(openThroughInLondon(new Date("2026-09-05T04:00:00Z"))).toBe(
       "2026-09-04",
     );
   });
 
   it("agrees with today from the open hour onwards, all day", () => {
-    for (const hour of [9, 12, 18, 23]) {
+    // 7 and 8 are the two that pin the boundary: both were SHUT under the old
+    // 9am open, and a regression that put the hour back would fail here
+    // rather than only on the constant below.
+    for (const hour of [7, 8, 9, 12, 18, 23]) {
       const at = new Date(
         `2026-11-27T${String(hour).padStart(2, "0")}:00:00Z`,
       );
@@ -363,11 +367,16 @@ describe("openThroughInLondon", () => {
     }
   });
 
-  it("opens at 9, the hour every label and the Monday nudge are written to", () => {
-    // This pins the number the UI copy and the notify cron were both written
-    // against. It cannot see MEMBER_REMINDER_HOUR - that lives in a route
-    // module - so it will not catch the two drifting apart; the docblock says
-    // to go and look, and this is what says the number moved at all.
-    expect(PROGRAMME_OPEN_HOUR).toBe(9);
+  it("opens at 7, the hour every label is written to", () => {
+    // This pins the number the UI copy was written against. It cannot see
+    // MEMBER_REMINDER_HOUR - that lives in a route module - so it will not
+    // catch the two drifting apart; the docblock says to go and look, and
+    // this is what says the number moved at all.
+    //
+    // The two are no longer equal, deliberately: the nudge stayed at 9 when
+    // the open came back to 7. What has to hold is that the nudge is not
+    // EARLIER than the open, so a member is never told to do work they
+    // cannot see yet.
+    expect(PROGRAMME_OPEN_HOUR).toBe(7);
   });
 });

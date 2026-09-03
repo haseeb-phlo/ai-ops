@@ -157,14 +157,14 @@ describe("a Task card's output link", () => {
 
 describe("what a locked card says it is waiting for", () => {
   it("names the hour, not the date, on the morning a day opens", () => {
-    // Days open at 9am London. Printing "Unlocks 1 Sep" at 07:00 on 1 Sep
+    // Days open at 7am London. Printing "Unlocks 1 Sep" at 06:00 on 1 Sep
     // reads as a broken date rather than as an hour to wait for.
     const container = task({
       state: "locked",
       unlockDate: "2026-09-01",
       opensToday: true,
     });
-    expect(container.textContent).toContain("Unlocks 9am");
+    expect(container.textContent).toContain("Unlocks 7am");
     expect(container.textContent).not.toContain("Unlocks 1 Sep");
   });
 
@@ -182,18 +182,18 @@ describe("what a locked card says it is waiting for", () => {
     // behind the entry-gate guard the panels above it use - and every item on
     // it is held by the check-in, not by the clock. The page clears
     // `opensToday` for them, so a 2pm visit reads "Unlocks 1 Sep" rather than
-    // naming an hour that went seven hours ago.
+    // naming an hour that went nine hours ago.
     const container = task({
       state: "locked",
       unlockDate: "2026-09-01",
       opensToday: false,
     });
     expect(container.textContent).toContain("Unlocks 1 Sep");
-    expect(container.textContent).not.toContain("Unlocks 9am");
+    expect(container.textContent).not.toContain("Unlocks 7am");
   });
 
   it("lets the week-one checkpoint speak first", () => {
-    // A day held by the checkpoint is not waiting for 9am, and saying so
+    // A day held by the checkpoint is not waiting for 7am, and saying so
     // would send the member off to wait for a clock instead of submitting.
     const container = task({
       state: "locked",
@@ -202,7 +202,7 @@ describe("what a locked card says it is waiting for", () => {
       blockedByWeekOne: true,
     });
     expect(container.textContent).toContain("Submit week 1 first");
-    expect(container.textContent).not.toContain("Unlocks 9am");
+    expect(container.textContent).not.toContain("Unlocks 7am");
   });
 });
 

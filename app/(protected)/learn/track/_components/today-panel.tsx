@@ -37,7 +37,7 @@ export function TodayPanel({
   openCount: number;
   /** When the next locked thing opens, if anything is still to come. */
   nextOpensOn: string | null;
-  /** That date is today, so the only thing left to wait for is 9am. */
+  /** That date is today, so the only thing left to wait for is 7am. */
   nextOpensToday?: boolean;
   completedCount: number;
   totalCount: number;

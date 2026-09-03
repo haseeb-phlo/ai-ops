@@ -24,20 +24,33 @@ const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
  *
  * Days used to open at midnight, because that is what a bare date comparison
  * gives you for free - and nobody chose it. The effect was that a day arrived
- * while everyone was asleep, so the 7am shift met a day it was already several
- * hours into, and anyone glancing at the app late the night before found
- * tomorrow's work already sitting there. Nine is when the working day starts,
- * which is when a day's worth of it should appear.
+ * while everyone was asleep, so anyone glancing at the app late the night
+ * before found tomorrow's work already sitting there. That is what moving to
+ * an explicit hour fixed, and it is the part that must not be undone.
  *
- * `MEMBER_REMINDER_HOUR` in the programme-notify cron is separately 9, so the
- * Monday nudge lands as the day opens rather than ahead of it. Nothing binds
- * the two constants - they are the same number for the same reason, not by
- * import - so if you move this one, go and look at that one.
+ * The hour itself was 9, on the reasoning that nine is when the working day
+ * starts. That reasoning does not hold at Phlo, and the constant it produced
+ * had the same shape of bug as midnight did, one shift over: the dispensary
+ * and fulfilment mornings begin at 7, so the people whose day starts earliest
+ * met a programme that would not open for another two hours. Seven is when
+ * the earliest working day here actually starts.
+ *
+ * Nothing about the invariant changed - a day still opens at a stated local
+ * hour, and still does not arrive overnight. Only the hour moved.
+ *
+ * `MEMBER_REMINDER_HOUR` in the programme-notify cron STAYED at 9, so the two
+ * numbers now differ on purpose. They were the same number for the same
+ * reason and are not bound by import, and the reason they were the same was
+ * that the Monday nudge must not land AHEAD of the open - telling somebody to
+ * go and do work they cannot yet see. At 9 against a 7am open the nudge lands
+ * two hours after it, which satisfies that just as well, and a 7am DM does
+ * not. If you move this constant again, go and look at that one: what has to
+ * hold is `MEMBER_REMINDER_HOUR >= PROGRAMME_OPEN_HOUR`, not equality.
  */
-export const PROGRAMME_OPEN_HOUR = 9;
+export const PROGRAMME_OPEN_HOUR = 7;
 
 /** How that hour is written on screen. One spelling, in one place. */
-export const PROGRAMME_OPEN_LABEL = "9am";
+export const PROGRAMME_OPEN_LABEL = "7am";
 
 /**
  * Today's date in Europe/London, as "YYYY-MM-DD".
@@ -212,12 +225,13 @@ export function hasReached(unlockDate: IsoDate, today: IsoDate): boolean {
 /**
  * The date the programme is open THROUGH, at instant `now`.
  *
- * From 09:00 London this is today; before it, the previous calendar day. Pass
- * it wherever unlock is being decided - `resolveItemStates` and friends - and
- * keep `todayInLondon` for everything that asks which day it is rather than
- * what has opened: overdue, RAG, the "Today" badge on the timeline. Those two
- * questions were the same question while days opened at midnight and are not
- * any more, and conflating them would quietly move the overdue line to 9am too.
+ * From `PROGRAMME_OPEN_HOUR` London this is today; before it, the previous
+ * calendar day. Pass it wherever unlock is being decided - `resolveItemStates`
+ * and friends - and keep `todayInLondon` for everything that asks which day it
+ * is rather than what has opened: overdue, RAG, the "Today" badge on the
+ * timeline. Those two questions were the same question while days opened at
+ * midnight and are not any more, and conflating them would quietly move the
+ * overdue line to the open hour too.
  *
  * Steps back a CALENDAR day rather than a working one. Unlock dates are always
  * weekdays and the comparison is `<=`, so Saturday and Friday exclude exactly

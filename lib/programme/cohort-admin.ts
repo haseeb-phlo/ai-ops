@@ -65,7 +65,7 @@ export type DayLink = {
   title: string;
   /** The date it opens, in daily-unlock terms. */
   date: string;
-  /** Whether it has opened yet - days open at 9am London. */
+  /** Whether it has opened yet - days open at 7am London. */
   opened: boolean;
 };
 
@@ -96,7 +96,7 @@ export type CohortAdminView = {
    * link pasted into a channel has to do; pinning the cohort would send
    * anyone in a different one to a track they cannot see. `opened` is here so
    * the person posting can tell at a glance which day is live, on the same
-   * 9am clock the members are on.
+   * 7am clock the members are on.
    */
   dayLinks: DayLink[];
   /** Task links per member, and the days worth showing a column for. */
@@ -228,7 +228,7 @@ export const loadCohortAdminView = cache(
     const members = memberRows ?? [];
     const items = itemRows ?? [];
     const today = todayInLondon();
-    // What has actually opened, which before 9am London is yesterday. Used for
+    // What has actually opened, which before 7am London is yesterday. Used for
     // the two questions about visibility - item states and which task columns
     // exist - while `today` stays the calendar date for overdue and RAG.
     const openThrough = openThroughInLondon();

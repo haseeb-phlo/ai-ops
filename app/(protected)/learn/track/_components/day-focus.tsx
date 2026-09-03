@@ -31,7 +31,7 @@ import { TrackItemCard, type TrackItemView } from "./track-item-card";
 export type FocusDay = {
   dayIndex: number;
   unlockDate: string;
-  /** Its unlock date is today and it is the 9am clock still holding it shut. */
+  /** Its unlock date is today and it is the 7am clock still holding it shut. */
   opensToday: boolean;
   items: TrackItemView[];
 };

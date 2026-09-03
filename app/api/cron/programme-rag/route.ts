@@ -59,11 +59,17 @@ export async function GET(request: NextRequest) {
   }
 
   const supabase = createAdminClient();
+  // This sweep runs at 06:00 UTC and days open at 07:00 London, so whether
+  // the two dates differ depends on the time of year: in GMT the sweep is an
+  // hour early and they differ, in BST it lands exactly on the open and they
+  // agree. That used to be "differ on every run", when the open was 09:00.
+  //
+  // Either way the split is what makes it not matter. Unlock takes the
+  // opened-through date; overdue and RAG take the calendar one. So on a BST
+  // run today's freshly opened items do join the outstanding list, and
+  // `countOverdue` then drops them again because it counts strictly past days
+  // - nothing becomes late an hour earlier because the sweep runs early.
   const today = todayInLondon();
-  // This sweep runs at 06:00 UTC, before days open at 09:00 London, so the two
-  // dates differ on every run. Unlock takes the opened-through date; overdue
-  // and RAG take the calendar one, which is the whole point of the split -
-  // nothing becomes late three hours earlier because the sweep runs early.
   const openThrough = openThroughInLondon();
 
   const { data: cohorts, error: cohortError } = await supabase
