@@ -1,7 +1,9 @@
 import { describe, it, expect } from "vitest";
+import { parseItemCopy } from "@/lib/programme/item-copy";
 import {
   buildTrackItems,
   DAY_TOPICS,
+  GENERIC_TASK,
   QUIZ_SPECS,
   SESSION_DAYS,
   SUBMISSION_SLOT_SPECS,
@@ -163,6 +165,47 @@ describe("Core Programme track shape", () => {
       (a, b) => a.dayIndex - b.dayIndex || a.sortOrder - b.sortOrder,
     );
     expect(items).toEqual(sorted);
+  });
+
+  it("gives all fifteen days a written task, not the placeholder", () => {
+    // GENERIC_TASK is still the fallback in code, so a day added or reordered
+    // without copy silently reads "apply the day's technique" - which looks
+    // finished on the page and teaches nothing. Nothing should reach it.
+    for (const item of items.filter((i) => i.type === "use_example")) {
+      expect(item.description, `day ${item.dayIndex}`).not.toBe(GENERIC_TASK);
+    }
+  });
+
+  it("ends every task by asking for a link", () => {
+    // The link is optional in code on purpose (see task-link.ts) - plenty of
+    // real output is a file on a shared drive, and a required field on
+    // unlinkable work buys filler links. Asking in the copy is what makes
+    // filing one the norm, so the ask is checked rather than trusted.
+    for (const item of items.filter((i) => i.type === "use_example")) {
+      const blocks = parseItemCopy(item.description ?? null);
+      const last = blocks.at(-1);
+      expect(last, `day ${item.dayIndex}`).toMatchObject({
+        kind: "paragraph",
+      });
+      // A paragraph, never a bullet: the ask is the closing line of the card,
+      // and swallowed into a list it reads as one more optional step.
+      expect(
+        (last as { kind: "paragraph"; text: string }).text,
+        `day ${item.dayIndex}`,
+      ).toMatch(/^Submit /);
+    }
+  });
+
+  it("writes task copy in house style", () => {
+    // Same rules the quiz content is held to: hyphens rather than em dashes,
+    // and no markdown, because the card renders through parseItemCopy and a
+    // stray ** or # is printed literally at a member.
+    for (const item of items.filter((i) => i.type === "use_example")) {
+      expect(item.description, `day ${item.dayIndex}`).not.toMatch(
+        /[\u2014\u2013]/,
+      );
+      expect(item.description, `day ${item.dayIndex}`).not.toMatch(/\*\*|^#/m);
+    }
   });
 
   it("keeps every day within the schema's 0-15 range", () => {
