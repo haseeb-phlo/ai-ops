@@ -150,17 +150,25 @@ export const GENERIC_TASK =
  * that fails for everyone who missed day 3, and by the back half of week one
  * that is not a small number. Overlap with day 3 is the cheaper problem.
  *
- * The proof is the part that matters: a fresh chat inside the Project, asked
- * for something it was not built for. A Project that only answers the
- * question it was built around is a saved prompt; one that holds its voice
- * across a different ask is standing context, which is the whole claim the
- * video makes - and it is the one step that distinguishes a working Project
- * from a folder of files.
+ * It is the shortest task on the track and short by choice: three things to
+ * give the Project, one test, one link. It was cut back to that in September
+ * 2026, and what went with the length is worth knowing before anyone trims
+ * another day to match. The test used to be
+ * a fresh chat inside the Project asked for something it was not built for -
+ * a Project that only answers the question it was built around is a saved
+ * prompt, and one that holds its voice across a different ask is standing
+ * context, which is the whole claim the video makes. That was the day's one
+ * step that could fail; "test it and check the output" is a member marking
+ * their own work. Gone with it: "anonymised, with nothing confidential in
+ * them" on the knowledge files, and a closing paragraph that sent live data
+ * to a Connector rather than into a Project's files. Those are the lines to
+ * reinstate if the day needs teeth again.
  *
- * Its closing line says live data "is a Connector's job" without saying which
- * day that is, even though Connectors now follows on day 5. Prose that names
- * a day drifts: see the header of quiz-content.ts, where the tags did exactly
- * that, and this pair has now moved once.
+ * It is also the only task that says "below". That is accurate rather than
+ * sloppy - TaskOutputLink renders inside the same card, underneath the copy
+ * (app/(protected)/learn/track/_components/track-item-card.tsx) - but it is
+ * copy that depends on a layout, so a card that ever moves the field breaks
+ * this sentence and nothing else will say so.
  *
  * Days 5-15 were written in September 2026 and every day now carries a real
  * task, so GENERIC_TASK is a fallback nothing currently reaches - which
@@ -174,9 +182,9 @@ export const GENERIC_TASK =
  *     feature; a task with the member's subject changes their week, and the
  *     programme is measured on time saved rather than on comprehension.
  *   - There is one step that could fail, and it is the point of the day. The
- *     fresh chat that proves a Project is briefed, the Skill asked for
- *     without being named, the answer checked against the source rather than
- *     against Claude. Without it "try the feature" is self-marking.
+ *     Skill asked for without being named, the answer checked against the
+ *     source rather than against Claude. Without it "try the feature" is
+ *     self-marking - which is what day 4 now is, and its note above says so.
  *   - The safety line sits where the tool actually touches real data - the
  *     consent screen on a Connector, the scoped folder for Cowork, made-up
  *     numbers in a published Artifact - and nowhere else. A blanket warning
@@ -228,14 +236,13 @@ const DAY_TASKS: Readonly<Record<number, string>> = {
     "Submit the Project as an example of one using a framework.",
   ].join("\n"),
   4: [
-    "Pick one task you repeat: drafting replies, reviewing work, summarising the same kind of document, whatever comes round most weeks.",
-    "Build it a Project, and give it all three parts:",
-    "- custom instructions - who you are, how the output should sound, what it must never do, British English",
-    "- two or three knowledge files - the reference material you would otherwise paste every time, anonymised, with nothing confidential in them",
-    "- the right audience - set who can see it, so your team can use it rather than only you",
-    "Then test it. Start a brand-new chat inside the Project and ask for something you did not build it for. If it comes back in the right voice, following the rules you set, with nothing pasted, the brief is doing the work. If it does not, the instructions are too thin - add the line that was missing and run it again.",
-    "Keep only slow-moving material in there: standards, templates, tone, examples you are proud of. Stock levels, ticket queues and today's numbers go stale the moment you paste them, and that is a Connector's job rather than a Project's.",
-    "Submit the link to the Project.",
+    "Pick one task you repeat and build a Project for it, giving it:",
+    "- custom instructions",
+    "- 2-3 knowledge files",
+    "- access with anyone else who could use it",
+    "Then test it and check the output.",
+    "If the output is exactly what you need, it's good to go. If not, the instructions might be missing something - check and add in whatever is required.",
+    "Submit the link to the Project below.",
   ].join("\n"),
   5: [
     "Find the copy-and-paste you do most often: the figures you lift out of one system so you can ask a question about them in another. That is the job for today.",
