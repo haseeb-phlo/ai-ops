@@ -49,6 +49,29 @@ export type TrackItemSpec = {
  * titled "What is AI and how does it work?" - drop the mark and the seed binds
  * null, leaving day 1 reading "coming soon" on the cohort's first morning.
  *
+ * Days 4 and 5 were swapped in September 2026: Projects now comes first and
+ * Connectors & MCP follows it. The v5 playbook ran them the other way round
+ * and the programme inherited that, but both videos were shot on the module's
+ * own order - the Projects narration signs off with "that's a Connector's
+ * job, and it's the next video in this module", which was a forward reference
+ * to the day before. Projects also earns its place first: it is the day that
+ * asks nothing of your systems, and Connectors is easier to motivate once
+ * someone has felt a Project go stale.
+ *
+ * The swap is a pair, and everything keyed to the TOPIC has to move with it:
+ * the entry here, the written task in DAY_TASKS, and the `day` tags in
+ * quiz-content.ts. Everything keyed to the DATE stays put - the Friday quiz
+ * is still day 5's.
+ *
+ * The videos re-bind themselves only on a FRESH seed, where learnVideoTitle
+ * is derived from this list and both days start null. Against a live track
+ * they do not: the seed syncs title and description but its re-bind block
+ * only fills nulls, so it would rename day 4 to "Projects" and leave it
+ * pointing at the Connectors video. That is what the migration
+ * 20260903040544_swap_projects_and_connectors_days.sql exists for. A future
+ * reorder of this list needs the same one-off, or two days quietly play each
+ * other's video.
+ *
  * Day 3 was the standing exception and is no longer: the library row was
  * titled "CRISP Framework", with no E, so no title this day carried would ever
  * have matched it, and the binding had to be made by hand in the admin
@@ -62,8 +85,8 @@ export const DAY_TOPICS: readonly string[] = [
   "What is AI and how does it work?",
   "When to use AI and when not to",
   "Prompting",
-  "Connectors & MCP",
   "Projects",
+  "Connectors & MCP",
   "Catching confident wrong answers",
   "Research, Memory & files out",
   "Cowork",
@@ -121,6 +144,24 @@ const GENERIC_TASK =
  * example rather than a chat, so what gets shared is something a colleague can
  * open and use rather than a transcript to read.
  *
+ * Day 4 stands on its own, and deliberately: it names the three parts of a
+ * Project and asks for all three, rather than picking up the Project day 3
+ * left behind. A task that opens "the Project you built on day 3" is a task
+ * that fails for everyone who missed day 3, and by the back half of week one
+ * that is not a small number. Overlap with day 3 is the cheaper problem.
+ *
+ * The proof is the part that matters: a fresh chat inside the Project, asked
+ * for something it was not built for. A Project that only answers the
+ * question it was built around is a saved prompt; one that holds its voice
+ * across a different ask is standing context, which is the whole claim the
+ * video makes - and it is the one step that distinguishes a working Project
+ * from a folder of files.
+ *
+ * Its closing line says live data "is a Connector's job" without saying which
+ * day that is, even though Connectors now follows on day 5. Prose that names
+ * a day drifts: see the header of quiz-content.ts, where the tags did exactly
+ * that, and this pair has now moved once.
+ *
  * FORMATTING: these are plain text, and the card renders them through
  * `parseItemCopy` (lib/programme/item-copy.ts) - one paragraph per line, and a
  * line starting "- " becomes a bullet. No markdown, no blank-line semantics.
@@ -142,6 +183,16 @@ const DAY_TASKS: Readonly<Record<number, string>> = {
     "Take a Project you've already built (or build a new one) and use the CRISPE framework in the instructions.",
     "Run a chat here again and check the output.",
     "Submit the Project as an example of one using a framework.",
+  ].join("\n"),
+  4: [
+    "Pick one task you repeat: drafting replies, reviewing work, summarising the same kind of document, whatever comes round most weeks.",
+    "Build it a Project, and give it all three parts:",
+    "- custom instructions - who you are, how the output should sound, what it must never do, British English",
+    "- two or three knowledge files - the reference material you would otherwise paste every time, anonymised, with nothing confidential in them",
+    "- the right audience - set who can see it, so your team can use it rather than only you",
+    "Then test it. Start a brand-new chat inside the Project and ask for something you did not build it for. If it comes back in the right voice, following the rules you set, with nothing pasted, the brief is doing the work. If it does not, the instructions are too thin - add the line that was missing and run it again.",
+    "Keep only slow-moving material in there: standards, templates, tone, examples you are proud of. Stock levels, ticket queues and today's numbers go stale the moment you paste them, and that is a Connector's job rather than a Project's.",
+    "Submit the link to the Project.",
   ].join("\n"),
 };
 
