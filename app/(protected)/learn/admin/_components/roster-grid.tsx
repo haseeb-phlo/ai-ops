@@ -6,6 +6,7 @@ import {
   nextAttendanceStatus,
   type AttendanceStatus,
 } from "@/lib/programme/attendance";
+import { formatIsoDate } from "@/lib/programme/working-days";
 import { markAttendance } from "../actions";
 
 export type RosterMember = {
@@ -160,14 +161,19 @@ export function RosterGrid({
                               ? "border-primary bg-secondary text-secondary-foreground"
                               : "border-border text-muted-foreground",
                           )}
+                          // The year is redundant across a three-week cohort,
+                          // and these buttons sit two-across in a header cell.
+                          title={formatIsoDate(date, "long")}
                         >
-                          Slot {i + 1}
+                          Slot {i + 1} · {formatIsoDate(date, "day-month")}
                         </button>
                       ))}
                     </span>
                   ) : (
                     <span className="mt-0.5 block text-3xs font-normal text-muted-foreground">
-                      {session.slotDates[0] ?? "no date set"}
+                      {session.slotDates[0]
+                        ? formatIsoDate(session.slotDates[0])
+                        : "no date set"}
                     </span>
                   )}
                 </th>

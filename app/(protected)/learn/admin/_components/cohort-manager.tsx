@@ -12,6 +12,7 @@ import {
   upcomingMondays,
   type SessionItemRef,
 } from "@/lib/programme/cohort-setup";
+import { formatIsoDate } from "@/lib/programme/working-days";
 import {
   createCohort,
   deleteCohort,
@@ -223,8 +224,11 @@ function CreateCohortForm({
             >
               <span className="text-sm text-foreground">{session.title}</span>
               <span className="flex items-center gap-3">
-                <span className="font-mono text-xs tabular-nums text-muted-foreground">
-                  {session.dates.join("  ·  ")}
+                {/* Was font-mono tabular-nums, which aligned a column of
+                    fixed-width ISO strings. "2 Sep 2026" has a variable-width
+                    month in the middle, so neither class buys anything now. */}
+                <span className="text-xs text-muted-foreground">
+                  {session.dates.map((d) => formatIsoDate(d)).join("  ·  ")}
                 </span>
                 <label className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
                   <input
@@ -405,7 +409,7 @@ function CohortRow({
         </span>
         <span className="text-xs text-muted-foreground">
           {cohort.memberCount} member{cohort.memberCount === 1 ? "" : "s"} ·
-          starts {cohort.startDate}
+          starts {formatIsoDate(cohort.startDate)}
         </span>
       </div>
 

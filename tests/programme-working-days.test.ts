@@ -3,6 +3,7 @@ import {
   addWorkingDays,
   dayOfWeek,
   finalDayDate,
+  formatIsoDate,
   hasDayArrived,
   hasReached,
   hourInLondon,
@@ -378,5 +379,46 @@ describe("openThroughInLondon", () => {
     // EARLIER than the open, so a member is never told to do work they
     // cannot see yet.
     expect(PROGRAMME_OPEN_HOUR).toBe(7);
+  });
+});
+
+describe("formatIsoDate", () => {
+  it("writes a stored date the British way round", () => {
+    // The real Cohort 1B week-1 workshop. Day first, no padding, short month.
+    expect(formatIsoDate("2026-09-01")).toBe("1 Sep 2026");
+    expect(formatIsoDate("2026-09-02", "long")).toBe("2 September 2026");
+    expect(formatIsoDate("2026-09-15", "day-month")).toBe("15 Sep");
+  });
+
+  it("never renders the American order, whatever the runtime locale", () => {
+    // The bug this replaces: toLocaleDateString() without "en-GB" takes
+    // Node's default, which on Vercel is en-US, and 2026-09-01 comes out as
+    // "9/1/2026". A pure-string formatter has no locale to forget, so the
+    // month name is the assertion - it cannot be mistaken for a day number.
+    expect(formatIsoDate("2026-09-01")).not.toMatch(/^9/);
+    expect(formatIsoDate("2026-01-09")).toBe("9 Jan 2026");
+  });
+
+  it("prints the day that was stored, never one either side of it", () => {
+    // The failure a Date round-trip introduces: new Date("2026-09-02") is
+    // midnight UTC, which formats as 1 September for any viewer behind UTC,
+    // and the roster grid is a client component that formats in the viewer's
+    // timezone. Setting process.env.TZ here would not prove the absence of
+    // that bug - Node caches the zone at startup - so assert the property
+    // instead, across a whole month, in both directions off a boundary.
+    for (let day = 1; day <= 30; day++) {
+      const iso = `2026-09-${String(day).padStart(2, "0")}`;
+      expect(formatIsoDate(iso)).toBe(`${day} Sep 2026`);
+    }
+    expect(formatIsoDate("2026-01-01")).toBe("1 Jan 2026");
+    expect(formatIsoDate("2026-12-31")).toBe("31 Dec 2026");
+  });
+
+  it("throws on a malformed date rather than rendering it raw", () => {
+    // Matches toDayNumber: one convention per module for bad input.
+    expect(() => formatIsoDate("31/08/2026")).toThrow(/YYYY-MM-DD/);
+    expect(() => formatIsoDate("")).toThrow(/YYYY-MM-DD/);
+    // Well-formed shape, impossible month - would print "1 undefined 2026".
+    expect(() => formatIsoDate("2026-13-01")).toThrow(/between 01 and 12/);
   });
 });

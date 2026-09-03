@@ -4,6 +4,7 @@ import { LockIcon } from "lucide-react";
 import { getSessionUser } from "@/lib/auth";
 import { loadTrackState } from "@/lib/programme/track-data";
 import { learnAccess } from "@/lib/programme/learn-access";
+import { formatIsoDate } from "@/lib/programme/working-days";
 import { PageContainer, PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { buttonVariants } from "@/components/ui/button";
@@ -52,8 +53,9 @@ export default async function LearnPage() {
         <>
           <BaselineGateCard />
           <p className="max-w-prose text-xs text-muted-foreground">
-            {track!.cohort.name} started {track!.cohort.startDate}. Your first
-            day opens as soon as the check-in is in.
+            {track!.cohort.name} started{" "}
+            {formatIsoDate(track!.cohort.startDate, "long")}. Your first day
+            opens as soon as the check-in is in.
           </p>
         </>
       ) : (

@@ -89,6 +89,68 @@ export function hourInLondon(now: Date = new Date()): number {
   return hour % 24;
 }
 
+const MONTHS_SHORT = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+] as const;
+
+const MONTHS_LONG = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+] as const;
+
+/**
+ * How a stored date is written for a person to read.
+ *
+ *   "short"     - "2 Sep 2026". The default, and the safe one for a table.
+ *   "long"      - "2 September 2026", for a page header or a sentence.
+ *   "day-month" - "2 Sep", where the year is already established by context
+ *                 and repeating it is noise. The roster grid's slot buttons
+ *                 are the case: a cohort spans three weeks, so no two slots
+ *                 there can differ by a year.
+ */
+export type DateStyle = "short" | "long" | "day-month";
+
+/**
+ * An ISO date written the way it is read here: "2026-09-02" -> "2 Sep 2026".
+ *
+ * STRING ARITHMETIC, not `Date` + `toLocaleDateString`, for the reason at the
+ * top of this file. These are calendar dates with no time component, and
+ * parsing one into a `Date` to format it re-introduces the exact timezone bug
+ * the rest of the module exists to avoid: `new Date("2026-09-02")` is midnight
+ * UTC, which formats as the 1st of September for any viewer behind it. That is
+ * not hypothetical for this app - the roster grid is a client component, so it
+ * formats in the *viewer's* timezone rather than the server's, and a session
+ * date that reads a day early to somebody working from Toronto is a person
+ * turning up on the wrong day.
+ *
+ * It also means the output does not depend on a runtime locale. `en-GB` has to
+ * be passed to `toLocaleDateString` every single time or Node's default wins
+ * and the date silently comes out American; that is the failure this replaces,
+ * and it cannot recur through a function with no locale to forget.
+ *
+ * THROWS on a malformed date, matching `toDayNumber` rather than passing the
+ * raw string through. One convention per module for bad input, and a throw in
+ * a Server Component surfaces as an error page, where an ISO date sitting in a
+ * column of British ones just looks like a styling slip nobody chases.
+ */
+export function formatIsoDate(iso: IsoDate, style: DateStyle = "short"): string {
+  if (!ISO_DATE_RE.test(iso)) {
+    throw new Error(`Expected a YYYY-MM-DD date, got "${iso}"`);
+  }
+  const [year, month, day] = iso.split("-");
+  const monthIndex = Number(month) - 1;
+  // The regex checks shape, not range: "2026-13-01" is well formed and has no
+  // thirteenth month. Without this, that renders as "1 undefined 2026".
+  if (monthIndex < 0 || monthIndex > 11) {
+    throw new Error(`Expected a month between 01 and 12, got "${iso}"`);
+  }
+  const name = (style === "long" ? MONTHS_LONG : MONTHS_SHORT)[monthIndex];
+  // Number() strips the leading zero: "02" -> 2. British dates do not pad.
+  const dayAndMonth = `${Number(day)} ${name}`;
+  return style === "day-month" ? dayAndMonth : `${dayAndMonth} ${year}`;
+}
+
 /** Days since the epoch for an ISO date. Timezone-free by construction. */
 function toDayNumber(iso: IsoDate): number {
   if (!ISO_DATE_RE.test(iso)) {
