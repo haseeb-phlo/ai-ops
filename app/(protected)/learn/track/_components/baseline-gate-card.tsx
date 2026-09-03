@@ -16,7 +16,7 @@ export function BaselineGateCard({ compact = false }: { compact?: boolean }) {
       <h2 className="text-base font-semibold tracking-tight">
         Unlock your training - do your 3-minute check-in
       </h2>
-      <p className="mt-1 max-w-prose text-sm text-secondary-foreground/80">
+      <p className="mt-1 text-sm text-secondary-foreground/80">
         {compact
           ? "Your Core Programme is waiting behind a quick self-assessment."
           : "It sets your starting point so you can see how far you've moved by the end. Nothing else on the programme opens until it's done."}

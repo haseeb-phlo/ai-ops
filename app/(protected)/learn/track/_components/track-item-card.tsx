@@ -318,11 +318,20 @@ export function TrackItemCard({
           )}
 
           {/* A task can run to eight lines, so this reads as body copy rather
-              than as the meta line it used to be: one step up in size, room
-              between the blocks, and a measure that stops a sentence running
-              the full width of a desktop card. */}
+              than as the meta line it used to be: one step up in size and room
+              between the blocks.
+
+              NO MEASURE. There used to be a `max-w-prose` here, on the
+              typographic argument that a line over ~65 characters is tiring to
+              read. It cost more than it bought. Measured at a 1440px window:
+              65ch resolves to 647px inside the 988px a card actually gives
+              this column, so every sentence broke two thirds of the way
+              across and left a 340px band of empty card to its right - which
+              reads as a rendering fault rather than as a considered measure.
+              Full width is the wanted behaviour; do not reinstate the cap as
+              a typography fix. */}
           {dayArrived && copy.length > 0 && (
-            <div className="mt-2 max-w-prose space-y-2.5">
+            <div className="mt-2 space-y-2.5">
               {copy.map((block, i) =>
                 block.kind === "list" ? (
                   <ul
@@ -666,7 +675,7 @@ function TaskOutputLink({
               </Button>
             )}
           </div>
-          <p className="mt-2 max-w-prose text-sm leading-relaxed text-muted-foreground">
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
             In Claude, use Share to create a link, then paste it here. Anything
             else that shows your output works too.
           </p>
