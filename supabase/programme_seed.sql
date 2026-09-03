@@ -44,14 +44,13 @@ Submit the Project as an example of one using a framework.', 3, 1, null, '{}'::j
     ('session', 'Live session 1', null, 3, 2, null, '{"slots":2}'::jsonb),
     ('submission_slot', 'Example 1', null, 3, 4, null, '{"kind":"signed_example","visibility":"cohort"}'::jsonb),
     ('video', 'Projects', null, 4, 0, 'Projects', '{}'::jsonb),
-    ('use_example', 'Task', 'Pick one task you repeat: drafting replies, reviewing work, summarising the same kind of document, whatever comes round most weeks.
-Build it a Project, and give it all three parts:
-- custom instructions - who you are, how the output should sound, what it must never do, British English
-- two or three knowledge files - the reference material you would otherwise paste every time, anonymised, with nothing confidential in them
-- the right audience - set who can see it, so your team can use it rather than only you
-Then test it. Start a brand-new chat inside the Project and ask for something you did not build it for. If it comes back in the right voice, following the rules you set, with nothing pasted, the brief is doing the work. If it does not, the instructions are too thin - add the line that was missing and run it again.
-Keep only slow-moving material in there: standards, templates, tone, examples you are proud of. Stock levels, ticket queues and today''s numbers go stale the moment you paste them, and that is a Connector''s job rather than a Project''s.
-Submit the link to the Project.', 4, 1, null, '{}'::jsonb),
+    ('use_example', 'Task', 'Pick one task you repeat and build a Project for it, giving it:
+- custom instructions
+- 2-3 knowledge files
+- access with anyone else who could use it
+Then test it and check the output.
+If the output is exactly what you need, it''s good to go. If not, the instructions might be missing something - check and add in whatever is required.
+Submit the link to the Project below.', 4, 1, null, '{}'::jsonb),
     ('video', 'Connectors & MCP', null, 5, 0, 'Connectors & MCP', '{}'::jsonb),
     ('use_example', 'Task', 'Find the copy-and-paste you do most often: the figures you lift out of one system so you can ask a question about them in another. That is the job for today.
 Open Settings, then Connectors, and add the one tool that job needs. Only that one - there is no prize for connecting everything.
@@ -176,14 +175,13 @@ Submit the Project as an example of one using a framework.'),
     (3, 2, 'Live session 1', null),
     (3, 4, 'Example 1', null),
     (4, 0, 'Projects', null),
-    (4, 1, 'Task', 'Pick one task you repeat: drafting replies, reviewing work, summarising the same kind of document, whatever comes round most weeks.
-Build it a Project, and give it all three parts:
-- custom instructions - who you are, how the output should sound, what it must never do, British English
-- two or three knowledge files - the reference material you would otherwise paste every time, anonymised, with nothing confidential in them
-- the right audience - set who can see it, so your team can use it rather than only you
-Then test it. Start a brand-new chat inside the Project and ask for something you did not build it for. If it comes back in the right voice, following the rules you set, with nothing pasted, the brief is doing the work. If it does not, the instructions are too thin - add the line that was missing and run it again.
-Keep only slow-moving material in there: standards, templates, tone, examples you are proud of. Stock levels, ticket queues and today''s numbers go stale the moment you paste them, and that is a Connector''s job rather than a Project''s.
-Submit the link to the Project.'),
+    (4, 1, 'Task', 'Pick one task you repeat and build a Project for it, giving it:
+- custom instructions
+- 2-3 knowledge files
+- access with anyone else who could use it
+Then test it and check the output.
+If the output is exactly what you need, it''s good to go. If not, the instructions might be missing something - check and add in whatever is required.
+Submit the link to the Project below.'),
     (5, 0, 'Connectors & MCP', null),
     (5, 1, 'Task', 'Find the copy-and-paste you do most often: the figures you lift out of one system so you can ask a question about them in another. That is the job for today.
 Open Settings, then Connectors, and add the one tool that job needs. Only that one - there is no prize for connecting everything.
