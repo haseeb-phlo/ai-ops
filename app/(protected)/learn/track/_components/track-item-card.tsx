@@ -282,7 +282,28 @@ export function TrackItemCard({
           )}
         </span>
 
-        <div className="min-w-0 flex-1">
+        {/* SYMMETRY. The icon to the left is a 40px rail - `size-7` plus the
+            row's `gap-3` - which pushes everything in this column 40px in
+            from the card's own `p-4`. Without a matching gutter the content
+            sat 57px from the left edge and 17px from the right, so a full
+            line ran almost into the border while the left had a wide margin.
+            `pr-10` is that 40px mirrored, and it belongs on the column rather
+            than on any one block so the title, the status label, the copy,
+            the rule and the buttons all stop on the same line: 57px in from
+            either edge.
+
+            Keep the three in step: `size-7` + `gap-3` = `pr-10`. Change the
+            icon size and this has to move with it, or the card goes lopsided
+            again in a way nothing will fail on.
+
+            FROM `sm` ONLY, and that is a real trade rather than an oversight.
+            The rail costs a flat 40px whatever the card is worth, so on a
+            390px phone - where the card is 308px - mirroring it leaves 194px
+            of measure, about 26 characters a line, which is the cramping this
+            was meant to cure showing up at the other end. Below 640px the
+            copy keeps the card's own padding on the right instead. Symmetry
+            is worth 40px on a laptop and is not worth it on a phone. */}
+        <div className="min-w-0 flex-1 sm:pr-10">
           {dayArrived ? (
             <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
               <h4 className="text-sm font-medium text-foreground">
