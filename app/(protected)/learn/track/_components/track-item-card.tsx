@@ -199,6 +199,11 @@ export function TrackItemCard({
   // day still to come renders as its release line and nothing else - no
   // player, no "coming soon" placeholder, no submit button.
   const revealed = dayArrived && !locked;
+  // Read from config_json for every slot, so this is right on day one -
+  // before there is a submission row to read a kind off. A work sample is
+  // the odd slot out and says so on the card; see below.
+  const submissionKind = item.submission?.kind ?? "signed_example";
+  const isWorkSample = submissionKind.startsWith("work_sample");
   const canComplete =
     revealed &&
     !optimisticComplete &&
@@ -419,31 +424,52 @@ export function TrackItemCard({
           )}
 
           {revealed && item.type === "submission_slot" && (
-            <div className="mt-3 flex flex-wrap items-center gap-3">
-              {item.submission?.signoffStatus && (
-                <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <span
-                    aria-hidden
-                    className={cn(
-                      "size-1.5 shrink-0 rounded-full",
-                      PROGRAMME_SIGNOFF[item.submission.signoffStatus]
-                        .dotClassName,
-                    )}
+            <>
+              {/* What a work sample IS, said on the card rather than inside
+                  the dialog. Every other slot names itself - "Example 1" after
+                  a day about prompting is self-explanatory - but "Work sample
+                  (before)" on day one is a title and a Submit button with no
+                  brief attached, and the brief only appeared once you had
+                  already decided to click. The two things people need to know
+                  before deciding are that anything counts and that it is not
+                  a test of them, so both belong out here. */}
+              {isWorkSample && (
+                <p className="mt-2 max-w-prose text-sm leading-relaxed text-muted-foreground">
+                  Submit a piece of work you&apos;ve done using Claude - a
+                  Project, a Cowork session, an Artefact, a Scheduled Task or
+                  anything at all. Send it exactly as it is; it is not meant to
+                  be tidied up. This is private and it measures the programme
+                  rather than you.
+                </p>
+              )}
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                {item.submission?.signoffStatus && (
+                  <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <span
+                      aria-hidden
+                      className={cn(
+                        "size-1.5 shrink-0 rounded-full",
+                        PROGRAMME_SIGNOFF[item.submission.signoffStatus]
+                          .dotClassName,
+                      )}
+                    />
+                    {PROGRAMME_SIGNOFF[item.submission.signoffStatus].label}
+                  </span>
+                )}
+                {item.submission?.signoffStatus !== "approved" && (
+                  <SubmissionDialog
+                    cohortId={cohortId}
+                    trackItemId={item.id}
+                    kind={submissionKind}
+                    title={item.title}
+                    isResubmission={
+                      item.submission?.signoffStatus === "rejected"
+                    }
+                    rejectionComment={item.submission?.signoffComment ?? null}
                   />
-                  {PROGRAMME_SIGNOFF[item.submission.signoffStatus].label}
-                </span>
-              )}
-              {item.submission?.signoffStatus !== "approved" && (
-                <SubmissionDialog
-                  cohortId={cohortId}
-                  trackItemId={item.id}
-                  kind={item.submission?.kind ?? "signed_example"}
-                  title={item.title}
-                  isResubmission={item.submission?.signoffStatus === "rejected"}
-                  rejectionComment={item.submission?.signoffComment ?? null}
-                />
-              )}
-            </div>
+                )}
+              </div>
+            </>
           )}
 
           {revealed && item.type === "quiz" && (
