@@ -22,6 +22,7 @@ import { submitProgrammeSubmission } from "../actions";
  * Work samples are the odd one out: artefact only, always private, and never
  * shown to peers - they feed the anonymised export for external blind
  * scoring, so asking for a prompt or offering to share would be misleading.
+ * Their brief lives on the card rather than in here - see TrackItemCard.
  */
 export function SubmissionDialog({
   cohortId,
@@ -68,8 +69,12 @@ export function SubmissionDialog({
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>
+            {/* The work-sample brief - what counts, that it is not meant to
+                be tidied, that it is private - now sits on the card, where it
+                can be read before deciding to click. What is left here is the
+                one thing the form still needs to say. */}
             {isWorkSample
-              ? "Submit a piece of work you've done using Claude - a Project, a Cowork session, an Artefact, a Scheduled Task or anything at all. Send it exactly as it is; it is not meant to be tidied up. This is private and it measures the programme rather than you."
+              ? "A link to the work is all this needs."
               : "Share what you made with Claude and the prompt behind it. Your team lead signs it off."}
           </DialogDescription>
         </DialogHeader>
