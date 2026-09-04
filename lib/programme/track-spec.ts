@@ -59,8 +59,9 @@ export type TrackItemSpec = {
  * someone has felt a Project go stale.
  *
  * The swap is a pair, and everything keyed to the TOPIC has to move with it:
- * the entry here, the written task in DAY_TASKS, and the `day` tags in
- * quiz-content.ts. Everything keyed to the DATE stays put - the Friday quiz
+ * the entry here, the written task in DAY_TASKS and the `day` tags in
+ * quiz-content.ts, which now carry the programme's own day numbers rather
+ * than the v5 playbook's. Everything keyed to the DATE stays put - the Friday quiz
  * is still day 5's.
  *
  * The videos re-bind themselves only on a FRESH seed, where learnVideoTitle

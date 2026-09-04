@@ -23,12 +23,15 @@ describe("quiz content", () => {
     }
   });
 
-  it("gives every question four options and a valid answer", () => {
+  it("gives every question five options and a valid answer", () => {
+    // Five rather than four: a guess on four has a 25% floor, which on ten
+    // questions passing at eight is doing real work. The fifth option is the
+    // near miss, so it has to be written rather than padded.
     for (const questions of Object.values(QUIZ_CONTENT_BY_DAY)) {
       for (const q of questions) {
-        expect(q.options).toHaveLength(4);
+        expect(q.options).toHaveLength(5);
         expect(q.correct).toBeGreaterThanOrEqual(0);
-        expect(q.correct).toBeLessThan(4);
+        expect(q.correct).toBeLessThan(5);
         expect(q.options[q.correct]).toBeTruthy();
       }
     }
@@ -45,7 +48,7 @@ describe("quiz content", () => {
   it("has no duplicate options within a question", () => {
     for (const questions of Object.values(QUIZ_CONTENT_BY_DAY)) {
       for (const q of questions) {
-        expect(new Set(q.options).size).toBe(4);
+        expect(new Set(q.options).size).toBe(5);
       }
     }
   });
@@ -86,10 +89,26 @@ describe("quiz content", () => {
   });
 
   it("covers week 1's days in the week 1 quiz, and week 2's in week 2", () => {
+    // Tags are the programme's own day numbering, so this asserts what it
+    // looks like it asserts: no quiz tests a day that opens after it does.
+    // It did not always hold. Week one carried two questions on catching
+    // confident wrong answers, which the programme teaches the working day
+    // after that quiz opens.
     const week1 = new Set(QUIZ_CONTENT_BY_DAY[5].map((q) => q.day));
     const week2 = new Set(QUIZ_CONTENT_BY_DAY[10].map((q) => q.day));
     expect([...week1].sort((a, b) => a - b)).toEqual([1, 2, 3, 4, 5]);
     expect([...week2].sort((a, b) => a - b)).toEqual([6, 7, 8, 9, 10]);
+  });
+
+  it("never tests a day the quiz's own cohort has not reached", () => {
+    // The general form of the check above, including the final quiz. A quiz
+    // sitting on day N may draw on days 1..N and nothing later.
+    for (const spec of QUIZ_SPECS) {
+      for (const q of QUIZ_CONTENT_BY_DAY[spec.dayIndex]) {
+        expect(q.day, `day ${spec.dayIndex} quiz: "${q.question.slice(0, 40)}..."`)
+          .toBeLessThanOrEqual(spec.dayIndex);
+      }
+    }
   });
 
   it("makes the final quiz span all three weeks, not just week 3", () => {
