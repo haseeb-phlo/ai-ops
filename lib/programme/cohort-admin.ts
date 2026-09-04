@@ -11,7 +11,11 @@ import {
   todayInLondon,
   unlockDateFor,
 } from "./working-days";
-import { filedTaskLinksByItem, taskLinksByDay } from "./task-link";
+import {
+  filedTaskLinksByItem,
+  taskLinksByDay,
+  taskTakesLink,
+} from "./task-link";
 import {
   isG2Impossible,
   satisfiedSessionIds,
@@ -486,14 +490,22 @@ export const loadCohortAdminView = cache(
     // Task days, capped at the days that have actually opened: a column of
     // empty cells for day 12 in week one reads as fifteen people who have not
     // submitted rather than a day nobody could have done yet.
+    //
+    // Same reasoning drops the days with no link field (LINKLESS_TASK_DAYS in
+    // task-link.ts). Their column could only ever be empty, so leaving it in
+    // reads as a whole cohort ignoring day 5 rather than a day that never
+    // asked. Filtered on the day rather than on the data, so it stays empty
+    // even if an old link is still sitting in somebody's meta_json.
     const taskItems = items.filter((i) => i.type === "use_example");
     const taskDayIndexes = taskItems
-      .filter((i) =>
-        hasDayArrived({
-          dayIndex: i.day_index,
-          startDate: cohort.start_date,
-          today: openThrough,
-        }),
+      .filter(
+        (i) =>
+          taskTakesLink(i.day_index) &&
+          hasDayArrived({
+            dayIndex: i.day_index,
+            startDate: cohort.start_date,
+            today: openThrough,
+          }),
       )
       .map((i) => i.day_index)
       .sort((a, b) => a - b);

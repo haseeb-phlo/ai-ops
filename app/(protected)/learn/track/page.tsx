@@ -4,6 +4,7 @@ import { getSessionUser } from "@/lib/auth";
 import { loadTrackState } from "@/lib/programme/track-data";
 import { isAwaitingContent } from "@/lib/programme/content-readiness";
 import { parseDayParam } from "@/lib/programme/day-link";
+import { taskTakesLink } from "@/lib/programme/task-link";
 import {
   hasDayArrived,
   unlockDateFor,
@@ -103,6 +104,10 @@ export default async function TrackPage({
         ? (state.videosById.get(resolved.item.learn_video_id) ?? null)
         : null,
       outputUrl: state.taskLinkByItemId.get(resolved.item.id) ?? null,
+      // Which days take a link is one list, in task-link.ts, read here so the
+      // card never learns a day number - the same reason `opensToday` is
+      // computed above rather than in the component.
+      acceptsLink: taskTakesLink(resolved.item.day_index),
       submission:
         resolved.item.type === "submission_slot"
           ? {

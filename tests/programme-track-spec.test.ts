@@ -14,9 +14,14 @@ import {
   SUBMISSION_SLOT_SPECS,
   SUMMATIVE_QUIZ_DAY,
 } from "@/lib/programme/track-spec";
+import {
+  LINKLESS_TASK_DAYS,
+  taskTakesLink,
+} from "@/lib/programme/task-link";
 
 const items = buildTrackItems();
 const countOf = (type: string) => items.filter((i) => i.type === type).length;
+const tasks = items.filter((i) => i.type === "use_example");
 
 describe("Core Programme track shape", () => {
   it("produces 41 items in total", () => {
@@ -135,7 +140,11 @@ describe("Core Programme track shape", () => {
     const best = g3Credits({
       approvedSignedExamples: kinds.filter((k) => k === "signed_example")
         .length,
-      filedTaskLinks: countOf("use_example"),
+      // Only the days that actually offer the field. Counting all fifteen
+      // would flatter the ceiling by however many days sit in
+      // LINKLESS_TASK_DAYS, which is the one number this test exists to be
+      // honest about.
+      filedTaskLinks: tasks.filter((i) => taskTakesLink(i.dayIndex)).length,
       capstoneCredits:
         kinds.filter((k) => k === "capstone").length * CAPSTONE_MAX_CREDITS,
     });
@@ -174,17 +183,17 @@ describe("Core Programme track shape", () => {
     // GENERIC_TASK is still the fallback in code, so a day added or reordered
     // without copy silently reads "apply the day's technique" - which looks
     // finished on the page and teaches nothing. Nothing should reach it.
-    for (const item of items.filter((i) => i.type === "use_example")) {
+    for (const item of tasks) {
       expect(item.description, `day ${item.dayIndex}`).not.toBe(GENERIC_TASK);
     }
   });
 
-  it("ends every task by asking for a link", () => {
+  it("ends every task that has a link field by asking for a link", () => {
     // The link is optional in code on purpose (see task-link.ts) - plenty of
     // real output is a file on a shared drive, and a required field on
     // unlinkable work buys filler links. Asking in the copy is what makes
     // filing one the norm, so the ask is checked rather than trusted.
-    for (const item of items.filter((i) => i.type === "use_example")) {
+    for (const item of tasks.filter((i) => taskTakesLink(i.dayIndex))) {
       const blocks = parseItemCopy(item.description ?? null);
       const last = blocks.at(-1);
       expect(last, `day ${item.dayIndex}`).toMatchObject({
@@ -199,11 +208,23 @@ describe("Core Programme track shape", () => {
     }
   });
 
+  it("never asks for a link on a day that has no field for it", () => {
+    // The other half of the rule above, and the one that rots quietly: the
+    // field is hidden by day index in page.tsx, so copy that still says
+    // "Submit the link" on such a day points at a box that is not there.
+    expect(LINKLESS_TASK_DAYS.size).toBeGreaterThan(0);
+    for (const item of tasks.filter((i) => !taskTakesLink(i.dayIndex))) {
+      expect(item.description ?? "", `day ${item.dayIndex}`).not.toMatch(
+        /^Submit /m,
+      );
+    }
+  });
+
   it("writes task copy in house style", () => {
     // Same rules the quiz content is held to: hyphens rather than em dashes,
     // and no markdown, because the card renders through parseItemCopy and a
     // stray ** or # is printed literally at a member.
-    for (const item of items.filter((i) => i.type === "use_example")) {
+    for (const item of tasks) {
       expect(item.description, `day ${item.dayIndex}`).not.toMatch(
         /[\u2014\u2013]/,
       );

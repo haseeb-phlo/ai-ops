@@ -87,6 +87,15 @@ export type TrackItemView = {
    * use_example items - see lib/programme/task-link.ts.
    */
   outputUrl?: string | null;
+  /**
+   * Whether this Task has a link field at all.
+   *
+   * Computed on the server from the day index (LINKLESS_TASK_DAYS in
+   * task-link.ts) and passed in rather than derived here, so the day numbers
+   * live in one module and this component never learns any. Absent means
+   * true, which keeps every non-Task item and every existing caller unchanged.
+   */
+  acceptsLink?: boolean;
   submission?: {
     kind: string;
     signoffStatus: ProgrammeSignoffStatus | null;
@@ -562,15 +571,17 @@ export function TrackItemCard({
             </Button>
           )}
 
-          {revealed && item.type === "use_example" && (
-            <TaskOutputLink
-              cohortId={cohortId}
-              itemId={item.id}
-              initialUrl={item.outputUrl ?? null}
-              complete={state === "complete"}
-              onSaved={() => setOptimisticComplete(true)}
-            />
-          )}
+          {revealed &&
+            item.type === "use_example" &&
+            item.acceptsLink !== false && (
+              <TaskOutputLink
+                cohortId={cohortId}
+                itemId={item.id}
+                initialUrl={item.outputUrl ?? null}
+                complete={state === "complete"}
+                onSaved={() => setOptimisticComplete(true)}
+              />
+            )}
 
           {error && (
             <p className="mt-2 text-xs text-destructive" role="alert">
@@ -588,13 +599,16 @@ export function TrackItemCard({
  *
  * Inline rather than behind a dialog, which is how a submission slot does it.
  * A slot asks for four fields and carries sign-off, so the dialog earns its
- * click; this is one field asked fifteen times, and a box you have to open is
- * a box most people leave shut.
+ * click; this is one field asked fourteen times, and a box you have to open
+ * is a box most people leave shut.
  *
- * Optional on every day: saving a link completes the task, and so does the
- * Mark complete button next to it. Day 2 asks for a link in its copy, most
- * days do not, and a task whose output is a spreadsheet on a shared drive is
- * still done.
+ * Optional on every day that has it: saving a link completes the task, and so
+ * does the Mark complete button next to it. A task whose output is a
+ * spreadsheet on a shared drive is still done.
+ *
+ * Not rendered at all on the days in LINKLESS_TASK_DAYS - day 5 asks for
+ * settings on the member's own account, where there is nothing to paste. The
+ * caller decides; see `acceptsLink` on TrackItemView.
  */
 function TaskOutputLink({
   cohortId,

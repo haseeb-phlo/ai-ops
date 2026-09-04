@@ -11,8 +11,9 @@ import { buildTrackItems } from "@/lib/programme/track-spec";
  *
  * Two things live here and nowhere else: a description with steps in it has to
  * come out as a list rather than one run-on paragraph, and a Task has to offer
- * somewhere to file the link to its output. Both are decisions the component
- * makes from the item it is handed.
+ * somewhere to file the link to its output - except on the days that take no
+ * link, where the field must be absent and Mark complete must not be. All of
+ * it is decided from the item the component is handed.
  *
  * The action module is mocked because it is `"use server"` - importing it for
  * real drags the Supabase server client into jsdom, and nothing here submits.
@@ -31,6 +32,10 @@ vi.mock("next/link", () => ({
 
 const DAY_TWO_TASK = buildTrackItems().find(
   (i) => i.type === "use_example" && i.dayIndex === 2,
+)!;
+
+const DAY_FIVE_TASK = buildTrackItems().find(
+  (i) => i.type === "use_example" && i.dayIndex === 5,
 )!;
 
 function task(overrides: Partial<TrackItemView> = {}) {
@@ -152,6 +157,23 @@ describe("a Task card's output link", () => {
   it("offers no link field on a day that has not opened", () => {
     const container = task({ dayArrived: false, state: "locked" });
     expect(container.querySelector('input[name="output_url"]')).toBeNull();
+  });
+
+  it("offers no link field on a Task the page says takes no link", () => {
+    // Day 5's shape: the work is settings on the member's own account, so
+    // there is nothing to paste and the field would only collect screenshots
+    // and fibs. Mark complete has to survive, or the day cannot be finished
+    // at all - and G1 counts it.
+    const container = task({
+      acceptsLink: false,
+      description: DAY_FIVE_TASK.description ?? null,
+    });
+    expect(container.querySelector('input[name="output_url"]')).toBeNull();
+    expect(container.textContent).not.toContain("Link to your output");
+    const labels = [...container.querySelectorAll("button")].map((b) =>
+      b.textContent?.trim(),
+    );
+    expect(labels).toContain("Mark complete");
   });
 });
 

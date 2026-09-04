@@ -1,12 +1,15 @@
 import { describe, it, expect } from "vitest";
 import {
+  LINKLESS_TASK_DAYS,
   TASK_LINK_KEY,
   TASK_LINK_MAX_LENGTH,
   normaliseTaskLink,
   shortenTaskLink,
   taskLinkFrom,
   taskLinksByDay,
+  taskTakesLink,
 } from "@/lib/programme/task-link";
+import { G3_REQUIRED_CREDITS } from "@/lib/programme/gates";
 
 describe("normaliseTaskLink", () => {
   it("keeps a full https link", () => {
@@ -134,5 +137,42 @@ describe("taskLinksByDay", () => {
       ]),
     });
     expect(byDay).toEqual({});
+  });
+});
+
+describe("taskTakesLink", () => {
+  it("takes a link on every day except the listed ones", () => {
+    for (let day = 1; day <= 15; day += 1) {
+      expect(taskTakesLink(day), `day ${day}`).toBe(
+        !LINKLESS_TASK_DAYS.has(day),
+      );
+    }
+  });
+
+  it("excludes day 5, whose work is settings rather than output", () => {
+    expect(taskTakesLink(5)).toBe(false);
+    expect(taskTakesLink(4)).toBe(true);
+    expect(taskTakesLink(6)).toBe(true);
+  });
+
+  it("leaves enough linkable days to clear the Shared gate", () => {
+    // The list costs G3 ceiling, not requirement - but empty enough of the
+    // fifteen days out and the gate stops being reachable from Task links
+    // alone, which is what the whole currency rests on. Guarded here because
+    // adding a day to the set is a one-line change nowhere near gates.ts.
+    const linkable = 15 - LINKLESS_TASK_DAYS.size;
+    expect(linkable).toBeGreaterThanOrEqual(G3_REQUIRED_CREDITS);
+  });
+
+  it("still reads a link that was filed before a day joined the set", () => {
+    // Nothing revokes it: the row stays in meta_json and keeps its credit.
+    // Only the display and the admin column go. See LINKLESS_TASK_DAYS.
+    const byDay = taskLinksByDay({
+      taskItems: [{ id: "d5", day_index: 5 }],
+      metaByItemId: new Map<string, unknown>([
+        ["d5", { [TASK_LINK_KEY]: "https://claude.ai/share/old" }],
+      ]),
+    });
+    expect(byDay).toEqual({ 5: "https://claude.ai/share/old" });
   });
 });

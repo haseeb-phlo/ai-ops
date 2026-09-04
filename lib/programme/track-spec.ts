@@ -189,15 +189,20 @@ export const GENERIC_TASK =
  *     consent screen on a Connector, the scoped folder for Cowork, made-up
  *     numbers in a published Artifact - and nowhere else. A blanket warning
  *     on all fifteen days is a warning nobody reads by day four.
- *   - Every one ends by asking for a link.
+ *   - Every one that has a link field ends by asking for a link. Day 5 is
+ *     the exception at both ends: it has no field and makes no ask, because
+ *     what it asks for is settings on the member's own account and there is
+ *     nothing to paste. LINKLESS_TASK_DAYS in task-link.ts is the list, and
+ *     it is what the copy test exempts.
  *
- * That last one is a copy decision, not a mechanism. The link stays OPTIONAL
- * in code (see task-link.ts): plenty of real output is a file on a shared
- * drive, and a required field on unlinkable work buys filler links, which are
- * worse than blanks because you can no longer tell which is which. Asking
- * every day makes filing one the norm and puts the field in front of people;
- * the Task links table on the admin cohort dashboard is what makes a gap
- * visible.
+ * That last one is a copy decision, not a mechanism. On the fourteen days
+ * that ask, the link stays OPTIONAL in code (see task-link.ts): plenty of
+ * real output is a file on a shared drive, and a required field on unlinkable
+ * work buys filler links, which are worse than blanks because you can no
+ * longer tell which is which. Asking makes filing one the norm and puts the
+ * field in front of people; the Task links table on the admin cohort
+ * dashboard is what makes a gap visible - which is also why a day with no
+ * field is dropped from that table rather than showing a column of blanks.
  *
  * They are also independent of each other, deliberately, all the way through.
  * The day 4 note explains why: a task that opens "the thing you built on day
@@ -244,13 +249,13 @@ const DAY_TASKS: Readonly<Record<number, string>> = {
     "If the output is exactly what you need, it's good to go. If not, the instructions might be missing something - check and add in whatever is required.",
     "Submit the link to the Project below.",
   ].join("\n"),
+  // The one day with no link field - see LINKLESS_TASK_DAYS in task-link.ts.
+  // What it asks for is settings on the member's own account, so it ends on
+  // the tidy-up rather than on a "Submit the link" that nothing could answer.
   5: [
-    "Find the copy-and-paste you do most often: the figures you lift out of one system so you can ask a question about them in another. That is the job for today.",
-    "Open Settings, then Connectors, and add the one tool that job needs. Only that one - there is no prize for connecting everything.",
-    "Read the consent screen before you approve it, and notice what access it is actually asking for. If it wants more than the job needs, stop and ask in the AI Ops channel rather than clicking through.",
-    "Then turn the Connector on in a chat and run the job with nothing pasted. Read the permission prompt when it appears - that prompt is the safety net, and approving it on autopilot is how you lose it.",
+    "Go to Customise > Connectors and enable the tools you use daily.",
+    "Click on a specific connector and check the permissions that it allows by default. If you need additional functionality or are unsure what functionality is safe to enable for a specific connector, let Haseeb know.",
     "Disconnect anything you added to have a look at and are not going to use.",
-    "Submit the link to the chat where Claude fetched it, instead of you.",
   ].join("\n"),
   6: [
     "Go back to an answer Claude gave you this week that you acted on without checking. Something specific: a figure, a date, a rule, a cut-off time.",
@@ -354,8 +359,9 @@ export const QUIZ_SPECS = [
  * and asked for a signed example of good work - which by then was a second,
  * generic copy of something the member had already filed. Every day's Task
  * carries its own link box (lib/programme/task-link.ts) and every task
- * description ends by asking for the link, so the work arrives fifteen times,
- * attached to the day that asked for it and to the brief it was answering. An
+ * description that has one ends by asking for the link, so the work arrives
+ * fourteen times - day 5 is the one day with nothing to link - attached to
+ * the day that asked for it and to the brief it was answering. An
  * Example slot asked for the same artefact again with the day stripped off
  * it, and a member reasonably read the pair as two pieces of work.
  *

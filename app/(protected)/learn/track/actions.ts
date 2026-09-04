@@ -11,6 +11,7 @@ import {
   TASK_LINK_KEY,
   TASK_LINK_MAX_LENGTH,
   normaliseTaskLink,
+  taskTakesLink,
 } from "@/lib/programme/task-link";
 import type { ActionState } from "../topics";
 
@@ -205,7 +206,7 @@ const TaskLinkSchema = z.object({
  *
  * Written to their own progress row's `meta_json`, NOT to
  * `programme_submissions` - task-link.ts has the reasoning. The practical
- * consequence is the one that matters here: fifteen links a member files
+ * consequence is the one that matters here: the links a member files
  * never reach the sign-off queue, which exists for the capstone and the two
  * work samples. They still count toward G3; nobody has to mark them.
  *
@@ -250,9 +251,14 @@ export async function saveTaskOutputLink(
 
   const { data: item } = await supabase
     .from("programme_track_items")
-    .select("id, type, track_id")
+    .select("id, type, track_id, day_index")
     .eq("id", parsed.data.track_item_id)
-    .maybeSingle<{ id: string; type: string; track_id: string }>();
+    .maybeSingle<{
+      id: string;
+      type: string;
+      track_id: string;
+      day_index: number;
+    }>();
 
   if (!item || item.track_id !== membership.trackId) {
     return { kind: "error", message: "That item isn't on your track." };
@@ -264,6 +270,18 @@ export async function saveTaskOutputLink(
     return {
       kind: "error",
       message: "This item is completed elsewhere in the programme.",
+    };
+  }
+
+  // And only the Tasks that ask for one. The page hides the field on the days
+  // in LINKLESS_TASK_DAYS; re-checked here on the convention that the page
+  // computes and the action verifies, so a stale tab cannot file a link
+  // against a day whose copy no longer asks for it - and so the admin table,
+  // which drops those days entirely, never hides a row that exists.
+  if (!taskTakesLink(item.day_index)) {
+    return {
+      kind: "error",
+      message: "This task has nothing to link. Use Mark complete instead.",
     };
   }
 

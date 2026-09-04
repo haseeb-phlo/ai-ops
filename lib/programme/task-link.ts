@@ -25,12 +25,52 @@
  *
  * That makes it optional per DAY and not optional overall: no single task
  * demands a link, a task whose output is a spreadsheet on a shared drive is
- * still done in a click, but five of the fifteen have to be filed to finish
- * the programme. Worth knowing before writing copy that calls it optional.
+ * still done in a click, but five of the fourteen days that offer the field
+ * have to be filed to finish the programme. Worth knowing before writing copy
+ * that calls it optional.
  */
 
 /** Where the link lives inside `programme_item_progress.meta_json`. */
 export const TASK_LINK_KEY = "output_url";
+
+/**
+ * The days whose Task has no link field at all.
+ *
+ * Not the same thing as the per-day optionality above. Those days ask for a
+ * link and accept a blank; these days do not ask, and the field is not
+ * rendered, because the work they describe produces nothing linkable - day 5
+ * is settings on the member's own account, so the only honest answer to "paste
+ * the link" is a screenshot or a fib, and a field that collects fibs is worse
+ * than no field because you can no longer tell which is which.
+ *
+ * Consequences worth knowing before adding a day here:
+ *
+ *   - It costs a G3 credit's worth of CEILING, not of requirement. Fourteen
+ *     linkable days against five required credits leaves plenty of room (see
+ *     gates.ts:g3Credits), but empty this set out to five and the gate
+ *     tightens.
+ *   - The day is still completable - Mark complete sits next to the field and
+ *     does the same thing - so G1 is untouched.
+ *   - A link a member filed BEFORE the day joined this set stays in their
+ *     meta_json and keeps its credit. It just stops being displayed. That is
+ *     deliberate: revoking a credit somebody earned is worse than a row of
+ *     data nothing reads.
+ *   - Its task copy must not end "Submit ..." - see the exemption in
+ *     tests/programme-track-spec.test.ts, which otherwise requires that line
+ *     on every day.
+ */
+export const LINKLESS_TASK_DAYS: ReadonlySet<number> = new Set([5]);
+
+/**
+ * Whether a day's Task takes a filed link.
+ *
+ * Read server-side and passed to the card as a flag rather than exported to
+ * the card directly, so the day numbers live in one module and the component
+ * stays ignorant of them.
+ */
+export function taskTakesLink(dayIndex: number): boolean {
+  return !LINKLESS_TASK_DAYS.has(dayIndex);
+}
 
 /** Matches the artefact_url cap on submissions. */
 export const TASK_LINK_MAX_LENGTH = 2048;
