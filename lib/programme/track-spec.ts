@@ -254,7 +254,7 @@ const DAY_TASKS: Readonly<Record<number, string>> = {
   // What it asks for is settings on the member's own account, so it ends on
   // the tidy-up rather than on a "Submit the link" that nothing could answer.
   5: [
-    "Go to Customise > Connectors and enable the tools you use daily.",
+    "Go to Customize > Connectors and enable the tools you use daily.",
     "Click on a specific connector and check the permissions that it allows by default. If you need additional functionality or are unsure what functionality is safe to enable for a specific connector, let Haseeb know.",
     "Disconnect anything you added to have a look at and are not going to use.",
   ].join("\n"),
