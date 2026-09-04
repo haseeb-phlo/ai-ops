@@ -37,6 +37,39 @@ describe("quiz content", () => {
     }
   });
 
+  it("does not make the right answer the longest option", () => {
+    // The tell that made the whole set passable without reading it. Writing a
+    // careful correct answer against four throwaway distractors put the right
+    // option top for length in 25 of 30 questions, often by three times, so
+    // "pick the long one" beat judgement. Nuance goes in the explanation.
+    for (const [day, questions] of Object.entries(QUIZ_CONTENT_BY_DAY)) {
+      for (const q of questions) {
+        const others = q.options
+          .filter((_, i) => i !== q.correct)
+          .map((o) => o.length);
+        const label = `day ${day}: "${q.question.slice(0, 40)}..."`;
+        expect(q.options[q.correct].length, label).toBeLessThanOrEqual(
+          Math.max(...others) * 1.25,
+        );
+      }
+    }
+  });
+
+  it("keeps the right answer out of the longest slot across a quiz", () => {
+    // The per-question rule above still allows a set where the answer is
+    // marginally longest every time, which is the same tell in miniature.
+    const all = Object.values(QUIZ_CONTENT_BY_DAY).flat();
+    const strictlyLongest = all.filter((q) => {
+      const lengths = q.options.map((o) => o.length);
+      const max = Math.max(...lengths);
+      return (
+        lengths[q.correct] === max &&
+        lengths.filter((l) => l === max).length === 1
+      );
+    });
+    expect(strictlyLongest.length).toBeLessThanOrEqual(all.length / 3);
+  });
+
   it("explains every answer, since that's where the learning lands", () => {
     for (const questions of Object.values(QUIZ_CONTENT_BY_DAY)) {
       for (const q of questions) {

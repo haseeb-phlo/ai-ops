@@ -4,6 +4,7 @@ import { getSessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { loadTrackState } from "@/lib/programme/track-data";
 import { bestScore, hasPassed, parseQuizConfig } from "@/lib/programme/quiz";
+import { weekOf } from "@/lib/programme/working-days";
 import { PageContainer, PageHeader } from "@/components/page-header";
 import { BackLink } from "@/components/ui/nav-link";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -76,12 +77,22 @@ export default async function QuizPage({
           scrolls away as you answer, and QuizRunner offers it again once the
           attempt is marked. */}
       <BackLink href="/learn/track">Back to the programme</BackLink>
+      {/* Each quiz names the content it covers rather than "the week just
+          gone", which told a member nothing about what to revise. The week
+          comes off the item's own day_index, so a quiz that ever moves day
+          carries the right label with it.
+
+          The final quiz is the exception and says so: it sits on day 15, but
+          it spirals back over one day from each earlier week, so labelling it
+          "Week 3" would be the one description on the track that is untrue.
+          It also keeps its gate sentence, because whether a quiz counts
+          towards finishing is the thing a member most needs to know. */}
       <PageHeader
         title={resolved.item.title}
         description={
           config.summative
-            ? "The final check. Passing this is one half of your last gate."
-            : "A quick check on the week just gone. It doesn't gate anything."
+            ? "A check of the content covered in Weeks 1 to 3. Passing this is one half of your last gate."
+            : `A quick check of the content covered in Week ${weekOf(resolved.item.day_index)}.`
         }
       />
       {/* Neither the answer key nor the explanations are passed to the
