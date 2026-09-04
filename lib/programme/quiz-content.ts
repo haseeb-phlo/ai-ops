@@ -49,8 +49,9 @@
  * - FIVE options, not four. Four options give a guess a 25% floor, and on a
  *   ten-question quiz passing at eight that floor is doing real work. The
  *   fifth is never filler: it is the near miss, the answer somebody fluent
- *   would reach for. Reading the consent screen carefully IS good practice,
- *   it is just not what makes a Connector safe.
+ *   would reach for. Enabling only the permissions a job needs IS good
+ *   practice, and day 5's task asks for it, and it is still not what makes a
+ *   Connector safe.
  * - SCENARIOS, not definitions. "What is a Project?" tests reading; "you are
  *   about to do X, what is the better move?" tests judgement, which is what
  *   the programme is for. There is no recall question left in the set.
