@@ -24,6 +24,14 @@ import {
   type AttendanceStatus,
 } from "./attendance";
 import { buildGateFunnel, type GateFunnel } from "./funnel";
+import {
+  buildQuizResultRows,
+  summariseQuizColumns,
+  toQuizColumn,
+  type QuizColumn,
+  type QuizColumnSummary,
+  type QuizResultRow,
+} from "./quiz-results";
 import { gateableContentItemIds, isAwaitingContent } from "./content-readiness";
 
 /**
@@ -107,6 +115,17 @@ export type CohortAdminView = {
   taskLinks: TaskLinkRow[];
   taskDayIndexes: number[];
   funnel: GateFunnel;
+  /**
+   * Every quiz on the track, and where each member stands on it.
+   *
+   * Separate from `funnel` on purpose. The funnel answers "how many finished
+   * gate G4", which is one boolean per member off the summative quiz alone;
+   * this answers "what has this cohort actually scored", across all three,
+   * which is the question the gate count cannot be asked.
+   */
+  quizColumns: QuizColumn[];
+  quizResults: QuizResultRow[];
+  quizSummaries: QuizColumnSummary[];
   attendanceBySession: Map<
     string,
     ReturnType<typeof summariseAttendance>
@@ -221,11 +240,23 @@ export const loadCohortAdminView = cache(
             superseded_by: string | null;
           }[]
         >(),
+      // `answers_json` is deliberately NOT selected here. The grid only needs
+      // scores and timings, and this query carries no cohort filter - it
+      // reads every attempt in the table - so pulling a jsonb blob per row
+      // would grow with the whole programme rather than with this cohort.
+      // The per-question breakdown loads answers for ONE member instead, in
+      // loadMemberQuizDetail.
       supabase
         .from("programme_quiz_attempts")
-        .select("cohort_member_id, track_item_id, score")
+        .select("id, cohort_member_id, track_item_id, score, created_at")
         .returns<
-          { cohort_member_id: string; track_item_id: string; score: number }[]
+          {
+            id: string;
+            cohort_member_id: string;
+            track_item_id: string;
+            score: number;
+            created_at: string;
+          }[]
         >(),
     ]);
 
@@ -257,6 +288,27 @@ export const loadCohortAdminView = cache(
       summativeItem?.config_json?.pass_mark ?? 8,
     );
     const summativeIds = new Set(summativeItem ? [summativeItem.id] : []);
+
+    // Every quiz on the track, opened or not. All three are shown always -
+    // three columns that appear one per week would change the grid's shape
+    // mid-programme, and `opened` already lets a cell say "not open yet"
+    // rather than reading as a member who skipped it.
+    const quizColumns: QuizColumn[] = items
+      .filter((i) => i.type === "quiz")
+      .map((i) =>
+        toQuizColumn({
+          id: i.id,
+          title: i.title,
+          day_index: i.day_index,
+          config_json: i.config_json,
+          opensOn: unlockDateFor(cohort.start_date, i.day_index),
+          opened: hasDayArrived({
+            dayIndex: i.day_index,
+            startDate: cohort.start_date,
+            today: openThrough,
+          }),
+        }),
+      );
 
     const sessions: SessionColumn[] = sessionItems.map((i) => ({
       trackItemId: i.id,
@@ -301,6 +353,10 @@ export const loadCohortAdminView = cache(
       submissionsByMember.set(s.cohort_member_id, list);
     }
 
+    // SUMMATIVE ONLY, and it has to stay that way: this map is the sole input
+    // to `bestSummativeQuizScore`, so letting a Week 1 or Week 2 score in
+    // would pass gate G4 off a formative quiz. The admin grid reads its own
+    // rows from the same attempts and never this map.
     const quizByMember = new Map<string, number[]>();
     for (const q of quizRows ?? []) {
       if (q.track_item_id !== summativeItem?.id) continue;
@@ -471,6 +527,28 @@ export const loadCohortAdminView = cache(
 
     adminMembers.sort((a, b) => a.displayName.localeCompare(b.displayName));
 
+    // Driven off `adminMembers`, not off `quizRows`. The attempts query has
+    // no cohort filter, so iterating it would put other cohorts' scores on
+    // this cohort's grid; keying every lookup by this cohort's member ids is
+    // what keeps it honest.
+    const quizResults: QuizResultRow[] = buildQuizResultRows({
+      members: adminMembers.map((m) => ({
+        cohortMemberId: m.cohortMemberId,
+        displayName: m.displayName,
+      })),
+      columns: quizColumns,
+      attempts: (quizRows ?? []).map((q) => ({
+        id: q.id,
+        cohortMemberId: q.cohort_member_id,
+        trackItemId: q.track_item_id,
+        score: q.score,
+        // Not selected for the grid; the detail view loads them per member.
+        answers: [],
+        createdAt: q.created_at,
+      })),
+    });
+    const quizSummaries = summariseQuizColumns(quizColumns, quizResults);
+
     const attendanceBySession = new Map(
       sessions.map((session) => [
         session.trackItemId,
@@ -549,6 +627,9 @@ export const loadCohortAdminView = cache(
       taskLinks,
       taskDayIndexes,
       funnel: buildGateFunnel(adminMembers.map((m) => m.gates)),
+      quizColumns,
+      quizResults,
+      quizSummaries,
       attendanceBySession: attendanceBySession,
       workSamples,
     };

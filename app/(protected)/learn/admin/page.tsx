@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { loadCohortAdminView } from "@/lib/programme/cohort-admin";
 import { PageContainer, PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
-import { UsersIcon } from "lucide-react";
+import { ClipboardCheckIcon, UsersIcon } from "lucide-react";
 import fixture from "@/lib/programme/may-2026-distribution.json";
 import { ImportPanel } from "./_components/import-panel";
 import { ProgrammeTabs } from "./_components/programme-tabs";
@@ -14,6 +14,7 @@ import { CohortDashboard } from "./_components/cohort-dashboard";
 import { CohortPicker } from "./_components/cohort-picker";
 import { CohortManager } from "./_components/cohort-manager";
 import { ReportingPanel } from "./_components/reporting-panel";
+import { QuizResultsPanel } from "./_components/quiz-results-panel";
 import { PreviewPanel } from "./_components/preview-panel";
 import { ReviewEvalPanel } from "./_components/review-eval-panel";
 import {
@@ -336,6 +337,27 @@ export default async function ProgrammeAdminPage({
               />
               )}
             </div>
+          ) : (
+            noCohorts
+          )
+        }
+        quizzes={
+          view ? (
+            view.members.length === 0 ? (
+              <EmptyState
+                icon={<ClipboardCheckIcon aria-hidden />}
+                title="No members in this cohort"
+                description="Enrol people on the Roster tab, then their quiz scores show up here."
+              />
+            ) : (
+              <QuizResultsPanel
+                cohortName={view.cohort.name}
+                cohortStatus={view.cohort.status}
+                columns={view.quizColumns}
+                rows={view.quizResults}
+                summaries={view.quizSummaries}
+              />
+            )
           ) : (
             noCohorts
           )

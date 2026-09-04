@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 const TABS = [
   { value: "dashboard", label: "Dashboard" },
   { value: "roster", label: "Roster" },
+  { value: "quizzes", label: "Quizzes" },
   { value: "cohorts", label: "Cohorts" },
   { value: "reporting", label: "Reporting" },
   { value: "import", label: "AI Score import" },
@@ -26,12 +27,14 @@ function isTabValue(v: string | null): v is TabValue {
 export function ProgrammeTabs({
   dashboard,
   roster,
+  quizzes,
   cohorts,
   reporting,
   importPanel,
 }: {
   dashboard: React.ReactNode;
   roster: React.ReactNode;
+  quizzes: React.ReactNode;
   cohorts: React.ReactNode;
   reporting: React.ReactNode;
   importPanel: React.ReactNode;
@@ -39,6 +42,7 @@ export function ProgrammeTabs({
   const panels: Record<TabValue, React.ReactNode> = {
     dashboard,
     roster,
+    quizzes,
     cohorts,
     reporting,
     import: importPanel,
