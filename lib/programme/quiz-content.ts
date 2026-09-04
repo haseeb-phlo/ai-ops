@@ -106,7 +106,7 @@ export const WEEK_1_QUESTIONS: QuizQuestion[] = [
   {
     day: 1,
     question:
-      "You ask Claude in a Chat for the current list price of a product line, and it gives you a precise figure to the penny. Where did that number come from?",
+      "In an ordinary Chat, with web search turned off and no Connectors enabled, you ask Claude for the current list price of a product line. It answers with a precise figure, to the penny. Where did that number come from?",
     options: [
       "It looked the price up and reported back what it found",
       "It calculated it from related figures that it does hold",
@@ -181,13 +181,13 @@ export const WEEK_1_QUESTIONS: QuizQuestion[] = [
   {
     day: 3,
     question:
-      "You need a report laid out exactly like last quarter's, down to the section order and the wording of the variance notes. Which part of CRISPE does most of the work?",
+      "You have to write this month's report in exactly the same shape as last month's: the same sections, in the same order, with the same kind of summary at the top. Which part of CRISPE does most of the work?",
     options: [
       "Instructions, listing out every formatting rule you can think of first",
-      "Example, pasting last quarter's report so it can copy the shape",
+      "Example, pasting last month's report so it can copy the shape",
       "Parameters, specifying the length and the number of sections",
-      "Context, explaining who reads this report and what they need",
-      "Role, so it writes as the analyst who produced the original",
+      "Context, explaining who reads the report and what they need from it",
+      "Role, so it writes as the person who produced the original one",
     ],
     correct: 1,
     explanation:
@@ -241,7 +241,7 @@ export const WEEK_1_QUESTIONS: QuizQuestion[] = [
   {
     day: 5,
     question:
-      "A colleague worries that connecting a system to Claude will expose data they are not cleared to see. What is the accurate answer?",
+      "A colleague worries that connecting a system to Claude will expose data they are not allowed to see. What of the following is correct?",
     options: [
       "They are right, a Connector reads the system and bypasses its permissions",
       "Connectors are limited to data that the system already publishes openly",
