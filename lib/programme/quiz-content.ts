@@ -241,7 +241,7 @@ export const WEEK_1_QUESTIONS: QuizQuestion[] = [
   {
     day: 5,
     question:
-      "A colleague worries that connecting a system to Claude will expose data they are not allowed to see. Which of the following are correct?",
+      "A colleague worries that connecting a system to Claude will expose data they are not allowed to see. Which of the following is correct?",
     options: [
       "They are right, a Connector reads the system and bypasses its permissions",
       "Connectors are limited to data that the system already publishes openly",
