@@ -34,7 +34,7 @@ describe("the shortest route back to green", () => {
       ...base,
       outstanding: [
         { dayIndex: 4, title: "Task" },
-        { dayIndex: 5, title: "Week 1 check" },
+        { dayIndex: 5, title: "Week 1 Quiz" },
       ],
     });
     // The day is load-bearing: every day's exercise is titled just "Task"

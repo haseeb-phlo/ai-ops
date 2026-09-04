@@ -21,7 +21,7 @@ export const GATE_DESCRIPTION: Record<GateId, string> = {
   g1: "Every daily video and worked example complete",
   g2: "All three live sessions attended",
   g3: "Five pieces of work shared",
-  g4: "Final quiz passed and end-of-programme check-in done",
+  g4: "Week 3 Quiz passed and end-of-programme check-in done",
 };
 
 export type GateResult = {

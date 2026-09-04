@@ -336,16 +336,24 @@ const DAY_TASKS: Readonly<Record<number, string>> = {
 };
 
 /**
- * One quiz at the end of each week. Weeks 1 and 2 are short formative checks;
- * week 3 is the longer summative quiz that gate G4 reads.
+ * One quiz at the end of each week. Weeks 1 and 2 are formative; week 3 is
+ * the summative one that gate G4 reads.
+ *
+ * All three are titled "Week N Quiz". They used to be "Week 1 check", "Week 2
+ * check" and "Final quiz", which named three different things on one track
+ * and left a member guessing whether a check was the same kind of object as a
+ * quiz. `summative` still marks the one that counts, and it is the flag every
+ * reader keys on rather than the title, so the rename reaches nothing but the
+ * words on the card. What carries the finality now is the quiz page's own
+ * subtitle, which says the day 15 one is half of the last gate.
  *
  * `passMark` lives in config rather than code so the quiz can be retuned
  * without a deploy - and so G4 never hardcodes "8".
  */
 export const QUIZ_SPECS = [
-  { dayIndex: 5, title: "Week 1 check", questionCount: 10, passMark: 8, summative: false },
-  { dayIndex: 10, title: "Week 2 check", questionCount: 10, passMark: 8, summative: false },
-  { dayIndex: 15, title: "Final quiz", questionCount: 10, passMark: 8, summative: true },
+  { dayIndex: 5, title: "Week 1 Quiz", questionCount: 10, passMark: 8, summative: false },
+  { dayIndex: 10, title: "Week 2 Quiz", questionCount: 10, passMark: 8, summative: false },
+  { dayIndex: 15, title: "Week 3 Quiz", questionCount: 10, passMark: 8, summative: true },
   // All three pass at 8/10. The weekly checks gate nothing and allow unlimited
   // retakes, so a consistent bar is simpler to explain than a sliding one, and
   // it keeps "passed a Phlo AI quiz" meaning the same thing all the way
