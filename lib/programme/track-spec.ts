@@ -44,6 +44,26 @@ export type TrackItemSpec = {
  * has no room for sixteen: "Choosing the right tool + measuring time saved"
  * came off the end rather than any topic being reordered out of sequence.
  *
+ * It is back, on day 15, because September 2026 freed a slot: "Catching
+ * confident wrong answers" was cut from the curriculum entirely, Skills came
+ * forward from day 9 to take day 6, and days 10-15 each moved up one. The
+ * verification day was the only one on the track whose video was never shot,
+ * so it had run as "coming soon" for every cohort it opened for.
+ *
+ * What went with it is a gap, and calling it anything softer would be wrong.
+ * Checking a confident answer against its source was a day's task, two week
+ * two questions and a week three spiral, and what remains of it now is one
+ * clause in day 7 saying Memory does not make anything more accurate, and one
+ * day 15 question that counts checking time against a claimed saving. That is
+ * a thread, not a lesson. The material was cut because the day had no video
+ * rather than because the habit stopped mattering, so if it is wanted back
+ * the cheapest home is a line in day 7's task, which already has the member
+ * reading sources, rather than a sixteenth day the programme has no room for.
+ *
+ * Putting the measurement day at the end rather than in the freed middle slot
+ * is deliberate: it is the one topic that needs the other fourteen to have
+ * happened first, because what it asks you to total up is the fortnight.
+ *
  * The question mark on day 1 is load-bearing. Videos bind by exact
  * (lowercased) title match against `learn_videos`, and the library row is
  * titled "What is AI and how does it work?" - drop the mark and the seed binds
@@ -73,6 +93,16 @@ export type TrackItemSpec = {
  * reorder of this list needs the same one-off, or two days quietly play each
  * other's video.
  *
+ * The September 2026 reorder is that same one-off, at ten times the size:
+ * 20260906234040_drop_verification_day_and_shift_topics.sql re-points every
+ * day from 6 to 15. It differs from the day 4/5 swap in one way worth knowing.
+ * That migration only ever SET a binding, on the argument that "coming soon"
+ * is worse than a stale one. This one also NULLS, because the failure it is
+ * cleaning up is different: day 12 is now "Design" over what was Artifacts'
+ * binding, and a member who presses play there watches the wrong topic under
+ * a heading that looks right. A day admitting it has no video beats a day
+ * lying about which one it has.
+ *
  * Day 3 was the standing exception and is no longer: the library row was
  * titled "CRISP Framework", with no E, so no title this day carried would ever
  * have matched it, and the binding had to be made by hand in the admin
@@ -88,16 +118,16 @@ export const DAY_TOPICS: readonly string[] = [
   "Prompting",
   "Projects",
   "Connectors & MCP",
-  "Catching confident wrong answers",
+  "Skills",
   "Research, Memory & files out",
   "Cowork",
-  "Skills",
   "Scheduled Tasks",
   "Reverse Prompting",
   "Artifacts",
   "Design",
   "Dispatch + Plugins",
   "Claude everywhere",
+  "Choosing the right tool + measuring time saved",
 ] as const;
 
 /**
@@ -209,12 +239,21 @@ export const GENERIC_TASK =
  * The day 4 note explains why: a task that opens "the thing you built on day
  * 3" fails outright for anyone who missed day 3.
  *
- * One is thinner than the rest and known to be. Day 14 is "Dispatch +
+ * One is thinner than the rest and known to be. Day 13 is "Dispatch +
  * Plugins" and there is no video script for it, so its task is built on the
  * only grounded material available - the quiz's line that Plugins change what
  * Claude can reach, where prompting only changes how well you ask. The
  * diagnosis is a real lesson and the task teaches it, but nothing in there is
  * specific to Dispatch. Whoever owns that video should add a step.
+ *
+ * Day 15 is the newest and the only one that asks for a number rather than an
+ * artefact. Its failable step is timing one job with the clock rather than
+ * estimating it, which is the whole reason the day exists: the programme is
+ * measured on time saved, and a total built out of fifteen guesses is not
+ * evidence anybody outside the cohort has cause to believe. It also breaks
+ * the run of "submit a link to a thing you made" - the link is to the
+ * member's own log, so it is the one day where a shared document rather than
+ * a Claude URL is the expected answer.
  *
  * FORMATTING: these are plain text, and the card renders them through
  * `parseItemCopy` (lib/programme/item-copy.ts) - one paragraph per line, and a
@@ -259,12 +298,12 @@ const DAY_TASKS: Readonly<Record<number, string>> = {
     "Disconnect anything you added to have a look at and are not going to use.",
   ].join("\n"),
   6: [
-    "Go back to an answer Claude gave you this week that you acted on without checking. Something specific: a figure, a date, a rule, a cut-off time.",
-    "Verify it outside the conversation. Open the actual source - the contract, the system, the page, the person who owns it - and compare.",
-    "Then go looking for a wrong answer on purpose. Ask about something you know well enough to mark, and count the errors, including the ones that arrived sounding certain.",
-    "Two things that are not checking. Asking Claude whether it is sure tests whether the answer is consistent, not whether it is true. And a citation can be entirely real and still not support the sentence it is attached to, so follow one and read it.",
-    "Fluency is not accuracy. The output you should trust least is the one that reads best.",
-    "Submit the link to the chat you marked.",
+    "Think of one thing you explain to Claude again and again: how a report should be laid out, how a summary should be structured, the checks a piece of work has to pass before you will send it.",
+    "Write it down as a Skill. Open Customize, then Skills - and let the built-in skill-creator do the drafting, which means describing the task in a chat rather than writing anything from scratch.",
+    "Spend your effort on the description, because the description is the trigger. 'Use this when formatting a monthly performance report' fires when it should. 'Helps with reports' never fires at all.",
+    "Then prove it. Start a fresh chat, ask for the task, and do not name the Skill. If it did not fire, the description is too vague - sharpen it and go again.",
+    "One Skill, one job. And keep it about the method rather than the data: Skills are built to be shared across a team, so nothing confidential or patient-identifiable goes inside one.",
+    "Submit the link to the chat where your Skill fired on its own.",
   ].join("\n"),
   7: [
     "Pick something you would normally lose an afternoon to: a comparison, a supplier or market scan, a written summary that means reading several sources first.",
@@ -282,14 +321,6 @@ const DAY_TASKS: Readonly<Record<number, string>> = {
     "Submit the link to what it produced.",
   ].join("\n"),
   9: [
-    "Think of one thing you explain to Claude again and again: how a report should be laid out, how a summary should be structured, the checks a piece of work has to pass before you will send it.",
-    "Write it down as a Skill. Open Customize, then Skills - and let the built-in skill-creator do the drafting, which means describing the task in a chat rather than writing anything from scratch.",
-    "Spend your effort on the description, because the description is the trigger. 'Use this when formatting a monthly performance report' fires when it should. 'Helps with reports' never fires at all.",
-    "Then prove it. Start a fresh chat, ask for the task, and do not name the Skill. If it did not fire, the description is too vague - sharpen it and go again.",
-    "One Skill, one job. And keep it about the method rather than the data: Skills are built to be shared across a team, so nothing confidential or patient-identifiable goes inside one.",
-    "Submit the link to the chat where your Skill fired on its own.",
-  ].join("\n"),
-  10: [
     "Pick one job you do on a rhythm: the Monday write-up, the morning scan of Slack and flagged email, the weekly numbers somebody always asks you for.",
     "Schedule it in Cowork. Type /schedule in the prompt box and describe what you want in plain English, including when it should run and what shape the output should come back in.",
     "Run it once by hand before you trust it. Check the output is what you actually wanted, and fix the prompt now rather than living with a daily version of nearly right.",
@@ -297,7 +328,7 @@ const DAY_TASKS: Readonly<Record<number, string>> = {
     "Give it a name a colleague would understand, because they may well see it.",
     "Submit the link to its first completed run.",
   ].join("\n"),
-  11: [
+  10: [
     "Find a prompt that is not working - one you have reworded twice and it still comes back the wrong shape.",
     "Stop rewording it. Turn the questioning round instead: ask Claude what it needs from you in order to do this properly, and then answer its questions.",
     "The questions are the point. What it asks about is almost always context you did not realise you were assuming, and that is the real problem rather than your phrasing.",
@@ -305,7 +336,7 @@ const DAY_TASKS: Readonly<Record<number, string>> = {
     "Learn the signal while you are here. One poor answer is normal and a follow-up is just conversation. The same wrong shape three times means the misunderstanding is upstream of the wording, and no rewrite will reach it.",
     "Submit the link to the chat where you let it interview you.",
   ].join("\n"),
-  12: [
+  11: [
     "Pick something you rebuild from scratch most weeks: a status update, a meeting-prep sheet, a checklist, a small calculation you redo by hand every time.",
     "Ask for it as an Artifact, in those words: 'make me a one-page X as an Artifact I can reuse', or 'build me a tool that works out Y'. Asking on purpose is most of the skill.",
     "Then change it, because an Artifact is clay rather than stone. Refine it in plain English or edit it directly, and know that every version is kept so you can go back.",
@@ -313,25 +344,39 @@ const DAY_TASKS: Readonly<Record<number, string>> = {
     "Made-up numbers only in anything you publish. Publishing changes who can see it, so keep confidential detail, logins and keys out of it entirely.",
     "Submit the published link.",
   ].join("\n"),
-  13: [
+  12: [
     "Describe one screen or document you wish already existed: a landing page, a settings screen, a pitch deck, a one-pager that would make an idea look finished.",
     "Make it in Claude Design, then refine it once in plain English rather than taking the first version. A strong first draft that a person then shapes is the whole method.",
     "Export what you end up with - to PowerPoint, or as a prototype link you can send somebody.",
     "Two honest caveats. It is a research preview, so it is rougher than the rest of the tools here and what comes out is a draft rather than a finished brand. And keep confidential designs, patient-facing material and private code out of it.",
     "Submit the link to the design, or to the file you exported.",
   ].join("\n"),
-  14: [
+  13: [
     "Find the thing Claude keeps failing at because it cannot reach or cannot do something, rather than because you asked badly.",
     "Learn to tell those two apart, because the diagnosis is where the time goes. 'It misunderstood me' is a prompt problem and better wording fixes it. 'It cannot get to that' is a capability problem and no rewrite will ever reach it.",
     "Then close the gap rather than rewriting the prompt: add the Plugin that gives Claude the thing it was missing, and run the same job again.",
     "Prompting changes how well you use what is already there. Plugins change what is there.",
     "Submit the link to the job you got working.",
   ].join("\n"),
-  15: [
+  14: [
     "Think about where you actually spend the day: a spreadsheet, your inbox, Slack, a browser tab, a document. Claude is available inside most of it.",
     "Install it in the one you live in most. Then do the small job you would never normally open Claude for - the two-minute rewrite, the quick summary, the formula you would have looked up.",
     "That is the point of today. The barrier was never capability, it was friction: stopping, switching app, re-explaining the context and pasting the answer back is enough to make anyone skip a small job. Small jobs are where most of the saving quietly adds up.",
     "Submit the link to the thing you did without leaving the tool you were already in.",
+  ].join("\n"),
+  15: [
+    "List the jobs you moved to Claude over the three weeks, with what each one used to take and what it takes now. If you have kept a Time-Back Log this is that list already; if you have not, build it now.",
+    "Then time one of them properly rather than estimating it. Pick the job you are claiming the biggest saving on, run it end to end with the clock going, and write the real number down next to your guess.",
+    "That step is the point of today. An estimated saving is the one figure nobody outside this programme has any reason to believe, and the gap between your guess and the clock is usually the most useful thing on the page.",
+    "Then choose the container for that job, because picking the wrong one is what people still get wrong long after the features are familiar:",
+    "- a Chat for a one-off",
+    "- a Project when the background is the same every time",
+    "- a Skill when it is a method colleagues should reuse",
+    "- a Scheduled Task when it runs on a rhythm",
+    "- Cowork when it is assembly across your own files",
+    "- an Artifact when the output is a thing your team will open again",
+    "If the job you have run in an ordinary Chat all fortnight belongs in one of the other five, move it now.",
+    "Submit the link to your log.",
   ].join("\n"),
 };
 

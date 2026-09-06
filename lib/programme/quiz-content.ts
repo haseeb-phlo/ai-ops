@@ -9,12 +9,12 @@
  *
  *   Week 1 (day 5)  - D1 what AI is doing, D2 when to use it, D3 Prompting,
  *                     D4 Projects, D5 Connectors & MCP
- *   Week 2 (day 10) - D6 catching confident wrong answers,
- *                     D7 Research/Memory/files out, D8 Cowork, D9 Skills,
- *                     D10 Scheduled Tasks
- *   Week 3 (day 15) - D11 Reverse Prompting, D12 Artifacts, D13 Design,
- *                     D14 Dispatch + Plugins, D15 Claude everywhere, plus a
- *                     spiral back over one day from each earlier week
+ *   Week 2 (day 10) - D6 Skills, D7 Research/Memory/files out, D8 Cowork,
+ *                     D9 Scheduled Tasks, D10 Reverse Prompting
+ *   Week 3 (day 15) - D11 Artifacts, D12 Design, D13 Dispatch + Plugins,
+ *                     D14 Claude everywhere, D15 choosing the right tool and
+ *                     measuring time saved, plus a spiral back over one day
+ *                     from each earlier week
  *
  * Every quiz now tests only days that have opened before it does, which was
  * not true before September 2026. Week one's two verification questions were
@@ -29,6 +29,25 @@
  * That cascade is why week three lost a question: it gained Reverse Prompting
  * and shed "share a refined prompt", which was the softest item in the set
  * and duplicated the container-choice question that closes it.
+ *
+ * Reverse Prompting did not stay. Later in September 2026 "catching confident
+ * wrong answers" was cut from the curriculum outright, Skills came forward to
+ * day 6 and days 10-15 each moved up one, so Reverse Prompting became a week
+ * two day and its question moved back into the week two set. Five questions
+ * were touched by that and it is worth knowing which, because only two of
+ * them were re-tags of the same prose:
+ *
+ *   - the two "catching confident wrong answers" questions in week two are
+ *     gone, and so is week three's spiral back over that day. Three deletions
+ *     rather than three re-tags, because the day no longer exists to test;
+ *   - one new Reverse Prompting question was written to partner the one that
+ *     moved, since week two now owns that day and a day gets two;
+ *   - two new day 15 questions were written for the measurement day.
+ *
+ * Everything else in weeks two and three is the same prose under a different
+ * `day` tag. That is the cheap half of a reorder and the deletions are the
+ * expensive half: a question about a day that no longer exists cannot be
+ * salvaged by renumbering it.
  *
  * TAGS ARE EDITORIAL. Which quiz a question lands in is the array it sits in,
  * never this field. It exists so `tests/programme-quiz-content.test.ts` can
@@ -265,32 +284,32 @@ export const WEEK_2_QUESTIONS: QuizQuestion[] = [
   {
     day: 6,
     question:
-      "Claude gives you a confident, well-written answer in a Chat about a courier's cut-off times, with specific figures. You do not know the terms yourself. What is the habit to build?",
+      "You have a reliable method for a recurring task and two colleagues want to use it. What makes a Skill the right home for it, rather than a Project or a saved prompt?",
     options: [
-      "Accept it, since that much detail suggests it came from real data",
-      "Ask whether it is sure, and accept the answer if it holds up",
-      "Check the specifics against the source before acting on them",
-      "Ask again in a fresh Chat and accept it if the answers agree",
-      "Accept it internally and check only before it goes to the courier",
+      "It fires on its own when the job comes up, in anybody's Chat",
+      "It stores the documents the task needs alongside the method",
+      "It runs the task automatically each morning without being asked",
+      "It gives Claude access to the system that the task depends on",
+      "It keeps the method private to the colleagues you name on it",
     ],
-    correct: 2,
+    correct: 0,
     explanation:
-      "Fluency is not accuracy and confidence is not evidence. Anything specific and consequential gets checked against the source. Internal decisions are made on those figures too, so the internal exemption is exactly where a wrong number gets established as fact. In the May baseline most people rated themselves confident at catching wrong answers, which is the blind spot this day exists for.",
+      "A Skill packages how you do something so other people's Chats can reach it, and its description is what makes it fire without being named. Documents are a Project, a timetable is a Scheduled Task and system access is a Connector. Choosing the wrong container is what makes simple work feel like overhead.",
   },
   {
     day: 6,
     question:
-      "Why is asking Claude whether it is sure a weak way to verify an answer?",
+      "You built a Skill and it never fires unless you name it explicitly in the Chat. What is almost always wrong?",
     options: [
-      "It takes longer than simply opening the source and checking it would",
-      "It tests whether the answer is consistent, not whether it is true",
-      "Claude will always say yes when you ask it that question",
-      "It only works on factual questions, not on judgement calls",
-      "It works, but only if you ask before it commits to an answer",
+      "The instructions inside the Skill have grown too long to parse",
+      "It has to be shared with your team before it will trigger at all",
+      "The task is too narrow for a Skill to be the right container",
+      "Its description is too vague to match what people actually ask",
+      "Skills only fire automatically for the person who created them",
     ],
-    correct: 1,
+    correct: 3,
     explanation:
-      "A self-check measures consistency. Claude will restate a wrong answer with total conviction, and rephrasing usually returns a variation on the same misunderstanding rather than a correction. Timing does not rescue it either, because the problem is the method rather than the moment. Verification means going outside the conversation.",
+      "The description is the trigger. Use this when formatting a monthly performance report fires when it should, and helps with reports never fires at all. Sharing changes who can reach a Skill rather than whether it triggers, and a narrow task is exactly what a Skill wants.",
   },
   {
     day: 7,
@@ -355,36 +374,6 @@ export const WEEK_2_QUESTIONS: QuizQuestion[] = [
   {
     day: 9,
     question:
-      "You have a reliable method for a recurring task and two colleagues want to use it. What makes a Skill the right home for it, rather than a Project or a saved prompt?",
-    options: [
-      "It fires on its own when the job comes up, in anybody's Chat",
-      "It stores the documents the task needs alongside the method",
-      "It runs the task automatically each morning without being asked",
-      "It gives Claude access to the system that the task depends on",
-      "It keeps the method private to the colleagues you name on it",
-    ],
-    correct: 0,
-    explanation:
-      "A Skill packages how you do something so other people's Chats can reach it, and its description is what makes it fire without being named. Documents are a Project, a timetable is a Scheduled Task and system access is a Connector. Choosing the wrong container is what makes simple work feel like overhead.",
-  },
-  {
-    day: 9,
-    question:
-      "You built a Skill and it never fires unless you name it explicitly in the Chat. What is almost always wrong?",
-    options: [
-      "The instructions inside the Skill have grown too long to parse",
-      "It has to be shared with your team before it will trigger at all",
-      "The task is too narrow for a Skill to be the right container",
-      "Its description is too vague to match what people actually ask",
-      "Skills only fire automatically for the person who created them",
-    ],
-    correct: 3,
-    explanation:
-      "The description is the trigger. Use this when formatting a monthly performance report fires when it should, and helps with reports never fires at all. Sharing changes who can reach a Skill rather than whether it triggers, and a narrow task is exactly what a Skill wants.",
-  },
-  {
-    day: 10,
-    question:
       "You set a Scheduled Task to run the stock summary at 07:00 each Monday. You reach your desk at 08:30 and your laptop was shut overnight. What happens?",
     options: [
       "It runs when you open the laptop, so the result arrives late",
@@ -398,7 +387,7 @@ export const WEEK_2_QUESTIONS: QuizQuestion[] = [
       "A Scheduled Task runs on your machine while it is awake and the desktop app is open, so a shut laptop defers the run rather than cancelling it. Pick a time you are genuinely at your desk. Nothing is skipped and nothing fails, which is precisely why a badly timed schedule is easy not to notice.",
   },
   {
-    day: 10,
+    day: 9,
     question:
       "A Scheduled Task you set up three weeks ago still runs, but you now rewrite most of its output before you use it. What should you do?",
     options: [
@@ -412,17 +401,8 @@ export const WEEK_2_QUESTIONS: QuizQuestion[] = [
     explanation:
       "Heavy editing means the task and the real work have drifted apart, and what you keep rewriting is the specification. Running it more often just produces more to correct. Logging the old full cost is how a time saving becomes a number nobody believes, because the saving is what the job costs now against what it cost before.",
   },
-];
-
-/* ------------------------------------------------------------------ */
-/* Week 3 - day 15. Ten questions, pass 8. Gates completion (G4).      */
-/* Curriculum days 11-15, plus one spiral from each earlier week.      */
-/* ------------------------------------------------------------------ */
-
-
-export const WEEK_3_QUESTIONS: QuizQuestion[] = [
   {
-    day: 11,
+    day: 10,
     question:
       "You have reworded a prompt four times and keep getting the same shape of wrong answer back. What does that tell you?",
     options: [
@@ -437,7 +417,31 @@ export const WEEK_3_QUESTIONS: QuizQuestion[] = [
       "One poor answer is normal and a follow-up is just conversation. The same wrong shape repeating means the gap is in what you have not said rather than in how you said it, and no rewrite reaches that. Asking Claude what it needs from you surfaces the context you did not realise you were assuming. Adding context blindly is the same guess with more words.",
   },
   {
-    day: 12,
+    day: 10,
+    question:
+      "You ask Claude to interview you about a job before it attempts it, and its first question is about something you never thought to mention. What does that tell you?",
+    options: [
+      "The request was worded badly and wants rewriting before you answer",
+      "You were assuming context it had no way to see",
+      "It is stalling because the job is too large to attempt in one go",
+      "The job wants a Project rather than an ordinary Chat to hold it",
+      "It opens that way with everyone, so there is no signal in it",
+    ],
+    correct: 1,
+    explanation:
+      "The questions are the payload. What it asks about is nearly always something you were carrying in your head and never wrote down, which is the actual reason the output kept coming back wrong. Rewording moves that gap around rather than closing it. A Project helps when the same context is needed every time, and the context still has to be written down once before anything can store it.",
+  },
+];
+
+/* ------------------------------------------------------------------ */
+/* Week 3 - day 15. Ten questions, pass 8. Gates completion (G4).      */
+/* Curriculum days 11-15, plus one spiral from each earlier week.      */
+/* ------------------------------------------------------------------ */
+
+
+export const WEEK_3_QUESTIONS: QuizQuestion[] = [
+  {
+    day: 11,
     question:
       "You have asked Claude for a checklist your team will use every week. Why ask for it as an Artifact rather than as text in the Chat?",
     options: [
@@ -452,7 +456,7 @@ export const WEEK_3_QUESTIONS: QuizQuestion[] = [
       "An Artifact is the output as an object rather than as Chat scrollback: refined in place, every version kept, and shareable to people who need the checklist rather than the conversation behind it. Speed and accuracy are unchanged. Publishing lets other people open and use it, which is not the same as handing them edit rights on yours.",
   },
   {
-    day: 13,
+    day: 12,
     question:
       "You are making a one-page summary for the exec team in Claude Design. Where does the help genuinely apply?",
     options: [
@@ -467,7 +471,7 @@ export const WEEK_3_QUESTIONS: QuizQuestion[] = [
       "The gain is the distance from a blank page to something worth reacting to, and a strong first draft that a person then shapes is the whole method. It is a research preview, so what comes out is a draft rather than a finished brand. Internal work benefits from clarity as much as customer-facing work does.",
   },
   {
-    day: 14,
+    day: 13,
     question:
       "Claude keeps failing at a job you have given it. How do you tell a prompting problem from a capability problem?",
     options: [
@@ -482,7 +486,7 @@ export const WEEK_3_QUESTIONS: QuizQuestion[] = [
       "Prompting changes how well you use what is already there. Plugins change what is there. The diagnosis is where the time goes, because rewriting a prompt against a capability gap can absorb an afternoon and never work. Capability gaps rarely announce themselves, and a confident wrong answer is a verification problem rather than a capability one.",
   },
   {
-    day: 15,
+    day: 14,
     question:
       "You spend most of your day in Excel and Slack, and Claude is available inside both. What follows from that?",
     options: [
@@ -495,6 +499,36 @@ export const WEEK_3_QUESTIONS: QuizQuestion[] = [
     correct: 4,
     explanation:
       "The barrier was rarely capability, it was friction. Stopping, switching app, re-explaining the context and pasting the answer back is enough to make anyone skip a two-minute job, and small jobs are where most of the saving quietly adds up. Long tasks were always worth the switch, so they are not where this changes anything.",
+  },
+  {
+    day: 15,
+    question:
+      "You are totalling up what the three weeks saved you. For the job you claim the biggest saving on, the before figure and the after figure are both ones you remembered. What is the problem?",
+    options: [
+      "Nothing is wrong, you ran the job both ways so both figures are yours",
+      "The before figure will be inflated, because slow work feels longer",
+      "Neither figure was measured, so the saving is a guess with a decimal",
+      "The saving belongs to the team rather than to you, so it double counts",
+      "Three weeks is too short a window to draw any saving from at all",
+    ],
+    correct: 2,
+    explanation:
+      "Remembered numbers drift in the direction you want them to go, and the before figure drifts furthest because the old way is the one you resented. One timed run is worth more than fifteen estimates. It is also the only version of the figure that survives somebody outside the programme asking how you arrived at it, which is the question this whole exercise is preparing you for.",
+  },
+  {
+    day: 15,
+    question:
+      "You have halved the time your weekly report takes by drafting it in a Chat. You now spend ten minutes checking figures you used to take straight from the system. How should that land in your total?",
+    options: [
+      "Leave it out, checking is overhead rather than part of the job",
+      "Subtract it, because the job is not finished until it is checked",
+      "Count it separately, as a cost of Claude rather than a cost of the job",
+      "Ignore it, the checking tails off once the drafting has earned trust",
+      "Halve it, since you would have checked some of those figures anyway",
+    ],
+    correct: 1,
+    explanation:
+      "The number worth having is the one you could defend to somebody outside the programme, and that is the job end to end rather than the drafting step on its own. Checking is not overhead bolted onto the work, it is the part that makes the output usable. A total that quietly drops it is the kind of figure that falls apart the first time anyone asks how it was built.",
   },
   {
     day: 1,
@@ -542,22 +576,7 @@ export const WEEK_3_QUESTIONS: QuizQuestion[] = [
       "A Project holds standing context that changes slowly and a Connector fetches live state. Reference material belongs in the Project and anything that moves belongs behind the Connector, whatever its age: a document goes stale when the system changes rather than after a set period. Treating a stored document as current is a quiet source of wrong answers.",
   },
   {
-    day: 6,
-    question:
-      "A colleague shares a Claude-drafted summary of a supplier agreement and says it is cited, so it is solid. What is the flaw?",
-    options: [
-      "Nothing, citations are exactly what you should be looking for",
-      "Citations only mean the answer took longer to put together",
-      "They should have asked Claude for more citations than that",
-      "The citations may be invented, so confirm the sources exist",
-      "A cited source may not say what the summary claims it says",
-    ],
-    correct: 4,
-    explanation:
-      "Citations raise confidence more than they raise reliability. A reference can be entirely real and still not support the sentence attached to it, so confirming the source exists is not the check. Follow one and read it against the claim. Asking for more of them compounds the problem rather than solving it.",
-  },
-  {
-    day: 10,
+    day: 9,
     question:
       "You have a recurring task, a one-off question, a method colleagues should reuse and a system Claude cannot reach. Which mapping is right?",
     options: [
