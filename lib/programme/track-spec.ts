@@ -206,6 +206,21 @@ export const GENERIC_TASK =
  * tests/programme-track-spec.test.ts asserts, because a day that quietly
  * falls back to it reads as finished without being it.
  *
+ * Day 6 is written to the earlier format instead, the one days 2-5 use, and
+ * day 4 is the template it follows line for line: an imperative opening, the
+ * Customize path, a bulleted list of what to give the thing, "Then test it",
+ * the good-to-go/sharpen-it pair, then the ask. It moved into a week one slot
+ * when Skills came forward from day 9, and a member reading Monday to Monday
+ * meets it directly after day 5 - so it reads as the odd one out if it keeps
+ * the reflective opening and the standalone safety paragraph that the later
+ * days use.
+ *
+ * The two things that format could have dropped, and does not: the failable
+ * step is still there, as the fresh chat that must fire the Skill without
+ * being told its name, and the data caution is still there, folded into a
+ * bullet the way day 5 folds its own into a sentence rather than giving it a
+ * paragraph. Format is the thing that changed here. Substance is not.
+ *
  * They share a shape, and it is worth keeping when one gets rewritten:
  *
  *   - The work comes off the member's own desk. "Pick the job you repeat",
@@ -298,11 +313,13 @@ const DAY_TASKS: Readonly<Record<number, string>> = {
     "Disconnect anything you added to have a look at and are not going to use.",
   ].join("\n"),
   6: [
-    "Think of one thing you explain to Claude again and again: how a report should be laid out, how a summary should be structured, the checks a piece of work has to pass before you will send it.",
-    "Write it down as a Skill. Open Customize, then Skills - and let the built-in skill-creator do the drafting, which means describing the task in a chat rather than writing anything from scratch.",
-    "Spend your effort on the description, because the description is the trigger. 'Use this when formatting a monthly performance report' fires when it should. 'Helps with reports' never fires at all.",
-    "Then prove it. Start a fresh chat, ask for the task, and do not name the Skill. If it did not fire, the description is too vague - sharpen it and go again.",
-    "One Skill, one job. And keep it about the method rather than the data: Skills are built to be shared across a team, so nothing confidential or patient-identifiable goes inside one.",
+    "Pick one thing you explain to Claude again and again: how a report should be laid out, how a summary should be structured, the checks a piece of work has to pass before you send it.",
+    "Go to Customize > Skills and build a Skill for it, letting the built-in skill-creator draft it from your description rather than writing it from scratch. Give it:",
+    "- a description saying when to use it, not what it helps with",
+    "- one job rather than several",
+    "- the method rather than the data, since Skills get shared across a team",
+    "Then test it. Start a fresh chat, ask for the task and do not name the Skill.",
+    "If it fired, it's good to go. If not, the description is too vague - sharpen it and go again.",
     "Submit the link to the chat where your Skill fired on its own.",
   ].join("\n"),
   7: [
