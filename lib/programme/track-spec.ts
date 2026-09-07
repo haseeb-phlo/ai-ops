@@ -215,11 +215,21 @@ export const GENERIC_TASK =
  * the reflective opening and the standalone safety paragraph that the later
  * days use.
  *
- * The two things that format could have dropped, and does not: the failable
- * step is still there, as the fresh chat that must fire the Skill without
- * being told its name, and the data caution is still there, folded into a
- * bullet the way day 5 folds its own into a sentence rather than giving it a
- * paragraph. Format is the thing that changed here. Substance is not.
+ * The failable step survives the format change and gets sharper for it: the
+ * fresh chat still has to fire the Skill without being told its name, and the
+ * copy now asks for that over a few runs with different wording, which is the
+ * difference between a description that fires and one that happened to fire
+ * once on the phrasing its author had in mind.
+ *
+ * The data caution did NOT survive, and this is the note saying so. Earlier
+ * versions of this day carried a line keeping the Skill about the method
+ * rather than the data, on the grounds that Skills are built to be shared
+ * across a team, so a confidential detail written into one travels further
+ * than the person who wrote it. The copy here was supplied by the programme
+ * owner without it and is used as given. Day 6 is therefore the one day whose
+ * tool reaches something shareable and says nothing about what not to put in
+ * it - worth knowing before anyone cites the "safety line where the tool
+ * touches real data" rule above and finds this day contradicting it.
  *
  * They share a shape, and it is worth keeping when one gets rewritten:
  *
@@ -313,13 +323,14 @@ const DAY_TASKS: Readonly<Record<number, string>> = {
     "Disconnect anything you added to have a look at and are not going to use.",
   ].join("\n"),
   6: [
-    "Pick one thing you explain to Claude again and again: how a report should be laid out, how a summary should be structured, the checks a piece of work has to pass before you send it.",
+    "Pick one thing you explain to Claude repeatedly (e.g. how a report should be laid out, how a summary should be structured, the checks a piece of work has to pass before you send it).",
     "Go to Customize > Skills and build a Skill for it, letting the built-in skill-creator draft it from your description rather than writing it from scratch. Give it:",
-    "- a description saying when to use it, not what it helps with",
-    "- one job rather than several",
-    "- the method rather than the data, since Skills get shared across a team",
-    "Then test it. Start a fresh chat, ask for the task and do not name the Skill.",
-    "If it fired, it's good to go. If not, the description is too vague - sharpen it and go again.",
+    "- a description saying when to use it",
+    "- one task only",
+    "- the method it should complete the task using",
+    "Then test it by starting a fresh chat and asking to complete the task required without naming the skill.",
+    "Try over a few runs with different wording.",
+    "If the skill fires, then everything is working. If not, the description is likely too vague or ambiguous. Fix this and try again.",
     "Submit the link to the chat where your Skill fired on its own.",
   ].join("\n"),
   7: [
