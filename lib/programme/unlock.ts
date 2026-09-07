@@ -3,7 +3,8 @@
  *
  * Four rules, in priority order:
  *
- *   1. The day-0 baseline check-in is ALWAYS available. It is the entry gate.
+ *   1. The day-0 baseline check-in is ALWAYS available until it is answered,
+ *      and complete once it is. It is the entry gate.
  *   2. Until a cohort_baseline response exists, NOTHING else is available.
  *      That is what makes the check-in mandatory rather than a suggestion.
  *   3. The FINAL measurement - the summative quiz and the post check-in -
@@ -29,6 +30,24 @@
  * cohort whose start_date is corrected must not strand work already done.
  *
  * Rule 2 has one exception, `enforceBaselineGate`. See the field below.
+ *
+ * ## The two check-ins record themselves somewhere else
+ *
+ * Everything else on the track is completed by a `programme_item_progress`
+ * row. The two check-ins are not: `submitAiScore` writes one row to
+ * `ai_score_responses` and nothing to progress, so a member who has answered
+ * one looks, to the progress map, exactly like a member who never has.
+ *
+ * Left to the date rules that means the day-0 item is "available" forever.
+ * Nothing renders it - the timeline drops day 0 and the gate card disappears
+ * the moment the response lands - but every count still sees it, so it sat in
+ * "N things open", stayed permanently overdue (its unlock date IS the cohort
+ * start), and `stepsToGreen` named it as the one thing between the member and
+ * green. Twenty-eight people were told to finish a check-in they had already
+ * done and could not find anywhere to do again.
+ *
+ * So `answeredCheckIns` is the missing signal, and it is deliberately NOT
+ * `hasBaseline`: see the field.
  */
 
 import {
@@ -71,6 +90,21 @@ const GATE_EXEMPT_TYPES = new Set(["questionnaire_post"]);
 /** Item types that ARE the baseline gate. */
 const BASELINE_TYPES = new Set(["questionnaire_baseline"]);
 
+/**
+ * Which check-in wave each questionnaire item is completed by.
+ *
+ * The two entries are the whole of the "completion lives in another table"
+ * problem described at the top of this file - every other item type on the
+ * track writes progress when it is done.
+ */
+const CHECK_IN_WAVE_BY_TYPE = new Map<string, "baseline" | "post">([
+  ["questionnaire_baseline", "baseline"],
+  ["questionnaire_post", "post"],
+]);
+
+/** Whether the member has answered each check-in. See `answeredCheckIns`. */
+export type AnsweredCheckIns = { baseline?: boolean; post?: boolean };
+
 export function resolveItemStates<T extends TrackItemLike>(args: {
   items: readonly T[];
   startDate: IsoDate;
@@ -86,6 +120,26 @@ export function resolveItemStates<T extends TrackItemLike>(args: {
   today: IsoDate;
   /** True once the member has a wave='cohort_baseline' response. */
   hasBaseline: boolean;
+  /**
+   * Which check-ins the member has actually answered, so the two items whose
+   * completion lives in `ai_score_responses` can be marked done.
+   *
+   * SEPARATE FROM `hasBaseline`, which is the same fact asked for a different
+   * purpose and answered differently by two of the three callers. `hasBaseline`
+   * decides VISIBILITY - rule 2, may this member open the programme at all -
+   * and both the admin roster and the nightly RAG sweep pass `true`
+   * unconditionally there, because they are measuring how late somebody's work
+   * is rather than deciding what to render for them: a member who never
+   * checked in is behind on everything, not excused from it. Reading that
+   * `true` as "the check-in is done" would credit everyone who has not taken
+   * it - six of thirty-four when this was written - and green out on the
+   * admin heatmap exactly the members who most need chasing.
+   *
+   * Defaults to neither answered, which leaves both items outstanding. That is
+   * the pessimistic direction on purpose: a caller that has not been taught
+   * about this cannot silently complete somebody's work.
+   */
+  answeredCheckIns?: AnsweredCheckIns;
   /**
    * Whether week one's submissions are in - rule 2b.
    *
@@ -134,6 +188,16 @@ export function resolveItemStates<T extends TrackItemLike>(args: {
     // dates or the gate now say.
     if (recorded === "complete" || recorded === "started") {
       return { item, state: recorded, unlockDate };
+    }
+
+    // The same invariant, for the two items whose completion never reaches
+    // `progressByItemId`. Read the response instead - see the header. It sits
+    // here rather than beside the baseline branch below so that BOTH
+    // check-ins answer to one rule, and above the date checks because an
+    // answered check-in is done whatever the calendar says.
+    const checkInWave = CHECK_IN_WAVE_BY_TYPE.get(item.type);
+    if (checkInWave && args.answeredCheckIns?.[checkInWave]) {
+      return { item, state: "complete", unlockDate };
     }
 
     const dateReached = hasReached(unlockDate, args.today);

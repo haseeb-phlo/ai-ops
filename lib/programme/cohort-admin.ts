@@ -365,14 +365,23 @@ export const loadCohortAdminView = cache(
       quizByMember.set(q.cohort_member_id, list);
     }
 
-    // Post-wave responses, by email, so G4 is accurate here too.
-    const { data: postRows } = await supabase
+    // Check-in responses, by user id, so G4 is accurate here too - and so the
+    // two check-in items can be resolved as complete, which is the only place
+    // that fact is recorded. See unlock.ts.
+    const { data: checkInRows } = await supabase
       .from("ai_score_responses")
-      .select("user_id")
-      .eq("wave", "post")
+      .select("user_id, wave")
+      .in("wave", ["cohort_baseline", "post"])
       .not("user_id", "is", null)
-      .returns<{ user_id: string }[]>();
-    const postUserIds = new Set((postRows ?? []).map((r) => r.user_id));
+      .returns<{ user_id: string; wave: string }[]>();
+    const baselineUserIds = new Set(
+      (checkInRows ?? [])
+        .filter((r) => r.wave === "cohort_baseline")
+        .map((r) => r.user_id),
+    );
+    const postUserIds = new Set(
+      (checkInRows ?? []).filter((r) => r.wave === "post").map((r) => r.user_id),
+    );
 
     const dayIndexes = [
       ...new Set(items.filter((i) => i.day_index > 0).map((i) => i.day_index)),
@@ -418,9 +427,18 @@ export const loadCohortAdminView = cache(
         items,
         startDate: cohort.start_date,
         today: openThrough,
-        // The roster view doesn't need to re-derive the baseline gate per
-        // member; progress already reflects what they've actually done.
+        // The roster measures how LATE work is, not what to render, so it
+        // does not apply the entry gate: a member who never checked in is
+        // behind on everything rather than excused from it, and greening them
+        // out would hide the people who most need chasing.
         hasBaseline: true,
+        // Which is exactly why the check-ins are asked separately - passing
+        // that `true` through as "the check-in is done" would credit everyone
+        // who has not taken it. See unlock.ts.
+        answeredCheckIns: {
+          baseline: baselineUserIds.has(member.user_id),
+          post: postUserIds.has(member.user_id),
+        },
         progressByItemId: progress,
         summativeItemIds: summativeIds,
       });

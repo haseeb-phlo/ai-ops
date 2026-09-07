@@ -121,6 +121,106 @@ describe("the baseline gate", () => {
   });
 });
 
+describe("the check-ins complete themselves from the response", () => {
+  // Neither check-in writes a programme_item_progress row - submitAiScore
+  // writes to ai_score_responses and stops - so without `answeredCheckIns`
+  // the day-0 item is "available" for the whole cohort and never renders
+  // anywhere: the timeline drops day 0 and the gate card goes the moment the
+  // response lands. It showed up only in the counts, as a permanently overdue
+  // item stepsToGreen then named as the one thing left to do.
+  it("marks day 0 complete once the baseline response exists", () => {
+    const r = resolveItemStates({
+      items,
+      startDate: START,
+      today: "2026-09-07",
+      hasBaseline: true,
+      answeredCheckIns: { baseline: true },
+      unlockMode: "daily",
+    });
+    expect(stateOf(r, "gate")).toBe("complete");
+  });
+
+  it("keeps it out of the outstanding list, which is the bug it fixes", () => {
+    const r = resolveItemStates({
+      items,
+      startDate: START,
+      today: "2026-09-07",
+      hasBaseline: true,
+      answeredCheckIns: { baseline: true },
+      unlockMode: "daily",
+    });
+    expect(outstandingItems(r).map((x) => x.item.id)).not.toContain("gate");
+  });
+
+  it("leaves it available when the response is not there", () => {
+    const r = resolveItemStates({
+      items,
+      startDate: START,
+      today: "2026-09-07",
+      hasBaseline: false,
+      answeredCheckIns: { baseline: false },
+      unlockMode: "daily",
+    });
+    expect(stateOf(r, "gate")).toBe("available");
+  });
+
+  it("marks the post check-in complete once answered", () => {
+    const r = resolveItemStates({
+      items,
+      startDate: START,
+      today: "2026-09-18", // day 15
+      hasBaseline: true,
+      answeredCheckIns: { baseline: true, post: true },
+      unlockMode: "daily",
+    });
+    expect(stateOf(r, "d15p")).toBe("complete");
+  });
+
+  it("does not read one check-in's answer as the other's", () => {
+    // Sharing a flag would have completed day 15 for everyone the moment they
+    // checked in on day 0 - the same class of bug, pointed the other way.
+    const r = resolveItemStates({
+      items,
+      startDate: START,
+      today: "2026-09-18",
+      hasBaseline: true,
+      answeredCheckIns: { baseline: true },
+      unlockMode: "daily",
+    });
+    expect(stateOf(r, "gate")).toBe("complete");
+    expect(stateOf(r, "d15p")).toBe("available");
+  });
+
+  it("does not read the entry GATE being open as the check-in being done", () => {
+    // `hasBaseline` is the visibility question, and the admin roster and the
+    // nightly sweep both answer it `true` for every member on purpose. Reused
+    // as a completion signal it would credit the six people who have not
+    // taken the check-in and green them out of the heatmap.
+    const r = resolveItemStates({
+      items,
+      startDate: START,
+      today: "2026-09-07",
+      hasBaseline: true,
+      unlockMode: "daily",
+    });
+    expect(stateOf(r, "gate")).toBe("available");
+  });
+
+  it("completes an answered check-in whatever the calendar says", () => {
+    // Day 15 has not arrived and the response is in - a rescheduled cohort,
+    // or a wave collected out of band. Work done never re-locks.
+    const r = resolveItemStates({
+      items,
+      startDate: START,
+      today: START,
+      hasBaseline: true,
+      answeredCheckIns: { post: true },
+      unlockMode: "daily",
+    });
+    expect(stateOf(r, "d15p")).toBe("complete");
+  });
+});
+
 describe("the final measurement is gate-exempt", () => {
   it("unlocks on its date even with no baseline response", () => {
     // Someone who skipped the baseline can still be measured at the end.

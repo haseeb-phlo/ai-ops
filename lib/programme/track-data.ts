@@ -386,6 +386,12 @@ const loadTrackStateFor = cache(
       startDate: cohort.start_date,
       today: openThrough,
       hasBaseline,
+      // Neither check-in writes a progress row, so without this the day-0
+      // item stays "available" for the rest of the cohort however many times
+      // it has been answered, and the day-15 one would do the same. Both then
+      // count as open and overdue with nowhere to go and do them. See
+      // unlock.ts.
+      answeredCheckIns: { baseline: hasBaseline, post: hasPostResponse },
       weekOneSubmissionsIn,
       progressByItemId: effectiveProgress,
       summativeItemIds: new Set(summativeItem ? [summativeItem.id] : []),

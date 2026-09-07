@@ -104,7 +104,7 @@ export async function GET(request: NextRequest) {
   const results: { cohort: string; members: number; counts: Record<string, number> }[] = [];
 
   for (const cohort of cohorts ?? []) {
-    const [{ data: members }, { data: items }, { data: progress }, { data: attendance }, { data: submissions }, { data: quizzes }] =
+    const [{ data: members }, { data: items }, { data: progress }, { data: attendance }, { data: submissions }, { data: quizzes }, { data: checkIns }] =
       await Promise.all([
         supabase
           .from("programme_cohort_members")
@@ -154,6 +154,16 @@ export async function GET(request: NextRequest) {
           .returns<
             { cohort_member_id: string; track_item_id: string; score: number }[]
           >(),
+        // The two check-ins are the only items whose completion never lands
+        // in programme_item_progress, so without this read the sweep counts
+        // day 0 as late for every member of every live cohort, forever. See
+        // unlock.ts.
+        supabase
+          .from("ai_score_responses")
+          .select("user_id, wave")
+          .in("wave", ["cohort_baseline", "post"])
+          .not("user_id", "is", null)
+          .returns<{ user_id: string; wave: string }[]>(),
       ]);
 
     const itemList = items ?? [];
@@ -163,6 +173,15 @@ export async function GET(request: NextRequest) {
       (i) => i.type === "quiz" && i.config_json?.summative === true,
     );
     const summativeIds = new Set(summative ? [summative.id] : []);
+
+    const baselineUserIds = new Set(
+      (checkIns ?? [])
+        .filter((r) => r.wave === "cohort_baseline")
+        .map((r) => r.user_id),
+    );
+    const postUserIds = new Set(
+      (checkIns ?? []).filter((r) => r.wave === "post").map((r) => r.user_id),
+    );
 
     const progressByMember = new Map<string, Map<string, ItemState>>();
     for (const p of progress ?? []) {
@@ -182,7 +201,15 @@ export async function GET(request: NextRequest) {
         items: itemList,
         startDate: cohort.start_date,
         today: openThrough,
+        // The sweep asks how late work is, not what to render, so it does not
+        // apply the entry gate - same reasoning as the admin roster, and the
+        // reason the check-ins below are a separate input rather than this
+        // flag reused. See unlock.ts.
         hasBaseline: true,
+        answeredCheckIns: {
+          baseline: baselineUserIds.has(member.user_id),
+          post: postUserIds.has(member.user_id),
+        },
         progressByItemId: memberProgress,
         summativeItemIds: summativeIds,
       });
