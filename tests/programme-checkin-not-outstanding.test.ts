@@ -10,9 +10,10 @@ import { isAwaitingContent } from "@/lib/programme/content-readiness";
  *
  * Reported from Cohort 1A on 2026-09-07: the check-in "is still coming up as
  * needing to be completed, however [members] are unable to see it to
- * complete it". Every one of the twenty-eight members who had answered it saw
- * the same thing, because none of them had a progress row for it - the
- * check-in writes to `ai_score_responses` and nothing else.
+ * complete it". Every one of the twenty-five members across the two live
+ * cohorts who had answered it saw the same thing, because none of them had a
+ * progress row for it - the check-in writes to `ai_score_responses` and
+ * nothing else.
  *
  * The four modules below are the whole path from "which items are open" to
  * the sentence the member actually read, and no single one of them was wrong.

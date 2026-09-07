@@ -43,8 +43,9 @@
  * the moment the response lands - but every count still sees it, so it sat in
  * "N things open", stayed permanently overdue (its unlock date IS the cohort
  * start), and `stepsToGreen` named it as the one thing between the member and
- * green. Twenty-eight people were told to finish a check-in they had already
- * done and could not find anywhere to do again.
+ * green. All twenty-five people across the two live cohorts who had done the
+ * check-in were being told to finish a check-in they had already done and
+ * could not find anywhere to do again.
  *
  * So `answeredCheckIns` is the missing signal, and it is deliberately NOT
  * `hasBaseline`: see the field.
@@ -132,8 +133,8 @@ export function resolveItemStates<T extends TrackItemLike>(args: {
    * is rather than deciding what to render for them: a member who never
    * checked in is behind on everything, not excused from it. Reading that
    * `true` as "the check-in is done" would credit everyone who has not taken
-   * it - six of thirty-four when this was written - and green out on the
-   * admin heatmap exactly the members who most need chasing.
+   * it - six of the thirty-one live members when this was written - and green
+   * out on the admin heatmap exactly the members who most need chasing.
    *
    * Defaults to neither answered, which leaves both items outstanding. That is
    * the pessimistic direction on purpose: a caller that has not been taught
