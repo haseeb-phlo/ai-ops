@@ -43,6 +43,40 @@ describe("the shortest route back to green", () => {
     expect(out.steps[0].title).toBe("Finish day 4: Task");
   });
 
+  it("reports the days a step names, so a caller can spot its own duplicate", () => {
+    // The track lists this beside week one's checkpoint, which asks for the
+    // same day-one submission. Without the days, the only way to tell the two
+    // apart is string-matching a title, and the page prints one thing twice.
+    const one = stepsToGreen({
+      ...base,
+      outstanding: [
+        { dayIndex: 1, title: "Work sample (before)" },
+        { dayIndex: 5, title: "Task" },
+      ],
+    });
+    expect(one.steps[0].dayIndexes).toEqual([1]);
+
+    const many = stepsToGreen({
+      ...base,
+      rag: "red",
+      outstanding: [
+        { dayIndex: 1, title: "Work sample (before)" },
+        { dayIndex: 2, title: "Task" },
+        { dayIndex: 3, title: "Task" },
+      ],
+    });
+    expect(many.steps[0].dayIndexes).toEqual([1, 2]);
+
+    // A resubmission names no day at all.
+    const sentBack = stepsToGreen({
+      ...base,
+      hasOutstandingRejection: true,
+      rejectedTitle: "Example 2",
+      outstanding: [],
+    });
+    expect(sentBack.steps[0].dayIndexes).toEqual([]);
+  });
+
   it("takes the earliest days first", () => {
     const out = stepsToGreen({
       ...base,

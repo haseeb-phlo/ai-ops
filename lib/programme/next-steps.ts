@@ -24,6 +24,14 @@ export type NextStep = {
   title: string;
   /** One line on why this particular thing is what is holding the status. */
   why: string;
+  /**
+   * The days this step names, so a caller listing these next to its own
+   * blockers can tell when the two are the same work. Week one's checkpoint
+   * asks for the same day-one submission a catch-up step would, and printing
+   * both is the page saying one thing twice - the duplication the member track
+   * exists to avoid. Empty for a step that names no day, like a resubmission.
+   */
+  dayIndexes: number[];
 };
 
 export type OutstandingItem = {
@@ -74,6 +82,7 @@ export function stepsToGreen(input: {
         ? `Resubmit ${input.rejectedTitle}`
         : "Resubmit the work that was sent back",
       why: "Work waiting on a resubmission holds your status on its own.",
+      dayIndexes: [],
     });
   }
 
@@ -99,6 +108,7 @@ export function stepsToGreen(input: {
         take.length === 1
           ? "The last thing standing between you and green."
           : `${take.length} items. The rest of what is open can wait for its own week.`,
+      dayIndexes: days,
     });
   }
 

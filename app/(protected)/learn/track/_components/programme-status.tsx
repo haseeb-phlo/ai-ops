@@ -49,10 +49,10 @@ import { PROGRAMME_OPEN_LABEL } from "@/lib/programme/working-days";
  * Task link box is much further down the page than this card and nothing else
  * joins the two. It no longer repeats the count - the tile above has it.
  *
- * The aqua wash is kept for the two states where nothing is open, and the ink
- * now moves with it. The old panel washed the surface but left its eyebrow on
- * `muted-foreground`, a pairing the contrast test does not sanction on
- * `--secondary`.
+ * The aqua wash is kept for the states worth marking - nothing open, or the
+ * programme finished - and the ink now moves with it. The old panel washed the
+ * surface but left its eyebrow on `muted-foreground`, a pairing the contrast
+ * test does not sanction on `--secondary`.
  */
 
 const COUNT_WORD = ["no", "one", "two", "three", "four", "five"];
@@ -94,7 +94,12 @@ export function ProgrammeStatus({
   // Nothing open is a brand moment, not an absence - on a drip programme most
   // visits end with nothing to do, and a page that greys out on those visits
   // reads as broken.
-  const onWash = openCount === 0;
+  //
+  // Completing the programme takes the wash whatever is open, because the
+  // gates can all pass with an optional submission slot still sitting there.
+  // A finished programme announced on the plain surface, next to a button
+  // offering to pick the work back up, reads as neither thing.
+  const onWash = isComplete || openCount === 0;
   const ink = {
     strong: onWash ? "text-secondary-foreground" : "text-foreground",
     quiet: onWash ? "text-secondary-foreground/80" : "text-muted-foreground",
@@ -142,7 +147,19 @@ export function ProgrammeStatus({
   }
 
   if (nextSteps.reachable) {
+    const weekOneDays = new Set(weekOneOutstanding.map((i) => i.dayIndex));
     for (const step of nextSteps.steps) {
+      // A step that names only work the checkpoint above already named is the
+      // same line twice. Week one's submission is day one and overdue from
+      // day two, so it sorts to the front of the route back to green and this
+      // is the ordinary case, not an edge one. The checkpoint speaks first
+      // because it carries the harder consequence: week 2 does not open.
+      if (
+        step.dayIndexes.length > 0 &&
+        step.dayIndexes.every((d) => weekOneDays.has(d))
+      ) {
+        continue;
+      }
       actions.push({ key: step.key, title: step.title, why: step.why });
     }
   }
