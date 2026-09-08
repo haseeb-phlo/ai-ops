@@ -16,6 +16,22 @@ import {
  * no cell carries its meaning in colour alone: every one of them holds a
  * sentence for a screen reader and the same sentence as its tooltip, because a
  * heatmap that is only a colour is unreadable to anyone who cannot see it.
+ *
+ * Two things the heading and the legend are careful not to repeat.
+ *
+ * The heading is "Day by day" and not "Your fifteen days", because the
+ * timeline further down the page is already titled "All 15 days" and the two
+ * headings side by side read as the same section twice. What this strip
+ * uniquely holds is the comparison, so the legend names it and the heading
+ * stays out of the way.
+ *
+ * And the legend no longer carries a "video still to come" key for the dashed
+ * cells. `describeDay` already ends such a day with "video still to come", so
+ * the fact is in the tooltip and in the screen-reader sentence for the exact
+ * cells it applies to - a third copy in a key, spelling out a border style
+ * nobody asked about, was the one line in the legend that earned nothing. The
+ * whole row goes when there is no cohort data to compare against, since a key
+ * explaining "You" against no alternative explains nothing.
  */
 export function ActivityHeatmap({ days }: { days: DayActivity[] }) {
   if (days.length === 0) return null;
@@ -29,7 +45,7 @@ export function ActivityHeatmap({ days }: { days: DayActivity[] }) {
   return (
     <section className="rounded-lg border border-border bg-background p-4 sm:p-5">
       <h2 className="text-sm font-semibold tracking-tight text-foreground">
-        Your fifteen days
+        Day by day
       </h2>
 
       <div className="mt-4 flex flex-wrap items-start gap-x-6 gap-y-4">
@@ -81,16 +97,16 @@ export function ActivityHeatmap({ days }: { days: DayActivity[] }) {
         ))}
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-border pt-3 text-xs text-muted-foreground">
-        <span className="inline-flex items-center gap-2">
-          <span
-            aria-hidden
-            className="size-3.5 rounded-[3px] border border-border"
-            style={{ background: rampWash(youMix(4)) }}
-          />
-          You
-        </span>
-        {hasCohort && (
+      {hasCohort && (
+        <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-border pt-3 text-xs text-muted-foreground">
+          <span className="inline-flex items-center gap-2">
+            <span
+              aria-hidden
+              className="size-3.5 rounded-[3px] border border-border"
+              style={{ background: rampWash(youMix(4)) }}
+            />
+            You
+          </span>
           <span className="inline-flex items-center gap-2">
             <span
               aria-hidden
@@ -99,15 +115,8 @@ export function ActivityHeatmap({ days }: { days: DayActivity[] }) {
             />
             Everyone else
           </span>
-        )}
-        <span className="inline-flex items-center gap-2">
-          <span
-            aria-hidden
-            className="size-3.5 rounded-[3px] border border-dashed border-muted-foreground/50"
-          />
-          Video still to come
-        </span>
-      </div>
+        </div>
+      )}
     </section>
   );
 }

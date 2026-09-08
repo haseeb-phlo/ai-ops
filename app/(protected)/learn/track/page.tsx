@@ -14,9 +14,8 @@ import { PageContainer, PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { GraduationCapIcon } from "lucide-react";
 import { BaselineGateCard } from "./_components/baseline-gate-card";
-import { GateStrip } from "./_components/gate-strip";
 import { DayRow } from "./_components/day-row";
-import { TodayPanel } from "./_components/today-panel";
+import { ProgrammeStatus } from "./_components/programme-status";
 import { DayFocus } from "./_components/day-focus";
 import { ActivityHeatmap } from "./_components/activity-heatmap";
 import type { TrackItemView } from "./_components/track-item-card";
@@ -131,9 +130,6 @@ export default async function TrackPage({
     dayItems.map((r) => [r.item.day_index, r.unlockDate]),
   );
 
-
-  const completedContent = state.gates.g1.current;
-
   // The soonest date anything still locked becomes available, so the panel can
   // say when to come back rather than leaving a wall of grey to interpret.
   const nextOpensOn =
@@ -164,7 +160,6 @@ export default async function TrackPage({
       days: days.filter((d) => weekOf(d) === week),
     }))
     .filter((w) => w.days.length > 0);
-  const totalContent = state.gates.g1.target;
 
   return (
     <PageContainer>
@@ -199,63 +194,25 @@ export default async function TrackPage({
           preview now sends. The cohort's name is in the header above, which
           is how you tell which one you are looking at. */}
 
+      {/* One card for "where am I": the headline, the four gates and every
+          outstanding thing in one list. Four panels used to say this between
+          them - a completion notice, the gates, the week-one checkpoint and a
+          "ready for you" panel whose progress bar was gate one over again. */}
       {!state.entryGateOpen ? (
         <BaselineGateCard />
       ) : (
-        <>
-          {/* One card, keyed on the completion latch. There is no approval
-              step to wait on any more, so there is no in-between state. */}
-          {state.membership.completedAt && (
-            <div className="rounded-lg border border-border bg-secondary px-5 py-4 text-secondary-foreground">
-              <p className="text-sm font-semibold tracking-tight">
-                You&apos;ve completed the Core Programme
-              </p>
-              <p className="mt-0.5 text-xs text-secondary-foreground/80">
-                All four gates passed. Everything stays here if you want to go
-                back over it.
-              </p>
-            </div>
-          )}
-          <GateStrip
-            gates={state.gates}
-            rag={state.rag}
-            g3Remaining={state.g3Remaining}
-          />
-        </>
-      )}
-
-      {/* Week one's checkpoint, said up front rather than at the wall.
-          Without this the first sign of it is week two failing to open on
-          the Monday, by which point the "before" sample it is asking for has
-          stopped being a before. Shown from day one, and only while
-          something is actually outstanding. */}
-      {state.entryGateOpen && !state.weekOneGate.satisfied && (
-        <div className="rounded-md border border-border border-l-2 border-l-warning bg-background px-4 py-3">
-          <p className="text-sm font-medium text-foreground">
-            {state.weekOneGate.outstanding.length === 1
-              ? "One thing to submit before week 2 opens"
-              : `${state.weekOneGate.outstanding.length} things to submit before week 2 opens`}
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Week 2 stays shut until{" "}
-            {state.weekOneGate.outstanding
-              .map((i) => `${i.title} (day ${i.dayIndex})`)
-              .join(" and ")}{" "}
-            {state.weekOneGate.outstanding.length === 1 ? "is" : "are"} in. You
-            do not need them signed off - submitting is enough.
-          </p>
-        </div>
-      )}
-
-      {state.entryGateOpen && (
-        <TodayPanel
+        <ProgrammeStatus
+          gates={state.gates}
+          rag={state.rag}
+          g3Remaining={state.g3Remaining}
           openCount={state.outstandingCount}
           nextOpensOn={nextOpensOn}
           nextOpensToday={nextOpensOn === state.today}
-          completedCount={completedContent}
-          totalCount={totalContent}
           isComplete={state.membership.completedAt !== null}
           nextSteps={state.nextSteps}
+          weekOneOutstanding={
+            state.weekOneGate.satisfied ? [] : state.weekOneGate.outstanding
+          }
         />
       )}
 
