@@ -53,12 +53,15 @@ export type TrackItemSpec = {
  * What went with it is a gap, and calling it anything softer would be wrong.
  * Checking a confident answer against its source was a day's task, two week
  * two questions and a week three spiral, and what remains of it now is one
- * clause in day 7 saying Memory does not make anything more accurate, and one
- * day 15 question that counts checking time against a claimed saving. That is
- * a thread, not a lesson. The material was cut because the day had no video
- * rather than because the habit stopped mattering, so if it is wanted back
- * the cheapest home is a line in day 7's task, which already has the member
- * reading sources, rather than a sixteenth day the programme has no room for.
+ * clause in the Memory task saying Memory does not make anything more
+ * accurate, and one day 15 question that counts checking time against a
+ * claimed saving. That is a thread, not a lesson. The material was cut
+ * because the day had no video rather than because the habit stopped
+ * mattering, so if it is wanted back the cheapest home is a line in the
+ * Research and Memory task, which already has the member reading sources,
+ * rather than a sixteenth day the programme has no room for. That task is on
+ * day 9 since the 7/9 swap below, so this note names the topic rather than
+ * the day number: it has moved once already.
  *
  * Putting the measurement day at the end rather than in the freed middle slot
  * is deliberate: it is the one topic that needs the other fourteen to have
@@ -103,6 +106,24 @@ export type TrackItemSpec = {
  * a heading that looks right. A day admitting it has no video beats a day
  * lying about which one it has.
  *
+ * Days 7 and 9 were swapped in September 2026: Scheduled Tasks moved forward
+ * to day 7 and "Research, Memory & files out" took day 9. The video went with
+ * the topic, which is the whole reason this direction was chosen over cutting
+ * a day - Scheduled Tasks has a row in `learn_videos` and Research does not,
+ * so the swap moves a real recording onto day 7 and leaves day 9 reading
+ * "coming soon", where day 7 read that way before.
+ *
+ * The cost is an ordering one and it is real: Scheduled Tasks now opens the
+ * day BEFORE Cowork, and a scheduled task is a Cowork feature, so day 7's
+ * task sends a member into a tool day 8 has not introduced yet. That is a
+ * forward reference of exactly the kind the day 4/5 swap was made to remove.
+ * It is survivable because the task names the path rather than assuming the
+ * tool is familiar - "Open Cowork, click Scheduled in the sidebar" works for
+ * someone who has never opened it - and because the tasks are independent by
+ * design, so nothing on day 7 depends on day 8 having happened. If the
+ * ordering is ever revisited, this is the argument for putting Scheduled
+ * Tasks back behind Cowork, and the reason not to is the video binding above.
+ *
  * Day 3 was the standing exception and is no longer: the library row was
  * titled "CRISP Framework", with no E, so no title this day carried would ever
  * have matched it, and the binding had to be made by hand in the admin
@@ -119,9 +140,9 @@ export const DAY_TOPICS: readonly string[] = [
   "Projects",
   "Connectors & MCP",
   "Skills",
-  "Research, Memory & files out",
-  "Cowork",
   "Scheduled Tasks",
+  "Cowork",
+  "Research, Memory & files out",
   "Reverse Prompting",
   "Artifacts",
   "Design",
@@ -231,6 +252,40 @@ export const GENERIC_TASK =
  * it - worth knowing before anyone cites the "safety line where the tool
  * touches real data" rule above and finds this day contradicting it.
  *
+ * Day 7 is the newest rewrite and the only task on the track that was changed
+ * because the product moved rather than because the copy was weak. Scheduled
+ * Tasks swapped onto day 7 from day 9, and the copy it displaced could not
+ * come with it, because two of its four instructions had stopped being true:
+ *
+ *   - it said a scheduled task "only runs while your machine is awake and the
+ *     desktop app is open", and told the member to pick a time they are
+ *     genuinely at their desk. Anthropic moved Cowork's scheduled runs to the
+ *     cloud in July 2026, so they now keep their cadence with the machine
+ *     asleep and the app shut. The old advice inverted the current behaviour;
+ *   - it said to type /schedule in the prompt box. That is the CLI surface.
+ *     In Cowork the path is Scheduled in the left sidebar, and from there
+ *     either a description Claude drafts the schedule from or a manual setup.
+ *
+ * The same correction had to reach the two Scheduled Tasks questions in
+ * quiz-content.ts, one of which marked the now-true answer as a distractor.
+ * A day's task and its quiz question disagreeing is the failure to watch for
+ * when a product fact moves under this file.
+ *
+ * The failable step is the away-run: set it for a time you will not be at
+ * your desk and check afterwards that it produced something without you. It
+ * is a real pass or fail, and what it tests is whether the member built the
+ * task on inputs the cloud can reach. Anthropic's own caveat is the trap -
+ * "if a scheduled task requires local files or apps, it will only run
+ * locally", and a schedule "can't be tied to a folder on your computer" - so
+ * a task pointed at a folder passes on demand and silently never fires
+ * unattended. That plays directly off day 8, which asks for exactly such a
+ * folder: the two days want opposite things from the same member, and saying
+ * so is the lesson rather than a contradiction to smooth over.
+ *
+ * Its safety line sits on the approval mode, which is where this tool touches
+ * real data: the setup asks for one, and an unattended run is the one place
+ * the answer matters, because whatever it allows happens with nobody watching.
+ *
  * They share a shape, and it is worth keeping when one gets rewritten:
  *
  *   - The work comes off the member's own desk. "Pick the job you repeat",
@@ -334,11 +389,13 @@ const DAY_TASKS: Readonly<Record<number, string>> = {
     "Submit the link to the chat where your Skill fired on its own.",
   ].join("\n"),
   7: [
-    "Pick something you would normally lose an afternoon to: a comparison, a supplier or market scan, a written summary that means reading several sources first.",
-    "Run it with Research rather than a normal chat. It searches, reads and cross-references many sources and then writes the whole thing up, and it runs in the background - so start it and go and do something else.",
-    "Then ask for the result as a file rather than as chat text: a document, a spreadsheet or a deck. Reassembling a finished thing out of a chat by hand is the work you are meant to be stopping.",
-    "While you are in Settings, turn Memory on and read what it already holds about you. It saves you the re-briefing every time; it does not make anything more accurate, so nothing about the checking habit changes.",
-    "Submit the link to the Research chat, or to the file if it lives somewhere shareable.",
+    "Pick one job you do on a rhythm: the Monday write-up, the morning scan of your inbox and Slack, the weekly numbers somebody always asks you for.",
+    "Open Cowork, click Scheduled in the sidebar and set the job up, either by describing it and letting Claude draft the schedule or by filling it in yourself. It can run hourly, daily, on weekdays, weekly or only when you ask. Say what shape you want the output in, because a result you reformat every Monday has not saved you the Monday.",
+    "Choose the approval mode deliberately rather than taking whatever is offered. An unattended run is the one place that setting really matters, because what you allow, it will do while you are not watching.",
+    "Run it once on demand from that same page before you trust the cadence. Fix the prompt now rather than living with a weekly version of nearly right.",
+    "Then set it for a time you will not be at your desk, and check afterwards that it produced something without you. That is the test worth passing, because a scheduled run happens on Anthropic's servers rather than on your laptop: it keeps its cadence with your machine asleep and the desktop app shut, but it cannot open a folder on your computer while you are away. Build it on your Connectors and on files saved to your Claude account, or it will only ever run when you are there to run it.",
+    "Give it a name a colleague would understand, because they may well see it.",
+    "Submit the link to its first completed run.",
   ].join("\n"),
   8: [
     "Pick a whole task you dread because it is assembly rather than thinking: merging several documents into one summary, reconciling two lists, tidying and renaming a folder, drafting a recurring update out of scattered notes.",
@@ -349,12 +406,11 @@ const DAY_TASKS: Readonly<Record<number, string>> = {
     "Submit the link to what it produced.",
   ].join("\n"),
   9: [
-    "Pick one job you do on a rhythm: the Monday write-up, the morning scan of Slack and flagged email, the weekly numbers somebody always asks you for.",
-    "Schedule it in Cowork. Type /schedule in the prompt box and describe what you want in plain English, including when it should run and what shape the output should come back in.",
-    "Run it once by hand before you trust it. Check the output is what you actually wanted, and fix the prompt now rather than living with a daily version of nearly right.",
-    "Pick a time you are genuinely at your desk. A scheduled task only runs while your machine is awake and the desktop app is open - if the laptop is shut at eight, that run waits until you open it.",
-    "Give it a name a colleague would understand, because they may well see it.",
-    "Submit the link to its first completed run.",
+    "Pick something you would normally lose an afternoon to: a comparison, a supplier or market scan, a written summary that means reading several sources first.",
+    "Run it with Research rather than a normal chat. It searches, reads and cross-references many sources and then writes the whole thing up, and it runs in the background - so start it and go and do something else.",
+    "Then ask for the result as a file rather than as chat text: a document, a spreadsheet or a deck. Reassembling a finished thing out of a chat by hand is the work you are meant to be stopping.",
+    "While you are in Settings, turn Memory on and read what it already holds about you. It saves you the re-briefing every time; it does not make anything more accurate, so nothing about the checking habit changes.",
+    "Submit the link to the Research chat, or to the file if it lives somewhere shareable.",
   ].join("\n"),
   10: [
     "Find a prompt that is not working - one you have reworded twice and it still comes back the wrong shape.",

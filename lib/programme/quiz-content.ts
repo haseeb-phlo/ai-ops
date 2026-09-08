@@ -9,8 +9,8 @@
  *
  *   Week 1 (day 5)  - D1 what AI is doing, D2 when to use it, D3 Prompting,
  *                     D4 Projects, D5 Connectors & MCP
- *   Week 2 (day 10) - D6 Skills, D7 Research/Memory/files out, D8 Cowork,
- *                     D9 Scheduled Tasks, D10 Reverse Prompting
+ *   Week 2 (day 10) - D6 Skills, D7 Scheduled Tasks, D8 Cowork,
+ *                     D9 Research/Memory/files out, D10 Reverse Prompting
  *   Week 3 (day 15) - D11 Artifacts, D12 Design, D13 Dispatch + Plugins,
  *                     D14 Claude everywhere, D15 choosing the right tool and
  *                     measuring time saved, plus a spiral back over one day
@@ -48,6 +48,27 @@
  * `day` tag. That is the cheap half of a reorder and the deletions are the
  * expensive half: a question about a day that no longer exists cannot be
  * salvaged by renumbering it.
+ *
+ * Days 7 and 9 swapped later in September 2026, Scheduled Tasks coming
+ * forward and Research/Memory going back. Four questions were re-tagged and
+ * no prose moved between quizzes, since both days sit inside week two: the
+ * two Scheduled Tasks questions here, the two Research and Memory ones, and
+ * week three's container-choice spiral, which was tagged day 9 for the
+ * Scheduled Task in its first slot and now follows that topic to day 7.
+ *
+ * One of them needed more than a tag, and it is the reason to read this
+ * paragraph before trusting any question about where work runs. Anthropic
+ * moved Cowork's scheduled runs to the cloud in July 2026. The laptop
+ * question below had been written on the old behaviour, so it marked "it runs
+ * when you open the laptop" correct and offered "it runs on Anthropic's
+ * servers and waits for you" as a distractor - which is now the true answer.
+ * A formative quiz teaching the inverse of the product is worse than no
+ * question, and the day's task said the same wrong thing, so both were
+ * corrected together. See the day 7 note in track-spec.ts.
+ *
+ * The lesson for the next edit: a `day` tag rots loudly, because a test reads
+ * it, and a product fact rots silently. Nothing in this file checks that an
+ * answer is still true.
  *
  * TAGS ARE EDITORIAL. Which quiz a question lands in is the array it sits in,
  * never this field. It exists so `tests/programme-quiz-content.test.ts` can
@@ -314,32 +335,32 @@ export const WEEK_2_QUESTIONS: QuizQuestion[] = [
   {
     day: 7,
     question:
-      "You need a written comparison of three couriers' terms, ready to send to your manager. Which approach uses what Claude is actually good at?",
+      "You set a Scheduled Task in Cowork to run the stock summary at 07:00 each Monday. You reach your desk at 08:30 and your laptop was shut overnight. What happens?",
     options: [
-      "Ask for the comparison, then copy the answer out of the Chat by hand",
-      "Ask three separate questions and stitch the answers together yourself",
-      "Ask for bullet points in a Chat and write the document up yourself",
-      "Ask Research to compare all three and hand back a finished file",
-      "Ask for the comparison, paste it into a document and format it",
+      "It waits until you open the laptop, so the result arrives late",
+      "It ran at 07:00 without your machine, and the result is waiting",
+      "It is skipped entirely and runs again the following Monday",
+      "It fails, and you get a notification telling you that it failed",
+      "It ran at 07:00 but could not reach your Connectors while you were away",
     ],
-    correct: 3,
+    correct: 1,
     explanation:
-      "Research searches, reads and cross-references, then hands back the finished file rather than leaving you to reassemble a document out of Chat text, and it runs in the background while you do something else. Every other option ends with you doing the part the tool would have done.",
+      "Scheduled runs happen on Anthropic's servers, so they keep their cadence with your computer asleep and the desktop app shut, and your connected tools go with them. Nothing is deferred, skipped or failed. The one thing that does still need your machine is a task reaching files or apps on it, which is why a schedule is built on your Connectors and the files saved to your Claude account rather than on a folder.",
   },
   {
     day: 7,
     question:
-      "You turn Memory on and Claude starts carrying your role, your team's terminology and your usual formats between Chats. What does that change?",
+      "A Scheduled Task you set up three weeks ago still runs, but you now rewrite most of its output before you use it. What should you do?",
     options: [
-      "Factual answers get more reliable, because it knows your situation",
-      "You stop re-briefing it at the start of every Chat, nothing more",
-      "It can now reach your company systems without needing a Connector",
-      "Your Chats become visible to colleagues who share the same memory",
-      "It stops inventing detail on topics it now holds context about",
+      "Leave it running, since it is still saving you time overall",
+      "Delete it and go back to doing the whole task by hand again",
+      "Run it more often so that its output stays closer to current",
+      "Keep it, and log the saving as the full time the task once took",
+      "Fold what you keep rewriting back in, or retire the task",
     ],
-    correct: 1,
+    correct: 4,
     explanation:
-      "Memory removes the re-briefing. It does not turn a prediction into a lookup, so the checking habit is untouched, and knowing your team's vocabulary does not stop Claude inventing a figure. It grants no system access, which is what a Connector is for, and it shares nothing with anyone.",
+      "Heavy editing means the task and the real work have drifted apart, and what you keep rewriting is the specification. Running it more often just produces more to correct. Logging the old full cost is how a time saving becomes a number nobody believes, because the saving is what the job costs now against what it cost before.",
   },
   {
     day: 8,
@@ -374,32 +395,32 @@ export const WEEK_2_QUESTIONS: QuizQuestion[] = [
   {
     day: 9,
     question:
-      "You set a Scheduled Task to run the stock summary at 07:00 each Monday. You reach your desk at 08:30 and your laptop was shut overnight. What happens?",
+      "You need a written comparison of three couriers' terms, ready to send to your manager. Which approach uses what Claude is actually good at?",
     options: [
-      "It runs when you open the laptop, so the result arrives late",
-      "It runs at 07:00 on Anthropic's servers and waits for you",
-      "It is skipped entirely and runs again the following Monday",
-      "It fails, and you get a notification telling you that it failed",
-      "It runs at 07:00 but cannot use Connectors until you sign in",
+      "Ask for the comparison, then copy the answer out of the Chat by hand",
+      "Ask three separate questions and stitch the answers together yourself",
+      "Ask for bullet points in a Chat and write the document up yourself",
+      "Ask Research to compare all three and hand back a finished file",
+      "Ask for the comparison, paste it into a document and format it",
     ],
-    correct: 0,
+    correct: 3,
     explanation:
-      "A Scheduled Task runs on your machine while it is awake and the desktop app is open, so a shut laptop defers the run rather than cancelling it. Pick a time you are genuinely at your desk. Nothing is skipped and nothing fails, which is precisely why a badly timed schedule is easy not to notice.",
+      "Research searches, reads and cross-references, then hands back the finished file rather than leaving you to reassemble a document out of Chat text, and it runs in the background while you do something else. Every other option ends with you doing the part the tool would have done.",
   },
   {
     day: 9,
     question:
-      "A Scheduled Task you set up three weeks ago still runs, but you now rewrite most of its output before you use it. What should you do?",
+      "You turn Memory on and Claude starts carrying your role, your team's terminology and your usual formats between Chats. What does that change?",
     options: [
-      "Leave it running, since it is still saving you time overall",
-      "Delete it and go back to doing the whole task by hand again",
-      "Run it more often so that its output stays closer to current",
-      "Keep it, and log the saving as the full time the task once took",
-      "Fold what you keep rewriting back in, or retire the task",
+      "Factual answers get more reliable, because it knows your situation",
+      "You stop re-briefing it at the start of every Chat, nothing more",
+      "It can now reach your company systems without needing a Connector",
+      "Your Chats become visible to colleagues who share the same memory",
+      "It stops inventing detail on topics it now holds context about",
     ],
-    correct: 4,
+    correct: 1,
     explanation:
-      "Heavy editing means the task and the real work have drifted apart, and what you keep rewriting is the specification. Running it more often just produces more to correct. Logging the old full cost is how a time saving becomes a number nobody believes, because the saving is what the job costs now against what it cost before.",
+      "Memory removes the re-briefing. It does not turn a prediction into a lookup, so the checking habit is untouched, and knowing your team's vocabulary does not stop Claude inventing a figure. It grants no system access, which is what a Connector is for, and it shares nothing with anyone.",
   },
   {
     day: 10,
@@ -576,7 +597,7 @@ export const WEEK_3_QUESTIONS: QuizQuestion[] = [
       "A Project holds standing context that changes slowly and a Connector fetches live state. Reference material belongs in the Project and anything that moves belongs behind the Connector, whatever its age: a document goes stale when the system changes rather than after a set period. Treating a stored document as current is a quiet source of wrong answers.",
   },
   {
-    day: 9,
+    day: 7,
     question:
       "You have a recurring task, a one-off question, a method colleagues should reuse and a system Claude cannot reach. Which mapping is right?",
     options: [
