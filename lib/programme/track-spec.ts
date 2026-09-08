@@ -227,14 +227,20 @@ export const GENERIC_TASK =
  * tests/programme-track-spec.test.ts asserts, because a day that quietly
  * falls back to it reads as finished without being it.
  *
- * Day 6 is written to the earlier format instead, the one days 2-5 use, and
- * day 4 is the template it follows line for line: an imperative opening, the
- * Customize path, a bulleted list of what to give the thing, "Then test it",
- * the good-to-go/sharpen-it pair, then the ask. It moved into a week one slot
- * when Skills came forward from day 9, and a member reading Monday to Monday
- * meets it directly after day 5 - so it reads as the odd one out if it keeps
- * the reflective opening and the standalone safety paragraph that the later
- * days use.
+ * Days 6 and 7 are written to the earlier format instead, the one days 2-5
+ * use, and day 4 is the template both follow line for line: an imperative
+ * opening, the Customize path, a bulleted list of what to give the thing,
+ * "Then test it", the good-to-go/sharpen-it pair, then the ask. Day 6 moved
+ * into a week one slot when Skills came forward from day 9, and a member
+ * reading Monday to Monday meets it directly after day 5 - so it reads as the
+ * odd one out if it keeps the reflective opening and the standalone safety
+ * paragraph that the later days use.
+ *
+ * So the format boundary is now days 1-7 on the earlier shape and days 8-15
+ * on the later one, rather than 1-5 against 6-15. It is worth knowing which
+ * side a day sits on before rewriting it, because the two shapes want
+ * different things: the earlier one puts the settings in bare bullets and the
+ * diagnosis in the closing pair, and the later one carries both in prose.
  *
  * The failable step survives the format change and gets sharper for it: the
  * fresh chat still has to fire the Skill without being told its name, and the
@@ -271,20 +277,29 @@ export const GENERIC_TASK =
  * A day's task and its quiz question disagreeing is the failure to watch for
  * when a product fact moves under this file.
  *
- * The failable step is the away-run: set it for a time you will not be at
- * your desk and check afterwards that it produced something without you. It
- * is a real pass or fail, and what it tests is whether the member built the
- * task on inputs the cloud can reach. Anthropic's own caveat is the trap -
- * "if a scheduled task requires local files or apps, it will only run
- * locally", and a schedule "can't be tied to a folder on your computer" - so
- * a task pointed at a folder passes on demand and silently never fires
- * unattended. That plays directly off day 8, which asks for exactly such a
- * folder: the two days want opposite things from the same member, and saying
- * so is the lesson rather than a contradiction to smooth over.
+ * The failable step is the away-run: leave it to run on its own while you are
+ * away from your desk. It is a real pass or fail, and what it tests is
+ * whether the member built the task on inputs the cloud can reach.
+ * Anthropic's own caveat is the trap - "if a scheduled task requires local
+ * files or apps, it will only run locally", and a schedule "can't be tied to
+ * a folder on your computer" - so a task pointed at a folder passes on demand
+ * and silently never fires unattended. That plays directly off day 8, which
+ * asks for exactly such a folder: the two days want opposite things from the
+ * same member, and saying so is the lesson rather than a contradiction to
+ * smooth over.
+ *
+ * The earlier format is what carries that well, which is why this day is on
+ * it. The two tests land as day 6's pair of "Then test it" lines, on demand
+ * first and unattended second, and the local-folder trap goes where day 4 and
+ * day 6 put their diagnosis: the "if nothing ran" half of the closing pair.
+ * In the later format the same fact was a long prose paragraph that stated
+ * the failure before the member had met it.
  *
  * Its safety line sits on the approval mode, which is where this tool touches
- * real data: the setup asks for one, and an unattended run is the one place
- * the answer matters, because whatever it allows happens with nobody watching.
+ * real data, and it stays a standalone sentence rather than a bullet. Every
+ * bullet on days 2-6 is a bare noun phrase carrying no reason, so a caution
+ * folded into the list would have lost the reason it exists. Day 5 is the
+ * precedent for a safety sentence inside this format.
  *
  * They share a shape, and it is worth keeping when one gets rewritten:
  *
@@ -389,12 +404,16 @@ const DAY_TASKS: Readonly<Record<number, string>> = {
     "Submit the link to the chat where your Skill fired on its own.",
   ].join("\n"),
   7: [
-    "Pick one job you do on a rhythm: the Monday write-up, the morning scan of your inbox and Slack, the weekly numbers somebody always asks you for.",
-    "Open Cowork, click Scheduled in the sidebar and set the job up, either by describing it and letting Claude draft the schedule or by filling it in yourself. It can run hourly, daily, on weekdays, weekly or only when you ask. Say what shape you want the output in, because a result you reformat every Monday has not saved you the Monday.",
-    "Choose the approval mode deliberately rather than taking whatever is offered. An unattended run is the one place that setting really matters, because what you allow, it will do while you are not watching.",
-    "Run it once on demand from that same page before you trust the cadence. Fix the prompt now rather than living with a weekly version of nearly right.",
-    "Then set it for a time you will not be at your desk, and check afterwards that it produced something without you. That is the test worth passing, because a scheduled run happens on Anthropic's servers rather than on your laptop: it keeps its cadence with your machine asleep and the desktop app shut, but it cannot open a folder on your computer while you are away. Build it on your Connectors and on files saved to your Claude account, or it will only ever run when you are there to run it.",
-    "Give it a name a colleague would understand, because they may well see it.",
+    "Pick one job you do on a rhythm (e.g. the Monday write-up, the morning scan of your inbox and Slack, the weekly numbers somebody always asks you for).",
+    "Go to Cowork > Scheduled and set one up, letting Claude draft it from your description rather than filling the form in yourself. Give it:",
+    "- the job in plain English, the way you would brief a colleague",
+    "- a cadence (hourly, daily, on weekdays or weekly) and a time you will not be at your desk",
+    "- the shape the output should come back in",
+    "- a name a colleague would understand",
+    "Pick the approval mode yourself rather than taking the one offered. An unattended run is the one place that setting matters, because whatever you allow, it will do with nobody watching.",
+    "Then test it by running it once on demand from that same page, before you trust the cadence.",
+    "Then leave it to run on its own while you are away from your desk.",
+    "If something is waiting for you when you get back, everything is working. If nothing ran, the task is reaching for a folder on your computer: a schedule runs on Anthropic's servers rather than on your laptop, so rebuild it on your Connectors and on files saved to your Claude account.",
     "Submit the link to its first completed run.",
   ].join("\n"),
   8: [

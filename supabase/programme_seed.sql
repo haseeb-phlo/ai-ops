@@ -66,12 +66,16 @@ Try over a few runs with different wording.
 If the skill fires, then everything is working. If not, the description is likely too vague or ambiguous. Fix this and try again.
 Submit the link to the chat where your Skill fired on its own.', 6, 1, null, '{}'::jsonb),
     ('video', 'Scheduled Tasks', null, 7, 0, 'Scheduled Tasks', '{}'::jsonb),
-    ('use_example', 'Task', 'Pick one job you do on a rhythm: the Monday write-up, the morning scan of your inbox and Slack, the weekly numbers somebody always asks you for.
-Open Cowork, click Scheduled in the sidebar and set the job up, either by describing it and letting Claude draft the schedule or by filling it in yourself. It can run hourly, daily, on weekdays, weekly or only when you ask. Say what shape you want the output in, because a result you reformat every Monday has not saved you the Monday.
-Choose the approval mode deliberately rather than taking whatever is offered. An unattended run is the one place that setting really matters, because what you allow, it will do while you are not watching.
-Run it once on demand from that same page before you trust the cadence. Fix the prompt now rather than living with a weekly version of nearly right.
-Then set it for a time you will not be at your desk, and check afterwards that it produced something without you. That is the test worth passing, because a scheduled run happens on Anthropic''s servers rather than on your laptop: it keeps its cadence with your machine asleep and the desktop app shut, but it cannot open a folder on your computer while you are away. Build it on your Connectors and on files saved to your Claude account, or it will only ever run when you are there to run it.
-Give it a name a colleague would understand, because they may well see it.
+    ('use_example', 'Task', 'Pick one job you do on a rhythm (e.g. the Monday write-up, the morning scan of your inbox and Slack, the weekly numbers somebody always asks you for).
+Go to Cowork > Scheduled and set one up, letting Claude draft it from your description rather than filling the form in yourself. Give it:
+- the job in plain English, the way you would brief a colleague
+- a cadence (hourly, daily, on weekdays or weekly) and a time you will not be at your desk
+- the shape the output should come back in
+- a name a colleague would understand
+Pick the approval mode yourself rather than taking the one offered. An unattended run is the one place that setting matters, because whatever you allow, it will do with nobody watching.
+Then test it by running it once on demand from that same page, before you trust the cadence.
+Then leave it to run on its own while you are away from your desk.
+If something is waiting for you when you get back, everything is working. If nothing ran, the task is reaching for a folder on your computer: a schedule runs on Anthropic''s servers rather than on your laptop, so rebuild it on your Connectors and on files saved to your Claude account.
 Submit the link to its first completed run.', 7, 1, null, '{}'::jsonb),
     ('video', 'Cowork', null, 8, 0, 'Cowork', '{}'::jsonb),
     ('use_example', 'Task', 'Pick a whole task you dread because it is assembly rather than thinking: merging several documents into one summary, reconciling two lists, tidying and renaming a folder, drafting a recurring update out of scattered notes.
@@ -199,12 +203,16 @@ Try over a few runs with different wording.
 If the skill fires, then everything is working. If not, the description is likely too vague or ambiguous. Fix this and try again.
 Submit the link to the chat where your Skill fired on its own.'),
     (7, 0, 'Scheduled Tasks', null),
-    (7, 1, 'Task', 'Pick one job you do on a rhythm: the Monday write-up, the morning scan of your inbox and Slack, the weekly numbers somebody always asks you for.
-Open Cowork, click Scheduled in the sidebar and set the job up, either by describing it and letting Claude draft the schedule or by filling it in yourself. It can run hourly, daily, on weekdays, weekly or only when you ask. Say what shape you want the output in, because a result you reformat every Monday has not saved you the Monday.
-Choose the approval mode deliberately rather than taking whatever is offered. An unattended run is the one place that setting really matters, because what you allow, it will do while you are not watching.
-Run it once on demand from that same page before you trust the cadence. Fix the prompt now rather than living with a weekly version of nearly right.
-Then set it for a time you will not be at your desk, and check afterwards that it produced something without you. That is the test worth passing, because a scheduled run happens on Anthropic''s servers rather than on your laptop: it keeps its cadence with your machine asleep and the desktop app shut, but it cannot open a folder on your computer while you are away. Build it on your Connectors and on files saved to your Claude account, or it will only ever run when you are there to run it.
-Give it a name a colleague would understand, because they may well see it.
+    (7, 1, 'Task', 'Pick one job you do on a rhythm (e.g. the Monday write-up, the morning scan of your inbox and Slack, the weekly numbers somebody always asks you for).
+Go to Cowork > Scheduled and set one up, letting Claude draft it from your description rather than filling the form in yourself. Give it:
+- the job in plain English, the way you would brief a colleague
+- a cadence (hourly, daily, on weekdays or weekly) and a time you will not be at your desk
+- the shape the output should come back in
+- a name a colleague would understand
+Pick the approval mode yourself rather than taking the one offered. An unattended run is the one place that setting matters, because whatever you allow, it will do with nobody watching.
+Then test it by running it once on demand from that same page, before you trust the cadence.
+Then leave it to run on its own while you are away from your desk.
+If something is waiting for you when you get back, everything is working. If nothing ran, the task is reaching for a folder on your computer: a schedule runs on Anthropic''s servers rather than on your laptop, so rebuild it on your Connectors and on files saved to your Claude account.
 Submit the link to its first completed run.'),
     (8, 0, 'Cowork', null),
     (8, 1, 'Task', 'Pick a whole task you dread because it is assembly rather than thinking: merging several documents into one summary, reconciling two lists, tidying and renaming a folder, drafting a recurring update out of scattered notes.
