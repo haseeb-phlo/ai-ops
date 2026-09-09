@@ -115,12 +115,12 @@ export type TrackItemSpec = {
  *
  * The cost is an ordering one and it is real: Scheduled Tasks now opens the
  * day BEFORE Cowork, and a scheduled task is a Cowork feature, so day 7's
- * task sends a member into a tool day 8 has not introduced yet. That is a
+ * task sends a member into a tool the Cowork day has not introduced yet. That is a
  * forward reference of exactly the kind the day 4/5 swap was made to remove.
  * It is survivable because the task names the path rather than assuming the
  * tool is familiar - "Open Cowork, click Scheduled in the sidebar" works for
  * someone who has never opened it - and because the tasks are independent by
- * design, so nothing on day 7 depends on day 8 having happened. If the
+ * design, so nothing on day 7 depends on the Cowork day having happened. If the
  * ordering is ever revisited, this is the argument for putting Scheduled
  * Tasks back behind Cowork, and the reason not to is the video binding above.
  *
@@ -158,6 +158,30 @@ export type TrackItemSpec = {
  * the Artifacts binding is a day playing the wrong video under a heading that
  * looks right.
  *
+ * Days 9 and 11 were swapped immediately after, on the same day: Cowork moved
+ * forward to day 9 and "Research, Memory & files out" went back to day 11.
+ * This is the one reorder in this file that needed NO migration, and the
+ * reason is worth knowing so the omission does not read as an oversight.
+ * Neither topic has a row in `learn_videos`, so both days were already null
+ * and stayed null: there was nothing for the seed's re-bind to fill and
+ * nothing for a one-off to clear. Every other swap here moved a real
+ * recording, which is what the migrations exist for.
+ *
+ * It also repays most of the ordering cost the 7/9 swap booked. Day 7 sends a
+ * member to Cowork > Scheduled before Cowork has been introduced, and that
+ * forward reference was two days when Cowork sat on day 8, four when it went
+ * to day 11, and is two again now. The tension between the two days survives
+ * and is still deliberate: day 7 warns that a schedule pointed at a folder on
+ * your computer never fires unattended, and day 9 asks for exactly such a
+ * folder. Two days apart that reads as the lesson it is meant to be rather
+ * than as a contradiction, which is easier to hold than it was at four.
+ *
+ * The quiz cost nothing this time, unlike the 8/11 swap. Cowork and Research
+ * carry two questions each, so the pairs traded places one for one: Cowork's
+ * moved from week three to week two and Research's the other way, and both
+ * quizzes stayed at ten. A swap across a quiz boundary is only expensive when
+ * the two days carry different numbers of questions.
+ *
  * Day 3 was the standing exception and is no longer: the library row was
  * titled "CRISP Framework", with no E, so no title this day carried would ever
  * have matched it, and the binding had to be made by hand in the admin
@@ -176,9 +200,9 @@ export const DAY_TOPICS: readonly string[] = [
   "Skills",
   "Scheduled Tasks",
   "Artifacts",
-  "Research, Memory & files out",
-  "Reverse Prompting",
   "Cowork",
+  "Reverse Prompting",
+  "Research, Memory & files out",
   "Design",
   "Dispatch + Plugins",
   "Claude everywhere",
@@ -334,7 +358,7 @@ export const GENERIC_TASK =
  * Anthropic's own caveat is the trap - "if a scheduled task requires local
  * files or apps, it will only run locally", and a schedule "can't be tied to
  * a folder on your computer" - so a task pointed at a folder passes on demand
- * and silently never fires unattended. That plays directly off day 8, which
+ * and silently never fires unattended. That plays directly off day 9, which
  * asks for exactly such a folder: the two days want opposite things from the
  * same member, and saying so is the lesson rather than a contradiction to
  * smooth over.
@@ -383,16 +407,32 @@ export const GENERIC_TASK =
  *     Team or Enterprise account". Public link sharing needs an organisation
  *     Owner to enable external sharing first.
  *
+ * PHLO IS ON THE TEAM PLAN, confirmed by the programme owner in September
+ * 2026, so SHARE is the button members see and the copy names it. A shared
+ * Artifact opens only for people signed in with their Phlo account; reaching
+ * anyone outside needs an organisation Owner to enable external sharing
+ * first, which is why the copy routes that case to Haseeb rather than to a
+ * setting, the way day 5 routes connector permissions.
+ *
  * The first version of this task was written on the Publish behaviour: it
  * said to publish the Artifact, open the link in a browser you are not signed
  * in to, and treated "it asks you to sign in" as the member's own mistake to
- * fix. On a Team or Enterprise plan every member fails that test, and the
- * diagnosis then sends them after a control they do not have. That is the day
- * 7 failure exactly - a task instructing the inverse of the product - and it
- * is why the copy now says "share" throughout and routes the external case to
- * Haseeb rather than to a setting. Written that way it is correct on either
- * plan, which is the property to keep, because nothing in this repo records
- * which one Phlo is on.
+ * fix. On the Team plan every member fails that test, and the diagnosis then
+ * sends them after a control they do not have. That is the day 7 failure
+ * exactly, a task instructing the inverse of the product, and it is the
+ * reason to check the plan before writing anything about where an output can
+ * travel. The tier is a fact about Phlo rather than about Claude, so it will
+ * not turn up in Anthropic's docs and nothing in this repo enforces it: if
+ * Phlo ever moves to Enterprise or off Team, this day, the day 8 sharing quiz
+ * question and day 12's export line are what to re-read.
+ *
+ * The safety line is deliberately NOT relaxed for the narrower audience. Org
+ * -only sharing is a smaller blast radius than a public link, and it is still
+ * the whole company: a shared Artifact opens for anyone at Phlo who has the
+ * link, and plenty of them have no business seeing supplier pricing or
+ * anything patient-adjacent. Whether "made-up numbers only" is stricter than
+ * Phlo wants is the programme owner's call rather than a thing to soften here
+ * on the grounds that the link no longer leaves the building.
  *
  * The failable step survived the trim, and it had to: "share it and have a
  * colleague open the link" is a real pass or fail, where the original later
@@ -402,12 +442,14 @@ export const GENERIC_TASK =
  *
  * The two other doc-checked facts in the copy: every version is kept, so a
  * change cannot lose the draft before it, and Artifacts needs "Code execution
- * and file creation" on under Settings > Capabilities. The second is written
- * as a diagnosis rather than a first step - "if Claude answers in the chat
- * instead of opening a panel" - because the toggle is documented for the
- * Free, Pro and Max plans and may not be a member's to set on Team or
- * Enterprise. Same reasoning as the share button: say the thing that is true
- * on both.
+ * and file creation" on. That one is written as a diagnosis rather than a
+ * first step - "if Claude answers in the chat instead of opening a panel" -
+ * and it ends in "ask Haseeb if it is not yours to change", because on Team
+ * the setting is gated at Organization settings > Capabilities. The docs
+ * describe the member-level toggle under Settings > Capabilities for Free,
+ * Pro and Max and do not say the member control disappears underneath the org
+ * gate, so the copy names both the place to look and the person to ask rather
+ * than asserting which one applies.
  *
  * The safety line is the caution kept from the longer version, moved onto
  * sharing rather than publishing. It is where this tool touches real data.
@@ -529,17 +571,18 @@ const DAY_TASKS: Readonly<Record<number, string>> = {
   ].join("\n"),
   8: [
     "Pick something you rebuild most weeks - a status update, a meeting-prep sheet, a checklist - and ask Claude to make it as an Artifact you can reuse.",
-    "Change it once in plain English rather than keeping the first draft. Every version is kept, so you can go back. If Claude answers in the chat instead of opening a panel, turn on Code execution and file creation in Settings > Capabilities.",
-    "Share it and have a colleague open the link. Sharing stays inside Phlo by default, so if it needs to open for someone outside, ask Haseeb rather than working round it.",
+    "Change it once in plain English rather than keeping the first draft. Every version is kept, so you can go back. If Claude answers in the chat instead of opening a panel, check Settings > Capabilities for Code execution and file creation, and ask Haseeb if it is not yours to change.",
+    "Share it and have a colleague open the link. On our Team plan a shared Artifact opens only for people signed in with their Phlo account, so if it has to reach anyone outside, ask Haseeb rather than working round it.",
     "Made-up numbers only in anything you share, and keep logins and keys out of it.",
     "Submit the link to your Artifact.",
   ].join("\n"),
   9: [
-    "Pick something you would normally lose an afternoon to: a comparison, a supplier or market scan, a written summary that means reading several sources first.",
-    "Run it with Research rather than a normal chat. It searches, reads and cross-references many sources and then writes the whole thing up, and it runs in the background - so start it and go and do something else.",
-    "Then ask for the result as a file rather than as chat text: a document, a spreadsheet or a deck. Reassembling a finished thing out of a chat by hand is the work you are meant to be stopping.",
-    "While you are in Settings, turn Memory on and read what it already holds about you. It saves you the re-briefing every time; it does not make anything more accurate, so nothing about the checking habit changes.",
-    "Submit the link to the Research chat, or to the file if it lives somewhere shareable.",
+    "Pick a whole task you dread because it is assembly rather than thinking: merging several documents into one summary, reconciling two lists, tidying and renaming a folder, drafting a recurring update out of scattered notes.",
+    "Put only the files that task needs into one folder. Scoping it is the safety step, not a tidy-up - Cowork works on your actual computer, so point it at one folder rather than at everything you have.",
+    "Open Cowork in the desktop app, give it access to that folder, and hand over the whole goal in one sentence. Do not steer it click by click; the point is that you stop driving.",
+    "Watch it work and stop it if it heads somewhere wrong. Then read the deliverable properly before it goes anywhere - it did the assembly, you still own the call.",
+    "Nothing confidential or patient-identifiable in that folder unless the use has been approved.",
+    "Submit the link to what it produced.",
   ].join("\n"),
   10: [
     "Find a prompt that is not working - one you have reworded twice and it still comes back the wrong shape.",
@@ -550,12 +593,11 @@ const DAY_TASKS: Readonly<Record<number, string>> = {
     "Submit the link to the chat where you let it interview you.",
   ].join("\n"),
   11: [
-    "Pick a whole task you dread because it is assembly rather than thinking: merging several documents into one summary, reconciling two lists, tidying and renaming a folder, drafting a recurring update out of scattered notes.",
-    "Put only the files that task needs into one folder. Scoping it is the safety step, not a tidy-up - Cowork works on your actual computer, so point it at one folder rather than at everything you have.",
-    "Open Cowork in the desktop app, give it access to that folder, and hand over the whole goal in one sentence. Do not steer it click by click; the point is that you stop driving.",
-    "Watch it work and stop it if it heads somewhere wrong. Then read the deliverable properly before it goes anywhere - it did the assembly, you still own the call.",
-    "Nothing confidential or patient-identifiable in that folder unless the use has been approved.",
-    "Submit the link to what it produced.",
+    "Pick something you would normally lose an afternoon to: a comparison, a supplier or market scan, a written summary that means reading several sources first.",
+    "Run it with Research rather than a normal chat. It searches, reads and cross-references many sources and then writes the whole thing up, and it runs in the background - so start it and go and do something else.",
+    "Then ask for the result as a file rather than as chat text: a document, a spreadsheet or a deck. Reassembling a finished thing out of a chat by hand is the work you are meant to be stopping.",
+    "While you are in Settings, turn Memory on and read what it already holds about you. It saves you the re-briefing every time; it does not make anything more accurate, so nothing about the checking habit changes.",
+    "Submit the link to the Research chat, or to the file if it lives somewhere shareable.",
   ].join("\n"),
   12: [
     "Describe one screen or document you wish already existed: a landing page, a settings screen, a pitch deck, a one-pager that would make an idea look finished.",

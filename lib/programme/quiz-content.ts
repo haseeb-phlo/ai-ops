@@ -10,8 +10,9 @@
  *   Week 1 (day 5)  - D1 what AI is doing, D2 when to use it, D3 Prompting,
  *                     D4 Projects, D5 Connectors & MCP
  *   Week 2 (day 10) - D6 Skills, D7 Scheduled Tasks, D8 Artifacts,
- *                     D9 Research/Memory/files out, D10 Reverse Prompting
- *   Week 3 (day 15) - D11 Cowork, D12 Design, D13 Dispatch + Plugins,
+ *                     D9 Cowork, D10 Reverse Prompting
+ *   Week 3 (day 15) - D11 Research/Memory/files out, D12 Design,
+ *                     D13 Dispatch + Plugins,
  *                     D14 Claude everywhere, D15 choosing the right tool and
  *                     measuring time saved, plus a spiral back over one day
  *                     from each earlier week
@@ -120,6 +121,16 @@
  * length: the two Cowork questions test different things - which work belongs
  * in the tool, and what you owe the output once it has run - and the case for
  * cutting one was about crowding rather than about either being weak.
+ *
+ * Days 9 and 11 swapped straight after, Cowork forward and Research back, and
+ * this one cost nothing. Both days carry two questions, so the pairs traded
+ * places one for one - Cowork's two out of week three and into week two,
+ * Research's two the other way - and both quizzes stayed at ten with their
+ * day coverage intact. That is the difference from the 8/11 swap a moment
+ * earlier, which moved a two-question day against a one-question day and had
+ * to find the difference somewhere. Worth checking before the next reorder:
+ * count the questions on both days first, and a swap between two days that
+ * carry the same number is free.
  *
  * No question needed a fact corrected this time. Both topics kept their prose
  * exactly; what changed is which array it sits in and what its tag says.
@@ -444,37 +455,37 @@ export const WEEK_2_QUESTIONS: QuizQuestion[] = [
     ],
     correct: 2,
     explanation:
-      "Sharing is the step that changes who can see something: it reaches everyone the link reaches rather than the people you had in mind, which is your whole organisation by default and can be anyone who opens it. That is what makes live supplier prices the wrong thing to leave in. A confidentiality note changes nothing about who can open the page, asking colleagues not to forward a link is not a control, and handing the judgement to Claude asks something that has no way of knowing which of your figures are commercially sensitive.",
+      "Sharing is the step that changes who can see something: on our plan a shared Artifact opens for anyone at Phlo with the link, not just the people you had in mind, and plenty of them have no business seeing supplier pricing. That is what makes live figures the wrong thing to leave in. A confidentiality note changes nothing about who can open the page, asking colleagues not to forward a link is not a control, and handing the judgement to Claude asks something that has no way of knowing which of your figures are commercially sensitive.",
   },
   {
     day: 9,
     question:
-      "You need a written comparison of three couriers' terms, ready to send to your manager. Which approach uses what Claude is actually good at?",
+      "Which of these is the strongest candidate for Cowork rather than an ordinary Chat?",
     options: [
-      "Ask for the comparison, then copy the answer out of the Chat by hand",
-      "Ask three separate questions and stitch the answers together yourself",
-      "Ask for bullet points in a Chat and write the document up yourself",
-      "Ask Research to compare all three and hand back a finished file",
-      "Ask for the comparison, paste it into a document and format it",
+      "A question you need a single short answer to before this afternoon",
+      "Drafting an email to a supplier about a late delivery",
+      "Deciding which of two suppliers your team should move to",
+      "Researching a market and writing the findings up properly",
+      "Merging six monthly reports into one summary and filing them",
     ],
-    correct: 3,
+    correct: 4,
     explanation:
-      "Research searches, reads and cross-references, then hands back the finished file rather than leaving you to reassemble a document out of Chat text, and it runs in the background while you do something else. Every other option ends with you doing the part the tool would have done.",
+      "Cowork earns its keep on assembly across many files on your own machine: work that is tedious rather than difficult, and that ends in files rather than in an answer. A short question and a draft are ordinary Chat, deciding is yours to own and a market write-up is Research, which needs sources rather than your file system.",
   },
   {
     day: 9,
     question:
-      "You turn Memory on and Claude starts carrying your role, your team's terminology and your usual formats between Chats. What does that change?",
+      "You have given Cowork a whole goal in one sentence and it is working. Where does your attention belong?",
     options: [
-      "Factual answers get more reliable, because it knows your situation",
-      "You stop re-briefing it at the start of every Chat, nothing more",
-      "It can now reach your company systems without needing a Connector",
-      "Your Chats become visible to colleagues who share the same memory",
-      "It stops inventing detail on topics it now holds context about",
+      "On each step, approving it before the next one is allowed to start",
+      "On the prompt, refining the wording while the run is still going",
+      "On watching it closely enough to stop it, then reading what it made",
+      "Nowhere until it finishes, because steering it defeats the point",
+      "On the folder, in case it writes to files outside the scope you set",
     ],
-    correct: 1,
+    correct: 2,
     explanation:
-      "Memory removes the re-briefing. It does not turn a prediction into a lookup, so the checking habit is untouched, and knowing your team's vocabulary does not stop Claude inventing a figure. It grants no system access, which is what a Connector is for, and it shares nothing with anyone.",
+      "Handing over the goal is the point, so approving every step is just driving again. But Cowork did the assembly and you still own the call, so an unread deliverable is the failure this day exists to prevent. Watching without steering is the balance. The folder was scoped before the run started rather than policed during it.",
   },
   {
     day: 10,
@@ -518,32 +529,32 @@ export const WEEK_3_QUESTIONS: QuizQuestion[] = [
   {
     day: 11,
     question:
-      "Which of these is the strongest candidate for Cowork rather than an ordinary Chat?",
+      "You need a written comparison of three couriers' terms, ready to send to your manager. Which approach uses what Claude is actually good at?",
     options: [
-      "A question you need a single short answer to before this afternoon",
-      "Drafting an email to a supplier about a late delivery",
-      "Deciding which of two suppliers your team should move to",
-      "Researching a market and writing the findings up properly",
-      "Merging six monthly reports into one summary and filing them",
+      "Ask for the comparison, then copy the answer out of the Chat by hand",
+      "Ask three separate questions and stitch the answers together yourself",
+      "Ask for bullet points in a Chat and write the document up yourself",
+      "Ask Research to compare all three and hand back a finished file",
+      "Ask for the comparison, paste it into a document and format it",
     ],
-    correct: 4,
+    correct: 3,
     explanation:
-      "Cowork earns its keep on assembly across many files on your own machine: work that is tedious rather than difficult, and that ends in files rather than in an answer. A short question and a draft are ordinary Chat, deciding is yours to own and a market write-up is Research, which needs sources rather than your file system.",
+      "Research searches, reads and cross-references, then hands back the finished file rather than leaving you to reassemble a document out of Chat text, and it runs in the background while you do something else. Every other option ends with you doing the part the tool would have done.",
   },
   {
     day: 11,
     question:
-      "You have given Cowork a whole goal in one sentence and it is working. Where does your attention belong?",
+      "You turn Memory on and Claude starts carrying your role, your team's terminology and your usual formats between Chats. What does that change?",
     options: [
-      "On each step, approving it before the next one is allowed to start",
-      "On the prompt, refining the wording while the run is still going",
-      "On watching it closely enough to stop it, then reading what it made",
-      "Nowhere until it finishes, because steering it defeats the point",
-      "On the folder, in case it writes to files outside the scope you set",
+      "Factual answers get more reliable, because it knows your situation",
+      "You stop re-briefing it at the start of every Chat, nothing more",
+      "It can now reach your company systems without needing a Connector",
+      "Your Chats become visible to colleagues who share the same memory",
+      "It stops inventing detail on topics it now holds context about",
     ],
-    correct: 2,
+    correct: 1,
     explanation:
-      "Handing over the goal is the point, so approving every step is just driving again. But Cowork did the assembly and you still own the call, so an unread deliverable is the failure this day exists to prevent. Watching without steering is the balance. The folder was scoped before the run started rather than policed during it.",
+      "Memory removes the re-briefing. It does not turn a prediction into a lookup, so the checking habit is untouched, and knowing your team's vocabulary does not stop Claude inventing a figure. It grants no system access, which is what a Connector is for, and it shares nothing with anyone.",
   },
   {
     day: 12,
