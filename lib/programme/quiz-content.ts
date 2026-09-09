@@ -85,21 +85,41 @@
  * about who can see your figures. That is the day's own safety line and the
  * facet the existing question does not touch.
  *
- * Week three then went the other way. Its shape is one question per core day
- * plus the day 15 pair plus four spirals, which is ten; Cowork arriving with
- * two would have made it eleven. So "which of these is the strongest
- * candidate for Cowork rather than an ordinary Chat?" was DELETED and the
- * "where does your attention belong?" one kept. The choice between them was
- * not close: week three already closes on a container-choice spiral and day
- * 15's own task is a list of six containers, so the candidate question was
- * the third pass at the same judgement in one quiz. The attention question is
- * the only place any quiz tests the thing Cowork's day exists to teach, which
- * is that handing over the goal does not hand over the call.
+ * Week three then went the other way, and this is where the swap cost
+ * something. Its shape was one question per core day plus the day 15 pair
+ * plus four spirals, which is ten; Cowork arriving with two made it eleven.
+ * Both Cowork questions are kept, on the programme owner's call, so the room
+ * came from the spirals: the day 1 Time-Back Log question was dropped.
  *
- * The alternative was keeping both and dropping a spiral, and it was rejected
- * because the spirals are the only reason the final quiz tests the programme
- * rather than the fortnight people last watched. Losing the weakest of two
- * questions on one day costs less than losing a whole week's callback.
+ * It was picked over the other three because it was the redundant one. Day 15
+ * already carries two questions on totalling a saving and one of them turns
+ * on exactly the same arithmetic, the difference rather than the old cost, so
+ * the final quiz was asking a fluent member to do that sum three times. The
+ * day 3 and day 5 spirals test material nothing else in week three touches,
+ * and the day 7 one is the only week two callback the quiz has - the test
+ * requires a question from each earlier week band, so day 7 could not be the
+ * one to go.
+ *
+ * What that costs is worth stating rather than filing as a tidy-up. Week
+ * three no longer spirals back over day 1, so the entry day is tested only in
+ * week one, which is the formative quiz that gates nothing. Nothing has been
+ * lost from the curriculum - the Time-Back Log is day 1's task, day 15's task
+ * is built on it and two day 15 questions examine it - but the summative quiz
+ * now reaches back over days 3, 5 and 7 rather than 1, 3, 5 and 7, so its
+ * week one coverage is one question thinner. If a fourth spiral is ever
+ * wanted back, the honest way to make room is a question on a core day that
+ * carries two, not another spiral.
+ *
+ * The first version of this swap resolved the same arithmetic the other way,
+ * deleting the "strongest candidate for Cowork rather than an ordinary Chat?"
+ * question and keeping only "where does your attention belong?". The argument
+ * was that week three already closes on a container-choice spiral and day
+ * 15's task lists six containers, so a third pass at that judgement was the
+ * cheapest thing in the set. That reasoning was not wrong, and it is recorded
+ * here because it is the argument to weigh again if this quiz is ever over
+ * length: the two Cowork questions test different things - which work belongs
+ * in the tool, and what you owe the output once it has run - and the case for
+ * cutting one was about crowding rather than about either being weak.
  *
  * No question needed a fact corrected this time. Both topics kept their prose
  * exactly; what changed is which array it sits in and what its tag says.
@@ -498,6 +518,21 @@ export const WEEK_3_QUESTIONS: QuizQuestion[] = [
   {
     day: 11,
     question:
+      "Which of these is the strongest candidate for Cowork rather than an ordinary Chat?",
+    options: [
+      "A question you need a single short answer to before this afternoon",
+      "Drafting an email to a supplier about a late delivery",
+      "Deciding which of two suppliers your team should move to",
+      "Researching a market and writing the findings up properly",
+      "Merging six monthly reports into one summary and filing them",
+    ],
+    correct: 4,
+    explanation:
+      "Cowork earns its keep on assembly across many files on your own machine: work that is tedious rather than difficult, and that ends in files rather than in an answer. A short question and a draft are ordinary Chat, deciding is yours to own and a market write-up is Research, which needs sources rather than your file system.",
+  },
+  {
+    day: 11,
+    question:
       "You have given Cowork a whole goal in one sentence and it is working. Where does your attention belong?",
     options: [
       "On each step, approving it before the next one is allowed to start",
@@ -584,21 +619,6 @@ export const WEEK_3_QUESTIONS: QuizQuestion[] = [
     correct: 1,
     explanation:
       "The number worth having is the one you could defend to somebody outside the programme, and that is the job end to end rather than the drafting step on its own. Checking is not overhead bolted onto the work, it is the part that makes the output usable. A total that quietly drops it is the kind of figure that falls apart the first time anyone asks how it was built.",
-  },
-  {
-    day: 1,
-    question:
-      "You have automated a report that used to take 45 minutes a week. It now takes 5 minutes to run and check. What goes in the Time-Back Log?",
-    options: [
-      "45 minutes a week, which is what the task used to cost you",
-      "40 minutes a week, the old cost minus the new one",
-      "Nothing, until it has run reliably for a full quarter",
-      "The time the automation took to build, spread over the year",
-      "40 minutes, plus the time colleagues save by reusing it",
-    ],
-    correct: 1,
-    explanation:
-      "The saving is the difference, because something still has to be run and checked. Overstating it is the fastest way to lose trust in the whole exercise, and claiming other people's saving on your own log double counts it the moment they log it too. In the May baseline half of respondents could not put a number on their saving at all, and a defensible small number beats a vague large one.",
   },
   {
     day: 3,
