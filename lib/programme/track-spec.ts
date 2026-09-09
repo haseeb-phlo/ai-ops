@@ -124,6 +124,40 @@ export type TrackItemSpec = {
  * ordering is ever revisited, this is the argument for putting Scheduled
  * Tasks back behind Cowork, and the reason not to is the video binding above.
  *
+ * Days 8 and 11 were swapped in September 2026, the day the cohorts reached
+ * day 8: Artifacts moved forward to day 8 and Cowork went back to day 11.
+ * Same shape as the 7/9 swap and made for the same reason - Artifacts has a
+ * row in `learn_videos` and Cowork does not, so the swap puts a real
+ * recording on the day people were looking at that morning and leaves day 11
+ * reading "coming soon", where day 8 read that way before. The count of
+ * recorded days does not change; which day has one does.
+ *
+ * The cost is the mirror of the gain and it is worth stating plainly: day 11
+ * had a video and now does not. That was an acceptable trade only because of
+ * WHEN it was made. Day 8 was open and unrecorded for two live cohorts, and
+ * day 11 does not unlock for them until the following Monday - so the swap
+ * fixed a day that was failing in front of people and created one that has a
+ * weekend of notice on it. Made a week later it would have been a straight
+ * downgrade, and anyone tempted to swap a recorded day forward again should
+ * check that asymmetry still holds before doing it.
+ *
+ * The ordering cost is smaller than the 7/9 one. Artifacts asks nothing of
+ * the days around it, and Cowork on day 11 lands after Scheduled Tasks on day
+ * 7 rather than before it - which repairs half of the forward reference the
+ * 7/9 swap introduced, since a scheduled task is a Cowork feature and day 7's
+ * task sends the member into Cowork's sidebar. It is still a forward
+ * reference, just a longer one, and day 7's copy already names the path
+ * rather than assuming the tool is familiar.
+ *
+ * What went with the topic: the entry here, both written tasks in DAY_TASKS
+ * (day 8 rewritten into the earlier format, day 11 keeping the later one it
+ * was written in) and the `day` tags in quiz-content.ts, where the swap
+ * crossed a quiz boundary and cost a question - see the note there. The
+ * one-off is 20260909050428_swap_artifacts_and_cowork_days.sql, and it NULLS
+ * as well as sets, for the same reason the September reorder did: day 11 over
+ * the Artifacts binding is a day playing the wrong video under a heading that
+ * looks right.
+ *
  * Day 3 was the standing exception and is no longer: the library row was
  * titled "CRISP Framework", with no E, so no title this day carried would ever
  * have matched it, and the binding had to be made by hand in the admin
@@ -141,10 +175,10 @@ export const DAY_TOPICS: readonly string[] = [
   "Connectors & MCP",
   "Skills",
   "Scheduled Tasks",
-  "Cowork",
+  "Artifacts",
   "Research, Memory & files out",
   "Reverse Prompting",
-  "Artifacts",
+  "Cowork",
   "Design",
   "Dispatch + Plugins",
   "Claude everywhere",
@@ -236,11 +270,20 @@ export const GENERIC_TASK =
  * odd one out if it keeps the reflective opening and the standalone safety
  * paragraph that the later days use.
  *
- * So the format boundary is now days 1-7 on the earlier shape and days 8-15
- * on the later one, rather than 1-5 against 6-15. It is worth knowing which
- * side a day sits on before rewriting it, because the two shapes want
- * different things: the earlier one puts the settings in bare bullets and the
- * diagnosis in the closing pair, and the later one carries both in prose.
+ * So the format boundary is now days 1-8 on the earlier shape and days 9-15
+ * on the later one. It has moved twice: 1-5 against 6-15 first, then 1-7
+ * against 8-15 when day 6 came forward, and now one day further because the
+ * 8/11 swap brought Artifacts onto day 8 and the day was rewritten to match
+ * the seven days a member has just read. It is worth knowing which side a day
+ * sits on before rewriting it, because the two shapes want different things:
+ * the earlier one puts the settings in bare bullets and the diagnosis in the
+ * closing pair, and the later one carries both in prose.
+ *
+ * The boundary is a reading order rather than a rule about a day number, and
+ * that is the thing to preserve if it moves again. What makes a day sit on
+ * the earlier shape is that the days immediately before it do; a day rewritten
+ * into the earlier format at, say, day 12 would be the odd one out however
+ * carefully it was written.
  *
  * The failable step survives the format change and gets sharper for it: the
  * fresh chat still has to fire the Skill without being told its name, and the
@@ -300,6 +343,45 @@ export const GENERIC_TASK =
  * bullet on days 2-6 is a bare noun phrase carrying no reason, so a caution
  * folded into the list would have lost the reason it exists. Day 5 is the
  * precedent for a safety sentence inside this format.
+ *
+ * Day 8 is Artifacts, and its task is the one that was rewritten rather than
+ * moved. Artifacts came forward from day 11 in September 2026 and the copy it
+ * arrived with was in the later format, which by then was wrong for the slot:
+ * a member reading Monday to Monday meets day 8 straight after seven days of
+ * the earlier shape. So it was rebuilt on day 4's template - imperative
+ * opening, how to ask, bullets of what to give the thing, "Then test it", the
+ * good-to-go/sharpen-it pair, then the ask.
+ *
+ * It is the one day on the earlier format with no Customize path, because
+ * Artifacts is not a setting - you ask for one. "Ask Claude for it as an
+ * Artifact, in those words" is what stands in that slot, and inventing a
+ * settings screen to fill the shape would have been a made-up instruction.
+ * The wording matters more here than on any other day: an Artifact you did
+ * not ask for by name usually comes back as chat text, so the day's whole
+ * technique is the phrasing.
+ *
+ * The failable step is the one thing the later copy did not have. It said to
+ * publish it and put the link where the team will find it, which is an
+ * instruction with no way to come back false - a member who saved it and
+ * pasted a chat link has done what the words asked. Now the test is opening
+ * the published link in a browser you are not signed in to, which is a real
+ * pass or fail and checks the claim the video makes: no account needed to
+ * open it. The saved-not-published mix-up goes where day 4 and day 7 put
+ * their diagnosis, in the "if it asks you to sign in" half of the closing
+ * pair.
+ *
+ * Its safety line survived the rewrite unchanged and stays where the tool
+ * touches real data: publishing is the step that changes who can see
+ * something, so made-up numbers only. It sits before the tests rather than
+ * after them, as day 7's does, because it constrains what you build rather
+ * than how you check it.
+ *
+ * What did NOT survive is worth knowing, because it was the nicest line on
+ * the day: "an Artifact is clay rather than stone" carried the whole reason
+ * to refine one, and in the earlier format there is no prose paragraph for it
+ * to live in. It is now a clause on the change-it step. If this day is ever
+ * rewritten back into the later format, that sentence is the thing to give
+ * room to again.
  *
  * They share a shape, and it is worth keeping when one gets rewritten:
  *
@@ -417,12 +499,17 @@ const DAY_TASKS: Readonly<Record<number, string>> = {
     "Submit the link to its first completed run.",
   ].join("\n"),
   8: [
-    "Pick a whole task you dread because it is assembly rather than thinking: merging several documents into one summary, reconciling two lists, tidying and renaming a folder, drafting a recurring update out of scattered notes.",
-    "Put only the files that task needs into one folder. Scoping it is the safety step, not a tidy-up - Cowork works on your actual computer, so point it at one folder rather than at everything you have.",
-    "Open Cowork in the desktop app, give it access to that folder, and hand over the whole goal in one sentence. Do not steer it click by click; the point is that you stop driving.",
-    "Watch it work and stop it if it heads somewhere wrong. Then read the deliverable properly before it goes anywhere - it did the assembly, you still own the call.",
-    "Nothing confidential or patient-identifiable in that folder unless the use has been approved.",
-    "Submit the link to what it produced.",
+    "Pick one thing you rebuild from scratch most weeks: a status update, a meeting-prep sheet, a checklist, a small calculation you redo by hand every time.",
+    "Ask Claude for it as an Artifact, in those words - 'make me a one-page X as an Artifact I can reuse', or 'build me a tool that works out Y'. Asking on purpose is most of the skill. Give it:",
+    "- the job the thing has to do",
+    "- the shape you want it in",
+    "- the wording or figures it should start from",
+    "- a title a colleague would understand",
+    "Then change it once in plain English rather than keeping the first version. An Artifact is clay rather than stone and every version is kept, so nothing you try costs you the draft you had.",
+    "Made-up numbers only in anything you publish. Publishing changes who can see it, so keep confidential detail, logins and keys out of it entirely.",
+    "Then test it by publishing it and opening that link in a browser you are not signed in to.",
+    "If it loads and works for somebody with no account, everything is working - put the link where your team will find it, because one person building it once and everybody using it is the part that pays. If it asks you to sign in, it is saved rather than published: publish it properly and try the link again.",
+    "Submit the published link.",
   ].join("\n"),
   9: [
     "Pick something you would normally lose an afternoon to: a comparison, a supplier or market scan, a written summary that means reading several sources first.",
@@ -440,12 +527,12 @@ const DAY_TASKS: Readonly<Record<number, string>> = {
     "Submit the link to the chat where you let it interview you.",
   ].join("\n"),
   11: [
-    "Pick something you rebuild from scratch most weeks: a status update, a meeting-prep sheet, a checklist, a small calculation you redo by hand every time.",
-    "Ask for it as an Artifact, in those words: 'make me a one-page X as an Artifact I can reuse', or 'build me a tool that works out Y'. Asking on purpose is most of the skill.",
-    "Then change it, because an Artifact is clay rather than stone. Refine it in plain English or edit it directly, and know that every version is kept so you can go back.",
-    "Publish it and put the link where your team will find it. That is the part that pays: one person builds it once and everybody uses it, with no account needed to open it.",
-    "Made-up numbers only in anything you publish. Publishing changes who can see it, so keep confidential detail, logins and keys out of it entirely.",
-    "Submit the published link.",
+    "Pick a whole task you dread because it is assembly rather than thinking: merging several documents into one summary, reconciling two lists, tidying and renaming a folder, drafting a recurring update out of scattered notes.",
+    "Put only the files that task needs into one folder. Scoping it is the safety step, not a tidy-up - Cowork works on your actual computer, so point it at one folder rather than at everything you have.",
+    "Open Cowork in the desktop app, give it access to that folder, and hand over the whole goal in one sentence. Do not steer it click by click; the point is that you stop driving.",
+    "Watch it work and stop it if it heads somewhere wrong. Then read the deliverable properly before it goes anywhere - it did the assembly, you still own the call.",
+    "Nothing confidential or patient-identifiable in that folder unless the use has been approved.",
+    "Submit the link to what it produced.",
   ].join("\n"),
   12: [
     "Describe one screen or document you wish already existed: a landing page, a settings screen, a pitch deck, a one-pager that would make an idea look finished.",

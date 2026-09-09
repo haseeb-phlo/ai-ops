@@ -9,9 +9,9 @@
  *
  *   Week 1 (day 5)  - D1 what AI is doing, D2 when to use it, D3 Prompting,
  *                     D4 Projects, D5 Connectors & MCP
- *   Week 2 (day 10) - D6 Skills, D7 Scheduled Tasks, D8 Cowork,
+ *   Week 2 (day 10) - D6 Skills, D7 Scheduled Tasks, D8 Artifacts,
  *                     D9 Research/Memory/files out, D10 Reverse Prompting
- *   Week 3 (day 15) - D11 Artifacts, D12 Design, D13 Dispatch + Plugins,
+ *   Week 3 (day 15) - D11 Cowork, D12 Design, D13 Dispatch + Plugins,
  *                     D14 Claude everywhere, D15 choosing the right tool and
  *                     measuring time saved, plus a spiral back over one day
  *                     from each earlier week
@@ -69,6 +69,40 @@
  * The lesson for the next edit: a `day` tag rots loudly, because a test reads
  * it, and a product fact rots silently. Nothing in this file checks that an
  * answer is still true.
+ *
+ * Days 8 and 11 swapped later still in September 2026, Artifacts coming
+ * forward and Cowork going back. This is the first reorder that crossed a
+ * QUIZ boundary rather than moving days around inside one, and it is the
+ * expensive kind: day 8 sits in week two and day 11 in week three, so the
+ * questions had to move between arrays rather than take a new tag in place.
+ *
+ * The arithmetic is worth spelling out, because it is what forced a deletion.
+ * Week two must be exactly ten and must cover days 6-10, which the test
+ * asserts day by day. Days 6, 7, 9 and 10 carry two questions each, so day 8
+ * has to carry two as well. Artifacts arrived with ONE - week three gives its
+ * core days one question each, except the measurement day - so a second
+ * Artifacts question was written for it, on publishing and what it changes
+ * about who can see your figures. That is the day's own safety line and the
+ * facet the existing question does not touch.
+ *
+ * Week three then went the other way. Its shape is one question per core day
+ * plus the day 15 pair plus four spirals, which is ten; Cowork arriving with
+ * two would have made it eleven. So "which of these is the strongest
+ * candidate for Cowork rather than an ordinary Chat?" was DELETED and the
+ * "where does your attention belong?" one kept. The choice between them was
+ * not close: week three already closes on a container-choice spiral and day
+ * 15's own task is a list of six containers, so the candidate question was
+ * the third pass at the same judgement in one quiz. The attention question is
+ * the only place any quiz tests the thing Cowork's day exists to teach, which
+ * is that handing over the goal does not hand over the call.
+ *
+ * The alternative was keeping both and dropping a spiral, and it was rejected
+ * because the spirals are the only reason the final quiz tests the programme
+ * rather than the fortnight people last watched. Losing the weakest of two
+ * questions on one day costs less than losing a whole week's callback.
+ *
+ * No question needed a fact corrected this time. Both topics kept their prose
+ * exactly; what changed is which array it sits in and what its tag says.
  *
  * TAGS ARE EDITORIAL. Which quiz a question lands in is the array it sits in,
  * never this field. It exists so `tests/programme-quiz-content.test.ts` can
@@ -365,32 +399,32 @@ export const WEEK_2_QUESTIONS: QuizQuestion[] = [
   {
     day: 8,
     question:
-      "Which of these is the strongest candidate for Cowork rather than an ordinary Chat?",
+      "You have asked Claude for a checklist your team will use every week. Why ask for it as an Artifact rather than as text in the Chat?",
     options: [
-      "A question you need a single short answer to before this afternoon",
-      "Drafting an email to a supplier about a late delivery",
-      "Deciding which of two suppliers your team should move to",
-      "Researching a market and writing the findings up properly",
-      "Merging six monthly reports into one summary and filing them",
+      "Artifacts are generated faster than the same answer in a Chat",
+      "Claude is more accurate when it writes into an Artifact",
+      "You get something you can edit, version and share on its own",
+      "It uses fewer messages, so you get more out of your limits",
+      "Anyone you share it with can edit your copy of it directly",
     ],
-    correct: 4,
+    correct: 2,
     explanation:
-      "Cowork earns its keep on assembly across many files on your own machine: work that is tedious rather than difficult, and that ends in files rather than in an answer. A short question and a draft are ordinary Chat, deciding is yours to own and a market write-up is Research, which needs sources rather than your file system.",
+      "An Artifact is the output as an object rather than as Chat scrollback: refined in place, every version kept, and shareable to people who need the checklist rather than the conversation behind it. Speed and accuracy are unchanged. Publishing lets other people open and use it, which is not the same as handing them edit rights on yours.",
   },
   {
     day: 8,
     question:
-      "You have given Cowork a whole goal in one sentence and it is working. Where does your attention belong?",
+      "You have built a margin calculator as an Artifact in Claude and you are about to publish the link for your team. This quarter's real supplier prices are typed into it. What has to happen first?",
     options: [
-      "On each step, approving it before the next one is allowed to start",
-      "On the prompt, refining the wording while the run is still going",
-      "On watching it closely enough to stop it, then reading what it made",
-      "Nowhere until it finishes, because steering it defeats the point",
-      "On the folder, in case it writes to files outside the scope you set",
+      "Publish it, then message the team asking them not to forward the link",
+      "Nothing, a published Artifact is reachable only by the people you send it to",
+      "Swap the real prices for made-up ones, because publishing widens who sees it",
+      "Leave the real prices in and write a confidentiality note at the top of the page",
+      "Ask Claude to take out anything sensitive before you publish the link",
     ],
     correct: 2,
     explanation:
-      "Handing over the goal is the point, so approving every step is just driving again. But Cowork did the assembly and you still own the call, so an unread deliverable is the failure this day exists to prevent. Watching without steering is the balance. The folder was scoped before the run started rather than policed during it.",
+      "Publishing is the step that changes who can see something, and the link opens with no account needed, so it travels further than the people you sent it to. That is what makes live supplier prices the wrong thing to leave in it. A confidentiality note changes nothing about who can open the page, asking colleagues not to forward a link is not a control, and handing the judgement to Claude asks something that has no way of knowing which of your figures are commercially sensitive.",
   },
   {
     day: 9,
@@ -464,17 +498,17 @@ export const WEEK_3_QUESTIONS: QuizQuestion[] = [
   {
     day: 11,
     question:
-      "You have asked Claude for a checklist your team will use every week. Why ask for it as an Artifact rather than as text in the Chat?",
+      "You have given Cowork a whole goal in one sentence and it is working. Where does your attention belong?",
     options: [
-      "Artifacts are generated faster than the same answer in a Chat",
-      "Claude is more accurate when it writes into an Artifact",
-      "You get something you can edit, version and share on its own",
-      "It uses fewer messages, so you get more out of your limits",
-      "Anyone you share it with can edit your copy of it directly",
+      "On each step, approving it before the next one is allowed to start",
+      "On the prompt, refining the wording while the run is still going",
+      "On watching it closely enough to stop it, then reading what it made",
+      "Nowhere until it finishes, because steering it defeats the point",
+      "On the folder, in case it writes to files outside the scope you set",
     ],
     correct: 2,
     explanation:
-      "An Artifact is the output as an object rather than as Chat scrollback: refined in place, every version kept, and shareable to people who need the checklist rather than the conversation behind it. Speed and accuracy are unchanged. Publishing lets other people open and use it, which is not the same as handing them edit rights on yours.",
+      "Handing over the goal is the point, so approving every step is just driving again. But Cowork did the assembly and you still own the call, so an unread deliverable is the failure this day exists to prevent. Watching without steering is the balance. The folder was scoped before the run started rather than policed during it.",
   },
   {
     day: 12,
