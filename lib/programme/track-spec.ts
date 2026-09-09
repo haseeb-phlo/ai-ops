@@ -483,11 +483,27 @@ export const GENERIC_TASK =
  * Phlo wants is the programme owner's call rather than a thing to soften here
  * on the grounds that the link no longer leaves the building.
  *
- * The failable step survived the trim, and it had to: "share it and have a
- * colleague open the link" is a real pass or fail, where the original later
- * copy's "publish it and put the link where your team will find it" had no
- * way to come back false. A member who saved it and pasted a chat link has
- * done what those words asked.
+ * DAY 8 HAS NO FAILABLE STEP, and this note is here so nobody reads that as
+ * an oversight. It had one - "share it and have a colleague open the link",
+ * which is a real pass or fail - and the colleague was removed on the
+ * programme owner's instruction, along with every other line on the track
+ * that waited on another person. Nothing replaced it, so the day is now
+ * self-marking in the way the day 4 note describes: a member who shares
+ * nothing and pastes a chat link has done what the words ask.
+ *
+ * The reason is worth recording, because it is a constraint rather than an
+ * oversight. Phlo runs shifts and the programme has no claim on anybody's
+ * colleague, so a task that cannot be finished alone is a task that stalls
+ * for the people with the least slack. That trade is deliberate: a
+ * self-marking day everyone can finish beats a verified day that waits on
+ * somebody else's shift.
+ *
+ * If a check is ever wanted back, it has to be one the member can run alone,
+ * and the honest candidate is the Artifacts list rather than another person:
+ * a conversation artifact only appears at claude.ai/artifacts once it has
+ * actually been saved or shared, so "check it is listed there" fails for
+ * exactly the member who never shared it. That is the cheapest way to make
+ * this day pass or fail again without reintroducing the dependency.
  *
  * The two other doc-checked facts in the copy: every version is kept, so a
  * change cannot lose the draft before it, and Artifacts needs "Code execution
@@ -614,7 +630,7 @@ const DAY_TASKS: Readonly<Record<number, string>> = {
   8: [
     "Pick something you rebuild most weeks - a status update, a meeting-prep sheet, a checklist - and ask Claude to make it as an Artifact you can reuse.",
     "Change it once in plain English rather than keeping the first draft. Every version is kept, so you can go back. If Claude answers in the chat instead of opening a panel, check Settings > Capabilities for Code execution and file creation, and ask Haseeb if it is not yours to change.",
-    "Share it and have a colleague open the link. On our Team plan a shared Artifact opens only for people signed in with their Phlo account, so if it has to reach anyone outside, ask Haseeb rather than working round it.",
+    "Share it. On our Team plan a shared Artifact opens only for people signed in with their Phlo account, so if it has to reach anyone outside, ask Haseeb rather than working round it.",
     "Made-up numbers only in anything you share, and keep logins and keys out of it.",
     "Submit the link to your Artifact.",
   ].join("\n"),
@@ -644,7 +660,7 @@ const DAY_TASKS: Readonly<Record<number, string>> = {
   12: [
     "Describe one screen or document you wish already existed: a landing page, a settings screen, a pitch deck, a one-pager that would make an idea look finished.",
     "Make it in Claude Design, then refine it once in plain English rather than taking the first version. A strong first draft that a person then shapes is the whole method.",
-    "Export what you end up with - to PowerPoint, or as a prototype link you can send somebody.",
+    "Export what you end up with - to PowerPoint, or as a prototype link.",
     "Two honest caveats. It is a research preview, so it is rougher than the rest of the tools here and what comes out is a draft rather than a finished brand. And keep confidential designs, patient-facing material and private code out of it.",
     "Submit the link to the design, or to the file you exported.",
   ].join("\n"),

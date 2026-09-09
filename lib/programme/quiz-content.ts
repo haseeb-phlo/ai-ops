@@ -248,11 +248,11 @@ export const WEEK_1_QUESTIONS: QuizQuestion[] = [
       "Summarising a supplier contract you will read properly afterwards",
       "Signing off the final numbers in the month-end pack",
       "Reformatting a messy stock export into a consistent structure",
-      "Drafting a tender rejection letter for a manager to review and send",
+      "Drafting a tender rejection letter that is reviewed before it goes",
     ],
     correct: 2,
     explanation:
-      "Drafting, summarising and reformatting are where Claude earns its keep, and an awkward subject does not change that while a named person reviews and sends. Signing off is the one that cannot move, because accountability is not a task. Use Claude to prepare what informs the decision rather than to make it.",
+      "Drafting, summarising and reformatting are where Claude earns its keep, and an awkward subject does not change that while the draft is reviewed before it goes. Signing off is the one that cannot move, because accountability is not a task. Use Claude to prepare what informs the decision rather than to make it.",
   },
   {
     day: 2,
@@ -529,7 +529,7 @@ export const WEEK_3_QUESTIONS: QuizQuestion[] = [
   {
     day: 11,
     question:
-      "You need a written comparison of three couriers' terms, ready to send to your manager. Which approach uses what Claude is actually good at?",
+      "You need a written comparison of three couriers' terms, ready to send on. Which approach uses what Claude is actually good at?",
     options: [
       "Ask for the comparison, then copy the answer out of the Chat by hand",
       "Ask three separate questions and stitch the answers together yourself",
