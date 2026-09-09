@@ -285,6 +285,14 @@ export const GENERIC_TASK =
  * into the earlier format at, say, day 12 would be the odd one out however
  * carefully it was written.
  *
+ * The earlier shape has two variants and it is worth knowing which one you
+ * are copying. Days 2, 4, 6 and 7 use the full template with bullets and a
+ * test pair. Days 5 and 8 use a compressed one: no bullets, a handful of
+ * plain imperative lines, the caution as its own line. Reach for the
+ * compressed variant when the day has one straightforward thing to do, and
+ * the full template when there is a list of inputs to hand over. Day 8's note
+ * below records what happens when a day is forced into the wrong one.
+ *
  * The failable step survives the format change and gets sharper for it: the
  * fresh chat still has to fire the Skill without being told its name, and the
  * copy now asks for that over a few runs with different wording, which is the
@@ -344,44 +352,65 @@ export const GENERIC_TASK =
  * folded into the list would have lost the reason it exists. Day 5 is the
  * precedent for a safety sentence inside this format.
  *
- * Day 8 is Artifacts, and its task is the one that was rewritten rather than
- * moved. Artifacts came forward from day 11 in September 2026 and the copy it
- * arrived with was in the later format, which by then was wrong for the slot:
- * a member reading Monday to Monday meets day 8 straight after seven days of
- * the earlier shape. So it was rebuilt on day 4's template - imperative
- * opening, how to ask, bullets of what to give the thing, "Then test it", the
- * good-to-go/sharpen-it pair, then the ask.
+ * Day 8 is Artifacts, and it is the shortest task on the track: five lines,
+ * no bullets. It is written to DAY 5's shape rather than day 4's - a plain
+ * imperative, a longer middle line carrying the setting and the escalation to
+ * Haseeb, a one-line caution, then the ask. Day 5 is the other day on that
+ * compressed variant, and the pair of them is now the precedent for it.
  *
- * It is the one day on the earlier format with no Customize path, because
- * Artifacts is not a setting - you ask for one. "Ask Claude for it as an
- * Artifact, in those words" is what stands in that slot, and inventing a
- * settings screen to fill the shape would have been a made-up instruction.
- * The wording matters more here than on any other day: an Artifact you did
- * not ask for by name usually comes back as chat text, so the day's whole
- * technique is the phrasing.
+ * It got there in two passes and the first one is worth knowing about,
+ * because it is the failure mode of writing to a template. Artifacts came
+ * forward from day 11 in September 2026, and the copy was first rebuilt on
+ * day 4's full template: bullets for what to give the thing, two "Then test
+ * it" lines, the good-to-go/sharpen-it pair. Every slot in the template got
+ * filled, and filling them is what made it long. It also grew the kind of
+ * line that reads well and teaches nothing - "an Artifact is clay rather than
+ * stone", "asking on purpose is most of the skill" - because a template with
+ * a slot for a diagnosis invites an aphorism when the day has no real one.
+ * The instruction to trim it came from the programme owner. If another day
+ * ever needs shortening, this is the pattern to look for: prose that survives
+ * because the shape wanted something there.
  *
- * The failable step is the one thing the later copy did not have. It said to
- * publish it and put the link where the team will find it, which is an
- * instruction with no way to come back false - a member who saved it and
- * pasted a chat link has done what the words asked. Now the test is opening
- * the published link in a browser you are not signed in to, which is a real
- * pass or fail and checks the claim the video makes: no account needed to
- * open it. The saved-not-published mix-up goes where day 4 and day 7 put
- * their diagnosis, in the "if it asks you to sign in" half of the closing
- * pair.
+ * THE PLAN TIER IS THE THING TO CHECK BEFORE EDITING THIS DAY. Anthropic's
+ * docs describe two different buttons, and which one a member sees depends on
+ * the plan:
  *
- * Its safety line survived the rewrite unchanged and stays where the tool
- * touches real data: publishing is the step that changes who can see
- * something, so made-up numbers only. It sits before the tests rather than
- * after them, as day 7's does, because it constrains what you build rather
- * than how you check it.
+ *   - Free, Pro and Max get PUBLISH. It makes the Artifact publicly
+ *     available, and anyone with the link can view and interact with it
+ *     without signing up.
+ *   - Team and Enterprise get SHARE. "Only members of your Team or Enterprise
+ *     organization" can open it, and "viewers must authenticate with their
+ *     Team or Enterprise account". Public link sharing needs an organisation
+ *     Owner to enable external sharing first.
  *
- * What did NOT survive is worth knowing, because it was the nicest line on
- * the day: "an Artifact is clay rather than stone" carried the whole reason
- * to refine one, and in the earlier format there is no prose paragraph for it
- * to live in. It is now a clause on the change-it step. If this day is ever
- * rewritten back into the later format, that sentence is the thing to give
- * room to again.
+ * The first version of this task was written on the Publish behaviour: it
+ * said to publish the Artifact, open the link in a browser you are not signed
+ * in to, and treated "it asks you to sign in" as the member's own mistake to
+ * fix. On a Team or Enterprise plan every member fails that test, and the
+ * diagnosis then sends them after a control they do not have. That is the day
+ * 7 failure exactly - a task instructing the inverse of the product - and it
+ * is why the copy now says "share" throughout and routes the external case to
+ * Haseeb rather than to a setting. Written that way it is correct on either
+ * plan, which is the property to keep, because nothing in this repo records
+ * which one Phlo is on.
+ *
+ * The failable step survived the trim, and it had to: "share it and have a
+ * colleague open the link" is a real pass or fail, where the original later
+ * copy's "publish it and put the link where your team will find it" had no
+ * way to come back false. A member who saved it and pasted a chat link has
+ * done what those words asked.
+ *
+ * The two other doc-checked facts in the copy: every version is kept, so a
+ * change cannot lose the draft before it, and Artifacts needs "Code execution
+ * and file creation" on under Settings > Capabilities. The second is written
+ * as a diagnosis rather than a first step - "if Claude answers in the chat
+ * instead of opening a panel" - because the toggle is documented for the
+ * Free, Pro and Max plans and may not be a member's to set on Team or
+ * Enterprise. Same reasoning as the share button: say the thing that is true
+ * on both.
+ *
+ * The safety line is the caution kept from the longer version, moved onto
+ * sharing rather than publishing. It is where this tool touches real data.
  *
  * They share a shape, and it is worth keeping when one gets rewritten:
  *
@@ -499,17 +528,11 @@ const DAY_TASKS: Readonly<Record<number, string>> = {
     "Submit the link to its first completed run.",
   ].join("\n"),
   8: [
-    "Pick one thing you rebuild from scratch most weeks: a status update, a meeting-prep sheet, a checklist, a small calculation you redo by hand every time.",
-    "Ask Claude for it as an Artifact, in those words - 'make me a one-page X as an Artifact I can reuse', or 'build me a tool that works out Y'. Asking on purpose is most of the skill. Give it:",
-    "- the job the thing has to do",
-    "- the shape you want it in",
-    "- the wording or figures it should start from",
-    "- a title a colleague would understand",
-    "Then change it once in plain English rather than keeping the first version. An Artifact is clay rather than stone and every version is kept, so nothing you try costs you the draft you had.",
-    "Made-up numbers only in anything you publish. Publishing changes who can see it, so keep confidential detail, logins and keys out of it entirely.",
-    "Then test it by publishing it and opening that link in a browser you are not signed in to.",
-    "If it loads and works for somebody with no account, everything is working - put the link where your team will find it, because one person building it once and everybody using it is the part that pays. If it asks you to sign in, it is saved rather than published: publish it properly and try the link again.",
-    "Submit the published link.",
+    "Pick something you rebuild most weeks - a status update, a meeting-prep sheet, a checklist - and ask Claude to make it as an Artifact you can reuse.",
+    "Change it once in plain English rather than keeping the first draft. Every version is kept, so you can go back. If Claude answers in the chat instead of opening a panel, turn on Code execution and file creation in Settings > Capabilities.",
+    "Share it and have a colleague open the link. Sharing stays inside Phlo by default, so if it needs to open for someone outside, ask Haseeb rather than working round it.",
+    "Made-up numbers only in anything you share, and keep logins and keys out of it.",
+    "Submit the link to your Artifact.",
   ].join("\n"),
   9: [
     "Pick something you would normally lose an afternoon to: a comparison, a supplier or market scan, a written summary that means reading several sources first.",

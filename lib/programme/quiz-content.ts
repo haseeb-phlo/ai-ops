@@ -429,22 +429,22 @@ export const WEEK_2_QUESTIONS: QuizQuestion[] = [
     ],
     correct: 2,
     explanation:
-      "An Artifact is the output as an object rather than as Chat scrollback: refined in place, every version kept, and shareable to people who need the checklist rather than the conversation behind it. Speed and accuracy are unchanged. Publishing lets other people open and use it, which is not the same as handing them edit rights on yours.",
+      "An Artifact is the output as an object rather than as Chat scrollback: refined in place, every version kept, and shareable to people who need the checklist rather than the conversation behind it. Speed and accuracy are unchanged. Sharing lets other people open and use it, which is not the same as handing them edit rights on yours.",
   },
   {
     day: 8,
     question:
-      "You have built a margin calculator as an Artifact in Claude and you are about to publish the link for your team. This quarter's real supplier prices are typed into it. What has to happen first?",
+      "You have built a margin calculator as an Artifact in Claude and you are about to share the link so your team can use it. This quarter's real supplier prices are typed into it. What has to happen first?",
     options: [
-      "Publish it, then message the team asking them not to forward the link",
-      "Nothing, a published Artifact is reachable only by the people you send it to",
-      "Swap the real prices for made-up ones, because publishing widens who sees it",
+      "Share it, then message the team asking them not to forward the link",
+      "Nothing, a shared Artifact is reachable only by the people you send it to",
+      "Swap the real prices for made-up ones, because sharing widens who can see it",
       "Leave the real prices in and write a confidentiality note at the top of the page",
-      "Ask Claude to take out anything sensitive before you publish the link",
+      "Ask Claude to take out anything sensitive before you share the link",
     ],
     correct: 2,
     explanation:
-      "Publishing is the step that changes who can see something, and the link opens with no account needed, so it travels further than the people you sent it to. That is what makes live supplier prices the wrong thing to leave in it. A confidentiality note changes nothing about who can open the page, asking colleagues not to forward a link is not a control, and handing the judgement to Claude asks something that has no way of knowing which of your figures are commercially sensitive.",
+      "Sharing is the step that changes who can see something: it reaches everyone the link reaches rather than the people you had in mind, which is your whole organisation by default and can be anyone who opens it. That is what makes live supplier prices the wrong thing to leave in. A confidentiality note changes nothing about who can open the page, asking colleagues not to forward a link is not a control, and handing the judgement to Claude asks something that has no way of knowing which of your figures are commercially sensitive.",
   },
   {
     day: 9,
