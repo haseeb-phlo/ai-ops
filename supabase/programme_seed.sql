@@ -66,16 +66,9 @@ Try over a few runs with different wording.
 If the skill fires, then everything is working. If not, the description is likely too vague or ambiguous. Fix this and try again.
 Submit the link to the chat where your Skill fired on its own.', 6, 1, null, '{}'::jsonb),
     ('video', 'Scheduled Tasks', null, 7, 0, 'Scheduled Tasks', '{}'::jsonb),
-    ('use_example', 'Task', 'Pick one job you do on a rhythm (e.g. the Monday write-up, the morning scan of your inbox and Slack, the weekly numbers somebody always asks you for).
-Go to Cowork > Scheduled and set one up, letting Claude draft it from your description rather than filling the form in yourself. Give it:
-- the job in plain English, the way you would brief a colleague
-- a cadence (hourly, daily, on weekdays or weekly) and a time you will not be at your desk
-- the shape the output should come back in
-- a name a colleague would understand
-Pick the approval mode yourself rather than taking the one offered. An unattended run is the one place that setting matters, because whatever you allow, it will do with nobody watching.
-Then test it by running it once on demand from that same page, before you trust the cadence.
-Then leave it to run on its own while you are away from your desk.
-If something is waiting for you when you get back, everything is working. If nothing ran, the task is reaching for a folder on your computer: a schedule runs on Anthropic''s servers rather than on your laptop, so rebuild it on your Connectors and on files saved to your Claude account.
+    ('use_example', 'Task', 'Go to Scheduled in the sidebar and use New task to set up one job you do on a rhythm, with a frequency and a time you will be away from your desk.
+Click Run now once and choose always allow on the permission prompts you recognise, or a scheduled run stalls waiting for you.
+Do not tie it to a folder on your computer: those only run when you are there. Use your Connectors and files saved to your Claude account.
 Submit the link to its first completed run.', 7, 1, null, '{}'::jsonb),
     ('video', 'Artifacts', null, 8, 0, 'Artifacts', '{}'::jsonb),
     ('use_example', 'Task', 'Pick something you rebuild most weeks - a status update, a meeting-prep sheet, a checklist - and ask Claude to make it as an Artifact you can reuse.
@@ -202,16 +195,9 @@ Try over a few runs with different wording.
 If the skill fires, then everything is working. If not, the description is likely too vague or ambiguous. Fix this and try again.
 Submit the link to the chat where your Skill fired on its own.'),
     (7, 0, 'Scheduled Tasks', null),
-    (7, 1, 'Task', 'Pick one job you do on a rhythm (e.g. the Monday write-up, the morning scan of your inbox and Slack, the weekly numbers somebody always asks you for).
-Go to Cowork > Scheduled and set one up, letting Claude draft it from your description rather than filling the form in yourself. Give it:
-- the job in plain English, the way you would brief a colleague
-- a cadence (hourly, daily, on weekdays or weekly) and a time you will not be at your desk
-- the shape the output should come back in
-- a name a colleague would understand
-Pick the approval mode yourself rather than taking the one offered. An unattended run is the one place that setting matters, because whatever you allow, it will do with nobody watching.
-Then test it by running it once on demand from that same page, before you trust the cadence.
-Then leave it to run on its own while you are away from your desk.
-If something is waiting for you when you get back, everything is working. If nothing ran, the task is reaching for a folder on your computer: a schedule runs on Anthropic''s servers rather than on your laptop, so rebuild it on your Connectors and on files saved to your Claude account.
+    (7, 1, 'Task', 'Go to Scheduled in the sidebar and use New task to set up one job you do on a rhythm, with a frequency and a time you will be away from your desk.
+Click Run now once and choose always allow on the permission prompts you recognise, or a scheduled run stalls waiting for you.
+Do not tie it to a folder on your computer: those only run when you are there. Use your Connectors and files saved to your Claude account.
 Submit the link to its first completed run.'),
     (8, 0, 'Artifacts', null),
     (8, 1, 'Task', 'Pick something you rebuild most weeks - a status update, a meeting-prep sheet, a checklist - and ask Claude to make it as an Artifact you can reuse.
