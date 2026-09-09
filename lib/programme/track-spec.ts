@@ -113,16 +113,21 @@ export type TrackItemSpec = {
  * so the swap moves a real recording onto day 7 and leaves day 9 reading
  * "coming soon", where day 7 read that way before.
  *
- * The cost is an ordering one and it is real: Scheduled Tasks now opens the
- * day BEFORE Cowork, and a scheduled task is a Cowork feature, so day 7's
- * task sends a member into a tool the Cowork day has not introduced yet. That is a
- * forward reference of exactly the kind the day 4/5 swap was made to remove.
- * It is survivable because the task names the path rather than assuming the
- * tool is familiar - "Open Cowork, click Scheduled in the sidebar" works for
- * someone who has never opened it - and because the tasks are independent by
- * design, so nothing on day 7 depends on the Cowork day having happened. If the
+ * The cost is an ordering one and it is real: Scheduled Tasks opens before
+ * Cowork, and a scheduled task is a Cowork feature, so day 7's task sends a
+ * member into a tool the curriculum has not introduced yet. That is a forward
+ * reference of exactly the kind the day 4/5 swap was made to remove. It is
+ * survivable because the task names the path rather than assuming the tool is
+ * familiar - "Scheduled in the sidebar" works for someone who has never
+ * opened it - and because the tasks are independent by design, so nothing on
+ * day 7 depends on the Cowork day having happened. The current copy does not
+ * name Cowork at all, so for the task the reference is gone entirely. If the
  * ordering is ever revisited, this is the argument for putting Scheduled
  * Tasks back behind Cowork, and the reason not to is the video binding above.
+ *
+ * That gap has been one day, then four, and is two now: the 8/11 swap below
+ * moved Cowork to day 11 and the 9/11 swap after it brought Cowork to day 9.
+ * Do not read a distance into this note - it has been wrong twice.
  *
  * Days 8 and 11 were swapped in September 2026, the day the cohorts reached
  * day 8: Artifacts moved forward to day 8 and Cowork went back to day 11.
@@ -167,14 +172,18 @@ export type TrackItemSpec = {
  * nothing for a one-off to clear. Every other swap here moved a real
  * recording, which is what the migrations exist for.
  *
- * It also repays most of the ordering cost the 7/9 swap booked. Day 7 sends a
- * member to Cowork > Scheduled before Cowork has been introduced, and that
- * forward reference was two days when Cowork sat on day 8, four when it went
- * to day 11, and is two again now. The tension between the two days survives
- * and is still deliberate: day 7 warns that a schedule pointed at a folder on
- * your computer never fires unattended, and day 9 asks for exactly such a
- * folder. Two days apart that reads as the lesson it is meant to be rather
- * than as a contradiction, which is easier to hold than it was at four.
+ * It also repays most of the ordering cost the 7/9 swap booked. Day 7 puts a
+ * Cowork feature before Cowork has been introduced, and that gap was two days
+ * when Cowork sat on day 8, four when it went to day 11, and is two again
+ * now. The task itself no longer names Cowork - day 7's rewrite sends the
+ * member to "Scheduled in the sidebar" - so what is left of the forward
+ * reference is the curriculum's rather than the copy's.
+ *
+ * What the shorter gap buys is the other pairing, which is a real one. Day 7
+ * warns that a schedule tied to a folder on your computer only runs when you
+ * are there, and day 9 asks for exactly such a folder. Two days apart that
+ * lands as the lesson it is meant to be; a week apart, which is where the
+ * 8/11 swap had left it, the two halves are too far apart to read as a pair.
  *
  * The quiz cost nothing this time, unlike the 8/11 swap. Cowork and Research
  * carry two questions each, so the pairs traded places one for one: Cowork's
@@ -286,13 +295,14 @@ export const GENERIC_TASK =
  * falls back to it reads as finished without being it.
  *
  * Days 6 and 7 are written to the earlier format instead, the one days 2-5
- * use, and day 4 is the template both follow line for line: an imperative
- * opening, the Customize path, a bulleted list of what to give the thing,
- * "Then test it", the good-to-go/sharpen-it pair, then the ask. Day 6 moved
- * into a week one slot when Skills came forward from day 9, and a member
- * reading Monday to Monday meets it directly after day 5 - so it reads as the
- * odd one out if it keeps the reflective opening and the standalone safety
- * paragraph that the later days use.
+ * use. Day 6 follows day 4 line for line: an imperative opening, the
+ * Customize path, a bulleted list of what to give the thing, "Then test it",
+ * the good-to-go/sharpen-it pair, then the ask. Day 7 follows day 5 instead,
+ * which is the same format without the bullets - see its own note below for
+ * why that suits it better. Day 6 moved into a week one slot when Skills came
+ * forward from day 9, and a member reading Monday to Monday meets it directly
+ * after day 5 - so it reads as the odd one out if it keeps the reflective
+ * opening and the standalone safety paragraph that the later days use.
  *
  * So the format boundary is now days 1-8 on the earlier shape and days 9-15
  * on the later one. It has moved twice: 1-5 against 6-15 first, then 1-7
@@ -300,8 +310,9 @@ export const GENERIC_TASK =
  * 8/11 swap brought Artifacts onto day 8 and the day was rewritten to match
  * the seven days a member has just read. It is worth knowing which side a day
  * sits on before rewriting it, because the two shapes want different things:
- * the earlier one puts the settings in bare bullets and the diagnosis in the
- * closing pair, and the later one carries both in prose.
+ * the earlier one puts the settings in bare bullets (or plain paragraphs, on
+ * the day 5 variant) and the diagnosis in the closing pair, and the later one
+ * carries both in prose.
  *
  * The boundary is a reading order rather than a rule about a day number, and
  * that is the thing to preserve if it moves again. What makes a day sit on
@@ -310,9 +321,9 @@ export const GENERIC_TASK =
  * carefully it was written.
  *
  * The earlier shape has two variants and it is worth knowing which one you
- * are copying. Days 2, 4, 6 and 7 use the full template with bullets and a
- * test pair. Days 5 and 8 use a compressed one: no bullets, a handful of
- * plain imperative lines, the caution as its own line. Reach for the
+ * are copying. Days 2, 4 and 6 use the full template with bullets and a test
+ * pair. Days 5, 7 and 8 use a compressed one: no bullets, a handful of plain
+ * imperative lines, the caution as its own line. Reach for the
  * compressed variant when the day has one straightforward thing to do, and
  * the full template when there is a list of inputs to hand over. Day 8's note
  * below records what happens when a day is forced into the wrong one.
@@ -358,23 +369,61 @@ export const GENERIC_TASK =
  * Anthropic's own caveat is the trap - "if a scheduled task requires local
  * files or apps, it will only run locally", and a schedule "can't be tied to
  * a folder on your computer" - so a task pointed at a folder passes on demand
- * and silently never fires unattended. That plays directly off day 9, which
- * asks for exactly such a folder: the two days want opposite things from the
- * same member, and saying so is the lesson rather than a contradiction to
- * smooth over.
+ * and silently never fires unattended. That plays directly off the Cowork
+ * day, which asks for exactly such a folder: the two days want opposite
+ * things from the same member, and saying so is the lesson rather than a
+ * contradiction to smooth over. Cowork is day 9 since the 9/11 swap, two days
+ * after this one, which is close enough for the pairing to land as the lesson
+ * it is meant to be. It spanned a week while Cowork sat on day 11.
  *
- * The earlier format is what carries that well, which is why this day is on
- * it. The two tests land as day 6's pair of "Then test it" lines, on demand
- * first and unattended second, and the local-folder trap goes where day 4 and
- * day 6 put their diagnosis: the "if nothing ran" half of the closing pair.
- * In the later format the same fact was a long prose paragraph that stated
- * the failure before the member had met it.
+ * It is written to DAY 5's shape rather than day 4's: plain imperative
+ * paragraphs, no bullets, and it is the second day on the track to look like
+ * that. Day 5 is the right sibling for it because the two days are the same
+ * kind of day - you go to a screen and set something up - and neither has a
+ * "give it these three things" list that bullets would earn. Day 4's template
+ * was tried first and the bullets read as ceremony around four short
+ * settings.
  *
- * Its safety line sits on the approval mode, which is where this tool touches
- * real data, and it stays a standalone sentence rather than a bullet. Every
- * bullet on days 2-6 is a bare noun phrase carrying no reason, so a caution
- * folded into the list would have lost the reason it exists. Day 5 is the
- * precedent for a safety sentence inside this format.
+ * The length history, because it was cut twice and the second cut was the
+ * one asked for: 1199 characters over 11 lines to start, 495 over 8 on day
+ * 4's template, 456 over 4 now. Day 5 is 352 over 3, and the difference is
+ * roughly the "Submit the link" line, which day 5 is the one day on the track
+ * not to carry.
+ *
+ * THE UI FACTS WERE RE-CHECKED against the help centre in September 2026 and
+ * two of them were wrong in the version before this. They are the things to
+ * re-check first if this day ever reads oddly, because all of them are
+ * screen-shaped and screens move:
+ *
+ *   - Scheduled is its OWN top-level item in the left sidebar, leading to a
+ *     Scheduled tasks page. It is not reached through Cowork, and the copy
+ *     said "Cowork > Scheduled" for two revisions. That path was invented by
+ *     analogy with day 5's "Customize > Connectors" and never verified;
+ *   - the button is New task, top right, offering Create with Claude or Set
+ *     up manually. The manual modal asks for a name, a prompt, an approval
+ *     mode, a frequency (hourly, daily, weekly, on weekdays or manually) and
+ *     optionally a model and a folder;
+ *   - a run stalls rather than fails when it needs a tool the approval mode
+ *     has not granted, and Anthropic's own fix is to press Run now once and
+ *     approve with "always allow", after which later runs stop asking. That
+ *     replaced "an approval mode you picked, not the default", which named
+ *     the setting without saying what to do about it and taught nothing;
+ *   - the folder field exists but choosing one makes the task local-only,
+ *     which is the reconciliation of two doc lines that look contradictory:
+ *     a schedule "can't be tied to a folder on your computer" and "if a
+ *     scheduled task requires local files or apps, it will only run locally";
+ *   - scheduled tasks are paid plans only, and web and mobile are still beta.
+ *     Not in the copy, because every Phlo member is on a paid seat, but it is
+ *     the first thing to check if somebody cannot find the section at all.
+ *
+ * "Files saved to your Claude account" is back in the closing line, so the
+ * day again names both halves of what a schedule can reach rather than only
+ * Connectors.
+ *
+ * One side effect worth knowing: this version does not mention Cowork at all.
+ * The forward reference the 7/9 swap created is therefore gone from the copy,
+ * though the pairing note above still holds, because the day 11 Cowork task
+ * is the one that asks for a scoped folder.
  *
  * Day 8 is Artifacts, and it is the shortest task on the track: five lines,
  * no bullets. It is written to DAY 5's shape rather than day 4's - a plain
@@ -557,16 +606,9 @@ const DAY_TASKS: Readonly<Record<number, string>> = {
     "Submit the link to the chat where your Skill fired on its own.",
   ].join("\n"),
   7: [
-    "Pick one job you do on a rhythm (e.g. the Monday write-up, the morning scan of your inbox and Slack, the weekly numbers somebody always asks you for).",
-    "Go to Cowork > Scheduled and set one up, letting Claude draft it from your description rather than filling the form in yourself. Give it:",
-    "- the job in plain English, the way you would brief a colleague",
-    "- a cadence (hourly, daily, on weekdays or weekly) and a time you will not be at your desk",
-    "- the shape the output should come back in",
-    "- a name a colleague would understand",
-    "Pick the approval mode yourself rather than taking the one offered. An unattended run is the one place that setting matters, because whatever you allow, it will do with nobody watching.",
-    "Then test it by running it once on demand from that same page, before you trust the cadence.",
-    "Then leave it to run on its own while you are away from your desk.",
-    "If something is waiting for you when you get back, everything is working. If nothing ran, the task is reaching for a folder on your computer: a schedule runs on Anthropic's servers rather than on your laptop, so rebuild it on your Connectors and on files saved to your Claude account.",
+    "Go to Scheduled in the sidebar and use New task to set up one job you do on a rhythm, with a frequency and a time you will be away from your desk.",
+    "Click Run now once and choose always allow on the permission prompts you recognise, or a scheduled run stalls waiting for you.",
+    "Do not tie it to a folder on your computer: those only run when you are there. Use your Connectors and files saved to your Claude account.",
     "Submit the link to its first completed run.",
   ].join("\n"),
   8: [
