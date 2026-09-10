@@ -304,11 +304,14 @@ export const GENERIC_TASK =
  * after day 5 - so it reads as the odd one out if it keeps the reflective
  * opening and the standalone safety paragraph that the later days use.
  *
- * So the format boundary is now days 1-8 on the earlier shape and days 9-15
- * on the later one. It has moved twice: 1-5 against 6-15 first, then 1-7
- * against 8-15 when day 6 came forward, and now one day further because the
- * 8/11 swap brought Artifacts onto day 8 and the day was rewritten to match
- * the seven days a member has just read. It is worth knowing which side a day
+ * So the format boundary is now days 1-9 on the earlier shape and days 10-15
+ * on the later one. It has moved three times: 1-5 against 6-15 first, then
+ * 1-7 against 8-15 when day 6 came forward, then 1-8 when the 8/11 swap
+ * brought Artifacts onto day 8, and now 1-9 with day 9's rewrite. Each move
+ * is the same argument as the
+ * first: a day reads as the odd one out when the days immediately before it
+ * are on the other shape, and by day 9 a member has read eight compressed or
+ * bulleted days in a row. It is worth knowing which side a day
  * sits on before rewriting it, because the two shapes want different things:
  * the earlier one puts the settings in bare bullets (or plain paragraphs, on
  * the day 5 variant) and the diagnosis in the closing pair, and the later one
@@ -322,8 +325,8 @@ export const GENERIC_TASK =
  *
  * The earlier shape has two variants and it is worth knowing which one you
  * are copying. Days 2, 4 and 6 use the full template with bullets and a test
- * pair. Days 5, 7 and 8 use a compressed one: no bullets, a handful of plain
- * imperative lines, the caution as its own line. Reach for the
+ * pair. Days 5, 7, 8 and 9 use a compressed one: no bullets, a handful of
+ * plain imperative lines, the caution as its own line. Reach for the
  * compressed variant when the day has one straightforward thing to do, and
  * the full template when there is a list of inputs to hand over. Day 8's note
  * below records what happens when a day is forced into the wrong one.
@@ -422,14 +425,16 @@ export const GENERIC_TASK =
  *
  * One side effect worth knowing: this version does not mention Cowork at all.
  * The forward reference the 7/9 swap created is therefore gone from the copy,
- * though the pairing note above still holds, because the day 11 Cowork task
- * is the one that asks for a scoped folder.
+ * though the pairing note above still holds, because the day 9 Cowork task
+ * is the one that asks for a scoped folder. It said day 11 for a revision
+ * after the 9/11 swap had already moved Cowork.
  *
- * Day 8 is Artifacts, and it is the shortest task on the track: five lines,
- * no bullets. It is written to DAY 5's shape rather than day 4's - a plain
- * imperative, a longer middle line carrying the setting and the escalation to
- * Haseeb, a one-line caution, then the ask. Day 5 is the other day on that
- * compressed variant, and the pair of them is now the precedent for it.
+ * Day 8 is Artifacts, and it is five lines, no bullets. It is written to DAY
+ * 5's shape rather than day 4's - a plain imperative, a longer middle line
+ * carrying the setting and the escalation to Haseeb, a one-line caution, then
+ * the ask. It was the shortest task on the track by line count when it was
+ * written and is not any more: day 9 matches it at five and days 5 and 7 are
+ * shorter still, at three and four.
  *
  * It got there in two passes and the first one is worth knowing about,
  * because it is the failure mode of writing to a template. Artifacts came
@@ -518,6 +523,117 @@ export const GENERIC_TASK =
  *
  * The safety line is the caution kept from the longer version, moved onto
  * sharing rather than publishing. It is where this tool touches real data.
+ *
+ * Day 9 is Cowork, rewritten into DAY 5's shape in September 2026 - six
+ * prose lines down to four imperative ones. It is the third
+ * day on the compressed variant after 7 and 8, and it was moved for the
+ * reading-order reason above rather than because the copy was wrong: the
+ * eight days before it are all on the earlier shape, so a reflective opening
+ * and a standalone safety paragraph made it the odd one out.
+ *
+ * THE FINAL WORDING IS THE PROGRAMME OWNER'S, supplied line for line and used
+ * as given, the way day 6's is. Everything below about the two drafts that
+ * preceded it is history rather than justification for the copy that shipped,
+ * and the three paragraphs at the end record what the supplied version
+ * changed - one of which needs a decision that is not this file's to make.
+ *
+ * It took a SECOND pass, on the programme owner's instruction, and the note
+ * is here because the first pass hit day 8's failure in a new place. Getting
+ * the shape right is not the same as getting the language right: five short
+ * imperative lines can still be written in a register nobody speaks in. The
+ * version that got the structure right opened "Pick a whole job you dread
+ * because it is assembly rather than thinking" and closed a line with "It did
+ * the assembly, you still own the call" - correct, compact, and not English
+ * anyone says out loud. The instruction was to make it sound like a person
+ * talking, and what that cost was every abstract noun: "assembly rather than
+ * thinking" became "a boring job you keep putting off" and "hand over the
+ * whole goal" became "tell it the whole task".
+ *
+ * The rule that came out of it, worth applying to any day rewritten from
+ * here: if a line would sound odd said aloud to a colleague, it is wrong,
+ * however well it fits the template. Day 8's note has the structural half of
+ * this - prose that survives because the shape wanted something there - and
+ * this is the vocabulary half, which the template does not catch because a
+ * slot can be filled with a well-turned phrase just as easily as with a plain
+ * one.
+ *
+ * Two things in this copy are load-bearing outside the day, and both are in
+ * quiz-content.ts. The FIRST day 9 question tests the examples in the opening
+ * line: its correct answer is merging reports "and filing them", against an
+ * explanation about work that "ends in files rather than in an answer", so
+ * the opening line has to keep at least one example that ends in files. The
+ * SECOND now turns on the folder and on skipping permissions together - its
+ * stem has the member skipping the prompts and its answer is the folder - so
+ * the scoping instruction has to stay AHEAD of the hand-over line and the
+ * Skip Permissions line has to stay in. A task and its quiz question
+ * disagreeing is the failure the day 7 note names.
+ *
+ * What is NO LONGER load-bearing, since it was until this revision: "tell it
+ * the whole task in one sentence". The old second question opened "You have
+ * given Cowork a whole goal in one sentence", so the phrase had to survive
+ * every rewrite. Its replacement does not mention the brief at all. The line
+ * is still the right instruction and still in the copy; it is just no longer
+ * pinned by anything outside the day.
+ *
+ * The examples are down from four to three and which one went was the choice.
+ * "Drafting a recurring update out of scattered notes" is the one dropped,
+ * because that first question's distractor is drafting an email to a supplier
+ * - so a drafting example in the task copy argues against the answer the quiz
+ * wants two days later. "Tidying and renaming" was the one to keep for the
+ * same reason inverted: it is the clearest case of work that ends in files.
+ *
+ * The other cost is one sentence: "Scoping it is the safety step, not a
+ * tidy-up". The instruction to scope survives in the opening line and the
+ * reason survives in the caution line, but the sentence that said the two
+ * were the same thing is gone. That is the line to reinstate if members turn
+ * up with a folder pointed at their whole Documents directory.
+ *
+ * THE SUPPLIED VERSION DROPPED THE WATCH-AND-READ LINE. The line was "Keep
+ * an eye on it and stop it if it goes wrong. Read what it made properly
+ * before you send it anywhere", and losing it briefly left the day teaching
+ * the opposite of its own quiz: the second day 9 question marked "On watching
+ * it closely enough to stop it, then reading what it made" correct, against a
+ * distractor of "Nowhere until it finishes, because steering it defeats the
+ * point", and "Skip Permissions" reads closer to the distractor than to the
+ * key. THE QUIZ WAS CHANGED RATHER THAN THE TASK, on the programme owner's
+ * instruction, so the question is now about what the folder is doing once the
+ * prompts are skipped. Which side moves is the decision worth recording: the
+ * task is the curriculum and the quiz examines it, so a disagreement between
+ * them is normally the quiz's to absorb - the exception is a question that is
+ * right about the PRODUCT, which is the day 7 case and which this was not.
+ *
+ * That leaves DAY 9 WITH NO FAILABLE STEP, joining days 4 and 8. Cowork has
+ * to finish and produce something linkable, which a badly scoped folder will
+ * stop, but there is no longer any step a member can be seen to get wrong.
+ * The reading check was the closest the day had, and it is the honest one to
+ * reinstate if a pass or fail is ever wanted back - it is now gone from the
+ * quiz as well as the task, so nothing in the programme asks for it.
+ *
+ * "SKIP PERMISSIONS" IS THE ONE UI STRING IN THIS DAY AND IT IS UNVERIFIED.
+ * It came from the programme owner, who uses the product, and it is not in
+ * anything in this repo or checkable from it. Day 7's note is the precedent
+ * for why that matters: three of its screen facts were wrong for two
+ * revisions, invented by analogy rather than checked. This one is a button
+ * label plus a claim about what pressing it does, so it is exactly the shape
+ * that goes stale, and it is the first thing to re-read if members report
+ * that the day does not match what they see.
+ *
+ * The caution line is the owner's too and it is WIDER AND SOFTER than the one
+ * it replaced. "Nothing confidential or patient-identifiable in it unless the
+ * use has been approved" became "make sure there's nothing unrelated or
+ * confidential in it": "unrelated" is new and useful, since it repeats the
+ * scoping instruction where a member is actually filling the folder, but
+ * "patient-identifiable" is gone as a named category and so is the approval
+ * route. Phlo is a pharmacy and this is the day that points a tool at real
+ * files on a real machine, so naming patient data explicitly is worth more
+ * here than on any other day. Left as supplied because the copy is the
+ * owner's; flagged because "confidential" covering patient data is an
+ * inference a reader has to make rather than something the line says.
+ *
+ * There is no video on this day. Neither Cowork nor Research has a row in
+ * `learn_videos` (see the 9/11 swap note above), so day 9 renders "coming
+ * soon" above a task that is fully written, which is the wrong way round and
+ * worth knowing before pointing a cohort at it.
  *
  * They share a shape, and it is worth keeping when one gets rewritten:
  *
@@ -635,12 +751,10 @@ const DAY_TASKS: Readonly<Record<number, string>> = {
     "Submit the link to your Artifact.",
   ].join("\n"),
   9: [
-    "Pick a whole task you dread because it is assembly rather than thinking: merging several documents into one summary, reconciling two lists, tidying and renaming a folder, drafting a recurring update out of scattered notes.",
-    "Put only the files that task needs into one folder. Scoping it is the safety step, not a tidy-up - Cowork works on your actual computer, so point it at one folder rather than at everything you have.",
-    "Open Cowork in the desktop app, give it access to that folder, and hand over the whole goal in one sentence. Do not steer it click by click; the point is that you stop driving.",
-    "Watch it work and stop it if it heads somewhere wrong. Then read the deliverable properly before it goes anywhere - it did the assembly, you still own the call.",
-    "Nothing confidential or patient-identifiable in that folder unless the use has been approved.",
-    "Submit the link to what it produced.",
+    "Pick a boring job you keep putting off (e.g. merging a few documents into one summary, checking two lists against each other, tidying up and renaming a group of files). Put the files Cowork needs into one folder - don't add anything else.",
+    "Open Cowork in the desktop app, point it to that folder and tell it the whole task in one sentence. Then click \"Skip Permissions\" to allow it to do the work without asking for approvals.",
+    "Cowork works on your real files, so keep this folder small and make sure there's nothing unrelated or confidential in it.",
+    "Submit the link to the final output.",
   ].join("\n"),
   10: [
     "Find a prompt that is not working - one you have reworded twice and it still comes back the wrong shape.",

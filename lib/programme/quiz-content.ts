@@ -135,6 +135,43 @@
  * No question needed a fact corrected this time. Both topics kept their prose
  * exactly; what changed is which array it sits in and what its tag says.
  *
+ * Day 9's SECOND question was rewritten in September 2026 and this is the
+ * first time a question changed because the TASK moved rather than because
+ * the day did. The programme owner supplied new day 9 copy which drops "Keep
+ * an eye on it and stop it if it goes wrong. Read what it made properly
+ * before you send it anywhere" and adds an instruction to click Skip
+ * Permissions. The old question asked where the member's attention belongs
+ * during a run and marked "On watching it closely enough to stop it, then
+ * reading what it made" correct - so the task was teaching one thing and the
+ * quiz marking another, and the "Nowhere until it finishes" distractor had
+ * become the closer description of what the day now asks for.
+ *
+ * The quiz moved rather than the task. That is the general rule and it is
+ * worth stating once: the task is the curriculum and the quiz examines it, so
+ * when they disagree the quiz is normally the side to change. The exception
+ * is a question that is right about the PRODUCT - the laptop question above
+ * is that case, where the task and the quiz were both wrong and both were
+ * corrected against Anthropic's docs rather than against each other.
+ *
+ * The replacement keeps the day at two questions and tests the day's own
+ * safety line, the way day 8's second question does: with the permission
+ * prompts skipped there is no per-step check left, so the folder chosen
+ * before the run is the only boundary there is. Its near-miss fifth option is
+ * reading every file afterwards, which is worth doing and is not a boundary.
+ *
+ * What went with the old question is real and is not replaced anywhere:
+ * nothing in the programme now asks a member to read what Cowork produced
+ * before acting on it. See the day 9 note in track-spec.ts, which records the
+ * same gap from the task's side.
+ *
+ * The day 7 stem was corrected in the same pass. It said "You set a Scheduled
+ * Task in Cowork", which is the navigation claim the day 7 task copy had
+ * already been corrected for: Scheduled is its own top-level item in the left
+ * sidebar and is not reached through Cowork. The stem now says "From
+ * Scheduled in the sidebar", which is what the task tells members to do. The
+ * question's judgement is untouched - it is still about where a run happens
+ * when the laptop is shut.
+ *
  * TAGS ARE EDITORIAL. Which quiz a question lands in is the array it sits in,
  * never this field. It exists so `tests/programme-quiz-content.test.ts` can
  * assert that each quiz covers its own week, which is the check that would
@@ -400,7 +437,7 @@ export const WEEK_2_QUESTIONS: QuizQuestion[] = [
   {
     day: 7,
     question:
-      "You set a Scheduled Task in Cowork to run the stock summary at 07:00 each Monday. You reach your desk at 08:30 and your laptop was shut overnight. What happens?",
+      "From Scheduled in the sidebar you set a task to run the stock summary at 07:00 each Monday. You reach your desk at 08:30 and your laptop was shut overnight. What happens?",
     options: [
       "It waits until you open the laptop, so the result arrives late",
       "It ran at 07:00 without your machine, and the result is waiting",
@@ -475,17 +512,17 @@ export const WEEK_2_QUESTIONS: QuizQuestion[] = [
   {
     day: 9,
     question:
-      "You have given Cowork a whole goal in one sentence and it is working. Where does your attention belong?",
+      "You are handing a job to Cowork in the desktop app and you have skipped the permission prompts so it can work without stopping to ask. What is keeping it away from files it has no business opening?",
     options: [
-      "On each step, approving it before the next one is allowed to start",
-      "On the prompt, refining the wording while the run is still going",
-      "On watching it closely enough to stop it, then reading what it made",
-      "Nowhere until it finishes, because steering it defeats the point",
-      "On the folder, in case it writes to files outside the scope you set",
+      "The folder you pointed it at, and whatever you chose to put in it",
+      "Claude's judgement about which of your files the task actually needs",
+      "The one-sentence brief, which tells it what it is allowed to open",
+      "The desktop app, which reaches your Claude account rather than your disk",
+      "Nothing much, so read every file it touched once the run has finished",
     ],
-    correct: 2,
+    correct: 0,
     explanation:
-      "Handing over the goal is the point, so approving every step is just driving again. But Cowork did the assembly and you still own the call, so an unread deliverable is the failure this day exists to prevent. Watching without steering is the balance. The folder was scoped before the run started rather than policed during it.",
+      "Skipping the prompts is what makes the folder the control. There is no per-step approval left, so the only thing between Cowork and a file is whether you put that file in scope before the run started. Claude cannot know which of your documents are commercially sensitive. A brief describes the goal rather than granting access, and Cowork works on your real machine rather than inside your Claude account. Reading afterwards is worth doing but it is not a boundary, because by then it has opened whatever was there.",
   },
   {
     day: 10,
