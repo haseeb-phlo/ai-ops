@@ -15,6 +15,7 @@ import {
 } from "./unlock";
 import {
   todayInLondon,
+  heldDayIndexes,
   openThroughInLondon,
   hasReached,
   unlockDateFor,
@@ -395,6 +396,9 @@ const loadTrackStateFor = cache(
       weekOneSubmissionsIn,
       progressByItemId: effectiveProgress,
       summativeItemIds: new Set(summativeItem ? [summativeItem.id] : []),
+      // Rule 4b. Read here with the clock, beside openThrough, so the member
+      // view and the two admin surfaces all see the same held days.
+      heldDayIndexes: heldDayIndexes(),
     });
 
     // Built above the gates rather than beside the card data below, because

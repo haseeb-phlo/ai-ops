@@ -6,6 +6,7 @@ import { computeRag, type RagStatus } from "@/lib/programme/rag";
 import { countOverdue } from "@/lib/programme/overdue";
 import { resolveItemStates, outstandingItems, type ItemState } from "@/lib/programme/unlock";
 import {
+  heldDayIndexes,
   openThroughInLondon,
   todayInLondon,
   unlockDateFor,
@@ -71,6 +72,7 @@ export async function GET(request: NextRequest) {
   // - nothing becomes late an hour earlier because the sweep runs early.
   const today = todayInLondon();
   const openThrough = openThroughInLondon();
+  const held = heldDayIndexes();
 
   const { data: cohorts, error: cohortError } = await supabase
     .from("programme_cohorts")
@@ -212,6 +214,8 @@ export async function GET(request: NextRequest) {
         },
         progressByItemId: memberProgress,
         summativeItemIds: summativeIds,
+        // Rule 4b - a held day is not work the member is late on.
+        heldDayIndexes: held,
       });
 
       const satisfied = satisfiedSessionIds(

@@ -53,6 +53,56 @@ export const PROGRAMME_OPEN_HOUR = 7;
 export const PROGRAMME_OPEN_LABEL = "7am";
 
 /**
+ * One-off holds: a day that must NOT open at `PROGRAMME_OPEN_HOUR`, kept shut
+ * until a stated instant and then opening by itself.
+ *
+ * This is the small lever, and the reason it exists rather than a change to
+ * `PROGRAMME_OPEN_HOUR` is that the constant is global and permanent. Moving
+ * it to hold one morning would move every future morning for every cohort,
+ * and the two numbers it is bound to - `MEMBER_REMINDER_HOUR` and the label
+ * above - would have to move with it and then move back.
+ *
+ * The key is a DAY INDEX and the value is an instant, so a hold expires on
+ * the clock rather than needing to be removed. That matters more than it
+ * looks: the alternative is a boolean somebody has to come back and unset,
+ * and the failure mode of that is a day still shut on Friday because nobody
+ * did. An entry left here after its instant has passed is inert.
+ *
+ * TWO THINGS IT DOES NOT DO, both deliberate:
+ *
+ *   - it does not re-lock work already started or completed. That invariant
+ *     lives in `resolveItemStates` and sits above this check, so a member who
+ *     opened the day before the hold went in keeps it. A member who was
+ *     reading it without recording progress does lose it until the instant
+ *     passes, which is the honest cost of holding a day that is already open;
+ *   - it is not scoped to a cohort. Before the hold's instant the day is shut
+ *     for everyone, which is right when the reason is that the day's content
+ *     is not ready, and wrong if a hold is ever wanted for one cohort only.
+ *     Add a cohort id to the key if that day comes.
+ *
+ * Day 9's entry is the first one: its video was not ready at 07:00 and the
+ * day was held to 09:00 the same morning.
+ */
+export const DAY_HOLDS: ReadonlyMap<number, string> = new Map([
+  [9, "2026-09-10T09:00:00+01:00"],
+]);
+
+/**
+ * The day indexes currently held shut, at instant `now`.
+ *
+ * Pass the result to `resolveItemStates`, the way `openThroughInLondon` is
+ * passed as `today`: the resolver stays a pure function of its arguments and
+ * the clock is read once, by the caller.
+ */
+export function heldDayIndexes(now: Date = new Date()): ReadonlySet<number> {
+  const held = new Set<number>();
+  for (const [dayIndex, until] of DAY_HOLDS) {
+    if (now.getTime() < Date.parse(until)) held.add(dayIndex);
+  }
+  return held;
+}
+
+/**
  * Today's date in Europe/London, as "YYYY-MM-DD".
  *
  * Takes an optional instant so callers (and tests) can be deterministic. Using

@@ -13,6 +13,11 @@
  *   4. Everything else unlocks on start_date + (day_index - 1) working days,
  *      at `PROGRAMME_OPEN_HOUR` London on that day - 07:00, see
  *      `openThroughInLondon`.
+ *   4b. A day named in `DAY_HOLDS` stays shut past its own opening until the
+ *      instant that entry states. It is the one-off override for a day whose
+ *      content is not ready, and it expires on the clock rather than needing
+ *      to be removed. Callers pass `heldDayIndexes` the same way they pass
+ *      `today`, so this stays a pure function of its arguments.
  *
  * And rule 2b, which is rule 2 one week later: until BOTH of week one's
  * submissions are in, nothing from week two onward unlocks. Week one is the
@@ -175,6 +180,19 @@ export function resolveItemStates<T extends TrackItemLike>(args: {
    * Everything else of type "quiz" is ordinary gated content.
    */
   summativeItemIds?: ReadonlySet<string>;
+  /**
+   * Day indexes held shut past their own opening - rule 4b. From
+   * `heldDayIndexes()` in working-days.ts, which reads the clock; passed in
+   * rather than read here so this resolver stays pure and the tests can hold
+   * a day without mocking time.
+   *
+   * Defaults to none held, which is the state the programme is in almost
+   * always. A caller that has not been taught about holds therefore behaves
+   * exactly as it did before, which is the wrong default for a hold that
+   * matters and the right one for a resolver three surfaces share: a missing
+   * hold shows a day early, a spurious one hides a day that is ready.
+   */
+  heldDayIndexes?: ReadonlySet<number>;
   /** Defaults to daily - see UnlockMode for the mode's history. */
   unlockMode?: UnlockMode;
 }): ResolvedItem<T>[] {
@@ -199,6 +217,14 @@ export function resolveItemStates<T extends TrackItemLike>(args: {
     const checkInWave = CHECK_IN_WAVE_BY_TYPE.get(item.type);
     if (checkInWave && args.answeredCheckIns?.[checkInWave]) {
       return { item, state: "complete", unlockDate };
+    }
+
+    // Rule 4b. Below both invariant branches on purpose: a hold shuts a day
+    // that has not been opened yet, and never takes back work in progress.
+    // Above everything else, because a held day is shut whatever the calendar
+    // and the gates would otherwise say.
+    if (args.heldDayIndexes?.has(item.day_index)) {
+      return { item, state: "locked", unlockDate };
     }
 
     const dateReached = hasReached(unlockDate, args.today);

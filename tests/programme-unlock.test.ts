@@ -472,3 +472,82 @@ describe("week one's checkpoint (rule 2b)", () => {
     expect(stateOf(r, "d8s")).toBe("started");
   });
 });
+
+describe("a one-off day hold (rule 4b)", () => {
+  // A day whose content is not ready is shut past its own opening. The hold
+  // is passed in rather than read from the clock, which is what makes this
+  // testable without mocking time - see heldDayIndexes in working-days.ts.
+  const LATE = "2026-09-30";
+
+  const withHold = (held: number[]) =>
+    resolveItemStates({
+      items,
+      startDate: START,
+      today: LATE,
+      hasBaseline: true,
+      unlockMode: "daily",
+      heldDayIndexes: new Set(held),
+    });
+
+  it("shuts a day whose date has already been reached", () => {
+    const r = withHold([1]);
+    expect(stateOf(r, "d1v")).toBe("locked");
+    expect(stateOf(r, "d1u")).toBe("locked");
+  });
+
+  it("shuts the whole day, not one item type", () => {
+    // Day 9 in production is a video and a Task, and holding one of them
+    // would leave the day half open.
+    const r = withHold([1]);
+    expect(r.filter((x) => x.item.day_index === 1).map((x) => x.state)).toEqual(
+      ["locked", "locked"],
+    );
+  });
+
+  it("leaves every other day alone", () => {
+    const r = withHold([1]);
+    expect(stateOf(r, "d5q")).toBe("available");
+    expect(stateOf(r, "d8s")).toBe("available");
+    expect(stateOf(r, "d15v")).toBe("available");
+  });
+
+  it("does not re-lock work already started or completed", () => {
+    // The invariant outranks the hold: a member who opened the day before it
+    // was held keeps it. This is the reason the check sits below rule 5.
+    const r = resolveItemStates({
+      items,
+      startDate: START,
+      today: LATE,
+      hasBaseline: true,
+      unlockMode: "daily",
+      heldDayIndexes: new Set([1]),
+      progressByItemId: new Map([
+        ["d1v", "started" as ItemState],
+        ["d1u", "complete" as ItemState],
+      ]),
+    });
+    expect(stateOf(r, "d1v")).toBe("started");
+    expect(stateOf(r, "d1u")).toBe("complete");
+  });
+
+  it("keeps a held day out of outstanding work", () => {
+    // The RAG sweep and the admin roster both measure lateness, and a day
+    // nobody can open is not work anybody is late on.
+    const r = withHold([1]);
+    const ids = outstandingItems(r).map((x) => x.item.id);
+    expect(ids).not.toContain("d1v");
+    expect(ids).not.toContain("d1u");
+    expect(unlockedItems(r).map((x) => x.item.id)).not.toContain("d1v");
+  });
+
+  it("holds nothing when the caller passes no set", () => {
+    const r = resolveItemStates({
+      items,
+      startDate: START,
+      today: LATE,
+      hasBaseline: true,
+      unlockMode: "daily",
+    });
+    expect(stateOf(r, "d1v")).toBe("available");
+  });
+});

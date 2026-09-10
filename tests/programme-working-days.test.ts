@@ -5,6 +5,8 @@ import {
   finalDayDate,
   formatIsoDate,
   hasDayArrived,
+  heldDayIndexes,
+  DAY_HOLDS,
   hasReached,
   hourInLondon,
   openThroughInLondon,
@@ -420,5 +422,36 @@ describe("formatIsoDate", () => {
     expect(() => formatIsoDate("")).toThrow(/YYYY-MM-DD/);
     // Well-formed shape, impossible month - would print "1 undefined 2026".
     expect(() => formatIsoDate("2026-13-01")).toThrow(/between 01 and 12/);
+  });
+});
+
+describe("one-off day holds", () => {
+  // The entry that matters in production is day 9, held to 09:00 on the
+  // morning its video was not ready. These pin the mechanism rather than the
+  // entry, so removing a spent hold does not fail the suite.
+  const UNTIL = "2026-09-10T09:00:00+01:00";
+
+  it("holds a day right up to the stated instant", () => {
+    const oneMinuteBefore = new Date(Date.parse(UNTIL) - 60_000);
+    expect(heldDayIndexes(oneMinuteBefore).has(9)).toBe(true);
+  });
+
+  it("releases it on the instant, with nothing to unset", () => {
+    // The whole point of an instant rather than a boolean: a hold nobody
+    // comes back to remove still opens the day.
+    expect(heldDayIndexes(new Date(UNTIL)).has(9)).toBe(false);
+    expect(heldDayIndexes(new Date("2026-09-10T09:00:01+01:00")).size).toBe(0);
+  });
+
+  it("holds nothing a year later, whatever is left in the table", () => {
+    expect(heldDayIndexes(new Date("2027-09-10T00:00:00+01:00")).size).toBe(0);
+  });
+
+  it("states every hold as a parseable instant", () => {
+    // A typo here would silently never hold anything, because Date.parse
+    // returns NaN and every comparison against it is false.
+    for (const [dayIndex, until] of DAY_HOLDS) {
+      expect(Number.isFinite(Date.parse(until)), `day ${dayIndex}`).toBe(true);
+    }
   });
 });

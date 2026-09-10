@@ -7,6 +7,7 @@ import { countOverdue } from "./overdue";
 import { resolveItemStates, outstandingItems, type ItemState } from "./unlock";
 import {
   hasDayArrived,
+  heldDayIndexes,
   openThroughInLondon,
   todayInLondon,
   unlockDateFor,
@@ -267,6 +268,7 @@ export const loadCohortAdminView = cache(
     // the two questions about visibility - item states and which task columns
     // exist - while `today` stays the calendar date for overdue and RAG.
     const openThrough = openThroughInLondon();
+    const held = heldDayIndexes();
 
     // Names: profiles are readable to any authenticated user; this page is
     // super-admin gated anyway.
@@ -441,6 +443,8 @@ export const loadCohortAdminView = cache(
         },
         progressByItemId: progress,
         summativeItemIds: summativeIds,
+        // Rule 4b - a held day is not work the member is late on.
+        heldDayIndexes: held,
       });
 
       const completedItemIds = new Set(
