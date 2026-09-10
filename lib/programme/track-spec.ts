@@ -167,10 +167,14 @@ export type TrackItemSpec = {
  * forward to day 9 and "Research, Memory & files out" went back to day 11.
  * This is the one reorder in this file that needed NO migration, and the
  * reason is worth knowing so the omission does not read as an oversight.
- * Neither topic has a row in `learn_videos`, so both days were already null
- * and stayed null: there was nothing for the seed's re-bind to fill and
- * nothing for a one-off to clear. Every other swap here moved a real
+ * Neither topic had a row in `learn_videos` at the time, so both days were
+ * already null and stayed null: there was nothing for the seed's re-bind to
+ * fill and nothing for a one-off to clear. Every other swap here moved a real
  * recording, which is what the migrations exist for.
+ *
+ * Cowork was recorded on 2026-09-10 and day 9 is bound to it, so the premise
+ * of the paragraph above no longer holds - it is history rather than the
+ * current state. Day 11 is the unrecorded one of the pair now.
  *
  * It also repays most of the ordering cost the 7/9 swap booked. Day 7 puts a
  * Cowork feature before Cowork has been introduced, and that gap was two days
@@ -630,10 +634,22 @@ export const GENERIC_TASK =
  * owner's; flagged because "confidential" covering patient data is an
  * inference a reader has to make rather than something the line says.
  *
- * There is no video on this day. Neither Cowork nor Research has a row in
- * `learn_videos` (see the 9/11 swap note above), so day 9 renders "coming
- * soon" above a task that is fully written, which is the wrong way round and
- * worth knowing before pointing a cohort at it.
+ * DAY 9 NOW HAS A VIDEO. Cowork was recorded and uploaded on 2026-09-10, the
+ * morning the two live cohorts reached the day, and `learn_videos` has a row
+ * titled exactly "Cowork" - so the seed's own re-bind block fills it, because
+ * day 9's `learn_video_id` was null and the titles match. No migration was
+ * needed for it, unlike the day 4/5 and 8/11 swaps, which had to re-point or
+ * null a binding the seed would not touch.
+ *
+ * The day was held shut from 07:00 to 09:00 that morning while the upload
+ * happened - see DAY_HOLDS in working-days.ts - and released early once the
+ * row existed. That is the first use of the hold mechanism and the reason it
+ * was written.
+ *
+ * Research on day 11 is now the only unrecorded day in week two or three
+ * along with 12, 13, 14 and 15, so the 9/11 swap note above should be read
+ * with that in mind: the argument for that swap was which of the two days had
+ * a recording, and the answer has changed.
  *
  * They share a shape, and it is worth keeping when one gets rewritten:
  *

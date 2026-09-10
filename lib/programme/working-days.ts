@@ -80,12 +80,20 @@ export const PROGRAMME_OPEN_LABEL = "7am";
  *     is not ready, and wrong if a hold is ever wanted for one cohort only.
  *     Add a cohort id to the key if that day comes.
  *
- * Day 9's entry is the first one: its video was not ready at 07:00 and the
- * day was held to 09:00 the same morning.
+ * THE TABLE IS EMPTY AND THAT IS THE NORMAL STATE. It has been used once:
+ * day 9 was held to 09:00 on 2026-09-10 because the Cowork video was not
+ * ready when the day opened at 07:00, and the entry was removed the same
+ * morning when the video was uploaded, about an hour before its instant. That
+ * is the shape to copy - a hold is added for a reason that is visible and
+ * removed when the reason goes, and the instant is the backstop for the times
+ * nobody comes back.
+ *
+ * Removing it rather than leaving it to expire was deliberate. A spent entry
+ * is inert, so leaving it costs nothing mechanically, but an entry sitting
+ * here reads as a hold somebody forgot - and the next person to need this
+ * would have to work out whether day 9 is still shut before adding theirs.
  */
-export const DAY_HOLDS: ReadonlyMap<number, string> = new Map([
-  [9, "2026-09-10T09:00:00+01:00"],
-]);
+export const DAY_HOLDS: ReadonlyMap<number, string> = new Map([]);
 
 /**
  * The day indexes currently held shut, at instant `now`.
@@ -93,10 +101,18 @@ export const DAY_HOLDS: ReadonlyMap<number, string> = new Map([
  * Pass the result to `resolveItemStates`, the way `openThroughInLondon` is
  * passed as `today`: the resolver stays a pure function of its arguments and
  * the clock is read once, by the caller.
+ *
+ * `holds` is injectable for the same reason `now` is. The tests then pin the
+ * MECHANISM rather than whatever is in the live table, so adding or removing
+ * a hold is a one-line change that breaks nothing - which is the property you
+ * want on the morning you are using it.
  */
-export function heldDayIndexes(now: Date = new Date()): ReadonlySet<number> {
+export function heldDayIndexes(
+  now: Date = new Date(),
+  holds: ReadonlyMap<number, string> = DAY_HOLDS,
+): ReadonlySet<number> {
   const held = new Set<number>();
-  for (const [dayIndex, until] of DAY_HOLDS) {
+  for (const [dayIndex, until] of holds) {
     if (now.getTime() < Date.parse(until)) held.add(dayIndex);
   }
   return held;
