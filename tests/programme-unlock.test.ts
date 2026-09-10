@@ -360,12 +360,16 @@ describe("unlockedItems / outstandingItems", () => {
   });
 
   it("counts everything not locked as unlocked", () => {
-    const ids = unlockedItems(resolved).map((r) => r.item.id).sort();
+    const ids = unlockedItems(resolved)
+      .map((r) => r.item.id)
+      .sort();
     expect(ids).toEqual(["d1u", "d1v", "gate"]);
   });
 
   it("excludes completed work from the outstanding list", () => {
-    const ids = outstandingItems(resolved).map((r) => r.item.id).sort();
+    const ids = outstandingItems(resolved)
+      .map((r) => r.item.id)
+      .sort();
     expect(ids).toEqual(["d1u", "gate"]);
   });
 });
@@ -549,5 +553,78 @@ describe("a one-off day hold (rule 4b)", () => {
       unlockMode: "daily",
     });
     expect(stateOf(r, "d1v")).toBe("available");
+  });
+});
+
+describe("unlockEverything (rule 0)", () => {
+  // The super-admin reading override. track-data.ts applies it to a SECOND
+  // resolution and keeps the unmodified one for RAG and the overdue count,
+  // which is what these cases are protecting.
+  const EARLY = "2026-08-31"; // the cohort's first morning
+
+  const open = (extra: Record<string, unknown> = {}) =>
+    resolveItemStates({
+      items,
+      startDate: START,
+      today: EARLY,
+      hasBaseline: false,
+      unlockMode: "daily",
+      unlockEverything: true,
+      ...extra,
+    });
+
+  it("opens days the calendar has not reached", () => {
+    expect(stateOf(open(), "d15v")).toBe("available");
+    expect(stateOf(open(), "d15q")).toBe("available");
+  });
+
+  it("opens the track with no baseline response, so nothing has to be filed", () => {
+    // Rule 2 would lock all of this: hasBaseline is false above.
+    expect(stateOf(open(), "d1v")).toBe("available");
+    expect(stateOf(open(), "d5q")).toBe("available");
+  });
+
+  it("opens week two with week one's submissions missing (rule 2b)", () => {
+    expect(stateOf(open({ weekOneSubmissionsIn: false }), "d8s")).toBe(
+      "available",
+    );
+  });
+
+  it("opens a held day, because a hold is about readiness rather than access", () => {
+    expect(stateOf(open({ heldDayIndexes: new Set([1]) }), "d1v")).toBe(
+      "available",
+    );
+  });
+
+  it("does not rewrite work already started or completed", () => {
+    const r = open({
+      progressByItemId: new Map([
+        ["d1v", "started" as ItemState],
+        ["d5q", "complete" as ItemState],
+      ]),
+    });
+    expect(stateOf(r, "d1v")).toBe("started");
+    expect(stateOf(r, "d5q")).toBe("complete");
+  });
+
+  it("leaves an answered check-in complete rather than re-opening it", () => {
+    // The two check-ins record themselves in another table, so this is the
+    // branch that would otherwise show a done check-in as work to do.
+    const r = open({ answeredCheckIns: { baseline: true, post: true } });
+    expect(stateOf(r, "gate")).toBe("complete");
+    expect(stateOf(r, "d15p")).toBe("complete");
+  });
+
+  it("changes nothing when it is not passed", () => {
+    // The default every other caller gets, including the admin roster and the
+    // nightly RAG sweep, which must keep measuring lateness normally.
+    const r = resolveItemStates({
+      items,
+      startDate: START,
+      today: EARLY,
+      hasBaseline: true,
+      unlockMode: "daily",
+    });
+    expect(stateOf(r, "d15v")).toBe("locked");
   });
 });

@@ -13,6 +13,10 @@
  *   4. Everything else unlocks on start_date + (day_index - 1) working days,
  *      at `PROGRAMME_OPEN_HOUR` London on that day - 07:00, see
  *      `openThroughInLondon`.
+ *   0. `unlockEverything` opens the whole track regardless of every rule
+ *      below it. It is a VIEWING override for a super admin reviewing
+ *      content, never a change to what anybody is measured on - see the field
+ *      and the two resolutions in track-data.ts.
  *   4b. A day named in `DAY_HOLDS` stays shut past its own opening until the
  *      instant that entry states. It is the one-off override for a day whose
  *      content is not ready, and it expires on the clock rather than needing
@@ -181,6 +185,31 @@ export function resolveItemStates<T extends TrackItemLike>(args: {
    */
   summativeItemIds?: ReadonlySet<string>;
   /**
+   * Opens every item the member has not already started, ignoring the dates,
+   * the entry gate, rule 2b and any hold - rule 0.
+   *
+   * This exists for ONE job: a super admin reading the whole track without
+   * doing the programme. Everything else about it follows from that being a
+   * viewing concern rather than an access one:
+   *
+   *   - it is applied to a SECOND resolution in track-data.ts, and the
+   *     unmodified one still feeds RAG, overdue and the outstanding count.
+   *     Skip that and an admin who can see all fifteen days is instantly
+   *     forty-one items behind on their own dashboard, which is the reason
+   *     this is not simply passed once;
+   *   - the admin roster and the nightly RAG sweep never pass it. They
+   *     measure lateness, and a day somebody can see early is not a day
+   *     anybody is late on;
+   *   - it sits below the started/complete and answered-check-in branches, so
+   *     it opens work rather than re-opening work already done;
+   *   - it grants no privilege. Every read is still RLS-scoped to the caller
+   *     and every mutation still runs its own guard, so this shows an admin
+   *     the content of a day, not somebody else's work on it.
+   *
+   * Defaults to false, which is every caller that has not asked.
+   */
+  unlockEverything?: boolean;
+  /**
    * Day indexes held shut past their own opening - rule 4b. From
    * `heldDayIndexes()` in working-days.ts, which reads the clock; passed in
    * rather than read here so this resolver stays pure and the tests can hold
@@ -217,6 +246,12 @@ export function resolveItemStates<T extends TrackItemLike>(args: {
     const checkInWave = CHECK_IN_WAVE_BY_TYPE.get(item.type);
     if (checkInWave && args.answeredCheckIns?.[checkInWave]) {
       return { item, state: "complete", unlockDate };
+    }
+
+    // Rule 0. Below both invariant branches for the same reason rule 4b is:
+    // it opens what has not been touched and never rewrites what has.
+    if (args.unlockEverything) {
+      return { item, state: "available", unlockDate };
     }
 
     // Rule 4b. Below both invariant branches on purpose: a hold shuts a day

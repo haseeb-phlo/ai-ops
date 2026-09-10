@@ -1,6 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { getSessionUser } from "@/lib/auth";
 import { computeGates, g3Remaining, type GateSet } from "./gates";
 import { stepsToGreen, type StepsToGreen } from "./next-steps";
 import { type DayActivity } from "./activity";
@@ -159,24 +160,31 @@ const loadTrackStateFor = cache(
         "id, cohort_id, joined_at, is_champion, completed_at, programme_cohorts!inner(id, name, start_date, status, track_id, session_dates, is_test)",
       )
       .eq("user_id", userId)
-      .in("programme_cohorts.status", ["live", "planned", "complete", "archived"])
+      .in("programme_cohorts.status", [
+        "live",
+        "planned",
+        "complete",
+        "archived",
+      ])
       .order("joined_at", { ascending: false })
-      .returns<{
-        id: string;
-        cohort_id: string;
-        joined_at: string;
-        is_champion: boolean;
-        completed_at: string | null;
-        programme_cohorts: {
+      .returns<
+        {
           id: string;
-          name: string;
-          start_date: string;
-          status: string;
-          track_id: string;
-          session_dates: Record<string, string[]> | null;
-          is_test: boolean;
-        };
-      }[]>();
+          cohort_id: string;
+          joined_at: string;
+          is_champion: boolean;
+          completed_at: string | null;
+          programme_cohorts: {
+            id: string;
+            name: string;
+            start_date: string;
+            status: string;
+            track_id: string;
+            session_dates: Record<string, string[]> | null;
+            is_test: boolean;
+          };
+        }[]
+      >();
 
     const all = memberships ?? [];
 
@@ -291,7 +299,9 @@ const loadTrackStateFor = cache(
       const [{ data: videos }, { data: completions }] = await Promise.all([
         supabase
           .from("learn_videos")
-          .select("id, title, provider, loom_embed_id, loom_share_url, thumbnail_url")
+          .select(
+            "id, title, provider, loom_embed_id, loom_share_url, thumbnail_url",
+          )
           .in("id", videoIds)
           .returns<TrackVideo[]>(),
         supabase
@@ -382,7 +392,7 @@ const loadTrackStateFor = cache(
     // checkpoint does.
     const weekOneSubmissionsIn = weekOneOutstanding.length === 0;
 
-    const resolved = resolveItemStates({
+    const resolveArgs = {
       items,
       startDate: cohort.start_date,
       today: openThrough,
@@ -399,7 +409,36 @@ const loadTrackStateFor = cache(
       // Rule 4b. Read here with the clock, beside openThrough, so the member
       // view and the two admin surfaces all see the same held days.
       heldDayIndexes: heldDayIndexes(),
-    });
+    };
+
+    // ---- The measured state -----------------------------------------------
+    // This one obeys every rule, and it is what feeds RAG, the overdue count
+    // and the outstanding count below. It stays the truth about this member
+    // whoever is looking.
+    const resolved = resolveItemStates(resolveArgs);
+
+    // ---- What a super admin is allowed to READ -----------------------------
+    // A super admin reviewing the programme needs to open day 14 in September
+    // without having done days 1 to 13, and without filing a work sample to
+    // get past rule 2b. So the whole track is unlocked for them - for
+    // DISPLAY only.
+    //
+    // EFFECTIVE role, not real, and that is the load-bearing part. It follows
+    // the house rule that a UI read keys on `role` and only a mutation guard
+    // keys on `realRole`, and here the house rule earns its keep twice over:
+    // view-as exists so an admin can see what a member sees, and reading
+    // `realRole` would hand them an unlocked track inside every impersonated
+    // view, which is the one thing view-as must not do.
+    //
+    // Two resolutions rather than one flag passed through, because `resolved`
+    // is measured and this is not. An admin looking at fifteen open days
+    // through the measured resolution is forty-one items outstanding and red
+    // on their own dashboard within a second of loading the page.
+    const session = await getSessionUser();
+    const viewerSeesEverything = session.role === "super_admin";
+    const resolvedForView = viewerSeesEverything
+      ? resolveItemStates({ ...resolveArgs, unlockEverything: true })
+      : resolved;
 
     // Built above the gates rather than beside the card data below, because
     // G3 counts it: a filed link is one of the three things the Shared gate
@@ -521,11 +560,11 @@ const loadTrackStateFor = cache(
     const submissionByItemId = new Map<
       string,
       {
-      kind: string;
-      signoffStatus: string;
-      signoffComment: string | null;
-      reviewedByAi: boolean;
-    }
+        kind: string;
+        signoffStatus: string;
+        signoffComment: string | null;
+        reviewedByAi: boolean;
+      }
     >();
     for (const s of live) {
       if (!s.track_item_id) continue;
@@ -577,7 +616,10 @@ const loadTrackStateFor = cache(
 
     const activity: DayActivity[] = [];
     for (let day = 1; day <= 15; day += 1) {
-      const dayItems = resolved.filter(
+      // Viewing resolution, so the strip does not draw a padlock on a day the
+      // admin can actually open. `you` below is completion, which is measured
+      // from progress rows and is the same in both.
+      const dayItems = resolvedForView.filter(
         (r) => r.item.day_index === day && gateable.has(r.item.id),
       );
       const done = dayItems.filter((r) =>
@@ -596,7 +638,8 @@ const loadTrackStateFor = cache(
         awaitsContent: resolved.some(
           (r) => r.item.day_index === day && isAwaitingContent(r.item),
         ),
-        locked: dayItems.length > 0 && dayItems.every((r) => r.state === "locked"),
+        locked:
+          dayItems.length > 0 && dayItems.every((r) => r.state === "locked"),
       });
     }
 
@@ -631,7 +674,10 @@ const loadTrackStateFor = cache(
         outstanding: weekOneOutstanding,
       },
       hasPostResponse,
-      items: resolved,
+      // The viewing resolution: identical to `resolved` for everybody except
+      // a super admin, for whom it is the whole track. Every count above is
+      // computed from `resolved` on purpose.
+      items: resolvedForView,
       videosById,
       completedItemIds,
       gates,
