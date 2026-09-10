@@ -543,11 +543,23 @@ export default async function Home() {
       />
 
       {/* 5 tiles: 2 + 2 + 1 full-width on small screens, one row of 5 on
-          lg+ - no orphaned tile at any breakpoint. */}
-      <section className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+          lg+ - no orphaned tile at any breakpoint.
+
+          The three named rows are what keep the tiles reading as one row
+          rather than five boxes. Each tile spans them as a subgrid (see
+          Stat), so label, value and subtitle share a baseline across all
+          five: the tallest label sets row one for everybody, and a tile
+          without a subtitle leaves row three empty instead of pulling its
+          value up. Before this, "Revenue generated / week" wrapped to two
+          lines and that one tile's figure sat a line below the other four. */}
+      <section className="grid grid-cols-2 gap-4 lg:grid-cols-5 lg:grid-rows-[auto_auto_auto]">
         <Stat label="Minutes saved / week" value={fmtMinutes(totalMinutes)} />
         <Stat label="£ saved / week" value={gbp(totalGbp)} />
-        <Stat label="Revenue generated / week" value={gbp(totalRevenue)} />
+        {/* "Revenue generated / week" was the label that wrapped. Shortened
+            to match the two beside it, which are the same measure: the
+            subgrid above now holds the row together if a label ever wraps
+            again, and a label that does not wrap is still the better fix. */}
+        <Stat label="Revenue / week" value={gbp(totalRevenue)} />
         <Stat
           label="People reached"
           value={reachedCount.toLocaleString()}
@@ -594,7 +606,16 @@ function Stat({
 }) {
   return (
     <div
-      className={cn("rounded-lg border border-border bg-background p-4", className)}
+      className={cn(
+        "rounded-lg border border-border bg-background p-4",
+        // Inherits the section's three rows at lg, where the five tiles are a
+        // single row. Below lg they wrap to 2-up and each tile lays out on its
+        // own, which is right: a subgrid only aligns within one row, so
+        // spanning it there would align a tile against whichever tile happened
+        // to share its row.
+        "lg:row-span-3 lg:grid lg:grid-rows-subgrid lg:gap-0",
+        className,
+      )}
     >
       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
         {label}
@@ -602,9 +623,14 @@ function Stat({
       <p className="mt-1 text-2xl font-semibold tabular-nums text-foreground">
         {value}
       </p>
-      {subtitle && (
-        <p className="mt-0.5 text-xs text-muted-foreground tabular-nums">{subtitle}</p>
-      )}
+      {/* Always rendered, empty when there is no subtitle, so every tile has
+          something in the subgrid's third row. Left EMPTY rather than filled
+          with a non-breaking space: the row's height comes from whichever
+          tile has a real subtitle, so a placeholder would only add a blank
+          line to the tiles below lg, where there is no subgrid to absorb it. */}
+      <p className="mt-0.5 text-xs text-muted-foreground tabular-nums">
+        {subtitle}
+      </p>
     </div>
   );
 }

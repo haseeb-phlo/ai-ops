@@ -5,8 +5,16 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-work-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
-  --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace, "Apple Color Emoji", "Segoe UI Emoji";
+  /* IBM Plex, sans and mono from one family - see the note in app/layout.tsx
+     for why the pair is chosen together rather than separately. Swapping a
+     font is these two lines plus the loader there; every component reads
+     font-sans / font-mono and nothing hardcodes a family. */
+  --font-sans: var(--font-plex-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+  --font-mono: var(--font-plex-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace, "Apple Color Emoji", "Segoe UI Emoji";
+  /* Headings deliberately stay on the body face. A display font for h1 and a
+     text font for everything else is the standard way this drifts into
+     looking like two products stapled together, and nothing here is a
+     marketing page. */
   --font-heading: var(--font-sans);
   /* The one named step below Tailwind's scale: 11px, for uppercase eyebrows,
      chips and dense meta. Deliberately has no paired --text-3xs--line-height,
