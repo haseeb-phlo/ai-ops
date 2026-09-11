@@ -427,8 +427,8 @@ describe("formatIsoDate", () => {
 
 describe("one-off day holds", () => {
   // These pin the MECHANISM with their own table, so adding or removing a
-  // real hold never breaks the suite. DAY_HOLDS itself is asserted separately
-  // below, against pinned instants rather than the wall clock.
+  // real hold never breaks the suite. DAY_HOLDS itself is empty in the normal
+  // state and is asserted separately below.
   const UNTIL = "2026-09-10T09:00:00+01:00";
   const holds = new Map([[9, UNTIL]]);
 
@@ -466,20 +466,22 @@ describe("one-off day holds", () => {
     }
   });
 
-  it("holds day 10 shut until 9am on 2026-09-11, and nothing after it", () => {
-    // The live entry. This replaces `heldDayIndexes(new Date()).size === 0`,
-    // which was the guard against a hold left in the table by mistake and
-    // cannot say anything while one is deliberately live.
+  it("holds nothing at all in the normal state", () => {
+    // The guard against a hold somebody forgot, restored now day 10's entry
+    // is out. It asserts on the MAP rather than on `heldDayIndexes(new
+    // Date())`, which is what it checked before day 10's hold displaced it,
+    // for two reasons:
     //
-    // PINNED instants, not `new Date()`, so this keeps passing once day 10's
-    // hold has expired and been taken out - and still fails if somebody adds
-    // a hold without recording it here.
-    expect([
-      ...heldDayIndexes(new Date("2026-09-11T08:59:00+01:00"), DAY_HOLDS),
-    ]).toEqual([10]);
-    expect(
-      heldDayIndexes(new Date("2026-09-11T09:00:00+01:00"), DAY_HOLDS).size,
-    ).toBe(0);
+    //   - a SPENT entry left behind is invisible to the wall-clock form,
+    //     because an expired hold holds nothing. That is the exact thing the
+    //     DAY_HOLDS docblock asks the next person to clean up, so it is the
+    //     thing this should catch;
+    //   - it does not read the clock, so it cannot start failing at a
+    //     particular time of day.
+    //
+    // A deliberate hold makes this fail, which is intended: a live hold is
+    // recorded in the docblock and here, together, or it is not live.
+    expect(DAY_HOLDS.size).toBe(0);
   });
 });
 
