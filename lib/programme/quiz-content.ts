@@ -337,6 +337,51 @@
  * is the obvious next piece of work and it is cheap, because the fix is
  * lengthening a distractor rather than touching any key.
  *
+ * A THIRD PASS ON 2026-09-11 ASKED ONE QUESTION ONLY: can a member who knows
+ * the material be in any doubt about which option is meant, however hard the
+ * question is. Difficulty is wanted; a defensible second answer is not. Two
+ * questions failed that and the rest held.
+ *
+ *   - day 8's fifth option was "Ask Claude to take out anything sensitive
+ *     before you share the link". That ends where the key ends, with no real
+ *     prices in the artifact, so it was a partial-credit answer rather than a
+ *     wrong one - the explanation refuted it on Claude's judgement, which is a
+ *     claim about the delegation rather than about the action, and a member
+ *     who named the prices would have got a safe artifact. It is now "Share it
+ *     with only the two colleagues who actually need it", which fails on the
+ *     thing the question is actually about and touches the data not at all;
+ *   - day 6's third option was "It runs the task automatically each morning
+ *     without being asked", which carried the Skill's property ("without being
+ *     asked") and the Scheduled Task's ("each morning") in one line, so the
+ *     margin between it and the key was a single adverbial phrase. It is now
+ *     "It runs to a timetable, whether or not the job came up".
+ *
+ * THE THIRD PARKED TENSION WAS NOT A TENSION AND THE NOTE ABOVE IS WRONG. It
+ * records that "Team sharing lets you grant access to named people as well as
+ * to everyone (9547008)", which made day 8's "anyone at Phlo with the link"
+ * read as the worst case rather than the plain case. Asked that article
+ * directly, there is no per-person or named-recipient control for artifacts:
+ * a shared artifact is reachable by "only members of your Team or Enterprise
+ * organization", which is everyone in it who has the link. So the question
+ * was simply accurate all along, and the same fact is now what makes its new
+ * fifth option wrong. Left as two entries rather than one edit because the
+ * first was read through a summariser and this was asked of the article
+ * head-on - the difference between those two is the whole reason this file
+ * keeps saying what was checked and how.
+ *
+ * Day 8's key also lost the clause "because sharing widens who can see it".
+ * No other option in that set argues for itself, so carrying a reason marked
+ * it out; the reason belongs in the explanation and is there. That dropped it
+ * from 76 characters to 57 against a field topping out at 80, which is the
+ * length rule pulling the same way as the ambiguity one for once.
+ *
+ * WHAT WAS LOOKED AT AND LEFT. Day 7's "leave it running, since it is still
+ * saving you time overall" is dominated by the key on either branch, so it is
+ * a trap rather than a rival. Day 9's "nothing much, so read every file it
+ * touched" is the documented near-miss and fails the stem's own question,
+ * which asks what is keeping Cowork away from files rather than what you
+ * should do afterwards. Both are difficulty and both stay.
+ *
  * TAGS ARE EDITORIAL. Which quiz a question lands in is the array it sits in,
  * never this field. It exists so `tests/programme-quiz-content.test.ts` can
  * assert that each quiz covers its own week, which is the check that would
@@ -576,7 +621,7 @@ export const WEEK_2_QUESTIONS: QuizQuestion[] = [
     options: [
       "They turn it on once, then it fires by itself",
       "It stores the documents the task needs alongside the method",
-      "It runs the task automatically each morning without being asked",
+      "It runs to a timetable, whether or not the job came up",
       "It gives Claude access to the system that the task depends on",
       "It keeps the method private to the colleagues you name on it",
     ],
@@ -651,13 +696,13 @@ export const WEEK_2_QUESTIONS: QuizQuestion[] = [
     options: [
       "Share it, then message the team asking them not to forward the link",
       "Nothing, a shared Artifact is reachable only by the people you send it to",
-      "Swap the real prices for made-up ones, because sharing widens who can see it",
+      "Swap the real prices for made-up ones before you share it",
       "Leave the real prices in and write a confidentiality note at the top of the page",
-      "Ask Claude to take out anything sensitive before you share the link",
+      "Share it with only the two colleagues who actually need it",
     ],
     correct: 2,
     explanation:
-      "Sharing is the step that changes who can see something: on our plan a shared Artifact opens for anyone at Phlo with the link, not just the people you had in mind, and it carries the files attached to the conversation that built it along with it. Plenty of them have no business seeing supplier pricing, which is what makes live figures the wrong thing to leave in. A confidentiality note changes nothing about who can open the page, asking colleagues not to forward a link is not a control, and handing the judgement to Claude asks something that has no way of knowing which of your figures are commercially sensitive.",
+      "Sharing is the step that changes who can see something: on our plan a shared Artifact opens for anyone at Phlo with the link, not just the people you had in mind, and it carries the files attached to the conversation that built it along with it. Plenty of them have no business seeing supplier pricing, which is what makes live figures the wrong thing to leave in. A confidentiality note changes nothing about who can open the page, asking colleagues not to forward a link is not a control, and a share cannot be narrowed to two named people: the choice is everyone in the organisation or nobody.",
   },
   {
     day: 9,
