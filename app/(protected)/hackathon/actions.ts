@@ -6,24 +6,16 @@ import { z } from "zod";
 import { requireWriter } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { loadHackathonInvite } from "@/lib/hackathon/state";
-import {
-  ANSWER_MAX_LENGTH,
-  QUESTION_BY_ID,
-  REQUIRED_QUESTION_IDS,
-  normalizeAnswerText,
-  normalizeLongText,
-  type Answers,
-} from "@/lib/hackathon/questions";
+import { buildSubmission } from "@/lib/hackathon/submission";
+import { ANSWER_MAX_LENGTH } from "@/lib/hackathon/questions";
 
 /**
  * Stores one hackathon problem-survey response.
  *
  * Validation is server-side and total, for the reason `submitAiScore` gives:
- * the client sends values, the server decides whether they are answers. A
- * closed question must carry one of its own option strings verbatim - not
- * because anyone is expected to tamper, but because question 7's options are
- * matched as text by the shortlisting rule, so a near-miss string would read
- * as a different screening answer later.
+ * the client sends values, the server decides whether they are answers. The
+ * rules themselves are in `lib/hackathon/submission.ts`, which is where they
+ * can be tested; what is left here is what only an action can do.
  *
  * Revisable by design. `hackathon_survey_responses` is unique on `user_id`
  * and this upserts on it, so re-answering replaces rather than appends - "one
@@ -81,35 +73,9 @@ export async function submitHackathonSurvey(
     return { kind: "error", message: "That submission didn't look right." };
   }
 
-  const answers: Answers = {};
-  for (const answer of parsed.data.answers) {
-    const question = QUESTION_BY_ID.get(answer.qid);
-    if (!question) continue; // ignore anything not in the bank
-
-    // Line breaks survive in the long description and are collapsed
-    // everywhere else - see normalizeLongText.
-    const value =
-      question.kind === "text_long"
-        ? normalizeLongText(answer.value)
-        : normalizeAnswerText(answer.value);
-    if (value === "") continue;
-
-    if (question.options && !question.options.includes(value)) {
-      return {
-        kind: "error",
-        message: `Unexpected answer for "${question.text}".`,
-      };
-    }
-
-    answers[answer.qid] = { value };
-  }
-
-  const missing = REQUIRED_QUESTION_IDS.filter((qid) => !answers[qid]);
-  if (missing.length > 0) {
-    return {
-      kind: "error",
-      message: `${missing.length} question${missing.length === 1 ? "" : "s"} still to answer.`,
-    };
+  const submission = buildSubmission(parsed.data.answers);
+  if (!submission.ok) {
+    return { kind: "error", message: submission.message };
   }
 
   const supabase = await createClient();
@@ -122,7 +88,7 @@ export async function submitHackathonSurvey(
       // which the column allows: the answer is theirs either way, and the
       // problem bank is not scoped by cohort.
       cohort_id: invite.cohortId,
-      answers_json: answers,
+      answers_json: submission.answers,
       duration_seconds: parsed.data.duration_seconds,
       submitted_at: now,
       updated_at: now,
