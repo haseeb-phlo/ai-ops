@@ -9,10 +9,19 @@ import { join, resolve } from "node:path";
  * single pasted sentence reintroduces one and nothing else would notice. The
  * quiz has its own narrower version of this test; this is the safety net for
  * every other string, including copy nobody thought of as "content".
+ *
+ * The hackathon survey is here too, and it is the case that makes the net
+ * worth having: its question wording is transcribed from a Word document,
+ * which is precisely where an en dash comes from.
  */
 
 const ROOT = resolve(__dirname, "..");
-const TARGETS = ["lib/programme", "app/(protected)/learn"];
+const TARGETS = [
+  "lib/programme",
+  "app/(protected)/learn",
+  "lib/hackathon",
+  "app/(protected)/hackathon",
+];
 const EXTENSIONS = [".ts", ".tsx", ".json"];
 
 function walk(dir: string): string[] {
@@ -25,7 +34,7 @@ function walk(dir: string): string[] {
   return out;
 }
 
-describe("no em dashes anywhere in the programme", () => {
+describe("no em dashes anywhere in the programme or the hackathon", () => {
   const files = TARGETS.flatMap((t) => walk(join(ROOT, t)));
 
   it("scans a meaningful number of files", () => {

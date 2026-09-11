@@ -11,12 +11,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { SessionUser } from "@/lib/auth";
-import {
-  NAV_ITEMS,
-  ADMIN_NAV_ITEM,
-  isNavActive,
-  type NavItem,
-} from "@/lib/navigation";
+import { navItemsFor, isNavActive, type NavItem } from "@/lib/navigation";
 import { Avatar } from "@/components/ui/avatar";
 import { setSidebarCollapsed } from "@/lib/sidebar-actions";
 import {
@@ -39,10 +34,12 @@ function isItemActive(pathname: string, href: string): boolean {
 export function Sidebar({
   user,
   canSeeAdmin,
+  canSeeHackathon,
   initialCollapsed,
 }: {
   user: SessionUser;
   canSeeAdmin: boolean;
+  canSeeHackathon: boolean;
   initialCollapsed: boolean;
 }) {
   // Optimistic local state so the click feels instant. The Server Action
@@ -137,7 +134,7 @@ export function Sidebar({
 
       {/* Nav */}
       <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-2 py-3">
-        {NAV_ITEMS.map((item) => (
+        {navItemsFor({ canSeeAdmin, canSeeHackathon }).map((item) => (
           <SidebarLink
             key={item.href}
             item={item}
@@ -145,13 +142,6 @@ export function Sidebar({
             collapsed={collapsed}
           />
         ))}
-        {canSeeAdmin && (
-          <SidebarLink
-            item={ADMIN_NAV_ITEM}
-            active={isItemActive(pathname, ADMIN_NAV_ITEM.href)}
-            collapsed={collapsed}
-          />
-        )}
       </nav>
 
       {/* User block */}

@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { MenuIcon, SearchIcon, XIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { SessionUser } from "@/lib/auth";
-import { NAV_ITEMS, ADMIN_NAV_ITEM, isNavActive } from "@/lib/navigation";
+import { navItemsFor, isNavActive } from "@/lib/navigation";
 import { Avatar } from "@/components/ui/avatar";
 import { useCommandPalette } from "./command-palette";
 
@@ -24,9 +24,11 @@ function isItemActive(pathname: string, href: string): boolean {
 export function MobileTopBar({
   user,
   canSeeAdmin,
+  canSeeHackathon,
 }: {
   user: SessionUser;
   canSeeAdmin: boolean;
+  canSeeHackathon: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname() ?? "/";
@@ -52,7 +54,7 @@ export function MobileTopBar({
     };
   }, [open]);
 
-  const items = canSeeAdmin ? [...NAV_ITEMS, ADMIN_NAV_ITEM] : [...NAV_ITEMS];
+  const items = navItemsFor({ canSeeAdmin, canSeeHackathon });
   const profileActive = isNavActive(pathname, "/profile");
 
   const iconButtonClass =

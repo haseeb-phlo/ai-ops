@@ -301,6 +301,50 @@ export type Database = {
         }
         Relationships: []
       }
+      hackathon_survey_responses: {
+        Row: {
+          answers_json: Json
+          cohort_id: string | null
+          created_at: string
+          duration_seconds: number | null
+          email: string
+          id: string
+          submitted_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          answers_json?: Json
+          cohort_id?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          email: string
+          id?: string
+          submitted_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          answers_json?: Json
+          cohort_id?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          email?: string
+          id?: string
+          submitted_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hackathon_survey_responses_cohort_id_fkey"
+            columns: ["cohort_id"]
+            isOneToOne: false
+            referencedRelation: "programme_cohorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       intervention_cosigns: {
         Row: {
           intervention_id: string
@@ -944,6 +988,7 @@ export type Database = {
         Row: {
           created_at: string
           default_approver_user_id: string | null
+          hackathon_access: boolean
           id: string
           is_test: boolean
           join_code: string | null
@@ -960,6 +1005,7 @@ export type Database = {
         Insert: {
           created_at?: string
           default_approver_user_id?: string | null
+          hackathon_access?: boolean
           id?: string
           is_test?: boolean
           join_code?: string | null
@@ -976,6 +1022,7 @@ export type Database = {
         Update: {
           created_at?: string
           default_approver_user_id?: string | null
+          hackathon_access?: boolean
           id?: string
           is_test?: boolean
           join_code?: string | null
@@ -1866,6 +1913,8 @@ export type Database = {
       }
       current_user_email: { Args: never; Returns: string }
       delete_intervention: { Args: { p_id: string }; Returns: string }
+      has_hackathon_access: { Args: never; Returns: boolean }
+      has_hackathon_response: { Args: never; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
       is_workflow_name_owner: {
         Args: { p_workflow_id: string }

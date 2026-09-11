@@ -6,6 +6,7 @@ import {
   KanbanSquareIcon,
   GraduationCapIcon,
   UsersIcon,
+  HammerIcon,
   ShieldCheckIcon,
   type LucideIcon,
 } from "lucide-react";
@@ -44,6 +45,43 @@ export const ADMIN_NAV_ITEM: NavItem = {
   label: "Admin",
   icon: ShieldCheckIcon,
 };
+
+/**
+ * Appended only for people invited to a hackathon - a cohort at a time, plus
+ * super admins. See `lib/hackathon/access.ts`, which is the one place that
+ * decides, and whose rules the /hackathon routes enforce as well; a nav item
+ * that bounces you is worse than no nav item.
+ *
+ * Not part of NAV_ITEMS because that list has no per-user filtering: every
+ * one of its entries is shown to all 138 people, so adding a gated section
+ * there is how you advertise a locked door.
+ */
+export const HACKATHON_NAV_ITEM: NavItem = {
+  href: "/hackathon",
+  label: "Hackathon",
+  icon: HammerIcon,
+};
+
+/**
+ * The sections this viewer actually gets, in order.
+ *
+ * The two conditional tabs sit after the permanent ones and in escalating
+ * scope - your own event, then the whole app's administration - which is the
+ * same descending-audience logic NAV_ITEMS itself is ordered by. Composed
+ * here rather than in each consumer because there are three of them (sidebar,
+ * mobile bar, command palette) and they were already spelling the admin case
+ * out separately.
+ */
+export function navItemsFor(input: {
+  canSeeHackathon: boolean;
+  canSeeAdmin: boolean;
+}): readonly NavItem[] {
+  return [
+    ...NAV_ITEMS,
+    ...(input.canSeeHackathon ? [HACKATHON_NAV_ITEM] : []),
+    ...(input.canSeeAdmin ? [ADMIN_NAV_ITEM] : []),
+  ];
+}
 
 /**
  * Shared active-route test: exact match for the dashboard root, prefix

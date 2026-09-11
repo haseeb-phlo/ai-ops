@@ -22,7 +22,11 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { NAV_ITEMS, ADMIN_NAV_ITEM } from "@/lib/navigation";
+import {
+  NAV_ITEMS,
+  ADMIN_NAV_ITEM,
+  HACKATHON_NAV_ITEM,
+} from "@/lib/navigation";
 import type { SearchHit } from "@/app/api/search/index/route";
 
 type StaticHit = {
@@ -60,6 +64,14 @@ const ADMIN_NAV_HIT: StaticHit = {
   title: `Go to ${ADMIN_NAV_ITEM.label}`,
   subtitle: null,
   href: ADMIN_NAV_ITEM.href,
+};
+
+const HACKATHON_NAV_HIT: StaticHit = {
+  id: `nav:${HACKATHON_NAV_ITEM.href}`,
+  kind: "nav",
+  title: `Go to ${HACKATHON_NAV_ITEM.label}`,
+  subtitle: null,
+  href: HACKATHON_NAV_ITEM.href,
 };
 
 const KIND_LABEL: Record<AnyHit["kind"], string> = {
@@ -127,9 +139,11 @@ export function useIsMac(): boolean {
 
 export function CommandPalette({
   canSeeAdmin,
+  canSeeHackathon,
   children,
 }: {
   canSeeAdmin: boolean;
+  canSeeHackathon: boolean;
   children?: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
@@ -214,6 +228,7 @@ export function CommandPalette({
   const filteredHits = useMemo(() => {
     const allHits: AnyHit[] = [
       ...NAV_HITS,
+      ...(canSeeHackathon ? [HACKATHON_NAV_HIT] : []),
       ...(canSeeAdmin ? [ADMIN_NAV_HIT] : []),
       ...(hits ?? []),
     ];
@@ -237,7 +252,7 @@ export function CommandPalette({
       })
       .map((r) => r.h)
       .slice(0, 50);
-  }, [hits, query, canSeeAdmin]);
+  }, [hits, query, canSeeAdmin, canSeeHackathon]);
 
   // Group hits by kind (keeping the master ordering above), assigning each
   // hit its flattened index as we go so the render loop and keyboard
