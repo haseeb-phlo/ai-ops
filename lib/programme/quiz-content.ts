@@ -197,17 +197,20 @@
  * 7 on cloud execution, connectors travelling with a run and "Scheduled" plus
  * "New task" in the sidebar (13854387, which also confirms a scheduled task
  * cannot be tied to a folder on your computer), day 8 on Team sharing
- * (9547008), and both day 10 questions, which carry no product surface at all
- * - reverse prompting is a technique rather than a feature, so there is
- * nothing there to go stale. Three of the nine hold on the fact the question
+ * (9547008), and both day 10 questions, which at that point were the reverse
+ * prompting pair and carried no product surface at all - a technique rather
+ * than a feature, so there was nothing there to go stale. Day 10 is Claude
+ * Design as of later the same day and those two questions are gone; see the
+ * swap note below. Three of the nine hold on the fact the question
  * turns on while carrying a looser clause around it, which is the next
  * section rather than a qualification of this one.
  *
- * THREE TENSIONS LEFT DELIBERATELY UNEDITED, because in each the key still
- * wins its set and admitting the nuance in the explanation would weaken a
- * question that is right. None of the three is an error and none was
- * rewritten. They are recorded so the next editor meets them having already
- * been thought about rather than as fresh discoveries:
+ * THREE TENSIONS LEFT DELIBERATELY UNEDITED AT THE TIME. Two of the three
+ * were reopened and fixed later the same day and the third still stands - the
+ * second sweep below records which and why, and this list is left as it was
+ * written so the reasoning that first parked them is still legible. The
+ * argument for parking them was that in each the key still wins its set and
+ * admitting the nuance would weaken a question that is right:
  *
  *   - day 9's first question calls a market write-up "Research, which needs
  *     sources rather than your file system". Cowork's own docs now list
@@ -280,6 +283,59 @@
  * renames items in place rather than moving rows, so had a live member
  * already completed day 10, they would have been left holding a completion
  * for a topic they never did.
+ *
+ * WEEK TWO WAS SWEPT A SECOND TIME on 2026-09-11, after Claude Design took
+ * day 10, and this pass was asked for rather than prompted by an edit: is the
+ * quiz still about days 6 to 10, does it still match Anthropic's docs, and is
+ * it in week one's shape. The shape answer is yes and is worth stating once
+ * so it stops being re-derived. Both weeks run ten questions, two per day,
+ * five options each, every stem a scenario ending in a question mark, no
+ * option ending in a full stop, no dashes anywhere in question prose, and in
+ * neither week is the correct answer the longest option in its set. That last
+ * one is a real rule, not an observation - it is the only thing stopping a
+ * member scoring by length - and it is worth re-running after any edit.
+ *
+ * TWO OF THE THREE PARKED TENSIONS TURNED OUT TO BE WORTH FIXING, now that
+ * the quiz had to be defended as current rather than merely not-wrong:
+ *
+ *   - day 6's first question had a Skill firing "in anybody's Chat". A shared
+ *     Skill is greyed out until the recipient enables it (12512180), so the
+ *     option now reads "They turn it on once, then it fires by itself" and
+ *     the explanation names the switching-on step. The key did not move: the
+ *     property that separates a Skill from a Project is still that Claude
+ *     reaches for it without being asked;
+ *   - day 9's first question offered "Researching a market and writing the
+ *     findings up properly" as a DISTRACTOR, and Cowork's own docs list
+ *     research synthesis among its uses (13345190). A distractor the docs
+ *     endorse is not a distractor. It is now "Working through a live document
+ *     with a colleague at the same time", which the same docs rule out -
+ *     Cowork has no session sharing - and the explanation says so.
+ *
+ * The third stands. Day 8's "opens for anyone at Phlo with the link" is
+ * accurate on a Team plan, where a shared Artifact is org-internal and the
+ * viewer signs in (9547008); it is the owner's recorded safety framing and
+ * the stem is a link share. Its explanation gained the fact the docs lead
+ * with, which the question had been making its point without: a shared
+ * Artifact carries the files attached to the conversation that built it.
+ *
+ * WHAT THE SWEEP CONFIRMED RATHER THAN CHANGED. Day 7 holds exactly, and it
+ * is the one most likely to be doubted: scheduled runs happen on Anthropic's
+ * servers "even when your computer is asleep or the Claude Desktop app is
+ * closed", they keep connected tools, skills and plugins, and "Scheduled" is
+ * the left-sidebar item (13854387). Day 8's first question holds including
+ * its fifth option, which the docs refute directly - a viewer cannot edit
+ * your artifact, only copy it into their own chat. Day 9's second holds on
+ * the folder boundary (13364135). Both day 10 questions were written the same
+ * morning against the Claude Design pages and were re-read rather than
+ * re-checked.
+ *
+ * ONE THING THIS PASS DELIBERATELY DID NOT TOUCH. Week three carries three
+ * questions whose correct answer IS the longest option in its set, at days
+ * 12, 13 and 14. Week two has none and week one has none, so week three is
+ * the outlier and it is a real flaw rather than a stylistic one. It was left
+ * because this was a week two pass and week three is the summative quiz; it
+ * is the obvious next piece of work and it is cheap, because the fix is
+ * lengthening a distractor rather than touching any key.
  *
  * TAGS ARE EDITORIAL. Which quiz a question lands in is the array it sits in,
  * never this field. It exists so `tests/programme-quiz-content.test.ts` can
@@ -518,7 +574,7 @@ export const WEEK_2_QUESTIONS: QuizQuestion[] = [
     question:
       "You have a reliable method for a recurring task and two colleagues want to use it. What makes a Skill the right home for it, rather than a Project or a saved prompt?",
     options: [
-      "It fires on its own when the job comes up, in anybody's Chat",
+      "They turn it on once, then it fires by itself",
       "It stores the documents the task needs alongside the method",
       "It runs the task automatically each morning without being asked",
       "It gives Claude access to the system that the task depends on",
@@ -526,7 +582,7 @@ export const WEEK_2_QUESTIONS: QuizQuestion[] = [
     ],
     correct: 0,
     explanation:
-      "A Skill packages how you do something so other people's Chats can reach it, and its description is what makes it fire without being named. Documents are a Project, a timetable is a Scheduled Task and system access is a Connector. Choosing the wrong container is what makes simple work feel like overhead.",
+      "A Skill packages how you do something so other people's Chats can reach it: a colleague switches it on once, and from then on its description is what makes it fire without being named. Documents are a Project, a timetable is a Scheduled Task and system access is a Connector. Choosing the wrong container is what makes simple work feel like overhead.",
   },
   {
     day: 6,
@@ -601,7 +657,7 @@ export const WEEK_2_QUESTIONS: QuizQuestion[] = [
     ],
     correct: 2,
     explanation:
-      "Sharing is the step that changes who can see something: on our plan a shared Artifact opens for anyone at Phlo with the link, not just the people you had in mind, and plenty of them have no business seeing supplier pricing. That is what makes live figures the wrong thing to leave in. A confidentiality note changes nothing about who can open the page, asking colleagues not to forward a link is not a control, and handing the judgement to Claude asks something that has no way of knowing which of your figures are commercially sensitive.",
+      "Sharing is the step that changes who can see something: on our plan a shared Artifact opens for anyone at Phlo with the link, not just the people you had in mind, and it carries the files attached to the conversation that built it along with it. Plenty of them have no business seeing supplier pricing, which is what makes live figures the wrong thing to leave in. A confidentiality note changes nothing about who can open the page, asking colleagues not to forward a link is not a control, and handing the judgement to Claude asks something that has no way of knowing which of your figures are commercially sensitive.",
   },
   {
     day: 9,
@@ -611,12 +667,12 @@ export const WEEK_2_QUESTIONS: QuizQuestion[] = [
       "A question you need a single short answer to before this afternoon",
       "Drafting an email to a supplier about a late delivery",
       "Deciding which of two suppliers your team should move to",
-      "Researching a market and writing the findings up properly",
+      "Working through a live document with a colleague at the same time",
       "Merging six monthly reports into one summary and filing them",
     ],
     correct: 4,
     explanation:
-      "Cowork earns its keep on assembly across many files on your own machine: work that is tedious rather than difficult, and that ends in files rather than in an answer. A short question and a draft are ordinary Chat, deciding is yours to own and a market write-up is Research, which needs sources rather than your file system.",
+      "Cowork earns its keep on assembly across many files on your own machine: work that is tedious rather than difficult, and that ends in files rather than in an answer. A short question and a draft are ordinary Chat, deciding is yours to own, and a Cowork session cannot be worked on by two people at once, so anything live and shared belongs elsewhere.",
   },
   {
     day: 9,
