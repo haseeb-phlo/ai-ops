@@ -38,7 +38,7 @@ export type HackathonInvite = {
 export const loadHackathonInvite = cache(
   async (userId: string): Promise<HackathonInvite> => {
     const supabase = await createClient();
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("programme_cohort_members")
       .select("cohort_id, programme_cohorts!inner(name, hackathon_access)")
       .eq("user_id", userId)
@@ -50,6 +50,15 @@ export const loadHackathonInvite = cache(
           programme_cohorts: { name: string; hackathon_access: boolean };
         }[]
       >();
+
+    // Fail loud, for the reason `getSessionUser` fails loud on the people
+    // directory: the quiet alternative is a `false` that reads as "not
+    // invited", so a transient failure or an RLS regression would take the
+    // tab out of somebody's nav and bounce the link they were sent to the
+    // dashboard, with nothing anywhere saying why. A misconfig should 500.
+    if (error) {
+      throw new Error(`Failed to load hackathon invite: ${error.message}`);
+    }
 
     const row = data?.[0];
     return {

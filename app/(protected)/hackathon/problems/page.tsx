@@ -59,12 +59,16 @@ export default async function ProblemBankPage() {
   );
   const totalHours = responses.reduce((sum, r) => sum + (r.hours?.hours ?? 0), 0);
   const anyOpenEnded = responses.some((r) => r.hours?.atLeast);
+  // Keyed on the response id, not the name: one cohort member has no
+  // directory row, so display names fall back to an email local part and are
+  // not guaranteed distinct.
   const wants = responses
     .map((r) => ({
+      id: r.id,
       name: r.displayName,
       text: answerValue(r.answers, "q11"),
     }))
-    .filter((w): w is { name: string; text: string } => !!w.text);
+    .filter((w): w is { id: string; name: string; text: string } => !!w.text);
 
   return (
     <PageContainer className="max-w-3xl">
@@ -79,10 +83,13 @@ export default async function ProblemBankPage() {
       />
 
       {responses.length === 0 ? (
+        /* Addressed to a super admin, because nobody else can reach this
+           state: a member needs a response of their own to open the bank, and
+           that response is the row that makes it non-empty. */
         <EmptyState
           icon={<HammerIcon aria-hidden />}
           title="Nothing in the bank yet"
-          description="Yours will be the first one in here once other people start answering."
+          description="Nobody has answered the survey yet. Problems will appear here as they come in, biggest first."
         />
       ) : (
         <>
@@ -118,7 +125,7 @@ export default async function ProblemBankPage() {
               </h2>
               <ul className="space-y-2">
                 {wants.map((want) => (
-                  <li key={want.name} className="text-sm text-foreground">
+                  <li key={want.id} className="text-sm text-foreground">
                     {want.text}
                     <span className="ml-2 text-xs text-muted-foreground">
                       {want.name}
