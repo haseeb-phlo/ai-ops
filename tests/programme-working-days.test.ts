@@ -427,8 +427,8 @@ describe("formatIsoDate", () => {
 
 describe("one-off day holds", () => {
   // These pin the MECHANISM with their own table, so adding or removing a
-  // real hold never breaks the suite. DAY_HOLDS itself is empty in the normal
-  // state and is asserted separately below.
+  // real hold never breaks the suite. DAY_HOLDS itself is asserted separately
+  // below, against pinned instants rather than the wall clock.
   const UNTIL = "2026-09-10T09:00:00+01:00";
   const holds = new Map([[9, UNTIL]]);
 
@@ -466,8 +466,20 @@ describe("one-off day holds", () => {
     }
   });
 
-  it("holds nothing at all in the normal state", () => {
-    expect(heldDayIndexes(new Date()).size).toBe(0);
+  it("holds day 10 shut until 9am on 2026-09-11, and nothing after it", () => {
+    // The live entry. This replaces `heldDayIndexes(new Date()).size === 0`,
+    // which was the guard against a hold left in the table by mistake and
+    // cannot say anything while one is deliberately live.
+    //
+    // PINNED instants, not `new Date()`, so this keeps passing once day 10's
+    // hold has expired and been taken out - and still fails if somebody adds
+    // a hold without recording it here.
+    expect([
+      ...heldDayIndexes(new Date("2026-09-11T08:59:00+01:00"), DAY_HOLDS),
+    ]).toEqual([10]);
+    expect(
+      heldDayIndexes(new Date("2026-09-11T09:00:00+01:00"), DAY_HOLDS).size,
+    ).toBe(0);
   });
 });
 

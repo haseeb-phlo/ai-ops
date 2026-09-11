@@ -68,7 +68,7 @@ export const PROGRAMME_OPEN_LABEL = "7am";
  * and the failure mode of that is a day still shut on Friday because nobody
  * did. An entry left here after its instant has passed is inert.
  *
- * TWO THINGS IT DOES NOT DO, both deliberate:
+ * THREE THINGS IT DOES NOT DO, all deliberate:
  *
  *   - it does not re-lock work already started or completed. That invariant
  *     lives in `resolveItemStates` and sits above this check, so a member who
@@ -78,22 +78,38 @@ export const PROGRAMME_OPEN_LABEL = "7am";
  *   - it is not scoped to a cohort. Before the hold's instant the day is shut
  *     for everyone, which is right when the reason is that the day's content
  *     is not ready, and wrong if a hold is ever wanted for one cohort only.
- *     Add a cohort id to the key if that day comes.
+ *     Add a cohort id to the key if that day comes;
+ *   - it does not correct the copy. `PROGRAMME_OPEN_LABEL` is global by
+ *     design - one spelling in one place - so a held day still reads "opens
+ *     7am" on the timeline and on the day card while it is shut. Between the
+ *     day's own opening and the hold's instant that line is wrong, and a
+ *     member reading it at 07:30 is told the day opened half an hour ago.
+ *     Making it right means a per-day label, which is a change to that
+ *     constant's design rather than a use of this one, and not a thing to
+ *     attempt on the morning a hold is needed. Day 9 shipped with this and
+ *     so does day 10.
  *
- * THE TABLE IS EMPTY AND THAT IS THE NORMAL STATE. It has been used once:
- * day 9 was held to 09:00 on 2026-09-10 because the Cowork video was not
- * ready when the day opened at 07:00, and the entry was removed the same
- * morning when the video was uploaded, about an hour before its instant. That
- * is the shape to copy - a hold is added for a reason that is visible and
- * removed when the reason goes, and the instant is the backstop for the times
- * nobody comes back.
+ * AN EMPTY TABLE IS THE NORMAL STATE, and the entry below is live. The lever
+ * has been used twice, both times because the day's video was not ready when
+ * the day opened at 07:00:
  *
- * Removing it rather than leaving it to expire was deliberate. A spent entry
- * is inert, so leaving it costs nothing mechanically, but an entry sitting
- * here reads as a hold somebody forgot - and the next person to need this
- * would have to work out whether day 9 is still shut before adding theirs.
+ *   - day 9, held to 09:00 on 2026-09-10. Removed the same morning, when the
+ *     video was uploaded about an hour before its instant;
+ *   - day 10, held to 09:00 on 2026-09-11. The entry below.
+ *
+ * That is the shape to copy - a hold goes in for a reason that is visible and
+ * comes out when the reason goes, and the instant is the backstop for the
+ * times nobody comes back.
+ *
+ * Taking a spent entry out rather than leaving it to expire is deliberate. A
+ * spent entry is inert, so leaving it costs nothing mechanically, but an entry
+ * sitting here reads as a hold somebody forgot - and the next person to need
+ * this would have to work out whether that day is still shut before adding
+ * theirs. Take day 10's out once the morning is over.
  */
-export const DAY_HOLDS: ReadonlyMap<number, string> = new Map([]);
+export const DAY_HOLDS: ReadonlyMap<number, string> = new Map([
+  [10, "2026-09-11T09:00:00+01:00"],
+]);
 
 /**
  * The day indexes currently held shut, at instant `now`.
