@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
   QUESTIONS,
-  SECTIONS,
   answerValue,
   type Answers,
   type Question,
@@ -18,21 +17,30 @@ import { submitHackathonSurvey } from "../actions";
 /**
  * "What should we fix on Monday?" - the instrument.
  *
- * Eleven questions, nine of them required, and the build sheet's target is
- * under five minutes. Everything here serves that number: one page with no
- * branching, choices as single-tap buttons rather than dropdowns, a progress
- * count that only counts the nine, and the two optional questions visibly
- * marked so nobody spends time on them thinking they have to.
+ * Deliberately the most ordinary survey shape there is: one numbered
+ * question per card, top to bottom, and every answer in a single column
+ * under the question it belongs to. Options were briefly laid out two
+ * across, which saves a screen of scrolling and costs the thing a survey
+ * cannot afford - with two columns there is no one reading order, so
+ * "several times a day" and "about once a week" sit side by side and get
+ * picked by position instead of by meaning.
  *
- * Answers live in component state until submit, exactly as `ScoreForm` does,
- * which is why this carries no partial-save: a five-minute form that saves
- * drafts is a five-minute form with a second failure mode.
+ * The choices are native `<input type="radio">` rather than styled buttons.
+ * That is what makes a group behave the way people already expect: arrow
+ * keys move within it, Tab leaves it, and a screen reader announces "3 of
+ * 5". A `role="radio"` button reimplements all of that, usually
+ * incompletely.
+ *
+ * Answers live in component state until submit, as `ScoreForm` does, which
+ * is why there is no partial save: a five-minute form that saves drafts is a
+ * five-minute form with a second failure mode.
  *
  * The hours-per-week readout under question 4 is the one piece of feedback
  * the paper version cannot give. It is the same pure function the problem
  * bank ranks by (`lib/hackathon/impact.ts`), so what someone sees while
- * answering is what their problem is later sorted on - and seeing "5.6 hrs a
- * week" appear is what makes a small repetitive task feel worth submitting.
+ * answering is what their problem is later sorted on - and watching "5.6 hrs
+ * a week" appear is what makes a small repetitive task feel worth
+ * submitting.
  */
 export function SurveyForm({
   initial,
@@ -102,7 +110,16 @@ export function SurveyForm({
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
+      {/* Said once, at the top, rather than beside the free-text questions:
+          it is a rule about the whole form, and a warning that appears three
+          questions in has already been ignored twice. */}
+      <p className="rounded-lg border border-border bg-secondary px-4 py-3 text-xs leading-relaxed text-secondary-foreground">
+        Everyone invited reads these answers once they have answered
+        themselves. Describe the task, not the patient: no names, addresses,
+        dates of birth or medical details anywhere in this form.
+      </p>
+
       {/* Progress. Sticky, because nine required questions is long enough to
           lose your place in. */}
       <div className="sticky top-0 z-10 -mx-1 bg-background/95 px-1 py-2 backdrop-blur">
@@ -113,48 +130,33 @@ export function SurveyForm({
               style={{ width: `${progress}%` }}
             />
           </div>
-          <span className="font-mono text-xs tabular-nums text-muted-foreground">
+          <span className="shrink-0 font-mono text-xs tabular-nums text-muted-foreground">
             {answeredRequired}/{required.length}
           </span>
         </div>
       </div>
 
-      {SECTIONS.map((section) => {
-        const questions = QUESTIONS.filter((q) => q.section === section.key);
-        return (
-          <section key={section.key} className="space-y-5">
-            <h2 className="border-b border-border pb-2 text-sm font-semibold tracking-tight text-foreground">
-              {section.title}
-            </h2>
-            {section.key === "task" && (
-              <p className="rounded-lg border border-border bg-secondary p-3 text-xs text-secondary-foreground">
-                Everyone in the cohort reads these answers once they have
-                answered themselves. Describe the task, not the patient: no
-                names, addresses, dates of birth or medical details in the
-                boxes below.
-              </p>
-            )}
-            {questions.map((question) => (
-              <div key={question.id} className="space-y-2">
-                <QuestionField
-                  question={question}
-                  value={answers[question.id] ?? ""}
-                  onChange={(v) => setAnswer(question.id, v)}
-                />
-                {question.id === "q4" && hours && (
-                  <p className="text-xs text-muted-foreground">
-                    That is roughly{" "}
-                    <span className="font-medium text-foreground">
-                      {formatHoursPerWeek(hours)}
-                    </span>{" "}
-                    a week, every week.
-                  </p>
-                )}
-              </div>
-            ))}
-          </section>
-        );
-      })}
+      {QUESTIONS.map((question, index) => (
+        <QuestionCard
+          key={question.id}
+          question={question}
+          number={index + 1}
+          total={QUESTIONS.length}
+          value={answers[question.id] ?? ""}
+          onChange={(v) => setAnswer(question.id, v)}
+          footnote={
+            question.id === "q4" && hours ? (
+              <>
+                That is roughly{" "}
+                <span className="font-medium text-foreground">
+                  {formatHoursPerWeek(hours)}
+                </span>{" "}
+                a week, every week.
+              </>
+            ) : null
+          }
+        />
+      ))}
 
       {error && (
         <p className="text-sm text-destructive" role="alert">
@@ -172,7 +174,7 @@ export function SurveyForm({
         </Button>
         {missing.length > 0 && (
           <span className="text-xs text-muted-foreground">
-            {missing.length} left
+            {missing.length} still to answer
           </span>
         )}
       </div>
@@ -180,79 +182,99 @@ export function SurveyForm({
   );
 }
 
-function QuestionField({
+function QuestionCard({
   question,
+  number,
+  total,
   value,
   onChange,
+  footnote,
 }: {
   question: Question;
+  number: number;
+  total: number;
   value: string;
   onChange: (value: string) => void;
+  footnote?: React.ReactNode;
 }) {
   const name = `q-${question.id}`;
   const describedBy = question.subtitle ? `${name}-help` : undefined;
 
   return (
-    <fieldset id={name} className="space-y-2">
-      <legend className="flex flex-wrap items-baseline gap-2 text-sm font-medium text-foreground">
-        <span>{question.text}</span>
-        {!question.required && (
-          <span className="rounded bg-muted px-1.5 py-0.5 text-3xs font-medium uppercase tracking-wide text-muted-foreground">
-            Optional
-          </span>
-        )}
-      </legend>
+    <fieldset
+      id={name}
+      // scroll-mt clears the sticky progress bar when the submit button
+      // scrolls the first unanswered question into view.
+      className="scroll-mt-20 rounded-lg border border-border bg-card p-4 sm:p-5"
+    >
+      <legend className="sr-only">{`Question ${number} of ${total}: ${question.text}`}</legend>
 
+      <div aria-hidden className="text-3xs font-medium uppercase tracking-wide text-muted-foreground">
+        Question {number} of {total}
+        {!question.required && " · optional"}
+      </div>
+      <p aria-hidden className="mt-1 text-sm font-medium text-foreground">
+        {question.text}
+      </p>
       {question.subtitle && (
-        <p id={describedBy} className="text-xs text-muted-foreground">
+        <p id={describedBy} className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
           {question.subtitle}
         </p>
       )}
 
-      {question.kind === "choice" ? (
-        <div
-          className="grid gap-1.5 sm:grid-cols-2"
-          role="radiogroup"
-          aria-label={question.text}
-          aria-describedby={describedBy}
-        >
-          {question.options?.map((option) => {
-            const selected = value === option;
-            return (
-              <button
-                key={option}
-                type="button"
-                role="radio"
-                aria-checked={selected}
-                onClick={() => onChange(option)}
-                className={cn(
-                  "rounded-md border px-3 py-2 text-left text-sm transition",
-                  "focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-ring/50",
-                  selected
-                    ? "border-primary bg-secondary text-secondary-foreground"
-                    : "border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground",
-                )}
-              >
-                {option}
-              </button>
-            );
-          })}
-        </div>
-      ) : question.kind === "text_long" ? (
-        <Textarea
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          rows={5}
-          aria-describedby={describedBy}
-          placeholder="Two or three sentences is plenty."
-        />
-      ) : (
-        <Input
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          aria-describedby={describedBy}
-          placeholder={question.required ? undefined : "Optional"}
-        />
+      <div className="mt-3">
+        {question.kind === "choice" ? (
+          // One column, at every width. See the docblock.
+          <div className="flex flex-col gap-1.5">
+            {question.options?.map((option) => {
+              const selected = value === option;
+              return (
+                <label
+                  key={option}
+                  className={cn(
+                    "flex cursor-pointer items-center gap-3 rounded-md border px-3 py-2.5 text-sm transition",
+                    "has-[:focus-visible]:border-primary has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50",
+                    selected
+                      ? "border-primary bg-secondary text-secondary-foreground"
+                      : "border-border bg-background text-foreground hover:border-primary/40 hover:bg-muted/40",
+                  )}
+                >
+                  <input
+                    type="radio"
+                    name={name}
+                    value={option}
+                    checked={selected}
+                    onChange={() => onChange(option)}
+                    aria-describedby={describedBy}
+                    className="size-4 shrink-0 accent-primary outline-none"
+                  />
+                  <span>{option}</span>
+                </label>
+              );
+            })}
+          </div>
+        ) : question.kind === "text_long" ? (
+          <Textarea
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            rows={5}
+            aria-label={question.text}
+            aria-describedby={describedBy}
+            placeholder="Two or three sentences is plenty."
+          />
+        ) : (
+          <Input
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            aria-label={question.text}
+            aria-describedby={describedBy}
+            placeholder={question.required ? undefined : "Optional"}
+          />
+        )}
+      </div>
+
+      {footnote && (
+        <p className="mt-2.5 text-xs text-muted-foreground">{footnote}</p>
       )}
     </fieldset>
   );

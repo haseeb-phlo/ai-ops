@@ -5,7 +5,6 @@ import {
   QUESTIONS,
   QUESTION_BY_ID,
   REQUIRED_QUESTION_IDS,
-  SECTIONS,
   SHARED_REACH_ANSWERS,
   TEAM_OPTIONS,
   answerValue,
@@ -148,20 +147,6 @@ describe("the question bank matches the build sheet", () => {
     const ids = QUESTIONS.map((q) => q.id);
     expect(new Set(ids).size).toBe(ids.length);
     for (const id of ids) expect(QUESTION_BY_ID.get(id)).toBeDefined();
-  });
-
-  it("puts every question in a rendered section", () => {
-    const rendered = new Set(SECTIONS.map((s) => s.key));
-    for (const question of QUESTIONS) {
-      expect(rendered.has(question.section), question.id).toBe(true);
-    }
-    // And no section renders an empty heading.
-    for (const section of SECTIONS) {
-      expect(
-        QUESTIONS.some((q) => q.section === section.key),
-        section.key,
-      ).toBe(true);
-    }
   });
 
   it("gives choice questions options and text questions none", () => {

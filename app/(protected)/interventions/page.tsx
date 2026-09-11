@@ -253,6 +253,7 @@ export default async function InterventionsListPage({
             hasFilters ? (
               <Button
                 variant="outline"
+                nativeButton={false}
                 render={<Link href="/interventions" />}
               >
                 Clear filters

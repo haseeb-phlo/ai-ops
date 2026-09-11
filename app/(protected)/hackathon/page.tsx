@@ -97,7 +97,7 @@ export default async function HackathonPage({
         description="Your problem is in the bank."
         actions={
           bankOpen ? (
-            <Button render={<Link href="/hackathon/problems" />}>
+            <Button nativeButton={false} render={<Link href="/hackathon/problems" />}>
               <HammerIcon aria-hidden />
               See everyone&apos;s problems
             </Button>
@@ -122,7 +122,11 @@ export default async function HackathonPage({
       <ProblemCard response={own} showWants highlight />
 
       <div className="flex flex-wrap items-center gap-3">
-        <Button variant="outline" render={<Link href="/hackathon?edit=1" />}>
+        <Button
+          variant="outline"
+          nativeButton={false}
+          render={<Link href="/hackathon?edit=1" />}
+        >
           Change my answer
         </Button>
         <span className="text-xs text-muted-foreground">

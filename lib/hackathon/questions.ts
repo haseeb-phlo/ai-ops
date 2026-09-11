@@ -38,12 +38,6 @@ export type Question = {
   /** Ordered options, verbatim. Choice questions only. */
   options?: readonly string[];
   required: boolean;
-  /**
-   * Which block of the form this belongs to. The sheet is a single section
-   * with no branching; these group the page so eleven questions do not read
-   * as one undifferentiated column.
-   */
-  section: "you" | "task" | "shape" | "extras";
 };
 
 /**
@@ -108,7 +102,6 @@ export const QUESTIONS: readonly Question[] = [
     kind: "choice",
     options: TEAM_OPTIONS,
     required: true,
-    section: "you",
   },
   {
     id: "q2",
@@ -117,7 +110,6 @@ export const QUESTIONS: readonly Question[] = [
     subtitle:
       'Say what you actually do, step by step, in two or three sentences. Example: "When a patient emails to change their delivery address I open Intercom, find their order in the pharmacy system, update it, then reply to confirm."',
     required: true,
-    section: "task",
   },
   {
     id: "q3",
@@ -125,7 +117,6 @@ export const QUESTIONS: readonly Question[] = [
     kind: "choice",
     options: FREQUENCY_OPTIONS,
     required: true,
-    section: "shape",
   },
   {
     id: "q4",
@@ -133,7 +124,6 @@ export const QUESTIONS: readonly Question[] = [
     kind: "choice",
     options: DURATION_OPTIONS,
     required: true,
-    section: "shape",
   },
   {
     id: "q5",
@@ -142,7 +132,6 @@ export const QUESTIONS: readonly Question[] = [
     subtitle:
       "Name them. For example: Intercom, Jira, Slack, Outlook, a spreadsheet, the pharmacy system, Confluence.",
     required: true,
-    section: "task",
   },
   {
     id: "q6",
@@ -151,7 +140,6 @@ export const QUESTIONS: readonly Question[] = [
     subtitle:
       "For example: a patient waits longer, a colleague has to redo it, something gets missed, a complaint.",
     required: true,
-    section: "task",
   },
   {
     id: "q7",
@@ -164,7 +152,6 @@ export const QUESTIONS: readonly Question[] = [
       "Not sure",
     ],
     required: true,
-    section: "shape",
   },
   {
     id: "q8",
@@ -172,7 +159,6 @@ export const QUESTIONS: readonly Question[] = [
     kind: "choice",
     options: ["Yes", "No", "Not sure"],
     required: true,
-    section: "shape",
   },
   {
     id: "q9",
@@ -180,14 +166,12 @@ export const QUESTIONS: readonly Question[] = [
     kind: "choice",
     options: ["Just me", "My team", "Several teams", "Not sure"],
     required: true,
-    section: "shape",
   },
   {
     id: "q10",
     text: "Is there a second task you would like to put forward? One line is enough.",
     kind: "text_short",
     required: false,
-    section: "extras",
   },
   {
     id: "q11",
@@ -196,7 +180,6 @@ export const QUESTIONS: readonly Question[] = [
     subtitle:
       "For example: learn how to set up a Claude Project, understand how to test whether AI output is right, see how engineers build things.",
     required: false,
-    section: "extras",
   },
 ] as const;
 
@@ -210,17 +193,6 @@ export const REQUIRED_QUESTION_IDS: readonly string[] = QUESTIONS.filter(
 
 /** Longest answer the server will store, per field. Generous but bounded. */
 export const ANSWER_MAX_LENGTH = 4000;
-
-/**
- * Section headings, in render order. Titles are ours, not the sheet's - the
- * sheet is one flat list because Forms has no cheaper way to be one.
- */
-export const SECTIONS = [
-  { key: "you", title: "You" },
-  { key: "task", title: "The task" },
-  { key: "shape", title: "Its shape" },
-  { key: "extras", title: "Anything else" },
-] as const satisfies readonly { key: Question["section"]; title: string }[];
 
 /**
  * Collapse the typographic variation that separates "the same answer" from

@@ -1,8 +1,8 @@
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { formatHoursPerWeek, isSharedReach } from "@/lib/hackathon/impact";
 import {
   PATIENT_IDENTIFIERS_ANSWER,
+  QUESTION_BY_ID,
   answerValue,
 } from "@/lib/hackathon/questions";
 import type { HackathonResponse } from "@/lib/hackathon/state";
@@ -15,11 +15,52 @@ import type { HackathonResponse } from "@/lib/hackathon/state";
  * somebody's own submission looks different to them than it does to everyone
  * else.
  *
- * The hours figure is the headline. Nine of the eleven answers are there to
- * qualify a free-text description that, on its own, gives a reader no way to
- * tell a two-minute irritation from eleven hours a week - so the number goes
- * top right, where the eye lands after the name.
+ * EVERY ANSWER IS ONE ROW IN ONE COLUMN, in the order the survey asked. The
+ * fields were briefly laid out two across with the screening answers
+ * demoted to badges in a footer, which made a record of nine answers read as
+ * four things and a decoration - and the two demoted ones are the two the
+ * shortlist actually turns on. A record people have to scan thirty of is
+ * read top to bottom or not at all.
+ *
+ * Labels are short restatements rather than the survey's own question text:
+ * "What goes wrong when it is done late or done badly?" is the right way to
+ * ask it and the wrong way to label the answer in a list.
  */
+
+const FIELDS: readonly { qid: string; label: string }[] = [
+  { qid: "q3", label: "How often" },
+  { qid: "q4", label: "Each time" },
+  { qid: "q5", label: "Systems involved" },
+  { qid: "q6", label: "What goes wrong" },
+  { qid: "q7", label: "Patient information" },
+  { qid: "q8", label: "Three examples on the day" },
+  { qid: "q9", label: "Who would use a fix" },
+  { qid: "q10", label: "Also put forward" },
+];
+
+/**
+ * The dot beside a screening answer. Colour lives in a 6px dot and never
+ * washes the row - the app's status grammar, see lib/status.ts.
+ *
+ * Only the two screening questions get one, because they are the only
+ * answers read as a verdict rather than as information: question 7 can rule
+ * a problem out of this cohort entirely, and question 8 decides whether
+ * there is an evaluation set on the day.
+ */
+function dotFor(qid: string, value: string): string | null {
+  if (qid === "q7") {
+    if (value === PATIENT_IDENTIFIERS_ANSWER) return "bg-rose-500";
+    if (value === "No") return "bg-emerald-500";
+    return "bg-amber-500";
+  }
+  if (qid === "q8") {
+    if (value === "Yes") return "bg-emerald-500";
+    if (value === "No") return "bg-muted-foreground/60";
+    return "bg-amber-500";
+  }
+  return null;
+}
+
 export function ProblemCard({
   response,
   showWants = false,
@@ -32,24 +73,20 @@ export function ProblemCard({
   highlight?: boolean;
 }) {
   const description = answerValue(response.answers, "q2");
-  const frequency = answerValue(response.answers, "q3");
-  const duration = answerValue(response.answers, "q4");
-  const systems = answerValue(response.answers, "q5");
-  const consequence = answerValue(response.answers, "q6");
-  const patientInfo = answerValue(response.answers, "q7");
-  const examples = answerValue(response.answers, "q8");
-  const reach = answerValue(response.answers, "q9");
-  const secondTask = answerValue(response.answers, "q10");
   const wants = answerValue(response.answers, "q11");
+  const rows = FIELDS.map((field) => ({
+    ...field,
+    value: answerValue(response.answers, field.qid),
+  })).filter((row): row is typeof row & { value: string } => !!row.value);
 
   return (
     <article
       className={cn(
-        "rounded-lg border bg-background p-4",
+        "overflow-hidden rounded-lg border bg-card",
         highlight ? "border-primary" : "border-border",
       )}
     >
-      <header className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+      <header className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-border px-4 py-3">
         <div className="min-w-0">
           <h3 className="text-sm font-medium text-foreground">
             {response.displayName}
@@ -63,7 +100,7 @@ export function ProblemCard({
             <p className="text-xs text-muted-foreground">{response.team}</p>
           )}
         </div>
-        <p className="font-mono text-sm tabular-nums text-foreground">
+        <p className="shrink-0 font-mono text-sm tabular-nums text-foreground">
           {formatHoursPerWeek(response.hours)}
           <span className="ml-1 font-sans text-xs text-muted-foreground">
             per week
@@ -72,112 +109,54 @@ export function ProblemCard({
       </header>
 
       {description && (
-        <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-foreground">
+        <p className="whitespace-pre-wrap px-4 py-3 text-sm leading-relaxed text-foreground">
           {description}
         </p>
       )}
 
-      <dl className="mt-4 grid gap-x-6 gap-y-3 border-t border-border pt-3 text-xs sm:grid-cols-2">
-        <Field label="How often">{frequency}</Field>
-        <Field label="Each time">{duration}</Field>
-        <Field label="Systems involved">{systems}</Field>
-        <Field label="Who would use a fix">
-          {reach}
-          {isSharedReach(reach) && (
-            <span className="ml-1.5 text-muted-foreground">
-              (so multiply the hours)
-            </span>
-          )}
-        </Field>
-        <Field label="What goes wrong" className="sm:col-span-2">
-          {consequence}
-        </Field>
+      <dl className="divide-y divide-border border-t border-border">
+        {rows.map((row) => {
+          const dot = dotFor(row.qid, row.value);
+          return (
+            <div key={row.qid} className="px-4 py-2.5">
+              <dt
+                className="text-3xs font-medium uppercase tracking-wide text-muted-foreground"
+                title={QUESTION_BY_ID.get(row.qid)?.text}
+              >
+                {row.label}
+              </dt>
+              <dd className="mt-0.5 flex items-baseline gap-2 text-sm text-foreground">
+                {dot && (
+                  <span
+                    aria-hidden
+                    className={cn(
+                      "mt-1.5 size-1.5 shrink-0 rounded-full",
+                      dot,
+                    )}
+                  />
+                )}
+                <span className="min-w-0">
+                  {row.value}
+                  {row.qid === "q9" && isSharedReach(row.value) && (
+                    <span className="ml-1.5 text-xs text-muted-foreground">
+                      so multiply the hours
+                    </span>
+                  )}
+                </span>
+              </dd>
+            </div>
+          );
+        })}
+
+        {showWants && wants && (
+          <div className="px-4 py-2.5">
+            <dt className="text-3xs font-medium uppercase tracking-wide text-muted-foreground">
+              Wants out of Monday
+            </dt>
+            <dd className="mt-0.5 text-sm text-foreground">{wants}</dd>
+          </div>
+        )}
       </dl>
-
-      <footer className="mt-3 flex flex-wrap items-center gap-2 border-t border-border pt-3">
-        {patientInfo && (
-          <Badge variant="outline" className="gap-1.5 bg-card">
-            <span
-              aria-hidden
-              className={cn(
-                "size-1.5 shrink-0 rounded-full",
-                patientInfo === PATIENT_IDENTIFIERS_ANSWER
-                  ? "bg-rose-500"
-                  : patientInfo === "No"
-                    ? "bg-emerald-500"
-                    : "bg-amber-500",
-              )}
-            />
-            {patientInfo === PATIENT_IDENTIFIERS_ANSWER
-              ? "Patient identifiers"
-              : patientInfo === "Yes - but only anonymised or aggregated"
-                ? "Anonymised patient data"
-                : patientInfo === "No"
-                  ? "No patient data"
-                  : "Patient data unclear"}
-          </Badge>
-        )}
-        {examples && (
-          <Badge variant="outline" className="gap-1.5 bg-card">
-            <span
-              aria-hidden
-              className={cn(
-                "size-1.5 shrink-0 rounded-full",
-                examples === "Yes"
-                  ? "bg-emerald-500"
-                  : examples === "No"
-                    ? "bg-muted-foreground/60"
-                    : "bg-amber-500",
-              )}
-            />
-            {examples === "Yes"
-              ? "Can bring three examples"
-              : examples === "No"
-                ? "No examples to bring"
-                : "Examples unsure"}
-          </Badge>
-        )}
-      </footer>
-
-      {secondTask && (
-        <p className="mt-3 text-xs text-muted-foreground">
-          <span className="text-3xs font-medium uppercase tracking-wide">
-            Also put forward
-          </span>
-          <br />
-          {secondTask}
-        </p>
-      )}
-
-      {showWants && wants && (
-        <p className="mt-3 text-xs text-muted-foreground">
-          <span className="text-3xs font-medium uppercase tracking-wide">
-            Wants out of Monday
-          </span>
-          <br />
-          {wants}
-        </p>
-      )}
     </article>
-  );
-}
-
-function Field({
-  label,
-  children,
-  className,
-}: {
-  label: string;
-  children: React.ReactNode;
-  className?: string;
-}) {
-  if (!children) return null;
-  return (
-    <div className={cn("min-w-0", className)}>
-      <dt className="text-3xs font-medium uppercase tracking-wide text-muted-foreground">
-        {label}
-      </dt>
-      <dd className="mt-0.5 text-foreground">{children}</dd>
-    </div>
   );
 }

@@ -76,7 +76,11 @@ export default async function ProblemBankPage() {
         title="The problem bank"
         description="Everything the company has put forward for Monday, biggest first."
         actions={
-          <Button variant="outline" render={<Link href="/hackathon" />}>
+          <Button
+            variant="outline"
+            nativeButton={false}
+            render={<Link href="/hackathon" />}
+          >
             Your answer
           </Button>
         }
@@ -93,7 +97,7 @@ export default async function ProblemBankPage() {
         />
       ) : (
         <>
-          <dl className="grid grid-cols-3 gap-3">
+          <dl className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <Tile label="Problems logged" value={String(responses.length)} />
             <Tile label="Teams" value={String(teams.size)} />
             <Tile
@@ -123,13 +127,13 @@ export default async function ProblemBankPage() {
               <h2 className="border-b border-border pb-2 text-sm font-semibold tracking-tight text-foreground">
                 What people want out of Monday
               </h2>
-              <ul className="space-y-2">
+              <ul className="divide-y divide-border rounded-lg border border-border bg-card">
                 {wants.map((want) => (
-                  <li key={want.id} className="text-sm text-foreground">
-                    {want.text}
-                    <span className="ml-2 text-xs text-muted-foreground">
+                  <li key={want.id} className="px-4 py-3">
+                    <p className="text-sm text-foreground">{want.text}</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
                       {want.name}
-                    </span>
+                    </p>
                   </li>
                 ))}
               </ul>
