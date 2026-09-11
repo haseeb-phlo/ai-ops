@@ -47,10 +47,10 @@ export const ADMIN_NAV_ITEM: NavItem = {
 };
 
 /**
- * Appended only for people invited to a hackathon - a cohort at a time, plus
- * super admins. See `lib/hackathon/access.ts`, which is the one place that
- * decides, and whose rules the /hackathon routes enforce as well; a nav item
- * that bounces you is worse than no nav item.
+ * Shown only to the people on the hackathon's guest list, plus super admins.
+ * See `lib/hackathon/access.ts`, which is the one place that decides, and
+ * whose rules the /hackathon routes enforce as well; a nav item that bounces
+ * you is worse than no nav item.
  *
  * Not part of NAV_ITEMS because that list has no per-user filtering: every
  * one of its entries is shown to all 138 people, so adding a gated section
@@ -65,20 +65,28 @@ export const HACKATHON_NAV_ITEM: NavItem = {
 /**
  * The sections this viewer actually gets, in order.
  *
- * The two conditional tabs sit after the permanent ones and in escalating
- * scope - your own event, then the whole app's administration - which is the
- * same descending-audience logic NAV_ITEMS itself is ordered by. Composed
- * here rather than in each consumer because there are three of them (sidebar,
- * mobile bar, command palette) and they were already spelling the admin case
- * out separately.
+ * Hackathon goes SECOND, directly under Dashboard, rather than at the end
+ * with Admin. The maturity gradient NAV_ITEMS is ordered by describes
+ * standing sections of the app; the hackathon is a dated event with a survey
+ * that closes, and for the week it is live it is the most urgent thing in
+ * here for the handful of people who can see it at all. Ordering it by
+ * maturity would put a Friday deadline below five things nobody needs today.
+ * It is also self-correcting: when the event is over the tab comes off the
+ * list entirely, so this position costs nothing afterwards.
+ *
+ * Composed here rather than in each consumer because there are three of them
+ * (sidebar, mobile bar, command palette) and they were already spelling the
+ * admin case out separately.
  */
 export function navItemsFor(input: {
   canSeeHackathon: boolean;
   canSeeAdmin: boolean;
 }): readonly NavItem[] {
+  const [dashboard, ...rest] = NAV_ITEMS;
   return [
-    ...NAV_ITEMS,
+    dashboard,
     ...(input.canSeeHackathon ? [HACKATHON_NAV_ITEM] : []),
+    ...rest,
     ...(input.canSeeAdmin ? [ADMIN_NAV_ITEM] : []),
   ];
 }

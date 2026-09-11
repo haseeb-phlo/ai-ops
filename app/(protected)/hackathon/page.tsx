@@ -6,8 +6,10 @@ import { PageContainer, PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { canSeeProblemBank } from "@/lib/hackathon/access";
 import { loadHackathonState } from "@/lib/hackathon/state";
+import { loadParticipants } from "@/lib/hackathon/participants";
 import { SurveyForm } from "./_components/survey-form";
 import { ProblemCard } from "./_components/problem-card";
+import { RosterPanel } from "./_components/roster-panel";
 
 export const metadata = { title: "What should we fix on Monday?" };
 
@@ -16,10 +18,10 @@ export const metadata = { title: "What should we fix on Monday?" };
  *
  * One route, three states, the shape "Your AI Score" already established:
  *
- *   locked           - not invited. Redirected to the dashboard rather than
- *                      shown a door, because the Hackathon tab is not in
- *                      their nav either and a URL they were not sent should
- *                      not explain what they are missing.
+ *   locked           - not on the guest list. Redirected to the dashboard
+ *                      rather than shown a door, because the Hackathon tab is
+ *                      not in their nav either and a URL they were not sent
+ *                      should not explain what they are missing.
  *   not answered yet - the intro and the form.
  *   answered         - their own answer, the way everyone else will read it,
  *                      plus the way into the bank. `?edit=1` reopens the
@@ -47,6 +49,11 @@ export default async function HackathonPage({
 
   const bankOpen = canSeeProblemBank(state.access);
   const own = state.own;
+  // The guest list, and the only place it can be edited. Loaded for super
+  // admins only - everybody else's RLS returns just their own row, so there
+  // would be nothing to show and a panel implying otherwise.
+  const roster =
+    user.realRole === "super_admin" ? await loadParticipants() : null;
 
   if (!own || edit === "1") {
     return (
@@ -78,6 +85,7 @@ export default async function HackathonPage({
           </div>
         )}
         <SurveyForm initial={own?.answers ?? null} submittedAlready={!!own} />
+        {roster && <RosterPanel participants={roster} />}
       </PageContainer>
     );
   }
@@ -122,6 +130,8 @@ export default async function HackathonPage({
           {own.revised && " (revised)"}
         </span>
       </div>
+
+      {roster && <RosterPanel participants={roster} />}
     </PageContainer>
   );
 }

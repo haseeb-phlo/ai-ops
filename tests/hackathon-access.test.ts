@@ -6,10 +6,10 @@ import {
 } from "@/lib/hackathon/access";
 
 describe("hackathonAccess", () => {
-  it("locks out anyone who is not in an invited cohort", () => {
+  it("locks out anyone who is not on the guest list", () => {
     expect(
       hackathonAccess({
-        inInvitedCohort: false,
+        isParticipant: false,
         hasResponded: false,
         realRole: "member",
       }),
@@ -17,44 +17,43 @@ describe("hackathonAccess", () => {
   });
 
   it("stays locked even if a response somehow exists", () => {
-    // A member whose cohort's access was turned off after they answered
-    // loses the bank, not just the form.
+    // Somebody taken off the guest list after answering loses the bank, not
+    // just the form.
     expect(
       hackathonAccess({
-        inInvitedCohort: false,
+        isParticipant: false,
         hasResponded: true,
         realRole: "member",
       }),
     ).toBe("locked");
   });
 
-  it("shows an invited member the survey until they answer", () => {
+  it("shows an invitee the survey until they answer", () => {
     expect(
       hackathonAccess({
-        inInvitedCohort: true,
+        isParticipant: true,
         hasResponded: false,
         realRole: "member",
       }),
     ).toBe("survey");
   });
 
-  it("opens the bank once an invited member has answered", () => {
+  it("opens the bank once an invitee has answered", () => {
     expect(
       hackathonAccess({
-        inInvitedCohort: true,
+        isParticipant: true,
         hasResponded: true,
         realRole: "member",
       }),
     ).toBe("open");
   });
 
-  it("opens everything for a super admin in no cohort at all", () => {
-    // The real situation: the person running the hackathon is not enrolled on
-    // Cohort 1A or 1B, and would otherwise be the one person unable to watch
-    // responses arrive.
+  it("opens everything for a super admin who is not on the list", () => {
+    // They are the one who writes the list. An empty register would otherwise
+    // lock the organiser out of the only page that can fill it.
     expect(
       hackathonAccess({
-        inInvitedCohort: false,
+        isParticipant: false,
         hasResponded: false,
         realRole: "super_admin",
       }),
@@ -66,7 +65,7 @@ describe("hackathonAccess", () => {
     // "member", which is the rule every mutation guard follows.
     expect(
       hackathonAccess({
-        inInvitedCohort: false,
+        isParticipant: false,
         hasResponded: false,
         realRole: "member",
       }),

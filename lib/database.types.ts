@@ -301,10 +301,30 @@ export type Database = {
         }
         Relationships: []
       }
+      hackathon_participants: {
+        Row: {
+          added_by: string | null
+          created_at: string
+          email: string
+          id: string
+        }
+        Insert: {
+          added_by?: string | null
+          created_at?: string
+          email: string
+          id?: string
+        }
+        Update: {
+          added_by?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+        }
+        Relationships: []
+      }
       hackathon_survey_responses: {
         Row: {
           answers_json: Json
-          cohort_id: string | null
           created_at: string
           duration_seconds: number | null
           email: string
@@ -315,7 +335,6 @@ export type Database = {
         }
         Insert: {
           answers_json?: Json
-          cohort_id?: string | null
           created_at?: string
           duration_seconds?: number | null
           email: string
@@ -326,7 +345,6 @@ export type Database = {
         }
         Update: {
           answers_json?: Json
-          cohort_id?: string | null
           created_at?: string
           duration_seconds?: number | null
           email?: string
@@ -335,15 +353,7 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "hackathon_survey_responses_cohort_id_fkey"
-            columns: ["cohort_id"]
-            isOneToOne: false
-            referencedRelation: "programme_cohorts"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       intervention_cosigns: {
         Row: {
@@ -988,7 +998,6 @@ export type Database = {
         Row: {
           created_at: string
           default_approver_user_id: string | null
-          hackathon_access: boolean
           id: string
           is_test: boolean
           join_code: string | null
@@ -1005,7 +1014,6 @@ export type Database = {
         Insert: {
           created_at?: string
           default_approver_user_id?: string | null
-          hackathon_access?: boolean
           id?: string
           is_test?: boolean
           join_code?: string | null
@@ -1022,7 +1030,6 @@ export type Database = {
         Update: {
           created_at?: string
           default_approver_user_id?: string | null
-          hackathon_access?: boolean
           id?: string
           is_test?: boolean
           join_code?: string | null

@@ -46,14 +46,14 @@ export async function submitHackathonSurvey(
   const user = gate.user;
 
   // The same gate the nav and the page use, re-asked at the write. The page
-  // computed it when it rendered the form; between then and now a cohort's
-  // access could have been turned off, and the table's policy would refuse
-  // the insert with a Postgres error rather than a sentence anyone can read.
-  const invite = await loadHackathonInvite(user.id);
-  if (!invite.inInvitedCohort && user.realRole !== "super_admin") {
+  // computed it when it rendered the form; between then and now they could
+  // have come off the guest list, and the table's policy would refuse the
+  // insert with a Postgres error rather than a sentence anyone can read.
+  const invite = await loadHackathonInvite(user.email);
+  if (!invite.isParticipant && user.realRole !== "super_admin") {
     return {
       kind: "error",
-      message: "This survey is open to the first hackathon cohort.",
+      message: "This survey is open to the people invited to the hackathon.",
     };
   }
 
@@ -84,10 +84,6 @@ export async function submitHackathonSurvey(
     {
       user_id: user.id,
       email: user.email.toLowerCase(),
-      // Null for a super admin running the event from outside the cohorts,
-      // which the column allows: the answer is theirs either way, and the
-      // problem bank is not scoped by cohort.
-      cohort_id: invite.cohortId,
       answers_json: submission.answers,
       duration_seconds: parsed.data.duration_seconds,
       submitted_at: now,

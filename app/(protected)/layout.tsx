@@ -21,14 +21,14 @@ export default async function ProtectedLayout({
 
   // Whether the Hackathon tab exists for this viewer. A super admin gets it
   // unconditionally, which is also the one case that needs no query - so the
-  // only people this costs a lookup are the members it is actually about,
+  // only people this costs a lookup are the invitees it is actually about,
   // and `loadHackathonInvite` is cache()d, so the /hackathon pages reuse it.
   const hackathonVisible = canSeeHackathon(
     hackathonAccess({
-      inInvitedCohort:
+      isParticipant:
         user.realRole === "super_admin"
           ? false
-          : (await loadHackathonInvite(user.id)).inInvitedCohort,
+          : (await loadHackathonInvite(user.email)).isParticipant,
       // Irrelevant to visibility: the tab is how you reach the survey, so it
       // cannot depend on having answered it.
       hasResponded: false,

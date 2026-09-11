@@ -12,8 +12,8 @@ import { answerValue, type Answers } from "./questions";
  * Split in two on purpose, because the two callers need different amounts and
  * one of them is the whole app's layout:
  *
- *   `loadHackathonInvite`  - "does this person get the tab at all", which is
- *                            one indexed lookup, and none at all for a super
+ *   `loadHackathonInvite`  - "is this person on the guest list", which is one
+ *                            indexed lookup, and none at all for a super
  *                            admin. Called from `app/(protected)/layout.tsx`,
  *                            so it runs on every page in the app.
  *   `loadHackathonState`   - the above plus their own response. Called only
@@ -23,33 +23,28 @@ import { answerValue, type Answers } from "./questions";
  * one round trip between them - the pattern `getSessionUser` and
  * `loadTrackState` both use.
  *
- * Cohort membership is read with the caller's own client, so RLS decides:
- * `read own or led programme_cohort_members` means a member sees their own
- * row and nobody else's.
+ * The register is read with the caller's own client, so RLS decides: `read
+ * own hackathon_participants` means an ordinary person can confirm they are
+ * on the list and cannot read the rest of it.
  */
 
 export type HackathonInvite = {
-  inInvitedCohort: boolean;
-  /** The invited cohort this person is in, for attributing their response. */
-  cohortId: string | null;
-  cohortName: string | null;
+  isParticipant: boolean;
 };
 
+/**
+ * Keyed on email rather than user id, matching the register: somebody can be
+ * put on the list before they have ever signed in, and most of the company
+ * has no `auth.users` row until they do.
+ */
 export const loadHackathonInvite = cache(
-  async (userId: string): Promise<HackathonInvite> => {
+  async (email: string): Promise<HackathonInvite> => {
     const supabase = await createClient();
     const { data, error } = await supabase
-      .from("programme_cohort_members")
-      .select("cohort_id, programme_cohorts!inner(name, hackathon_access)")
-      .eq("user_id", userId)
-      .eq("programme_cohorts.hackathon_access", true)
-      .limit(1)
-      .returns<
-        {
-          cohort_id: string;
-          programme_cohorts: { name: string; hackathon_access: boolean };
-        }[]
-      >();
+      .from("hackathon_participants")
+      .select("id")
+      .eq("email", email.toLowerCase())
+      .limit(1);
 
     // Fail loud, for the reason `getSessionUser` fails loud on the people
     // directory: the quiet alternative is a `false` that reads as "not
@@ -60,12 +55,7 @@ export const loadHackathonInvite = cache(
       throw new Error(`Failed to load hackathon invite: ${error.message}`);
     }
 
-    const row = data?.[0];
-    return {
-      inInvitedCohort: !!row,
-      cohortId: row?.cohort_id ?? null,
-      cohortName: row?.programme_cohorts.name ?? null,
-    };
+    return { isParticipant: (data?.length ?? 0) > 0 };
   },
 );
 
@@ -107,7 +97,7 @@ export const loadHackathonState = cache(
   }): Promise<HackathonState> => {
     const supabase = await createClient();
     const [invite, ownRes] = await Promise.all([
-      loadHackathonInvite(input.userId),
+      loadHackathonInvite(input.email),
       supabase
         .from("hackathon_survey_responses")
         .select(
@@ -133,7 +123,7 @@ export const loadHackathonState = cache(
 
     return {
       access: hackathonAccess({
-        inInvitedCohort: invite.inInvitedCohort,
+        isParticipant: invite.isParticipant,
         hasResponded: own !== null,
         realRole: input.realRole,
       }),
