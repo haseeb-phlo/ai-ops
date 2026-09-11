@@ -8,20 +8,18 @@
  * re-checks it. Two reasons it is copied rather than paraphrased:
  *
  *   1. The sheet was written to be pasted into Microsoft Forms. Anyone
- *      comparing the two should find the same instrument, not a variant, so
- *      responses stay poolable if a later cohort does run it in Forms.
+ *      comparing the two should find the same instrument, so responses stay
+ *      poolable if it is ever run there.
  *   2. Question 7 ("Does the task involve patient information?") is a
- *      screening question with a downstream rule attached - anything
- *      answered "Yes - names, addresses or medical details" is dropped from
- *      the first cohort's shortlist. Reworded options break the rule
- *      silently, because the filter matches on the option text.
+ *      screening question: anything answered "Yes - names, addresses or
+ *      medical details" is dropped from the shortlist, and that filter
+ *      matches on the option text, so a reworded option breaks it silently.
  *
  * The bank is the ONLY place question ids, wording and options are named.
- * `answers_json` on `hackathon_survey_responses` stores `{ qid: { value } }`
- * and nothing else, exactly as `ai_score_responses` does against
- * `lib/programme/questions.ts` - so a question can be re-labelled here
- * without a migration, and an option string cannot be, which is the correct
- * asymmetry.
+ * `answers_json` stores `{ qid: { value } }` and nothing else, exactly as
+ * `ai_score_responses` does against `lib/programme/questions.ts`, so a
+ * question can be re-labelled here without a migration and an option string
+ * cannot.
  *
  * House style: hyphens, never em or en dashes (tests/programme-no-em-dashes).
  */
@@ -64,15 +62,13 @@ export type FrequencyOption = (typeof FREQUENCY_OPTIONS)[number];
 export type DurationOption = (typeof DURATION_OPTIONS)[number];
 
 /**
- * Team options are the sheet's fixed list, NOT `people.team`.
+ * The sheet's fixed list, NOT `people.team`.
  *
- * The directory holds sixteen teams (Patient Services, Product Marketing,
- * Data & Automation and so on) where the sheet offers eleven deliberately
- * coarser buckets - "Dispensary / Fulfilment" is two directory teams, and
- * "Engineering" is the directory's "Technology". Loading the directory list
- * instead would make the last filter in the shortlist rule ("the four chosen
- * problems come from at least three different teams") count different things
- * for different respondents.
+ * The directory holds sixteen teams where the sheet offers eleven coarser
+ * buckets: "Dispensary / Fulfilment" is two directory teams, "Engineering"
+ * is the directory's "Technology". Using the directory instead would make
+ * "the chosen problems come from at least three different teams" count
+ * different things for different respondents.
  */
 export const TEAM_OPTIONS = [
   "Patient Care",
@@ -91,9 +87,6 @@ export const TEAM_OPTIONS = [
 /** The q7 answer that keeps a problem out of the first cohort's shortlist. */
 export const PATIENT_IDENTIFIERS_ANSWER =
   "Yes - names, addresses or medical details";
-
-/** The q9 answers that mean more than one person benefits from a fix. */
-export const SHARED_REACH_ANSWERS = ["My team", "Several teams"] as const;
 
 export const QUESTIONS: readonly Question[] = [
   {
@@ -199,10 +192,9 @@ export const ANSWER_MAX_LENGTH = 4000;
  * "an unrecognised answer": non-breaking spaces, smart quotes, en dashes and
  * runs of whitespace. Applied to every value before any option lookup.
  *
- * Same function as the programme's, and deliberately a copy rather than an
- * import: `lib/programme/questions.ts` documents its version as load-bearing
- * for the May 2026 import, and these two banks must be free to diverge
- * without either one quietly changing what the other stores.
+ * A copy of the programme's rather than an import: that one is load-bearing
+ * for the May 2026 import, and the two banks must be free to diverge without
+ * either quietly changing what the other stores.
  */
 export function normalizeAnswerText(value: string): string {
   return value

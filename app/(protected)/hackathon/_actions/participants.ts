@@ -9,17 +9,15 @@ import { describeRejected, parseRoster } from "@/lib/programme/enrolment";
 /**
  * Adding people to, and taking people off, the hackathon's guest list.
  *
- * Paste-a-roster rather than a picker, and `parseRoster` rather than a new
- * parser, for the reason the cohort enrolment action gives: the list arrives
- * from a Slack message, a spreadsheet column or an Outlook To: field, and
- * retyping it is how three people get left out. Rejected tokens are reported
- * rather than dropped - silently ignoring a typo is how somebody misses the
- * day.
+ * Paste-a-roster, reusing `parseRoster` rather than writing a second parser:
+ * the list arrives from a Slack message, a spreadsheet column or an Outlook
+ * To: field. Rejected tokens are reported rather than dropped, because
+ * silently ignoring a typo is how somebody misses the day.
  *
  * Super admin only, on the REAL role: `requireWriter()` blocks the write
- * while impersonating, and the check below is what stops an ordinary member
- * who finds the endpoint from inviting themselves. The table's policy says
- * the same thing a third time.
+ * while impersonating, and the check below stops an ordinary member who
+ * finds the endpoint from inviting themselves. The table's policy says the
+ * same thing a third time.
  */
 
 export type RosterState =

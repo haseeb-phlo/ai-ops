@@ -6,14 +6,11 @@ import { resolveDisplayName } from "@/lib/profile";
  * The hackathon's guest list, for the person who writes it.
  *
  * Only a super admin ever loads this - `read own hackathon_participants`
- * gives everyone else exactly one row, their own - so it joins the people
- * directory for names and reports who has answered, which is the question
- * the organiser actually has on Friday afternoon.
+ * gives everyone else their own row and nothing else - so it joins the
+ * people directory for names and reports who has answered.
  *
- * An address that is not in the directory is kept and shown as the address.
- * The register is the invitation and the directory is a separate thing that
- * can lag it; refusing to invite somebody because HR has not added them yet
- * would be the register serving the directory rather than the day.
+ * An address that is not in the directory is kept and shown as the address:
+ * the register is the invitation, and the directory can lag it.
  */
 
 export type Participant = {

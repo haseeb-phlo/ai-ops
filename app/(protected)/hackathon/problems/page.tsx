@@ -14,24 +14,22 @@ import { ProblemCard } from "../_components/problem-card";
 export const metadata = { title: "The problem bank" };
 
 /**
- * Every problem the company has put forward, readable once you have put one
- * forward yourself.
+ * Every problem put forward, readable once you have put one forward
+ * yourself.
  *
- * The gate is the point of the page, not an obstacle on the way to it. These
- * are thirty-one colleagues' unedited accounts of what they find tedious;
- * read them before answering and you write a better-phrased version of
- * somebody else's, which is exactly the signal the day is trying to collect.
- * So the route re-checks `canSeeProblemBank` and sends anyone who has not
- * answered back to the form - the table's select policy says the same thing
- * independently, so a mistake here empties the list rather than opening it.
+ * The gate is the point of the page. These are colleagues' unedited accounts
+ * of what they find tedious; read them before answering and you write a
+ * better-phrased version of somebody else's, which is the one thing the day
+ * cannot use. So the route re-checks `canSeeProblemBank` - and the table's
+ * select policy says the same thing independently, so a mistake here empties
+ * the list rather than opening it.
  *
- * Ordered biggest first, because that is the order the four get picked in.
- * The sheet's remaining filters (is the system reachable on the day, are
- * there three examples, does more than one person do it) are deliberately
- * NOT applied: they need a conversation with the engineers on Friday
- * afternoon, and a bank that had already dropped rows would hide the
- * problems that conversation is about. Everything those filters read is on
- * the card.
+ * Ordered biggest first, because that is the order the problems get picked
+ * in. The sheet's remaining filters (is the system reachable on the day, are
+ * there examples, does more than one person do it) are deliberately not
+ * applied: they need a conversation with the engineers first, and a bank
+ * that had already dropped rows would hide the problems that conversation is
+ * about. Everything those filters read is on the card.
  */
 export default async function ProblemBankPage() {
   const user = await getSessionUser();
@@ -74,7 +72,7 @@ export default async function ProblemBankPage() {
     <PageContainer className="max-w-3xl">
       <PageHeader
         title="The problem bank"
-        description="Everything the company has put forward for Monday, biggest first."
+        description="Everything put forward for Monday, biggest first."
         actions={
           <Button
             variant="outline"
@@ -93,7 +91,7 @@ export default async function ProblemBankPage() {
         <EmptyState
           icon={<HammerIcon aria-hidden />}
           title="Nothing in the bank yet"
-          description="Nobody has answered the survey yet. Problems will appear here as they come in, biggest first."
+          description="Problems appear here as they come in, biggest first."
         />
       ) : (
         <>
@@ -107,9 +105,8 @@ export default async function ProblemBankPage() {
           </dl>
 
           <p className="text-xs text-muted-foreground">
-            Hours are per person, per week, from how often the task happens and
-            how long it takes. Anything marked with a plus is a floor - &ldquo;over
-            an hour&rdquo; has no top end.
+            Hours are per person, per week. A plus means a floor:
+            &ldquo;over an hour&rdquo; has no top end.
           </p>
 
           <div className="space-y-4">

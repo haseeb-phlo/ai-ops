@@ -2,34 +2,27 @@
  * Frequency x duration -> hours per person per week.
  *
  * The build sheet prints this as a 5x5 table and tells the organiser to add
- * the column in Excel before shortlisting. Doing it here instead is the
- * whole reason the problem bank is readable: thirty-one free-text problems
- * sort into an order only once each one carries a number.
+ * the column in Excel before shortlisting. Doing it here is what makes the
+ * problem bank sortable: free-text problems only order once each carries a
+ * number.
  *
- * THE TABLE IS TRANSCRIBED, NOT COMPUTED, and that is deliberate.
+ * THE TABLE IS TRANSCRIBED, NOT COMPUTED. Its cells are midpoint arithmetic
+ * rounded for print - multipliers of 15 / 5 / 3 / 1 / 0.7 per week against
+ * duration midpoints of 2.5, 10, 22.5, 45 and 75 minutes - and recomputing
+ * would disagree with the printed sheet in two places: "Over an hour" needs
+ * a 75-minute midpoint to reach the sheet's 19, 6, 4, 1.3 and 0.9 (a
+ * 60-minute floor gives 15, 5, 3, 1, 0.7), and "About once a week / Under 5
+ * minutes" prints 0.05 where 2.5 minutes an hour rounds to 0.04. People read
+ * this number beside the sheet they were sent, so the sheet wins.
  *
- * The sheet's own cells are midpoint arithmetic rounded for print -
- * frequency multipliers of 15 / 5 / 3 / 1 / 0.7 per week against duration
- * midpoints of 2.5, 10, 22.5, 45 and 75 minutes. Recomputing it would be one
- * line shorter and would disagree with the printed sheet in two places: the
- * "Over an hour" column needs a 75-minute midpoint to reach the sheet's 19,
- * 6, 4, 1.3 and 0.9 (a 60-minute floor gives 15, 5, 3, 1, 0.7), and the
- * "About once a week / Under 5 minutes" cell prints 0.05 where 2.5 minutes
- * an hour rounds to 0.04. People will read the number here beside the sheet
- * they were sent. The sheet wins.
- *
- * `atLeast` carries the sheet's trailing "+": "Over an hour" is an unbounded
- * bucket, so every figure in that column is a floor, not an estimate. The
- * bank renders it as "19+ hrs" for the same reason the sheet does - a
- * problem someone spends two hours on, fifteen times a week, is not 19
- * hours, and pretending to a single figure there would be the one number in
- * the bank that is confidently wrong.
+ * `atLeast` carries the sheet's trailing "+": "Over an hour" is unbounded,
+ * so every figure in that column is a floor, not an estimate. A problem
+ * someone spends two hours on, fifteen times a week, is not 19 hours.
  */
 
 import {
   DURATION_OPTIONS,
   FREQUENCY_OPTIONS,
-  SHARED_REACH_ANSWERS,
   type DurationOption,
   type FrequencyOption,
 } from "./questions";
@@ -99,17 +92,4 @@ export function compareByHours(
   if (a === null) return 1;
   if (b === null) return -1;
   return b.hours - a.hours;
-}
-
-/**
- * Whether a fix would serve more than one person, from the q9 answer.
- *
- * The sheet multiplies hours per week by the number of people who do the
- * task whenever this is true - but nothing in the survey asks how many
- * people that is, so the multiplication cannot be done here without making
- * a number up. The bank shows the per-person figure and labels the reach
- * beside it, which is the honest version of the same signal.
- */
-export function isSharedReach(reach: string | null | undefined): boolean {
-  return (SHARED_REACH_ANSWERS as readonly string[]).includes(reach ?? "");
 }

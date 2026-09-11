@@ -16,14 +16,9 @@ import {
  * Who the hackathon is for - the super admin's view, and the only way to
  * change it.
  *
- * On the hackathon page rather than in /admin because the list and the thing
- * it admits people to are one decision: the organiser is on this page
- * watching answers arrive, and the question "why has X not answered" is
- * usually "X is not on the list". Answering that two routes away is how it
- * goes unanswered.
- *
- * It reports who has answered, because that is the other half of the same
- * question on Friday afternoon.
+ * On the hackathon page rather than in /admin: the organiser is here
+ * watching answers arrive, and "why has X not answered" is usually "X is not
+ * on the list". It shows who has answered for the same reason.
  */
 export function RosterPanel({
   participants,
@@ -55,10 +50,9 @@ export function RosterPanel({
         </p>
       </div>
       <p className="mt-1 max-w-prose text-xs text-muted-foreground">
-        Only these people see the Hackathon tab and the survey. Paste addresses
-        in any shape - one per line, comma separated, or straight out of a To:
-        field. Somebody who has never signed in can go on the list now; it
-        works the moment they do.
+        Only these people see the Hackathon tab. Paste addresses one per line,
+        comma separated, or straight from a To: field. Someone who has never
+        signed in can go on the list now.
       </p>
 
       <form action={add} className="mt-3 space-y-2">

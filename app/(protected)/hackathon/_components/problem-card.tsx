@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { formatHoursPerWeek, isSharedReach } from "@/lib/hackathon/impact";
+import { formatHoursPerWeek } from "@/lib/hackathon/impact";
 import {
   PATIENT_IDENTIFIERS_ANSWER,
   QUESTION_BY_ID,
@@ -10,19 +10,14 @@ import type { HackathonResponse } from "@/lib/hackathon/state";
 /**
  * One submitted problem, as it reads in the bank and on your own answer.
  *
- * The same component for both, because they are the same thing seen from two
- * places, and a separate "your answer" card is how the two drift until
- * somebody's own submission looks different to them than it does to everyone
- * else.
+ * One component for both, so somebody's own submission never looks
+ * different to them than it does to everyone else.
  *
- * EVERY ANSWER IS ONE ROW IN ONE COLUMN, in the order the survey asked. The
- * fields were briefly laid out two across with the screening answers
- * demoted to badges in a footer, which made a record of nine answers read as
- * four things and a decoration - and the two demoted ones are the two the
- * shortlist actually turns on. A record people have to scan thirty of is
- * read top to bottom or not at all.
+ * Every answer is one row in one column, in the order the survey asked.
+ * They were briefly two across with the screening answers demoted to badges
+ * in a footer - and those two are the ones the shortlist turns on.
  *
- * Labels are short restatements rather than the survey's own question text:
+ * Labels are short restatements rather than the survey's question text:
  * "What goes wrong when it is done late or done badly?" is the right way to
  * ask it and the wrong way to label the answer in a list.
  */
@@ -39,13 +34,12 @@ const FIELDS: readonly { qid: string; label: string }[] = [
 ];
 
 /**
- * The dot beside a screening answer. Colour lives in a 6px dot and never
- * washes the row - the app's status grammar, see lib/status.ts.
+ * The dot beside a screening answer - colour in a 6px dot, never a wash, per
+ * the status grammar in lib/status.ts.
  *
- * Only the two screening questions get one, because they are the only
- * answers read as a verdict rather than as information: question 7 can rule
- * a problem out of this cohort entirely, and question 8 decides whether
- * there is an evaluation set on the day.
+ * Only questions 7 and 8 get one: they are the two answers read as a verdict
+ * rather than as information. Question 7 can rule a problem out entirely,
+ * and question 8 decides whether there are examples to work from on the day.
  */
 function dotFor(qid: string, value: string): string | null {
   if (qid === "q7") {
@@ -135,14 +129,7 @@ export function ProblemCard({
                     )}
                   />
                 )}
-                <span className="min-w-0">
-                  {row.value}
-                  {row.qid === "q9" && isSharedReach(row.value) && (
-                    <span className="ml-1.5 text-xs text-muted-foreground">
-                      so multiply the hours
-                    </span>
-                  )}
-                </span>
+                <span className="min-w-0">{row.value}</span>
               </dd>
             </div>
           );

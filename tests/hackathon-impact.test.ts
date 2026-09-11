@@ -3,7 +3,6 @@ import {
   compareByHours,
   formatHoursPerWeek,
   hoursPerWeek,
-  isSharedReach,
 } from "@/lib/hackathon/impact";
 import {
   DURATION_OPTIONS,
@@ -114,19 +113,5 @@ describe("compareByHours", () => {
     // 11 exact beats 6+; inventing a weighting for the open bucket would be
     // precision the bucket does not have.
     expect(compareByHours(big, floor)).toBeLessThan(0);
-  });
-});
-
-describe("isSharedReach", () => {
-  it("is true for the two answers that mean more than one person", () => {
-    expect(isSharedReach("My team")).toBe(true);
-    expect(isSharedReach("Several teams")).toBe(true);
-  });
-
-  it("is false for one person, an unknown, and no answer", () => {
-    expect(isSharedReach("Just me")).toBe(false);
-    expect(isSharedReach("Not sure")).toBe(false);
-    expect(isSharedReach(null)).toBe(false);
-    expect(isSharedReach(undefined)).toBe(false);
   });
 });

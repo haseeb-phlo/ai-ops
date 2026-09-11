@@ -19,17 +19,17 @@ export const metadata = { title: "What should we fix on Monday?" };
  * One route, three states, the shape "Your AI Score" already established:
  *
  *   locked           - not on the guest list. Redirected to the dashboard
- *                      rather than shown a door, because the Hackathon tab is
- *                      not in their nav either and a URL they were not sent
- *                      should not explain what they are missing.
+ *                      rather than shown a door: the tab is not in their nav
+ *                      either, and a URL they were not sent should not
+ *                      explain what they are missing.
  *   not answered yet - the intro and the form.
  *   answered         - their own answer, the way everyone else will read it,
  *                      plus the way into the bank. `?edit=1` reopens the
  *                      form on it.
  *
- * The intro copy is the build sheet's, verbatim, because it is what was
- * posted in Slack beside the link: the same words on both sides of the click
- * is how somebody knows they are in the right place.
+ * The intro is the build sheet's own words, so the Slack post and the page
+ * say the same thing. Its closing line about the deadline is dropped,
+ * because nothing here enforces one.
  */
 export default async function HackathonPage({
   searchParams,
@@ -62,7 +62,7 @@ export default async function HackathonPage({
           title="What should we fix on Monday?"
           description={
             own
-              ? "Change anything you like. Saving replaces your earlier answer."
+              ? "Saving replaces your earlier answer."
               : "Five minutes, eleven questions, nine of them required."
           }
         />
@@ -78,9 +78,6 @@ export default async function HackathonPage({
               information between systems, chasing the same thing again and
               again, writing the same message with slight changes - not big
               strategy.
-            </p>
-            <p className="text-muted-foreground">
-              Five minutes. Closes Friday at 3pm.
             </p>
           </div>
         )}
@@ -111,9 +108,7 @@ export default async function HackathonPage({
           <div>
             <p className="font-medium">Thanks - that is logged.</p>
             <p className="mt-0.5 text-secondary-foreground/80">
-              Everyone in the cohort who has answered can now read it, and you
-              can read theirs. If yours is picked you will hear on Friday
-              afternoon and pitch it for two minutes at 09:30 on Monday.
+              You can read everyone else&apos;s answers now.
             </p>
           </div>
         </div>

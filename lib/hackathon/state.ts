@@ -9,23 +9,21 @@ import { answerValue, type Answers } from "./questions";
 /**
  * Server reads for the Hackathon tab.
  *
- * Split in two on purpose, because the two callers need different amounts and
- * one of them is the whole app's layout:
+ * Split in two, because one caller is the whole app's layout:
  *
- *   `loadHackathonInvite`  - "is this person on the guest list", which is one
- *                            indexed lookup, and none at all for a super
- *                            admin. Called from `app/(protected)/layout.tsx`,
- *                            so it runs on every page in the app.
+ *   `loadHackathonInvite`  - "is this person on the guest list": one indexed
+ *                            lookup, and none at all for a super admin.
+ *                            Called from `app/(protected)/layout.tsx`, so it
+ *                            runs on every page in the app.
  *   `loadHackathonState`   - the above plus their own response. Called only
  *                            by the /hackathon routes.
  *
- * Both are `cache()`d, so the layout's question and the page's question cost
- * one round trip between them - the pattern `getSessionUser` and
- * `loadTrackState` both use.
+ * Both are `cache()`d, so the two questions cost one round trip between
+ * them - the pattern `getSessionUser` and `loadTrackState` both use.
  *
  * The register is read with the caller's own client, so RLS decides: `read
- * own hackathon_participants` means an ordinary person can confirm they are
- * on the list and cannot read the rest of it.
+ * own hackathon_participants` lets an ordinary person confirm they are on
+ * the list and read no more of it.
  */
 
 export type HackathonInvite = {

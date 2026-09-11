@@ -17,30 +17,21 @@ import { submitHackathonSurvey } from "../actions";
 /**
  * "What should we fix on Monday?" - the instrument.
  *
- * Deliberately the most ordinary survey shape there is: one numbered
- * question per card, top to bottom, and every answer in a single column
- * under the question it belongs to. Options were briefly laid out two
- * across, which saves a screen of scrolling and costs the thing a survey
- * cannot afford - with two columns there is no one reading order, so
- * "several times a day" and "about once a week" sit side by side and get
- * picked by position instead of by meaning.
+ * One numbered question per card, and every answer in a single column at
+ * every width. Options were briefly two across, which leaves no single
+ * reading order: "several times a day" and "about once a week" sit side by
+ * side and get picked by position rather than by meaning.
  *
- * The choices are native `<input type="radio">` rather than styled buttons.
- * That is what makes a group behave the way people already expect: arrow
- * keys move within it, Tab leaves it, and a screen reader announces "3 of
- * 5". A `role="radio"` button reimplements all of that, usually
- * incompletely.
+ * Choices are native `<input type="radio">`, so arrow keys move within a
+ * group, Tab leaves it, and a screen reader announces "3 of 5". A
+ * `role="radio"` button reimplements that, usually incompletely.
  *
- * Answers live in component state until submit, as `ScoreForm` does, which
- * is why there is no partial save: a five-minute form that saves drafts is a
- * five-minute form with a second failure mode.
+ * Answers live in component state until submit, as `ScoreForm` does, so
+ * there is no partial save to go wrong.
  *
- * The hours-per-week readout under question 4 is the one piece of feedback
- * the paper version cannot give. It is the same pure function the problem
- * bank ranks by (`lib/hackathon/impact.ts`), so what someone sees while
- * answering is what their problem is later sorted on - and watching "5.6 hrs
- * a week" appear is what makes a small repetitive task feel worth
- * submitting.
+ * The hours-per-week readout under question 4 runs the same function the
+ * problem bank ranks by (`lib/hackathon/impact.ts`), so what someone sees
+ * while answering is what their problem is later sorted on.
  */
 export function SurveyForm({
   initial,
@@ -111,17 +102,15 @@ export function SurveyForm({
 
   return (
     <div className="space-y-4">
-      {/* Said once, at the top, rather than beside the free-text questions:
-          it is a rule about the whole form, and a warning that appears three
-          questions in has already been ignored twice. */}
+      {/* Once, at the top: it is a rule about the whole form, and a warning
+          placed three questions in has already been ignored twice. */}
       <p className="rounded-lg border border-border bg-secondary px-4 py-3 text-xs leading-relaxed text-secondary-foreground">
-        Everyone invited reads these answers once they have answered
-        themselves. Describe the task, not the patient: no names, addresses,
-        dates of birth or medical details anywhere in this form.
+        Everyone else who answers can read your answers. Describe the task,
+        not the patient - no names, addresses, dates of birth or medical
+        details.
       </p>
 
-      {/* Progress. Sticky, because nine required questions is long enough to
-          lose your place in. */}
+      {/* Sticky: nine required questions is long enough to lose your place. */}
       <div className="sticky top-0 z-10 -mx-1 bg-background/95 px-1 py-2 backdrop-blur">
         <div className="flex items-center gap-3">
           <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
@@ -147,11 +136,11 @@ export function SurveyForm({
           footnote={
             question.id === "q4" && hours ? (
               <>
-                That is roughly{" "}
+                About{" "}
                 <span className="font-medium text-foreground">
                   {formatHoursPerWeek(hours)}
                 </span>{" "}
-                a week, every week.
+                a week.
               </>
             ) : null
           }
@@ -224,7 +213,6 @@ function QuestionCard({
 
       <div className="mt-3">
         {question.kind === "choice" ? (
-          // One column, at every width. See the docblock.
           <div className="flex flex-col gap-1.5">
             {question.options?.map((option) => {
               const selected = value === option;

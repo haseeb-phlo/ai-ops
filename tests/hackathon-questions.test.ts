@@ -5,7 +5,6 @@ import {
   QUESTIONS,
   QUESTION_BY_ID,
   REQUIRED_QUESTION_IDS,
-  SHARED_REACH_ANSWERS,
   TEAM_OPTIONS,
   answerValue,
   normalizeAnswerText,
@@ -117,9 +116,6 @@ describe("the question bank matches the build sheet", () => {
       "Several teams",
       "Not sure",
     ]);
-    for (const answer of SHARED_REACH_ANSWERS) {
-      expect(QUESTION_BY_ID.get("q9")!.options).toContain(answer);
-    }
   });
 
   it("keeps the sheet's subtitles on the four questions that have one", () => {
