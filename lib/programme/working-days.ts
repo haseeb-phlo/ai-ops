@@ -87,29 +87,37 @@ export const PROGRAMME_OPEN_LABEL = "7am";
  *     Making it right means a per-day label, which is a change to that
  *     constant's design rather than a use of this one, and not a thing to
  *     attempt on the morning a hold is needed. Day 9 shipped with this and
- *     so does day 10.
+ *     so did day 10.
  *
- * AN EMPTY TABLE IS THE NORMAL STATE, and the entry below is live. The lever
- * has been used twice, both times because the day's video was not ready when
- * the day opened at 07:00:
+ * THE TABLE IS EMPTY AND THAT IS THE NORMAL STATE. The lever has been used
+ * twice, both times because the day's video was not ready when the day opened
+ * at 07:00, and the two uses ended differently:
  *
- *   - day 9, held to 09:00 on 2026-09-10. Removed the same morning, when the
- *     video was uploaded about an hour before its instant;
- *   - day 10, held to 09:00 on 2026-09-11. The entry below.
+ *   - day 9, held to 09:00 on 2026-09-10. The video was uploaded at 07:39 and
+ *     the entry came out about an hour before its instant, so the hold did
+ *     its job: the day was shut for exactly as long as it had nothing to
+ *     show;
+ *   - day 10, held to 09:00 on 2026-09-11. The video did NOT arrive in time.
+ *     The hold expired on its own at 09:00 and the recording landed at 10:34,
+ *     so day 10 was open with no video for about 95 minutes and anyone who
+ *     opened it in that window saw "coming soon". The entry was spent, not
+ *     released.
  *
- * That is the shape to copy - a hold goes in for a reason that is visible and
- * comes out when the reason goes, and the instant is the backstop for the
- * times nobody comes back.
+ * Day 9 is the shape to copy - a hold goes in for a reason that is visible
+ * and comes out when the reason goes. Day 10 is the honest record of what the
+ * instant is FOR: it is the backstop for the times nobody comes back, and a
+ * backstop opening a day that is still not ready is the cost of not needing
+ * anybody to come back. A hold set to the time the content is actually
+ * expected, rather than to the start of the working day, is the lesson worth
+ * carrying to the third use.
  *
  * Taking a spent entry out rather than leaving it to expire is deliberate. A
  * spent entry is inert, so leaving it costs nothing mechanically, but an entry
  * sitting here reads as a hold somebody forgot - and the next person to need
  * this would have to work out whether that day is still shut before adding
- * theirs. Take day 10's out once the morning is over.
+ * theirs.
  */
-export const DAY_HOLDS: ReadonlyMap<number, string> = new Map([
-  [10, "2026-09-11T09:00:00+01:00"],
-]);
+export const DAY_HOLDS: ReadonlyMap<number, string> = new Map([]);
 
 /**
  * The day indexes currently held shut, at instant `now`.

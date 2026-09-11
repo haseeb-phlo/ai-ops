@@ -219,11 +219,25 @@ export type TrackItemSpec = {
  * admits it. A migration nulls it. Day 12 was unbound and its new title
  * matches a learn_videos row exactly, so the seed binds that half by itself.
  *
- * Claude Design has no recording, so day 10 now reads "coming soon" where it
- * used to have one. That is a real cost and it was day 12's cost until today.
- * content-readiness.ts leaves an unbound video day out of gate G1 and the RAG
- * sweep, so nobody is marked down for it. When the recording is made it has
- * to be titled "Claude Design" to bind, not "Design".
+ * DAY 10 NOW HAS ITS VIDEO and the paragraph that stood here - that Claude
+ * Design had no recording and the day read "coming soon" - is history rather
+ * than the current state. The recording was made and uploaded on 2026-09-11,
+ * the same day the swap ran, titled exactly "Claude Design", so it binds by
+ * title like every other day. The migration above nulled day 10 that morning
+ * and this filled it the same afternoon; both were needed, in that order, and
+ * neither is redundant.
+ *
+ * BINDING IT MAKES DAY 10 REQUIRED, which is the part worth stating. An
+ * unbound video day is left out of gate G1 and the RAG sweep by
+ * content-readiness.ts, so while day 10 was blank nobody was marked down for
+ * it. It now counts, for the two live cohorts, as of today - that is the
+ * intended effect of the recording existing, not a side effect to be
+ * surprised by.
+ *
+ * The day was held shut from 07:00 to 09:00 that morning - see DAY_HOLDS in
+ * working-days.ts - and unlike day 9 the hold did NOT cover the gap. It
+ * expired on its own at 09:00 and the video arrived at 10:34, so day 10 was
+ * open reading "coming soon" for about 95 minutes.
  *
  * The day 10 task is day 12's, with one addition: it now says where Claude
  * Design is (claude.ai/design, or the desktop sidebar) and names the Export
@@ -693,10 +707,15 @@ export const GENERIC_TASK =
  * row existed. That is the first use of the hold mechanism and the reason it
  * was written.
  *
- * Research on day 11 is now the only unrecorded day in week two or three
- * along with 12, 13, 14 and 15, so the 9/11 swap note above should be read
- * with that in mind: the argument for that swap was which of the two days had
- * a recording, and the answer has changed.
+ * Research on day 11 is unrecorded, so the 9/11 swap note above should be
+ * read with that in mind: the argument for that swap was which of the two
+ * days had a recording, and the answer has changed.
+ *
+ * The unrecorded days are 11, 13, 14 and 15 as of 2026-09-11. Day 12 was one
+ * of them until the 10/12 swap bound it to the Reverse Prompting recording,
+ * and day 10 until Claude Design was shot that afternoon. This sentence has
+ * been wrong twice by being a list; check it against `learn_video_id` on the
+ * track items rather than trusting it.
  *
  * They share a shape, and it is worth keeping when one gets rewritten:
  *
