@@ -10,8 +10,8 @@
  *   Week 1 (day 5)  - D1 what AI is doing, D2 when to use it, D3 Prompting,
  *                     D4 Projects, D5 Connectors & MCP
  *   Week 2 (day 10) - D6 Skills, D7 Scheduled Tasks, D8 Artifacts,
- *                     D9 Cowork, D10 Reverse Prompting
- *   Week 3 (day 15) - D11 Research/Memory/files out, D12 Design,
+ *                     D9 Cowork, D10 Claude Design
+ *   Week 3 (day 15) - D11 Research/Memory/files out, D12 Reverse Prompting,
  *                     D13 Dispatch + Plugins,
  *                     D14 Claude everywhere, D15 choosing the right tool and
  *                     measuring time saved, plus a spiral back over one day
@@ -234,6 +234,52 @@
  * scores nothing, so it can be corrected under a live quiz. Worth knowing
  * before the next correction, because it decides how much of a wrong question
  * can be fixed in place and how much has to wait.
+ *
+ * CLAUDE DESIGN AND REVERSE PROMPTING SWAPPED DAYS on 2026-09-11, Design
+ * coming forward from day 12 to day 10 and Reverse Prompting going back the
+ * other way, on the programme owner's instruction. Three questions moved with
+ * them and the tag distribution did not change at all - week two still covers
+ * 6,7,8,9,10 and week three still covers 11,11,12,13,14,15,15 plus the spiral
+ * over 3,5,7. That is the point of doing it this way: each quiz keeps testing
+ * the day that sits under its own tag, so nothing had to be re-tagged and no
+ * quiz changed length.
+ *
+ *   - week two's two day 10 questions were about reverse prompting and are
+ *     now about Claude Design, written fresh rather than re-tagged, because
+ *     the day beneath them changed topic entirely;
+ *   - week three's day 12 question was the Claude Design one and is now a
+ *     reverse prompting question, for the same reason in the other direction.
+ *
+ * WHAT DECIDED WHICH SIDE COULD BE REWRITTEN FREELY. Week two had ZERO stored
+ * attempts, so its two questions were rewritten without constraint. Week
+ * three had twenty, all of them the Rehearsal cohort, which is a test cohort
+ * - no real member has sat that quiz.
+ *
+ * Those twenty turn out to cost nothing at all, and it is worth recording WHY
+ * rather than leaving the next editor to re-derive it. Every one of them
+ * stores `answers_json` as `{}`: they are seeded rows carrying a score and no
+ * answers, ten sixes and ten nines. `readAnswers` returns [] for that, so
+ * `alignAttempt` compares a zero-length array against ten questions and has
+ * already returned "unreadable" for all twenty since before this edit, and
+ * resolveAnswers is never reached, so per-answer review shows nothing for
+ * them either. The edit cannot degrade what was never readable.
+ *
+ * The replacement question was written to five options with `correct` left at
+ * index 3 regardless, so the whole `correct` array is byte-identical and
+ * scoreAttempt returns the same total for any attempt that did carry answers.
+ * That is the property that would have mattered, and it is cheap to preserve,
+ * so it was preserved rather than relied on being unnecessary.
+ *
+ * WEEK ONE WAS NOT TOUCHED and could not have been on these terms: it holds
+ * forty attempts from Cohorts 1A and 1B, real members, and they are the ones
+ * whose data a question rewrite would actually damage.
+ *
+ * The live cohorts had not reached either day when this ran - day 10 opened
+ * for them on 2026-09-11 with nobody yet started on it, and all existing day
+ * 10 and day 12 progress belonged to the Rehearsal cohort from June. A swap
+ * renames items in place rather than moving rows, so had a live member
+ * already completed day 10, they would have been left holding a completion
+ * for a topic they never did.
  *
  * TAGS ARE EDITORIAL. Which quiz a question lands in is the array it sits in,
  * never this field. It exists so `tests/programme-quiz-content.test.ts` can
@@ -590,32 +636,32 @@ export const WEEK_2_QUESTIONS: QuizQuestion[] = [
   {
     day: 10,
     question:
-      "You have reworded a prompt four times and keep getting the same shape of wrong answer back. What does that tell you?",
+      "You need a pitch deck for Monday and you want to shape the layout before it goes out. Where does Claude Design earn its place over an ordinary Chat?",
     options: [
-      "The wording is still not precise enough, so keep on refining it",
-      "The gap is in what you have not said, so let it interview you",
-      "The task is beyond what the tool can do, so do it yourself",
-      "The Chat is confused, so start a fresh one and ask again",
-      "It needs more context, so keep adding until something shifts",
+      "It writes the words on each slide more accurately than a Chat does",
+      "It signs the deck off, so nobody else has to review what it made",
+      "It keeps the deck's source documents attached for the next revision",
+      "You shape the layout on a canvas and export the result as a PPTX",
+      "It is the only surface at Phlo that can read a PowerPoint file",
     ],
-    correct: 1,
+    correct: 3,
     explanation:
-      "One poor answer is normal and a follow-up is just conversation. The same wrong shape repeating means the gap is in what you have not said rather than in how you said it, and no rewrite reaches that. Asking Claude what it needs from you surfaces the context you did not realise you were assuming. Adding context blindly is the same guess with more words.",
+      "The gain is a canvas plus a real export. You adjust spacing, colour and layout directly, or ask for changes in plain English, and the Export button gives you PowerPoint, PDF or a standalone page. A Chat can draft the words but hands them back as text for you to reassemble. Keeping source documents for next time is what a Project is for. Nothing here removes the human review, and a Chat reads a PowerPoint file perfectly well.",
   },
   {
     day: 10,
     question:
-      "You ask Claude to interview you about a job before it attempts it, and its first question is about something you never thought to mention. What does that tell you?",
+      "Which of the following is the poorest fit for Claude Design as it stands today?",
     options: [
-      "The request was worded badly and wants rewriting before you answer",
-      "You were assuming context it had no way to see",
-      "It is stalling because the job is too large to attempt in one go",
-      "The job wants a Project rather than an ordinary Chat to hold it",
-      "It opens that way with everyone, so there is no signal in it",
+      "An internal one-pager explaining a process change to your team",
+      "A rough settings screen, made to get a conversation started",
+      "A patient-facing leaflet going out under Phlo's brand",
+      "A slide for Monday's team meeting that you will talk over",
+      "A layout you want to react to before committing real time to it",
     ],
-    correct: 1,
+    correct: 2,
     explanation:
-      "The questions are the payload. What it asks about is nearly always something you were carrying in your head and never wrote down, which is the actual reason the output kept coming back wrong. Rewording moves that gap around rather than closing it. A Project helps when the same context is needed every time, and the context still has to be written down once before anything can store it.",
+      "Two things make it the wrong fit. It is a research preview, so what comes out is a draft rather than a finished brand, and patient-facing material has to meet a standard a draft is not aiming at. Confidential designs and private code stay out for the same reason. Internal drafts, rough screens and something to react to are exactly the work it is for.",
   },
 ];
 
@@ -659,17 +705,17 @@ export const WEEK_3_QUESTIONS: QuizQuestion[] = [
   {
     day: 12,
     question:
-      "You are making a one-page summary for the exec team in Claude Design. Where does the help genuinely apply?",
+      "You have reworded a prompt three times and the answer keeps coming back the same shape of wrong. What does the programme tell you to do next?",
     options: [
-      "It removes the need for anyone with real design skills",
-      "It guarantees that what comes out is on brand for Phlo",
-      "It only matters for customer-facing material, not internal",
-      "It gets you to a presentable first draft you then refine",
-      "It produces a finished asset you can send without review",
+      "Reword it once more, being precise about the format you want",
+      "Start a fresh Chat, on the basis that this one is confused",
+      "Accept that the job is outside what the tool can do for you",
+      "Ask Claude to interview you about what it needs, then answer",
+      "Add more context in bulk until the answer eventually shifts",
     ],
     correct: 3,
     explanation:
-      "The gain is the distance from a blank page to something worth reacting to, and a strong first draft that a person then shapes is the whole method. It is a research preview, so what comes out is a draft rather than a finished brand. Internal work benefits from clarity as much as customer-facing work does.",
+      "The same wrong shape repeating means the gap is in what you have not said rather than in how you said it, and no rewrite reaches that. Letting Claude ask what it needs surfaces the context you were assuming without noticing. One poor answer is normal and a follow-up is just conversation - it is the repetition that is the signal. A fresh Chat and bulk context are the same guess made again.",
   },
   {
     day: 13,

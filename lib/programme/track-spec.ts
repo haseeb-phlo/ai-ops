@@ -204,6 +204,34 @@ export type TrackItemSpec = {
  * every other day. Left recorded because the failure it caused was invisible:
  * a day that reads "coming soon" for a video that exists.
  */
+/**
+ * CLAUDE DESIGN TOOK DAY 10 ON 2026-09-11 and Reverse Prompting went back to
+ * day 12, swapping the pair on the programme owner's instruction. The tasks
+ * moved with the topics; the quiz questions are in quiz-content.ts and the
+ * reasoning for which of them could be rewritten is in that file's header.
+ *
+ * THE SEED CANNOT FINISH THIS SWAP, which is the part worth knowing. Its
+ * re-bind block only fills a null learn_video_id, so it never re-points a day
+ * that already has one. Day 10 was BOUND, to the Reverse Prompting recording,
+ * so renaming it would have left a day headed "Claude Design" playing Reverse
+ * Prompting - the exact failure 20260909050428_swap_artifacts_and_cowork_days
+ * exists for, and worse than a missing video because nothing on the page
+ * admits it. A migration nulls it. Day 12 was unbound and its new title
+ * matches a learn_videos row exactly, so the seed binds that half by itself.
+ *
+ * Claude Design has no recording, so day 10 now reads "coming soon" where it
+ * used to have one. That is a real cost and it was day 12's cost until today.
+ * content-readiness.ts leaves an unbound video day out of gate G1 and the RAG
+ * sweep, so nobody is marked down for it. When the recording is made it has
+ * to be titled "Claude Design" to bind, not "Design".
+ *
+ * The day 10 task is day 12's, with one addition: it now says where Claude
+ * Design is (claude.ai/design, or the desktop sidebar) and names the Export
+ * button rather than assuming the reader will find either. Day 7's note is
+ * the precedent - a day that says where a thing lives beats a day that
+ * assumes it. Both facts, and the research-preview caveat the copy already
+ * carried, were checked against Anthropic's own pages on 2026-09-11.
+ */
 export const DAY_TOPICS: readonly string[] = [
   "What is AI and how does it work?",
   "When to use AI and when not to",
@@ -214,9 +242,9 @@ export const DAY_TOPICS: readonly string[] = [
   "Scheduled Tasks",
   "Artifacts",
   "Cowork",
-  "Reverse Prompting",
+  "Claude Design",
   "Research, Memory & files out",
-  "Design",
+  "Reverse Prompting",
   "Dispatch + Plugins",
   "Claude everywhere",
   "Choosing the right tool + measuring time saved",
@@ -792,12 +820,11 @@ const DAY_TASKS: Readonly<Record<number, string>> = {
     "Submit the link to the final output.",
   ].join("\n"),
   10: [
-    "Find a prompt that is not working - one you have reworded twice and it still comes back the wrong shape.",
-    "Stop rewording it. Turn the questioning round instead: ask Claude what it needs from you in order to do this properly, and then answer its questions.",
-    "The questions are the point. What it asks about is almost always context you did not realise you were assuming, and that is the real problem rather than your phrasing.",
-    "Run the job again with what came out of the interview, and compare it against the version you were stuck on.",
-    "Learn the signal while you are here. One poor answer is normal and a follow-up is just conversation. The same wrong shape three times means the misunderstanding is upstream of the wording, and no rewrite will reach it.",
-    "Submit the link to the chat where you let it interview you.",
+    "Describe one screen or document you wish already existed: a landing page, a settings screen, a pitch deck, a one-pager that would make an idea look finished.",
+    "Open Claude Design at claude.ai/design, or from the sidebar in the desktop app. Make it there, then refine it once in plain English rather than taking the first version. A strong first draft that a person then shapes is the whole method.",
+    "Export what you end up with - the Export button offers PowerPoint, PDF and a standalone page, among others.",
+    "Two honest caveats. It is a research preview, so it is rougher than the rest of the tools here and what comes out is a draft rather than a finished brand. And keep confidential designs, patient-facing material and private code out of it.",
+    "Submit the link to the design, or to the file you exported.",
   ].join("\n"),
   11: [
     "Pick something you would normally lose an afternoon to: a comparison, a supplier or market scan, a written summary that means reading several sources first.",
@@ -807,11 +834,12 @@ const DAY_TASKS: Readonly<Record<number, string>> = {
     "Submit the link to the Research chat, or to the file if it lives somewhere shareable.",
   ].join("\n"),
   12: [
-    "Describe one screen or document you wish already existed: a landing page, a settings screen, a pitch deck, a one-pager that would make an idea look finished.",
-    "Make it in Claude Design, then refine it once in plain English rather than taking the first version. A strong first draft that a person then shapes is the whole method.",
-    "Export what you end up with - to PowerPoint, or as a prototype link.",
-    "Two honest caveats. It is a research preview, so it is rougher than the rest of the tools here and what comes out is a draft rather than a finished brand. And keep confidential designs, patient-facing material and private code out of it.",
-    "Submit the link to the design, or to the file you exported.",
+    "Find a prompt that is not working - one you have reworded twice and it still comes back the wrong shape.",
+    "Stop rewording it. Turn the questioning round instead: ask Claude what it needs from you in order to do this properly, and then answer its questions.",
+    "The questions are the point. What it asks about is almost always context you did not realise you were assuming, and that is the real problem rather than your phrasing.",
+    "Run the job again with what came out of the interview, and compare it against the version you were stuck on.",
+    "Learn the signal while you are here. One poor answer is normal and a follow-up is just conversation. The same wrong shape three times means the misunderstanding is upstream of the wording, and no rewrite will reach it.",
+    "Submit the link to the chat where you let it interview you.",
   ].join("\n"),
   13: [
     "Find the thing Claude keeps failing at because it cannot reach or cannot do something, rather than because you asked badly.",
