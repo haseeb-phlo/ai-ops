@@ -569,7 +569,7 @@ export const GENERIC_TASK =
  * SECOND now turns on the folder and on skipping permissions together - its
  * stem has the member skipping the prompts and its answer is the folder - so
  * the scoping instruction has to stay AHEAD of the hand-over line and the
- * Skip Permissions line has to stay in. A task and its quiz question
+ * skip-approvals line has to stay in. A task and its quiz question
  * disagreeing is the failure the day 7 note names.
  *
  * What is NO LONGER load-bearing, since it was until this revision: "tell it
@@ -613,14 +613,33 @@ export const GENERIC_TASK =
  * reinstate if a pass or fail is ever wanted back - it is now gone from the
  * quiz as well as the task, so nothing in the programme asks for it.
  *
- * "SKIP PERMISSIONS" IS THE ONE UI STRING IN THIS DAY AND IT IS UNVERIFIED.
- * It came from the programme owner, who uses the product, and it is not in
- * anything in this repo or checkable from it. Day 7's note is the precedent
- * for why that matters: three of its screen facts were wrong for two
- * revisions, invented by analogy rather than checked. This one is a button
- * label plus a claim about what pressing it does, so it is exactly the shape
- * that goes stale, and it is the first thing to re-read if members report
- * that the day does not match what they see.
+ * "SKIP PERMISSIONS" WAS THE ONE UNVERIFIED UI STRING IN THIS DAY AND IT WAS
+ * WRONG. It came from the programme owner, who uses the product, and this
+ * note used to say it was the first thing to re-read if members reported the
+ * day not matching what they saw. Checked against Anthropic's docs on
+ * 2026-09-11 it is not a label the product has. Cowork names three approval
+ * modes, "Manually approve", "Automatically approve" and "Skip all
+ * approvals", the last of which is what this day wants, so the copy now says
+ * that. See support.claude.com/en/articles/13364135-use-claude-cowork-safely
+ * and .../15520349-use-claude-cowork-on-web-desktop-and-mobile, which also
+ * records the older names the modes carried ("Ask before acting", "Auto",
+ * "Act without asking") - so a member on a lagging build may see one of
+ * those, and none of them is "Skip Permissions" either.
+ *
+ * Day 7's note was the precedent for why an unchecked screen fact matters and
+ * this is now the second instance: three of day 7's were wrong for two
+ * revisions, invented by analogy rather than checked, and this one was
+ * supplied by someone using the product and still did not match it. The
+ * general lesson is in the quiz-content.ts header - a product fact rots
+ * silently, because nothing in this repo tests one.
+ *
+ * THE LIVE COHORTS FOLLOWED THE WRONG LABEL. They reached day 9 on
+ * 2026-09-10 and this correction landed the day after, and a task edit here
+ * does not reach them on its own: programme_seed.sql is generated from this
+ * file rather than being a migration, so live `track_items` rows keep the old
+ * copy until the seed is run against the linked remote. That is a decision
+ * for the programme owner rather than something to do quietly, since it
+ * rewrites copy under a cohort mid-programme.
  *
  * The caution line is the owner's too and it is WIDER AND SOFTER than the one
  * it replaced. "Nothing confidential or patient-identifiable in it unless the
@@ -768,7 +787,7 @@ const DAY_TASKS: Readonly<Record<number, string>> = {
   ].join("\n"),
   9: [
     "Pick a boring job you keep putting off (e.g. merging a few documents into one summary, checking two lists against each other, tidying up and renaming a group of files). Put the files Cowork needs into one folder - don't add anything else.",
-    "Open Cowork in the desktop app, point it to that folder and tell it the whole task in one sentence. Then click \"Skip Permissions\" to allow it to do the work without asking for approvals.",
+    "Open Cowork in the desktop app, point it to that folder and tell it the whole task in one sentence. Then set it to \"Skip all approvals\" to allow it to do the work without asking for approvals.",
     "Cowork works on your real files, so keep this folder small and make sure there's nothing unrelated or confidential in it.",
     "Submit the link to the final output.",
   ].join("\n"),

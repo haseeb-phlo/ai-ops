@@ -172,6 +172,69 @@
  * question's judgement is untouched - it is still about where a run happens
  * when the laptop is shut.
  *
+ * WEEK TWO WAS CHECKED AGAINST ANTHROPIC'S DOCS ON 2026-09-11, all ten
+ * questions, on the day the live cohorts reached the quiz. This is the first
+ * deliberate sweep rather than a fact corrected because something else forced
+ * an edit, and it is recorded question by question because the value is in
+ * knowing what was looked at and not only what moved. Sources are the Claude
+ * help centre articles named below, all under support.claude.com/en/articles.
+ *
+ * ONE ERROR, day 9's second question. Its explanation said "Cowork works on
+ * your real machine rather than inside your Claude account", which inverts
+ * the current product on Phlo's own plan: "Run Cowork in the cloud" is on by
+ * default for Team (13455879), the agent loop and code execution run on
+ * Anthropic's servers, and sessions and files are saved to the member's
+ * Claude account (14479288). The clause was refuting the "desktop app"
+ * distractor with a fact that is no longer true. The key did not move and
+ * neither did any option: the folder is still the boundary, and the docs put
+ * it more plainly than the question did, at "only for the folders you've
+ * connected". The explanation now says the desktop app is the route to the
+ * disk rather than a limit on it. Same shape as the laptop correction above,
+ * and the same lesson: the judgement was right and the supporting fact rotted
+ * underneath it.
+ *
+ * THE OTHER NINE HOLD. Day 6 on descriptions as the trigger (12512180), day
+ * 7 on cloud execution, connectors travelling with a run and "Scheduled" plus
+ * "New task" in the sidebar (13854387, which also confirms a scheduled task
+ * cannot be tied to a folder on your computer), day 8 on Team sharing
+ * (9547008), and both day 10 questions, which carry no product surface at all
+ * - reverse prompting is a technique rather than a feature, so there is
+ * nothing there to go stale. Three of the nine hold on the fact the question
+ * turns on while carrying a looser clause around it, which is the next
+ * section rather than a qualification of this one.
+ *
+ * THREE TENSIONS LEFT DELIBERATELY UNEDITED, because in each the key still
+ * wins its set and admitting the nuance in the explanation would weaken a
+ * question that is right. None of the three is an error and none was
+ * rewritten. They are recorded so the next editor meets them having already
+ * been thought about rather than as fresh discoveries:
+ *
+ *   - day 9's first question calls a market write-up "Research, which needs
+ *     sources rather than your file system". Cowork's own docs now list
+ *     synthesising research among its uses (13345190), so that refutation is
+ *     softer than it reads. Assembly across a folder is still the strongest
+ *     of the five;
+ *   - day 6's first question says a Skill fires "in anybody's Chat". A shared
+ *     Skill is view-only and stays off until the recipient enables it
+ *     (12512180), so "anybody" means anybody who has turned it on. It is
+ *     still the property that separates a Skill from a Project;
+ *   - day 8's second question says a shared Artifact "opens for anyone at
+ *     Phlo with the link". Team sharing lets you grant access to named people
+ *     as well as to everyone (9547008), so that is the worst case rather than
+ *     the only one. It is left as written because it is the programme owner's
+ *     recorded safety framing - see the day 8 note in track-spec.ts - and
+ *     because the stem is a link share, where it is simply accurate.
+ *
+ * Every edit in this pass was to an explanation, and that was a constraint
+ * rather than a coincidence. The cohorts were sitting this quiz the morning
+ * it ran, and `alignAttempt` in quiz-results.ts reads a stored attempt back
+ * against today's content: changing a `correct`, reordering options or
+ * rewriting a stem either drifts a stored score or misreports what a member
+ * saw. An explanation is the one field that is shown after answering and
+ * scores nothing, so it can be corrected under a live quiz. Worth knowing
+ * before the next correction, because it decides how much of a wrong question
+ * can be fixed in place and how much has to wait.
+ *
  * TAGS ARE EDITORIAL. Which quiz a question lands in is the array it sits in,
  * never this field. It exists so `tests/programme-quiz-content.test.ts` can
  * assert that each quiz covers its own week, which is the check that would
@@ -522,7 +585,7 @@ export const WEEK_2_QUESTIONS: QuizQuestion[] = [
     ],
     correct: 0,
     explanation:
-      "Skipping the prompts is what makes the folder the control. There is no per-step approval left, so the only thing between Cowork and a file is whether you put that file in scope before the run started. Claude cannot know which of your documents are commercially sensitive. A brief describes the goal rather than granting access, and Cowork works on your real machine rather than inside your Claude account. Reading afterwards is worth doing but it is not a boundary, because by then it has opened whatever was there.",
+      "Skipping the prompts is what makes the folder the control. There is no per-step approval left, so the only thing between Cowork and a file is whether you put that file in scope before the run started. Claude cannot know which of your documents are commercially sensitive. A brief describes the goal rather than granting access, and the desktop app is the route to your disk rather than a limit on it: on our plan the run itself happens on Anthropic's servers and reaches your files through that app, for the folders you connected and no others. Reading afterwards is worth doing but it is not a boundary, because by then it has opened whatever was there.",
   },
   {
     day: 10,
