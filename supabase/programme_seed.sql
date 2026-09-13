@@ -69,7 +69,7 @@ Submit the link to the chat where your Skill fired on its own.', 6, 1, null, '{}
     ('use_example', 'Task', 'Go to Scheduled in the sidebar and use New task to set up one job you do on a rhythm, with a frequency and a time you will be away from your desk.
 Click Run now once and choose always allow on the permission prompts you recognise, or a scheduled run stalls waiting for you.
 Do not tie it to a folder on your computer: those only run when you are there. Use your Connectors and files saved to your Claude account.
-Submit the link to its first completed run.', 7, 1, null, '{}'::jsonb),
+Submit the link to its first completed run, or a screenshot of it if there is no link to share.', 7, 1, null, '{}'::jsonb),
     ('video', 'Artifacts', null, 8, 0, 'Artifacts', '{}'::jsonb),
     ('use_example', 'Task', 'Pick something you rebuild most weeks - a status update, a meeting-prep sheet, a checklist - and ask Claude to make it as an Artifact you can reuse.
 Change it once in plain English rather than keeping the first draft. Every version is kept, so you can go back. If Claude answers in the chat instead of opening a panel, check Settings > Capabilities for Code execution and file creation, and ask Haseeb if it is not yours to change.
@@ -196,7 +196,7 @@ Submit the link to the chat where your Skill fired on its own.'),
     (7, 1, 'Task', 'Go to Scheduled in the sidebar and use New task to set up one job you do on a rhythm, with a frequency and a time you will be away from your desk.
 Click Run now once and choose always allow on the permission prompts you recognise, or a scheduled run stalls waiting for you.
 Do not tie it to a folder on your computer: those only run when you are there. Use your Connectors and files saved to your Claude account.
-Submit the link to its first completed run.'),
+Submit the link to its first completed run, or a screenshot of it if there is no link to share.'),
     (8, 0, 'Artifacts', null),
     (8, 1, 'Task', 'Pick something you rebuild most weeks - a status update, a meeting-prep sheet, a checklist - and ask Claude to make it as an Artifact you can reuse.
 Change it once in plain English rather than keeping the first draft. Every version is kept, so you can go back. If Claude answers in the chat instead of opening a panel, check Settings > Capabilities for Code execution and file creation, and ask Haseeb if it is not yours to change.

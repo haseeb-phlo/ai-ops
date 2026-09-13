@@ -731,20 +731,28 @@ export const GENERIC_TASK =
  *     consent screen on a Connector, the scoped folder for Cowork, made-up
  *     numbers in a published Artifact - and nowhere else. A blanket warning
  *     on all fifteen days is a warning nobody reads by day four.
- *   - Every one that has a link field ends by asking for a link. Day 5 is
- *     the exception at both ends: it has no field and makes no ask, because
- *     what it asks for is settings on the member's own account and there is
- *     nothing to paste. LINKLESS_TASK_DAYS in task-link.ts is the list, and
- *     it is what the copy test exempts.
+ *   - Every one that has a field ends by asking for something to be filed.
+ *     Day 5 is the exception at both ends: it has no field and makes no ask,
+ *     because what it asks for is settings on the member's own account and
+ *     there is nothing to show. LINKLESS_TASK_DAYS in task-link.ts is the
+ *     list, and it is what the copy test exempts.
  *
  * That last one is a copy decision, not a mechanism. On the fourteen days
- * that ask, the link stays OPTIONAL in code (see task-link.ts): plenty of
- * real output is a file on a shared drive, and a required field on unlinkable
- * work buys filler links, which are worse than blanks because you can no
- * longer tell which is which. Asking makes filing one the norm and puts the
- * field in front of people; the Task links table on the admin cohort
- * dashboard is what makes a gap visible - which is also why a day with no
- * field is dropped from that table rather than showing a column of blanks.
+ * that ask, filing stays OPTIONAL in code (see task-link.ts): plenty of real
+ * output is a file on a shared drive, and a required field on unlinkable work
+ * buys filler links, which are worse than blanks because you can no longer
+ * tell which is which. Asking makes filing the norm and puts the field in
+ * front of people; the Task evidence table on the admin cohort dashboard is
+ * what makes a gap visible - which is also why a day with no field is dropped
+ * from that table rather than showing a column of blanks.
+ *
+ * Only day 7 names the screenshot in its copy, though every day that asks
+ * will take one. It is the day where the link genuinely does not exist - a
+ * scheduled task has runs and no Share link, which is what a member reported
+ * after doing the work and finding nothing to paste - so the ask would
+ * otherwise be impossible to answer. Elsewhere a link is better evidence
+ * because it opens, and offering the fallback in the copy would invite a
+ * picture of a page that could have been shared.
  *
  * They are also independent of each other, deliberately, all the way through.
  * The day 4 note explains why: a task that opens "the thing you built on day
@@ -823,7 +831,7 @@ const DAY_TASKS: Readonly<Record<number, string>> = {
     "Go to Scheduled in the sidebar and use New task to set up one job you do on a rhythm, with a frequency and a time you will be away from your desk.",
     "Click Run now once and choose always allow on the permission prompts you recognise, or a scheduled run stalls waiting for you.",
     "Do not tie it to a folder on your computer: those only run when you are there. Use your Connectors and files saved to your Claude account.",
-    "Submit the link to its first completed run.",
+    "Submit the link to its first completed run, or a screenshot of it if there is no link to share.",
   ].join("\n"),
   8: [
     "Pick something you rebuild most weeks - a status update, a meeting-prep sheet, a checklist - and ask Claude to make it as an Artifact you can reuse.",

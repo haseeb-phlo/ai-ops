@@ -8,9 +8,14 @@ import { runAiReview } from "@/lib/programme/ai-review-run";
 import { resolveWritableMembership } from "@/lib/programme/membership-lookup";
 import { requireWriter } from "@/lib/auth";
 import {
+  TASK_EVIDENCE_BUCKET,
+  TASK_FILE_KEY,
+  TASK_FILE_MAX_BYTES,
   TASK_LINK_KEY,
   TASK_LINK_MAX_LENGTH,
   normaliseTaskLink,
+  taskFileFrom,
+  taskFileMime,
   taskTakesLink,
 } from "@/lib/programme/task-link";
 import type { ActionState } from "../topics";
@@ -192,8 +197,150 @@ export async function markTrackItemStarted(formData: FormData): Promise<void> {
 }
 
 /* ------------------------------------------------------------------ */
-/* Task output links                                                    */
+/* Task evidence: a link, or a screenshot                               */
 /* ------------------------------------------------------------------ */
+
+/**
+ * Files what a member produced for a day's Task.
+ *
+ * Two write paths - `saveTaskOutputLink` and `saveTaskOutputFile` - into ONE
+ * slot on their own progress row's `meta_json`, NOT into
+ * `programme_submissions`; task-link.ts has the reasoning. The practical
+ * consequence is the one that matters here: what a member files never reaches
+ * the sign-off queue, which exists for the capstone and the two work samples.
+ * It still counts toward G3; nobody has to mark it.
+ *
+ * Saving completes the task, on the same principle as a submission slot: the
+ * evidence is the completion. It never re-stamps `completed_at`, so replacing
+ * a link a week later does not move the day the work was done - which the
+ * activity heatmap and the overdue sweep both read.
+ */
+
+/** Everything both writes check before they touch a row. */
+async function resolveTaskEvidenceWrite(args: {
+  userId: string;
+  trackItemId: string;
+  cohortId?: string;
+}) {
+  const supabase = await createClient();
+
+  const membership = await resolveWritableMembership(
+    args.userId,
+    args.cohortId,
+  );
+  if (!membership) {
+    return { ok: false as const, message: "You're not in an active cohort." };
+  }
+
+  const { data: item } = await supabase
+    .from("programme_track_items")
+    .select("id, type, track_id, day_index")
+    .eq("id", args.trackItemId)
+    .maybeSingle<{
+      id: string;
+      type: string;
+      track_id: string;
+      day_index: number;
+    }>();
+
+  if (!item || item.track_id !== membership.trackId) {
+    return { ok: false as const, message: "That item isn't on your track." };
+  }
+
+  // Tasks only. A submission slot takes its link through the submission form,
+  // which has sign-off attached to it.
+  if (item.type !== "use_example") {
+    return {
+      ok: false as const,
+      message: "This item is completed elsewhere in the programme.",
+    };
+  }
+
+  // And only the Tasks that ask for something. The page hides the field on the
+  // days in LINKLESS_TASK_DAYS; re-checked here on the convention that the
+  // page computes and the action verifies, so a stale tab cannot file against
+  // a day whose copy no longer asks for it - and so the admin table, which
+  // drops those days entirely, never hides a row that exists.
+  if (!taskTakesLink(item.day_index)) {
+    return {
+      ok: false as const,
+      message: "This task has nothing to file. Use Mark complete instead.",
+    };
+  }
+
+  const { data: existing } = await supabase
+    .from("programme_item_progress")
+    .select("completed_at, meta_json")
+    .eq("cohort_member_id", membership.id)
+    .eq("track_item_id", item.id)
+    .maybeSingle<{
+      completed_at: string | null;
+      meta_json: Record<string, unknown> | null;
+    }>();
+
+  return {
+    ok: true as const,
+    supabase,
+    membershipId: membership.id,
+    itemId: item.id,
+    existing: existing ?? null,
+  };
+}
+
+/**
+ * Writes one shape of evidence and clears the other.
+ *
+ * `meta_json` is merged rather than replaced - it is a shared bag and this
+ * owns two keys in it - but the key that is NOT being written is deleted, so
+ * a day never holds a link and a screenshot at once. The old screenshot's
+ * blob goes with it: nothing would ever read it again, and these are pictures
+ * of members' real work rather than rows we can afford to leave lying about.
+ */
+async function fileTaskEvidence(args: {
+  resolved: Extract<
+    Awaited<ReturnType<typeof resolveTaskEvidenceWrite>>,
+    { ok: true }
+  >;
+  patch: Record<string, unknown>;
+  /** Which key this write owns; the other one is dropped. */
+  keep: typeof TASK_LINK_KEY | typeof TASK_FILE_KEY;
+}): Promise<ActionState> {
+  const { resolved, patch, keep } = args;
+  const meta = { ...(resolved.existing?.meta_json ?? {}), ...patch };
+  delete meta[keep === TASK_LINK_KEY ? TASK_FILE_KEY : TASK_LINK_KEY];
+
+  const { error } = await resolved.supabase
+    .from("programme_item_progress")
+    .upsert(
+      {
+        cohort_member_id: resolved.membershipId,
+        track_item_id: resolved.itemId,
+        status: "complete",
+        completed_at: resolved.existing?.completed_at ?? new Date().toISOString(),
+        meta_json: meta,
+      },
+      { onConflict: "cohort_member_id,track_item_id" },
+    );
+
+  if (error) {
+    return { kind: "error", message: `Could not save: ${error.message}` };
+  }
+
+  // After the row is safely written, never before: an orphaned blob costs
+  // nothing, but deleting the picture and then failing to record the thing
+  // that replaced it loses the member's evidence.
+  const previous = taskFileFrom(resolved.existing?.meta_json);
+  if (previous && previous.path !== (patch[TASK_FILE_KEY] as { path?: string } | undefined)?.path) {
+    await resolved.supabase.storage
+      .from(TASK_EVIDENCE_BUCKET)
+      .remove([previous.path]);
+  }
+
+  revalidatePath("/learn/track");
+  revalidatePath("/learn");
+  revalidatePath("/");
+  return { kind: "success" };
+}
 
 const TaskLinkSchema = z.object({
   track_item_id: z.string().uuid(),
@@ -201,20 +348,6 @@ const TaskLinkSchema = z.object({
   output_url: z.string().trim().min(1).max(TASK_LINK_MAX_LENGTH),
 });
 
-/**
- * Files the link to what a member produced for a day's Task.
- *
- * Written to their own progress row's `meta_json`, NOT to
- * `programme_submissions` - task-link.ts has the reasoning. The practical
- * consequence is the one that matters here: the links a member files
- * never reach the sign-off queue, which exists for the capstone and the two
- * work samples. They still count toward G3; nobody has to mark them.
- *
- * Saving a link completes the task, on the same principle as a submission
- * slot: the evidence is the completion. It never re-stamps `completed_at`,
- * so replacing a link a week later does not move the day the work was done -
- * which the activity heatmap and the overdue sweep both read.
- */
 export async function saveTaskOutputLink(
   formData: FormData,
 ): Promise<ActionState> {
@@ -239,85 +372,109 @@ export async function saveTaskOutputLink(
     };
   }
 
-  const supabase = await createClient();
+  const resolved = await resolveTaskEvidenceWrite({
+    userId: user.id,
+    trackItemId: parsed.data.track_item_id,
+    cohortId: parsed.data.cohort_id,
+  });
+  if (!resolved.ok) return { kind: "error", message: resolved.message };
 
-  const membership = await resolveWritableMembership(
-    user.id,
-    parsed.data.cohort_id,
-  );
-  if (!membership) {
-    return { kind: "error", message: "You're not in an active cohort." };
-  }
-
-  const { data: item } = await supabase
-    .from("programme_track_items")
-    .select("id, type, track_id, day_index")
-    .eq("id", parsed.data.track_item_id)
-    .maybeSingle<{
-      id: string;
-      type: string;
-      track_id: string;
-      day_index: number;
-    }>();
-
-  if (!item || item.track_id !== membership.trackId) {
-    return { kind: "error", message: "That item isn't on your track." };
-  }
-
-  // Tasks only. A submission slot takes its link through the submission form,
-  // which has sign-off attached to it.
-  if (item.type !== "use_example") {
-    return {
-      kind: "error",
-      message: "This item is completed elsewhere in the programme.",
-    };
-  }
-
-  // And only the Tasks that ask for one. The page hides the field on the days
-  // in LINKLESS_TASK_DAYS; re-checked here on the convention that the page
-  // computes and the action verifies, so a stale tab cannot file a link
-  // against a day whose copy no longer asks for it - and so the admin table,
-  // which drops those days entirely, never hides a row that exists.
-  if (!taskTakesLink(item.day_index)) {
-    return {
-      kind: "error",
-      message: "This task has nothing to link. Use Mark complete instead.",
-    };
-  }
-
-  const { data: existing } = await supabase
-    .from("programme_item_progress")
-    .select("completed_at, meta_json")
-    .eq("cohort_member_id", membership.id)
-    .eq("track_item_id", item.id)
-    .maybeSingle<{
-      completed_at: string | null;
-      meta_json: Record<string, unknown> | null;
-    }>();
-
-  const { error } = await supabase.from("programme_item_progress").upsert(
-    {
-      cohort_member_id: membership.id,
-      track_item_id: item.id,
-      status: "complete",
-      completed_at: existing?.completed_at ?? new Date().toISOString(),
-      // Merged rather than replaced: meta_json is a shared bag and this owns
-      // one key in it.
-      meta_json: { ...(existing?.meta_json ?? {}), [TASK_LINK_KEY]: link },
-    },
-    { onConflict: "cohort_member_id,track_item_id" },
-  );
-
-  if (error) {
-    return { kind: "error", message: `Could not save: ${error.message}` };
-  }
-
-  revalidatePath("/learn/track");
-  revalidatePath("/learn");
-  revalidatePath("/");
-  return { kind: "success" };
+  return fileTaskEvidence({
+    resolved,
+    patch: { [TASK_LINK_KEY]: link },
+    keep: TASK_LINK_KEY,
+  });
 }
 
+const TaskFileSchema = z.object({
+  track_item_id: z.string().uuid(),
+  cohort_id: z.string().uuid().optional(),
+});
+
+/**
+ * Files a screenshot instead of a link.
+ *
+ * The day that forced this is day 7: a Claude scheduled task has runs but no
+ * Share link, so a member who had done the work had nothing to paste and no
+ * way to complete the day. It is offered on every Task rather than that one,
+ * because the same gap turns up wherever the output is a file, a desktop app
+ * or somebody else's system.
+ *
+ * The blob goes to a private bucket keyed by cohort member and item, which is
+ * what its storage policies read - see the task_evidence_uploads migration.
+ * The path carries NO file extension: the app serves these back through
+ * /learn/track/evidence/<path>, and proxy.ts's matcher skips anything ending
+ * .png/.jpg/.webp, which would hand that route an unrefreshed session.
+ */
+export async function saveTaskOutputFile(
+  formData: FormData,
+): Promise<ActionState> {
+  const gate = await requireWriter();
+  if (!gate.ok) return { kind: "error", message: gate.error };
+  const user = gate.user;
+
+  const parsed = TaskFileSchema.safeParse({
+    track_item_id: formData.get("track_item_id"),
+    cohort_id: (formData.get("cohort_id") as string) || undefined,
+  });
+  if (!parsed.success) {
+    return { kind: "error", message: "Invalid item." };
+  }
+
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) {
+    return { kind: "error", message: "Pick a screenshot to upload." };
+  }
+  if (file.size > TASK_FILE_MAX_BYTES) {
+    return { kind: "error", message: "That image is over 10 MB." };
+  }
+  // The bucket enforces this too. Checked here as well so the member gets a
+  // sentence rather than a storage error, and so a PDF of the run does not
+  // get halfway uploaded before being refused.
+  const mime = taskFileMime(file);
+  if (!mime) {
+    return {
+      kind: "error",
+      message: "That is not an image. A PNG or JPEG screenshot is what this takes.",
+    };
+  }
+
+  const resolved = await resolveTaskEvidenceWrite({
+    userId: user.id,
+    trackItemId: parsed.data.track_item_id,
+    cohortId: parsed.data.cohort_id,
+  });
+  if (!resolved.ok) return { kind: "error", message: resolved.message };
+
+  const path = `${resolved.membershipId}/${resolved.itemId}/${crypto.randomUUID()}`;
+  const { error: uploadError } = await resolved.supabase.storage
+    .from(TASK_EVIDENCE_BUCKET)
+    .upload(path, file, { contentType: mime, upsert: false });
+
+  if (uploadError) {
+    return { kind: "error", message: `Upload failed: ${uploadError.message}` };
+  }
+
+  const saved = await fileTaskEvidence({
+    resolved,
+    patch: {
+      [TASK_FILE_KEY]: {
+        path,
+        name: file.name,
+        mime,
+        size: file.size,
+      },
+    },
+    keep: TASK_FILE_KEY,
+  });
+
+  if (saved.kind === "error") {
+    // Nothing points at it now, so leave nothing behind.
+    await resolved.supabase.storage.from(TASK_EVIDENCE_BUCKET).remove([path]);
+  }
+
+  return saved;
+}
 /* ------------------------------------------------------------------ */
 /* Submissions                                                         */
 /* ------------------------------------------------------------------ */

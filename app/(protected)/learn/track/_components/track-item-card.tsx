@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState, useTransition } from "react";
+import { useId, useRef, useState, useTransition } from "react";
 import { format } from "date-fns";
 import {
   CheckIcon,
@@ -8,6 +8,7 @@ import {
   ClipboardCheckIcon,
   ExternalLinkIcon,
   FileTextIcon,
+  ImageIcon,
   LinkIcon,
   LockIcon,
   PlayIcon,
@@ -16,7 +17,15 @@ import {
 import Link from "next/link";
 import { videoEmbedUrl } from "@/lib/video";
 import { parseItemCopy } from "@/lib/programme/item-copy";
-import { normaliseTaskLink, shortenTaskLink } from "@/lib/programme/task-link";
+import {
+  TASK_FILE_MAX_BYTES,
+  isPreviewableTaskFile,
+  normaliseTaskLink,
+  shortenTaskLink,
+  taskFileHref,
+  taskFileMime,
+  type TaskEvidence,
+} from "@/lib/programme/task-link";
 import { PROGRAMME_OPEN_LABEL } from "@/lib/programme/working-days";
 import { cn } from "@/lib/utils";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -31,6 +40,7 @@ import { Input } from "@/components/ui/input";
 import {
   markTrackItemComplete,
   markTrackItemStarted,
+  saveTaskOutputFile,
   saveTaskOutputLink,
 } from "../actions";
 import { SubmissionDialog } from "./submission-dialog";
@@ -83,12 +93,13 @@ export type TrackItemView = {
    */
   releaseDate?: string;
   /**
-   * The link this member filed against a Task, if any. Only ever set for
-   * use_example items - see lib/programme/task-link.ts.
+   * What this member filed against a Task - a link or a screenshot - if
+   * anything. Only ever set for use_example items, and never both at once;
+   * see lib/programme/task-link.ts.
    */
-  outputUrl?: string | null;
+  evidence?: TaskEvidence | null;
   /**
-   * Whether this Task has a link field at all.
+   * Whether this Task has a field at all.
    *
    * Computed on the server from the day index (LINKLESS_TASK_DAYS in
    * task-link.ts) and passed in rather than derived here, so the day numbers
@@ -574,10 +585,10 @@ export function TrackItemCard({
           {revealed &&
             item.type === "use_example" &&
             item.acceptsLink !== false && (
-              <TaskOutputLink
+              <TaskOutput
                 cohortId={cohortId}
                 itemId={item.id}
-                initialUrl={item.outputUrl ?? null}
+                initialEvidence={item.evidence ?? null}
                 complete={state === "complete"}
                 onSaved={() => setOptimisticComplete(true)}
               />
@@ -595,41 +606,55 @@ export function TrackItemCard({
 }
 
 /**
- * Where a member files the link to what a Task produced.
+ * Where a member files what a Task produced.
  *
  * Inline rather than behind a dialog, which is how a submission slot does it.
  * A slot asks for four fields and carries sign-off, so the dialog earns its
  * click; this is one field asked fourteen times, and a box you have to open
  * is a box most people leave shut.
  *
- * Optional on every day that has it: saving a link completes the task, and so
+ * TWO WAYS IN, ONE SLOT. A link where there is one, a screenshot where there
+ * is not. Day 7 is what forced the second: a Claude scheduled task has runs
+ * and no Share link, so the day was uncompletable for anyone who did it
+ * properly. Filing either replaces the other - see task-link.ts.
+ *
+ * The link keeps top billing rather than the two being offered as equals,
+ * because a link opens: whoever reads this later can see the work itself and
+ * not a picture of it. The upload is the fallback, worded as one.
+ *
+ * Optional on every day that has it: filing either completes the task, and so
  * does the Mark complete button next to it. A task whose output is a
  * spreadsheet on a shared drive is still done.
  *
  * Not rendered at all on the days in LINKLESS_TASK_DAYS - day 5 asks for
- * settings on the member's own account, where there is nothing to paste. The
+ * settings on the member's own account, where there is nothing to show. The
  * caller decides; see `acceptsLink` on TrackItemView.
  */
-function TaskOutputLink({
+function TaskOutput({
   cohortId,
   itemId,
-  initialUrl,
+  initialEvidence,
   complete,
   onSaved,
 }: {
   cohortId: string;
   itemId: string;
-  initialUrl: string | null;
+  initialEvidence: TaskEvidence | null;
   /** Only so the button does not offer to finish something already finished. */
   complete: boolean;
   /** Lets the card tick itself over without waiting for the revalidate. */
   onSaved: () => void;
 }) {
-  const [saved, setSaved] = useState(initialUrl);
+  const [saved, setSaved] = useState(initialEvidence);
   const [value, setValue] = useState("");
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  // Tracked apart from `pending`, which both writes share: without it,
+  // saving a LINK relabels the upload button "Uploading…" at somebody who
+  // never picked a file.
+  const [uploading, setUploading] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
 
   // useId, not the item id: the page renders the same item twice - once in the
   // focus card and once in the timeline below it - so an id derived from the
@@ -659,8 +684,47 @@ function TaskOutputLink({
         setError(result.message);
         return;
       }
-      setSaved(normalised);
+      setSaved({ kind: "link", href: normalised });
       setValue("");
+      setEditing(false);
+      onSaved();
+    });
+  };
+
+  const handleFile = (file: File | null) => {
+    if (!file) return;
+    // Both mirrored from the action, for the same reason as the link check
+    // above - and because a 12 MB photo that fails after uploading is a
+    // minute of somebody's morning.
+    const mime = taskFileMime(file);
+    if (!mime) {
+      setError("That is not an image. A PNG or JPEG screenshot is what this takes.");
+      return;
+    }
+    if (file.size > TASK_FILE_MAX_BYTES) {
+      setError("That image is over 10 MB.");
+      return;
+    }
+    setError(null);
+    setUploading(true);
+    startTransition(async () => {
+      const fd = new FormData();
+      fd.set("track_item_id", itemId);
+      fd.set("cohort_id", cohortId);
+      fd.set("file", file);
+      const result = await saveTaskOutputFile(fd);
+      setUploading(false);
+      if (result.kind === "error") {
+        setError(result.message);
+        return;
+      }
+      // The server owns the stored path, and nothing here needs it: the card
+      // re-renders off the revalidate with the real descriptor. Until then the
+      // row shows what was uploaded rather than flicking back to the form.
+      setSaved({
+        kind: "file",
+        file: { path: "", name: file.name, mime, size: file.size },
+      });
       setEditing(false);
       onSaved();
     });
@@ -670,23 +734,69 @@ function TaskOutputLink({
     <div className="mt-4 border-t border-border pt-3">
       {saved && !editing && (
         <div className="flex flex-wrap items-center gap-2 rounded-md border border-border bg-muted/30 px-3 py-2">
-          <LinkIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-          <a
-            href={saved}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex min-w-0 items-center gap-1 text-sm text-foreground underline underline-offset-2 hover:no-underline"
-          >
-            <span className="truncate">{shortenTaskLink(saved)}</span>
-            <ExternalLinkIcon className="size-3.5 shrink-0" aria-hidden />
-          </a>
+          {saved.kind === "link" ? (
+            <>
+              <LinkIcon
+                className="size-4 shrink-0 text-muted-foreground"
+                aria-hidden
+              />
+              <a
+                href={saved.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-w-0 items-center gap-1 text-sm text-foreground underline underline-offset-2 hover:no-underline"
+              >
+                <span className="truncate">{shortenTaskLink(saved.href)}</span>
+                <ExternalLinkIcon className="size-3.5 shrink-0" aria-hidden />
+              </a>
+            </>
+          ) : (
+            <>
+              {/* A thumbnail, not just a filename: the member needs to see
+                  that the right picture went up, and "Screenshot 2026-09-13
+                  at 09.14.22.png" tells them nothing. `path` is empty for the
+                  moment between uploading and the revalidate, and there is
+                  nothing to fetch yet, so the icon stands in. HEIC gets the
+                  icon permanently - no browser will render one. */}
+              {saved.file.path && isPreviewableTaskFile(saved.file) ? (
+                /* eslint-disable-next-line @next/next/no-img-element -- the
+                   route redirects to a short-lived signed URL, which the
+                   image optimiser cannot cache or re-fetch. */
+                <img
+                  src={taskFileHref(saved.file)}
+                  alt={`Your screenshot: ${saved.file.name}`}
+                  className="h-10 w-14 shrink-0 rounded border border-border object-cover"
+                />
+              ) : (
+                <ImageIcon
+                  className="size-4 shrink-0 text-muted-foreground"
+                  aria-hidden
+                />
+              )}
+              {saved.file.path ? (
+                <a
+                  href={taskFileHref(saved.file)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex min-w-0 items-center gap-1 text-sm text-foreground underline underline-offset-2 hover:no-underline"
+                >
+                  <span className="truncate">{saved.file.name}</span>
+                  <ExternalLinkIcon className="size-3.5 shrink-0" aria-hidden />
+                </a>
+              ) : (
+                <span className="min-w-0 truncate text-sm text-foreground">
+                  {saved.file.name}
+                </span>
+              )}
+            </>
+          )}
           <Button
             type="button"
             variant="ghost"
             size="sm"
             className="ml-auto"
             onClick={() => {
-              setValue(saved);
+              setValue(saved.kind === "link" ? saved.href : "");
               setEditing(true);
             }}
           >
@@ -704,7 +814,7 @@ function TaskOutputLink({
         >
           {/* Not labelled optional. It is not enforced - a task whose output
               is a spreadsheet on a shared drive is still done - but the
-              programme tracks a link per person per day, and a field that
+              programme tracks one filing per person per day, and a field that
               calls itself optional is a field most people skip. */}
           <label
             htmlFor={inputId}
@@ -747,6 +857,39 @@ function TaskOutputLink({
             In Claude, use Share to create a link, then paste it here. Anything
             else that shows your output works too.
           </p>
+          {/* Outside the <form>'s submit path on purpose: choosing a file
+              uploads it there and then. A second "now press Save" step after
+              the file picker is the one most people would walk away from. */}
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <input
+              ref={fileInput}
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/gif,image/heic,image/heif"
+              className="sr-only"
+              // Reached through the button beside it, which carries the
+              // wording. Kept out of the tab order so it is not a second,
+              // unlabelled stop for anyone using the keyboard.
+              tabIndex={-1}
+              aria-label="Upload a screenshot of your output"
+              disabled={pending}
+              onChange={(event) => {
+                handleFile(event.target.files?.[0] ?? null);
+                // Cleared so picking the same file twice still fires change -
+                // which is exactly what someone retrying after an error does.
+                event.target.value = "";
+              }}
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              disabled={pending}
+              onClick={() => fileInput.current?.click()}
+            >
+              <ImageIcon aria-hidden />
+              {uploading ? "Uploading…" : "No link? Upload a screenshot"}
+            </Button>
+          </div>
         </form>
       )}
 

@@ -1,15 +1,29 @@
 import { describe, it, expect } from "vitest";
 import {
   LINKLESS_TASK_DAYS,
+  TASK_FILE_KEY,
   TASK_LINK_KEY,
   TASK_LINK_MAX_LENGTH,
+  filedTaskEvidenceByItem,
+  isPreviewableTaskFile,
   normaliseTaskLink,
   shortenTaskLink,
+  taskEvidenceByDay,
+  taskEvidenceFrom,
+  taskFileFrom,
+  taskFileHref,
+  taskFileMime,
   taskLinkFrom,
-  taskLinksByDay,
   taskTakesLink,
 } from "@/lib/programme/task-link";
 import { G3_REQUIRED_CREDITS } from "@/lib/programme/gates";
+
+const SCREENSHOT = {
+  path: "member-1/item-1/file-1",
+  name: "run.png",
+  mime: "image/png",
+  size: 1024,
+};
 
 describe("normaliseTaskLink", () => {
   it("keeps a full https link", () => {
@@ -94,15 +108,15 @@ describe("shortenTaskLink", () => {
   });
 });
 
-describe("taskLinksByDay", () => {
+describe("taskEvidenceByDay", () => {
   const taskItems = [
     { id: "d1", day_index: 1 },
     { id: "d2", day_index: 2 },
     { id: "d3", day_index: 3 },
   ];
 
-  it("keys a member's links by the day they belong to", () => {
-    const byDay = taskLinksByDay({
+  it("keys a member's filed evidence by the day it belongs to", () => {
+    const byDay = taskEvidenceByDay({
       taskItems,
       metaByItemId: new Map<string, unknown>([
         ["d1", { [TASK_LINK_KEY]: "https://claude.ai/share/one" }],
@@ -110,15 +124,15 @@ describe("taskLinksByDay", () => {
       ]),
     });
     expect(byDay).toEqual({
-      1: "https://claude.ai/share/one",
-      3: "https://claude.ai/share/three",
+      1: { kind: "link", href: "https://claude.ai/share/one" },
+      3: { kind: "link", href: "https://claude.ai/share/three" },
     });
   });
 
   it("leaves a day out rather than filling it with an empty string", () => {
     // The admin table reads a missing day as "chase this person", so a blank
     // that looks like a link would hide exactly the thing it exists to show.
-    const byDay = taskLinksByDay({
+    const byDay = taskEvidenceByDay({
       taskItems,
       metaByItemId: new Map<string, unknown>([
         ["d1", {}],
@@ -130,7 +144,7 @@ describe("taskLinksByDay", () => {
   });
 
   it("ignores progress rows for items that are not Tasks", () => {
-    const byDay = taskLinksByDay({
+    const byDay = taskEvidenceByDay({
       taskItems,
       metaByItemId: new Map<string, unknown>([
         ["video-1", { [TASK_LINK_KEY]: "https://claude.ai/share/nope" }],
@@ -167,12 +181,152 @@ describe("taskTakesLink", () => {
   it("still reads a link that was filed before a day joined the set", () => {
     // Nothing revokes it: the row stays in meta_json and keeps its credit.
     // Only the display and the admin column go. See LINKLESS_TASK_DAYS.
-    const byDay = taskLinksByDay({
+    const byDay = taskEvidenceByDay({
       taskItems: [{ id: "d5", day_index: 5 }],
       metaByItemId: new Map<string, unknown>([
         ["d5", { [TASK_LINK_KEY]: "https://claude.ai/share/old" }],
       ]),
     });
-    expect(byDay).toEqual({ 5: "https://claude.ai/share/old" });
+    expect(byDay).toEqual({
+      5: { kind: "link", href: "https://claude.ai/share/old" },
+    });
+  });
+});
+
+describe("taskFileFrom", () => {
+  it("reads a filed screenshot out of meta_json", () => {
+    expect(taskFileFrom({ [TASK_FILE_KEY]: SCREENSHOT })).toEqual(SCREENSHOT);
+  });
+
+  it("needs a path and nothing else - the rest has a fallback", () => {
+    // The descriptor is a JSON bag written by an action that has changed
+    // shape once already. A half-written one has to degrade to a usable row
+    // rather than to an <img> with no src on somebody's completed day.
+    expect(taskFileFrom({ [TASK_FILE_KEY]: { path: "a/b/c" } })).toEqual({
+      path: "a/b/c",
+      name: "Screenshot",
+      mime: "",
+      size: 0,
+    });
+  });
+
+  it("returns null for every shape a meta_json can actually be", () => {
+    expect(taskFileFrom(null)).toBeNull();
+    expect(taskFileFrom({})).toBeNull();
+    expect(taskFileFrom({ [TASK_FILE_KEY]: null })).toBeNull();
+    expect(taskFileFrom({ [TASK_FILE_KEY]: "a/b/c" })).toBeNull();
+    expect(taskFileFrom({ [TASK_FILE_KEY]: { path: "" } })).toBeNull();
+    expect(taskFileFrom({ [TASK_FILE_KEY]: { name: "run.png" } })).toBeNull();
+  });
+});
+
+describe("taskEvidenceFrom", () => {
+  it("reads either shape out of the one slot", () => {
+    expect(
+      taskEvidenceFrom({ [TASK_LINK_KEY]: "https://claude.ai/share/a" }),
+    ).toEqual({ kind: "link", href: "https://claude.ai/share/a" });
+    expect(taskEvidenceFrom({ [TASK_FILE_KEY]: SCREENSHOT })).toEqual({
+      kind: "file",
+      file: SCREENSHOT,
+    });
+    expect(taskEvidenceFrom({})).toBeNull();
+  });
+
+  it("prefers the link when a row somehow holds both", () => {
+    // Each write clears the other, so this should not happen. If it ever
+    // does, the thing that opens beats the thing that does not.
+    expect(
+      taskEvidenceFrom({
+        [TASK_LINK_KEY]: "https://claude.ai/share/a",
+        [TASK_FILE_KEY]: SCREENSHOT,
+      }),
+    ).toEqual({ kind: "link", href: "https://claude.ai/share/a" });
+  });
+});
+
+describe("filedTaskEvidenceByItem", () => {
+  const taskItemIds = new Set(["t1", "t2", "t3"]);
+
+  it("counts a screenshot exactly as it counts a link", () => {
+    // This map IS the G3 credit count. A day filed with a picture that did
+    // not count would leave a member who did every task unable to finish,
+    // which is the failure this whole field was added to fix.
+    const byItem = filedTaskEvidenceByItem({
+      taskItemIds,
+      metaByItemId: new Map<string, unknown>([
+        ["t1", { [TASK_LINK_KEY]: "https://claude.ai/share/a" }],
+        ["t2", { [TASK_FILE_KEY]: SCREENSHOT }],
+      ]),
+    });
+    expect(byItem.size).toBe(2);
+    expect(byItem.get("t2")).toEqual({ kind: "file", file: SCREENSHOT });
+  });
+
+  it("counts a day once even when both keys are set", () => {
+    const byItem = filedTaskEvidenceByItem({
+      taskItemIds,
+      metaByItemId: new Map<string, unknown>([
+        [
+          "t1",
+          {
+            [TASK_LINK_KEY]: "https://claude.ai/share/a",
+            [TASK_FILE_KEY]: SCREENSHOT,
+          },
+        ],
+      ]),
+    });
+    expect(byItem.size).toBe(1);
+  });
+
+  it("ignores meta on items that are not Tasks", () => {
+    const byItem = filedTaskEvidenceByItem({
+      taskItemIds,
+      metaByItemId: new Map<string, unknown>([
+        ["video-1", { [TASK_FILE_KEY]: SCREENSHOT }],
+      ]),
+    });
+    expect(byItem.size).toBe(0);
+  });
+});
+
+describe("taskFileMime", () => {
+  it("takes the types the bucket takes", () => {
+    expect(taskFileMime({ name: "a.png", type: "image/png" })).toBe("image/png");
+    expect(taskFileMime({ name: "a.heic", type: "image/heic" })).toBe(
+      "image/heic",
+    );
+  });
+
+  it("refuses a declared type the bucket would reject anyway", () => {
+    expect(taskFileMime({ name: "run.pdf", type: "application/pdf" })).toBeNull();
+    // Renaming it does not help: the declared type is never overridden.
+    expect(taskFileMime({ name: "run.png", type: "application/pdf" })).toBeNull();
+  });
+
+  it("falls back to the extension only when the browser declared nothing", () => {
+    // Which happens on some file managers, and would otherwise fail exactly
+    // the member who screenshotted on their phone.
+    expect(taskFileMime({ name: "IMG_0042.HEIC", type: "" })).toBe("image/heic");
+    expect(taskFileMime({ name: "shot.JPG", type: "" })).toBe("image/jpeg");
+    expect(taskFileMime({ name: "notes.txt", type: "" })).toBeNull();
+    expect(taskFileMime({ name: "noextension", type: "" })).toBeNull();
+  });
+});
+
+describe("serving a filed screenshot", () => {
+  it("points at the app route rather than at storage", () => {
+    // The bucket is private, so a stored URL would be a signed one that dies
+    // a minute later. The path is what is stored; the route signs on demand.
+    expect(taskFileHref(SCREENSHOT)).toBe(
+      "/learn/track/evidence/member-1/item-1/file-1",
+    );
+  });
+
+  it("previews what browsers render and only links the rest", () => {
+    expect(isPreviewableTaskFile(SCREENSHOT)).toBe(true);
+    expect(isPreviewableTaskFile({ ...SCREENSHOT, mime: "image/heic" })).toBe(
+      false,
+    );
+    expect(isPreviewableTaskFile({ ...SCREENSHOT, mime: "" })).toBe(false);
   });
 });

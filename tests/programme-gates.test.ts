@@ -17,7 +17,7 @@ const passing: GateInput = {
   // five credits come from Task links, which is the only route such a
   // member has.
   approvedSignedExamples: 0,
-  filedTaskLinks: 5,
+  filedTaskEvidence: 5,
   capstoneCredits: 0,
   bestSummativeQuizScore: 8,
   summativeQuizPassMark: 8,
@@ -95,7 +95,7 @@ describe("G3 - pieces of work shared", () => {
   });
 
   it("fails on four", () => {
-    expect(computeGates({ ...passing, filedTaskLinks: 4 }).g3.passed).toBe(
+    expect(computeGates({ ...passing, filedTaskEvidence: 4 }).g3.passed).toBe(
       false,
     );
   });
@@ -109,7 +109,7 @@ describe("G3 - pieces of work shared", () => {
     expect(
       computeGates({
         ...passing,
-        filedTaskLinks: 0,
+        filedTaskEvidence: 0,
         capstoneCredits: 2,
       }).g3,
     ).toMatchObject({ passed: false, current: 2, target: 5 });
@@ -121,7 +121,7 @@ describe("G3 - pieces of work shared", () => {
     expect(
       computeGates({
         ...passing,
-        filedTaskLinks: 3,
+        filedTaskEvidence: 3,
         approvedSignedExamples: 1,
         capstoneCredits: 2,
       }).g3.passed,
@@ -135,7 +135,7 @@ describe("G3 - pieces of work shared", () => {
       computeGates({
         ...passing,
         approvedSignedExamples: 3,
-        filedTaskLinks: 2,
+        filedTaskEvidence: 2,
       }).g3.passed,
     ).toBe(true);
   });
@@ -144,14 +144,14 @@ describe("G3 - pieces of work shared", () => {
     expect(
       g3Credits({
         approvedSignedExamples: 0,
-        filedTaskLinks: 2,
+        filedTaskEvidence: 2,
         capstoneCredits: 99,
       }),
     ).toBe(4);
     expect(
       computeGates({
         ...passing,
-        filedTaskLinks: 2,
+        filedTaskEvidence: 2,
         capstoneCredits: 99,
       }).g3.passed,
     ).toBe(false);
@@ -161,7 +161,7 @@ describe("G3 - pieces of work shared", () => {
     expect(
       g3Credits({
         approvedSignedExamples: 0,
-        filedTaskLinks: 5,
+        filedTaskEvidence: 5,
         capstoneCredits: -3,
       }),
     ).toBe(5);
@@ -169,7 +169,7 @@ describe("G3 - pieces of work shared", () => {
 
   it("caps the displayed progress at the target", () => {
     // "7/5" would look broken on the chip.
-    expect(computeGates({ ...passing, filedTaskLinks: 7 }).g3.current).toBe(5);
+    expect(computeGates({ ...passing, filedTaskEvidence: 7 }).g3.current).toBe(5);
   });
 });
 
@@ -236,7 +236,7 @@ describe("allGatesPassed", () => {
       { satisfiedSessionItemIds: new Set(["s1"]) },
       // The fixture's five credits are Task links, so this is the G3 knob
       // now. Zeroing approvedSignedExamples would leave it passing.
-      { filedTaskLinks: 0 },
+      { filedTaskEvidence: 0 },
       { hasPostResponse: false },
     ]) {
       expect(
@@ -252,11 +252,11 @@ describe("allGatesPassed", () => {
 
 describe("what the Shared gate has left to do", () => {
   const remaining = (
-    filedTaskLinks: number,
+    filedTaskEvidence: number,
     capstoneCredits = 0,
     approvedSignedExamples = 0,
   ) =>
-    g3Remaining({ approvedSignedExamples, filedTaskLinks, capstoneCredits });
+    g3Remaining({ approvedSignedExamples, filedTaskEvidence, capstoneCredits });
 
   it("asks for nothing once the gate has passed", () => {
     expect(remaining(5)).toBe(0);
@@ -281,7 +281,7 @@ describe("what the Shared gate has left to do", () => {
         for (let examples = 0; examples <= 2; examples += 1) {
           const gates = computeGates({
             ...passing,
-            filedTaskLinks: links,
+            filedTaskEvidence: links,
             capstoneCredits: credits,
             approvedSignedExamples: examples,
           });

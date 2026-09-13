@@ -23,7 +23,7 @@ import {
   weekOf,
 } from "./working-days";
 import { pickMembership, rankMemberships } from "./membership";
-import { filedTaskLinksByItem } from "./task-link";
+import { filedTaskEvidenceByItem, type TaskEvidence } from "./task-link";
 import { gateableContentItemIds, isAwaitingContent } from "./content-readiness";
 
 /**
@@ -126,12 +126,13 @@ export type TrackState = {
     }
   >;
   /**
-   * The link a member filed against a Task, per use_example item id.
+   * What a member filed against a Task - a link or a screenshot - per
+   * use_example item id.
    *
    * Read off their own progress row rather than from submissions - see
-   * task-link.ts for why a daily task link is not a submission.
+   * task-link.ts for why a day's evidence is not a submission.
    */
-  taskLinkByItemId: Map<string, string>;
+  taskEvidenceByItemId: Map<string, TaskEvidence>;
 };
 
 /**
@@ -441,10 +442,10 @@ const loadTrackStateFor = cache(
       : resolved;
 
     // Built above the gates rather than beside the card data below, because
-    // G3 counts it: a filed link is one of the three things the Shared gate
-    // adds up. The same map feeds both, so the number on the chip and the
-    // links on the cards can never disagree.
-    const taskLinkByItemId = filedTaskLinksByItem({
+    // G3 counts it: filed evidence is one of the three things the Shared gate
+    // adds up. The same map feeds both, so the number on the chip and what is
+    // on the cards can never disagree.
+    const taskEvidenceByItemId = filedTaskEvidenceByItem({
       taskItemIds: new Set(
         items.filter((i) => i.type === "use_example").map((i) => i.id),
       ),
@@ -452,7 +453,7 @@ const loadTrackStateFor = cache(
         (progressRows ?? []).map((r) => [r.track_item_id, r.meta_json]),
       ),
     });
-    const filedTaskLinks = taskLinkByItemId.size;
+    const filedTaskEvidence = taskEvidenceByItemId.size;
 
     // ---- Gates ----------------------------------------------------------
     // Videos with nothing recorded yet are excluded: a member cannot be
@@ -498,7 +499,7 @@ const loadTrackStateFor = cache(
       sessionItemIds: sessionItems.map((i) => i.id),
       satisfiedSessionItemIds,
       approvedSignedExamples,
-      filedTaskLinks,
+      filedTaskEvidence,
       capstoneCredits,
       bestSummativeQuizScore,
       summativeQuizPassMark,
@@ -507,7 +508,7 @@ const loadTrackStateFor = cache(
 
     const g3Left = g3Remaining({
       approvedSignedExamples,
-      filedTaskLinks,
+      filedTaskEvidence,
       capstoneCredits,
     });
 
@@ -688,7 +689,7 @@ const loadTrackStateFor = cache(
       nextSteps,
       activity,
       submissionByItemId,
-      taskLinkByItemId,
+      taskEvidenceByItemId,
     };
   },
 );

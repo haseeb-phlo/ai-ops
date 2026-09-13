@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { format } from "date-fns";
-import { DownloadIcon, ExternalLinkIcon } from "lucide-react";
+import { DownloadIcon, ExternalLinkIcon, ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { PROGRAMME_RAG, type ProgrammeRagStatus } from "@/lib/status";
@@ -10,6 +10,7 @@ import { GATE_DESCRIPTION, GATE_IDS, GATE_LABEL } from "@/lib/programme/gates";
 import { exportWorkSamplePairs } from "../actions";
 import { DayLinks } from "./day-links";
 import type { DayLink } from "@/lib/programme/cohort-admin";
+import { taskFileHref, type TaskEvidence } from "@/lib/programme/task-link";
 
 export type HeatmapMember = {
   cohortMemberId: string;
@@ -34,10 +35,10 @@ const DAY_LABEL: Record<string, string> = {
   locked: "locked",
 };
 
-export type TaskLinkRow = {
+export type TaskEvidenceRow = {
   cohortMemberId: string;
   displayName: string;
-  byDay: Record<number, string>;
+  byDay: Record<number, TaskEvidence>;
 };
 
 export type WorkSampleRow = {
@@ -72,7 +73,7 @@ export function CohortDashboard({
     unmarked: number;
   }[];
   workSamples: WorkSampleRow[];
-  taskLinks: TaskLinkRow[];
+  taskLinks: TaskEvidenceRow[];
   taskDayIndexes: number[];
   dayLinks: DayLink[];
 }) {
@@ -82,7 +83,7 @@ export function CohortDashboard({
       <Heatmap members={members} dayIndexes={dayIndexes} />
       <AttendanceSummary rows={attendance} />
       <DayLinks days={dayLinks} />
-      <TaskLinkTable rows={taskLinks} dayIndexes={taskDayIndexes} />
+      <TaskEvidenceTable rows={taskLinks} dayIndexes={taskDayIndexes} />
       <WorkSampleTable rows={workSamples} />
       <ExportCard cohortId={cohortId} />
     </div>
@@ -264,10 +265,11 @@ function AttendanceSummary({
 }
 
 /**
- * Every member's Task link, day by day.
+ * Every member's filed Task evidence, day by day.
  *
- * The links are the only per-day evidence the programme collects. They are
- * NOT submissions: they never enter the sign-off queue, never reach the
+ * A link, or a screenshot on a day whose output has no URL - both count the
+ * same here, because a day filled either way is a day the member did. They
+ * are NOT submissions: they never enter the sign-off queue, never reach the
  * gallery and are not reviewed, which is deliberate - fifteen days times a
  * cohort is not a review workload anyone would survive. That leaves them
  * readable nowhere, which is what this table fixes, on the same reasoning as
@@ -276,11 +278,11 @@ function AttendanceSummary({
  * Columns stop at the last day that has opened, so an empty cell always means
  * "nothing filed" rather than "not due yet".
  */
-function TaskLinkTable({
+function TaskEvidenceTable({
   rows,
   dayIndexes,
 }: {
-  rows: TaskLinkRow[];
+  rows: TaskEvidenceRow[];
   dayIndexes: number[];
 }) {
   const possible = rows.length * dayIndexes.length;
@@ -301,9 +303,10 @@ function TaskLinkTable({
         </span>
       </div>
       <p className="mt-1 max-w-prose text-sm text-muted-foreground">
-        What each person produced for each day&apos;s Task. Filed by the member
-        on their own timeline, not reviewed and not part of sign-off - this is
-        the record of who is actually doing the daily work.
+        What each person produced for each day&apos;s Task, as a link or a
+        screenshot. Filed by the member on their own timeline, not reviewed and
+        not part of sign-off - this is the record of who is actually doing the
+        daily work.
       </p>
 
       {dayIndexes.length === 0 || rows.length === 0 ? (
@@ -346,18 +349,30 @@ function TaskLinkTable({
                       {row.displayName}
                     </td>
                     {dayIndexes.map((day) => {
-                      const url = row.byDay[day];
+                      const filed = row.byDay[day];
+                      // Two icons, not one: the cell is the only place an
+                      // admin can tell a link from a screenshot, and which it
+                      // is changes what they are about to open - a page that
+                      // may need a Claude login, or a picture.
+                      const Icon =
+                        filed?.kind === "file" ? ImageIcon : ExternalLinkIcon;
                       return (
                         <td key={day} className="px-2 py-2 text-center">
-                          {url ? (
+                          {filed ? (
                             <a
-                              href={url}
+                              href={
+                                filed.kind === "link"
+                                  ? filed.href
+                                  : taskFileHref(filed.file)
+                              }
                               target="_blank"
                               rel="noopener noreferrer"
                               className="inline-flex items-center justify-center text-foreground hover:text-primary"
-                              aria-label={`Open ${row.displayName}'s day ${day} Task link`}
+                              aria-label={`Open ${row.displayName}'s day ${day} Task ${
+                                filed.kind === "file" ? "screenshot" : "link"
+                              }`}
                             >
-                              <ExternalLinkIcon className="size-3.5" aria-hidden />
+                              <Icon className="size-3.5" aria-hidden />
                             </a>
                           ) : (
                             <span

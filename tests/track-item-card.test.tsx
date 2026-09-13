@@ -11,9 +11,10 @@ import { buildTrackItems } from "@/lib/programme/track-spec";
  *
  * Two things live here and nowhere else: a description with steps in it has to
  * come out as a list rather than one run-on paragraph, and a Task has to offer
- * somewhere to file the link to its output - except on the days that take no
- * link, where the field must be absent and Mark complete must not be. All of
- * it is decided from the item the component is handed.
+ * somewhere to file what it produced - a link, or a screenshot where there is
+ * no link - except on the days that take neither, where both must be absent
+ * and Mark complete must not be. All of it is decided from the item the
+ * component is handed.
  *
  * The action module is mocked because it is `"use server"` - importing it for
  * real drags the Supabase server client into jsdom, and nothing here submits.
@@ -22,6 +23,7 @@ vi.mock("@/app/(protected)/learn/track/actions", () => ({
   markTrackItemComplete: vi.fn(),
   markTrackItemStarted: vi.fn(),
   saveTaskOutputLink: vi.fn(),
+  saveTaskOutputFile: vi.fn(),
 }));
 
 vi.mock("next/link", () => ({
@@ -124,7 +126,7 @@ describe("a Task card's output link", () => {
   it("shows a saved link as a link, with a way to replace it", () => {
     const container = task({
       state: "complete",
-      outputUrl: "https://claude.ai/share/abc123",
+      evidence: { kind: "link", href: "https://claude.ai/share/abc123" },
     });
     const anchor = container.querySelector<HTMLAnchorElement>(
       'a[href="https://claude.ai/share/abc123"]',
@@ -159,16 +161,74 @@ describe("a Task card's output link", () => {
     expect(container.querySelector('input[name="output_url"]')).toBeNull();
   });
 
-  it("offers no link field on a Task the page says takes no link", () => {
+  it("offers a screenshot upload beside the link, worded as the fallback", () => {
+    // Day 7 is what forced this: a Claude scheduled task has runs and no
+    // Share link, so the day could not be completed by anyone who did it.
+    const container = task();
+    const picker = container.querySelector<HTMLInputElement>(
+      'input[type="file"]',
+    );
+    expect(picker).not.toBeNull();
+    expect(picker!.accept).toContain("image/png");
+    // HEIC, or every iPhone screenshot is refused by the picker itself.
+    expect(picker!.accept).toContain("image/heic");
+    expect(container.textContent).toContain("No link? Upload a screenshot");
+  });
+
+  it("shows a filed screenshot as a thumbnail that opens", () => {
+    const container = task({
+      state: "complete",
+      evidence: {
+        kind: "file",
+        file: {
+          path: "m1/i1/f1",
+          name: "scheduled-run.png",
+          mime: "image/png",
+          size: 2048,
+        },
+      },
+    });
+    const img = container.querySelector<HTMLImageElement>("img");
+    expect(img).not.toBeNull();
+    expect(img!.getAttribute("src")).toBe("/learn/track/evidence/m1/i1/f1");
+    const anchor = container.querySelector<HTMLAnchorElement>(
+      'a[href="/learn/track/evidence/m1/i1/f1"]',
+    );
+    expect(anchor).not.toBeNull();
+    expect(container.textContent).toContain("scheduled-run.png");
+    expect(container.textContent).toContain("Replace");
+    expect(container.querySelector('input[name="output_url"]')).toBeNull();
+  });
+
+  it("does not try to preview a HEIC, which no browser renders", () => {
+    const container = task({
+      state: "complete",
+      evidence: {
+        kind: "file",
+        file: {
+          path: "m1/i1/f2",
+          name: "IMG_0042.HEIC",
+          mime: "image/heic",
+          size: 2048,
+        },
+      },
+    });
+    expect(container.querySelector("img")).toBeNull();
+    expect(
+      container.querySelector('a[href="/learn/track/evidence/m1/i1/f2"]'),
+    ).not.toBeNull();
+  });
+
+  it("offers no field at all on a Task the page says takes neither", () => {
     // Day 5's shape: the work is settings on the member's own account, so
-    // there is nothing to paste and the field would only collect screenshots
-    // and fibs. Mark complete has to survive, or the day cannot be finished
-    // at all - and G1 counts it.
+    // there is nothing to show. Mark complete has to survive, or the day
+    // cannot be finished at all - and G1 counts it.
     const container = task({
       acceptsLink: false,
       description: DAY_FIVE_TASK.description ?? null,
     });
     expect(container.querySelector('input[name="output_url"]')).toBeNull();
+    expect(container.querySelector('input[type="file"]')).toBeNull();
     expect(container.textContent).not.toContain("Link to your output");
     const labels = [...container.querySelectorAll("button")].map((b) =>
       b.textContent?.trim(),

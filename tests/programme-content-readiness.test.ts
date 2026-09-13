@@ -72,7 +72,7 @@ describe("G1 stays reachable while videos are still being produced", () => {
     sessionItemIds: ["s1"],
     satisfiedSessionItemIds: new Set(["s1"]),
     approvedSignedExamples: 5,
-    filedTaskLinks: 0,
+    filedTaskEvidence: 0,
     capstoneCredits: 0,
     bestSummativeQuizScore: 8,
     summativeQuizPassMark: 8,

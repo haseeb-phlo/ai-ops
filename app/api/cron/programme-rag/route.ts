@@ -255,7 +255,7 @@ export async function GET(request: NextRequest) {
         // and G3 is not the gate being asked about. The sweep does not load
         // progress meta_json, and adding a column to make a thrown-away
         // number accurate would be a query per cohort for nothing.
-        filedTaskLinks: 0,
+        filedTaskEvidence: 0,
         capstoneCredits: 0,
         bestSummativeQuizScore: scores.length ? Math.max(...scores) : null,
         summativeQuizPassMark: Number(summative?.config_json?.pass_mark ?? 8),

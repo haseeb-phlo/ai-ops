@@ -8,7 +8,7 @@ const passing: GateInput = {
   sessionItemIds: ["s"],
   satisfiedSessionItemIds: new Set(["s"]),
   approvedSignedExamples: 5,
-  filedTaskLinks: 0,
+  filedTaskEvidence: 0,
   capstoneCredits: 0,
   bestSummativeQuizScore: 8,
   summativeQuizPassMark: 8,

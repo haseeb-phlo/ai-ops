@@ -58,11 +58,11 @@ export type GateInput = {
    */
   approvedSignedExamples: number;
   /**
-   * Days whose Task has a link filed against it - one credit each. This is
-   * the route every cohort seeded from the current spec takes; see
-   * lib/programme/task-link.ts.
+   * Days whose Task has evidence filed against it - a link or a screenshot,
+   * one credit each and never both on the same day. This is the route every
+   * cohort seeded from the current spec takes; see lib/programme/task-link.ts.
    */
-  filedTaskLinks: number;
+  filedTaskEvidence: number;
   /**
    * Credits an approved capstone contributes, from its sign-off rubric.
    * Clamped to CAPSTONE_MAX_CREDITS. Zero when there's no approved capstone.
@@ -91,17 +91,17 @@ export type GateInput = {
  * no examples at all, so the capstone alone would cap the gate at 2 of 5 and
  * nobody would ever complete. Addition is the only reading under which both
  * populations can pass: the cohorts that were mid-flight keep every example
- * they had approved, and everyone else gets there by filing the links the
+ * they had approved, and everyone else gets there by filing the evidence the
  * daily Task already asks for.
  */
 export function g3Credits(input: {
   approvedSignedExamples: number;
-  filedTaskLinks: number;
+  filedTaskEvidence: number;
   capstoneCredits: number;
 }): number {
   return (
     input.approvedSignedExamples +
-    input.filedTaskLinks +
+    input.filedTaskEvidence +
     Math.min(Math.max(input.capstoneCredits, 0), CAPSTONE_MAX_CREDITS)
   );
 }
@@ -178,7 +178,7 @@ export function allGatesPassed(gates: GateSet): boolean {
  */
 export function g3Remaining(input: {
   approvedSignedExamples: number;
-  filedTaskLinks: number;
+  filedTaskEvidence: number;
   capstoneCredits: number;
 }): number {
   return Math.max(0, G3_REQUIRED_CREDITS - g3Credits(input));

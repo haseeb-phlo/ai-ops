@@ -1,9 +1,10 @@
 /**
- * The link a member files against a day's Task.
+ * The evidence a member files against a day's Task.
  *
- * Stored on the member's own `programme_item_progress` row, under
- * `meta_json.output_url`, rather than in `programme_submissions`. The two look
- * interchangeable and are not:
+ * Two shapes, one slot: a link to what they made, or a screenshot of it when
+ * there is nothing to link. Both live on the member's own
+ * `programme_item_progress` row, under `meta_json`, rather than in
+ * `programme_submissions`. The two look interchangeable and are not:
  *
  *   - `programme_submissions.kind` is a CHECK-constrained enum of things that
  *     go through sign-off - the capstone and the two work samples, and the
@@ -14,44 +15,128 @@
  *     filter are the lead digest and the RAG sweep - where fifteen task links
  *     per member showing up is a bug, not a feature.
  *   - progress is already "this member's state on this item", which is exactly
- *     what a task link is. It needs no migration and no new RLS: the member
+ *     what filed evidence is. It needs no migration and no new RLS: the member
  *     owns the row, leads and admins can already read it.
  *
- * A filed link is now ALSO a G3 credit, which is the one thing here that
+ * Filed evidence is now ALSO a G3 credit, which is the one thing here that
  * changed when the five "Example N" submission slots were removed. Those
  * slots were the gate's currency; without them the capstone alone caps G3 at
- * two of five and nobody completes. So the fifteen links became the currency
+ * two of five and nobody completes. So the fifteen days became the currency
  * they were already collecting in all but name - see gates.ts:g3Credits.
  *
  * That makes it optional per DAY and not optional overall: no single task
- * demands a link, a task whose output is a spreadsheet on a shared drive is
+ * demands evidence, a task whose output is a spreadsheet on a shared drive is
  * still done in a click, but five of the fourteen days that offer the field
  * have to be filed to finish the programme. Worth knowing before writing copy
  * that calls it optional.
+ *
+ * ONE SLOT, NOT TWO. A day holds a link or a screenshot, never both: filing
+ * either clears the other (and deletes the blob). Two would make the admin
+ * table's cell ambiguous and the credit count arguable, for a case - "here is
+ * the link AND a picture of it" - nobody has asked for.
  */
 
 /** Where the link lives inside `programme_item_progress.meta_json`. */
 export const TASK_LINK_KEY = "output_url";
 
+/** Where the screenshot's descriptor lives in the same bag. */
+export const TASK_FILE_KEY = "output_file";
+
+/** The private bucket holding filed screenshots. */
+export const TASK_EVIDENCE_BUCKET = "programme-task-evidence";
+
+/** 10 MB, matching the bucket's own `file_size_limit`. */
+export const TASK_FILE_MAX_BYTES = 10 * 1024 * 1024;
+
 /**
- * The days whose Task has no link field at all.
+ * What the upload accepts, matching the bucket's `allowed_mime_types`.
  *
- * Not the same thing as the per-day optionality above. Those days ask for a
- * link and accept a blank; these days do not ask, and the field is not
- * rendered, because the work they describe produces nothing linkable - day 5
- * is settings on the member's own account, so the only honest answer to "paste
- * the link" is a screenshot or a fib, and a field that collects fibs is worse
- * than no field because you can no longer tell which is which.
+ * HEIC/HEIF are in because that is what an iPhone screenshot arrives as, even
+ * though no browser renders one - see `isPreviewableTaskFile`.
+ */
+export const TASK_FILE_MIME_TYPES: readonly string[] = [
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "image/gif",
+  "image/heic",
+  "image/heif",
+];
+
+/**
+ * The extensions worth trusting when a browser declares no type at all.
  *
- * Consequences worth knowing before adding a day here:
+ * Which happens: a file picked from some Android file managers, and anything
+ * dragged out of an archive, arrives with an empty `File.type`. Refusing
+ * those would fail exactly the member who screenshotted on their phone, which
+ * is the case this whole field exists for.
+ */
+const TASK_FILE_EXTENSION_MIME: Readonly<Record<string, string>> = {
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  webp: "image/webp",
+  gif: "image/gif",
+  heic: "image/heic",
+  heif: "image/heif",
+};
+
+/**
+ * The mime type to store for an upload, or null if it is not an image we take.
+ *
+ * A DECLARED type is never overridden. Only an empty one falls through to the
+ * filename, so renaming a PDF to .png still fails - on the declared type
+ * first, and on the bucket's `allowed_mime_types` after that.
+ */
+export function taskFileMime(file: { name: string; type: string }): string | null {
+  const declared = file.type.trim().toLowerCase();
+  if (declared) {
+    return TASK_FILE_MIME_TYPES.includes(declared) ? declared : null;
+  }
+  const extension = file.name.toLowerCase().split(".").pop() ?? "";
+  return TASK_FILE_EXTENSION_MIME[extension] ?? null;
+}
+
+/** A screenshot as recorded in `meta_json`. `path` is the source of truth. */
+export type TaskFile = {
+  /** Object path in TASK_EVIDENCE_BUCKET: `<member>/<item>/<uuid>`. */
+  path: string;
+  /** The filename the member uploaded, for display and download. */
+  name: string;
+  mime: string;
+  size: number;
+};
+
+/** What one Task holds: a link, a screenshot, or nothing. */
+export type TaskEvidence =
+  | { kind: "link"; href: string }
+  | { kind: "file"; file: TaskFile };
+
+/** Matches the artefact_url cap on submissions. */
+export const TASK_LINK_MAX_LENGTH = 2048;
+
+/**
+ * The days whose Task has no field at all.
+ *
+ * Not the same thing as the per-day optionality above. Those days offer a
+ * field and accept a blank; these days do not ask, because the work they
+ * describe produces nothing to show - day 5 is settings on the member's own
+ * account.
+ *
+ * The screenshot half of this module is a standing argument for emptying this
+ * set: "the only honest answer is a screenshot" was the reason day 5 had no
+ * field, and a screenshot is now fileable. It is left as it is deliberately,
+ * because that is a copy and gate decision (it raises the G3 ceiling and
+ * changes the copy test's exemption) rather than a side effect of adding
+ * uploads. Consequences worth knowing before changing it:
  *
  *   - It costs a G3 credit's worth of CEILING, not of requirement. Fourteen
- *     linkable days against five required credits leaves plenty of room (see
+ *     fileable days against five required credits leaves plenty of room (see
  *     gates.ts:g3Credits), but empty this set out to five and the gate
  *     tightens.
  *   - The day is still completable - Mark complete sits next to the field and
  *     does the same thing - so G1 is untouched.
- *   - A link a member filed BEFORE the day joined this set stays in their
+ *   - Evidence a member filed BEFORE the day joined this set stays in their
  *     meta_json and keeps its credit. It just stops being displayed. That is
  *     deliberate: revoking a credit somebody earned is worse than a row of
  *     data nothing reads.
@@ -62,7 +147,7 @@ export const TASK_LINK_KEY = "output_url";
 export const LINKLESS_TASK_DAYS: ReadonlySet<number> = new Set([5]);
 
 /**
- * Whether a day's Task takes a filed link.
+ * Whether a day's Task takes filed evidence.
  *
  * Read server-side and passed to the card as a flag rather than exported to
  * the card directly, so the day numbers live in one module and the component
@@ -71,9 +156,6 @@ export const LINKLESS_TASK_DAYS: ReadonlySet<number> = new Set([5]);
 export function taskTakesLink(dayIndex: number): boolean {
   return !LINKLESS_TASK_DAYS.has(dayIndex);
 }
-
-/** Matches the artefact_url cap on submissions. */
-export const TASK_LINK_MAX_LENGTH = 2048;
 
 /**
  * Cleans up what someone pasted, or returns null if it is not a link.
@@ -117,6 +199,77 @@ export function taskLinkFrom(meta: unknown): string | null {
 }
 
 /**
+ * Reads the screenshot descriptor back off `meta_json`, defensively.
+ *
+ * Every field is re-checked rather than cast. This is a JSON bag written by
+ * an action that has changed shape once already, and a half-written
+ * descriptor rendering as an <img> with `src=undefined` is a broken card on
+ * somebody's completed day.
+ */
+export function taskFileFrom(meta: unknown): TaskFile | null {
+  if (!meta || typeof meta !== "object") return null;
+  const value = (meta as Record<string, unknown>)[TASK_FILE_KEY];
+  if (!value || typeof value !== "object") return null;
+  const row = value as Record<string, unknown>;
+  const path = row.path;
+  if (typeof path !== "string" || path.length === 0) return null;
+  return {
+    path,
+    name: typeof row.name === "string" && row.name ? row.name : "Screenshot",
+    mime: typeof row.mime === "string" ? row.mime : "",
+    size: typeof row.size === "number" ? row.size : 0,
+  };
+}
+
+/**
+ * The one reader every caller goes through.
+ *
+ * A link wins over a screenshot if both keys somehow hold a value. They never
+ * should - each write clears the other - but a member who filed a link before
+ * uploads existed and then uploads, on a build where the clear regressed,
+ * should see the thing that opens rather than the thing that does not.
+ */
+export function taskEvidenceFrom(meta: unknown): TaskEvidence | null {
+  const href = taskLinkFrom(meta);
+  if (href) return { kind: "link", href };
+  const file = taskFileFrom(meta);
+  if (file) return { kind: "file", file };
+  return null;
+}
+
+/**
+ * Where the app serves a filed screenshot from.
+ *
+ * An app route rather than a stored URL: the bucket is private, so what a
+ * browser can actually fetch is a signed URL that expires, and baking one
+ * into a durable row (or into cached HTML) hands somebody a dead image a
+ * minute later. The route mints a fresh one per request against the caller's
+ * own session - see app/(protected)/learn/track/evidence.
+ */
+export function taskFileHref(file: TaskFile): string {
+  return `/learn/track/evidence/${file.path
+    .split("/")
+    .map(encodeURIComponent)
+    .join("/")}`;
+}
+
+/**
+ * Whether a browser will render this inline, or only offer to download it.
+ *
+ * HEIC is the whole reason this exists: an iPhone screenshot uploads fine and
+ * shows as a broken image everywhere but Safari, so the card checks first and
+ * offers a download instead of a preview.
+ */
+export function isPreviewableTaskFile(file: TaskFile): boolean {
+  return (
+    file.mime === "image/png" ||
+    file.mime === "image/jpeg" ||
+    file.mime === "image/webp" ||
+    file.mime === "image/gif"
+  );
+}
+
+/**
  * What the card shows instead of a 200-character URL.
  *
  * Host plus the tail of the path, so two links from the same member are
@@ -131,7 +284,7 @@ export function shortenTaskLink(href: string, maxLength = 44): string {
 }
 
 /**
- * A member's filed links, keyed by track item.
+ * A member's filed evidence, keyed by track item.
  *
  * Shared by every caller that builds a GateInput - the member's page, the
  * completion latch, the admin cohort table, the nightly sweep - because they
@@ -139,41 +292,46 @@ export function shortenTaskLink(href: string, maxLength = 44): string {
  * complete, and a page showing five green gates over a latch that counted
  * four is exactly the failure resolveCompletedItemIds was written to end.
  *
- * Restricted to Tasks: saveTaskOutputLink refuses every other item type, so
- * this only ever agrees with it, and the count stays right if some later item
- * type starts writing to the same meta key.
+ * One entry per item whichever shape it holds, so a link and a screenshot on
+ * the same day can never count twice.
+ *
+ * Restricted to Tasks: the save actions refuse every other item type, so this
+ * only ever agrees with them, and the count stays right if some later item
+ * type starts writing to the same meta keys.
  */
-export function filedTaskLinksByItem(args: {
+export function filedTaskEvidenceByItem(args: {
   /** Ids of the track's use_example items. */
   taskItemIds: ReadonlySet<string>;
   /** This member's progress meta_json, keyed by track item id. */
   metaByItemId: ReadonlyMap<string, unknown>;
-}): Map<string, string> {
-  const byItem = new Map<string, string>();
+}): Map<string, TaskEvidence> {
+  const byItem = new Map<string, TaskEvidence>();
   for (const itemId of args.taskItemIds) {
-    const link = taskLinkFrom(args.metaByItemId.get(itemId));
-    if (link) byItem.set(itemId, link);
+    const evidence = taskEvidenceFrom(args.metaByItemId.get(itemId));
+    if (evidence) byItem.set(itemId, evidence);
   }
   return byItem;
 }
 
 /**
- * One member's filed links, keyed by programme day.
+ * One member's filed evidence, keyed by programme day.
  *
  * Pure, because the admin table that reads it is the only thing standing
- * between "everyone files a link" and "we think everyone files a link". A
- * missing day is a member to chase, so the shape has to be exact.
+ * between "everyone files something" and "we think everyone files something".
+ * A missing day is a member to chase, so the shape has to be exact - which is
+ * also why a screenshot has to appear here. A day that only accepts pictures
+ * showing a column of blanks is the same failure as not collecting it.
  */
-export function taskLinksByDay(args: {
+export function taskEvidenceByDay(args: {
   /** The track's use_example items. */
   taskItems: readonly { id: string; day_index: number }[];
   /** This member's progress meta_json, keyed by track item id. */
   metaByItemId: ReadonlyMap<string, unknown>;
-}): Record<number, string> {
-  const byDay: Record<number, string> = {};
+}): Record<number, TaskEvidence> {
+  const byDay: Record<number, TaskEvidence> = {};
   for (const item of args.taskItems) {
-    const link = taskLinkFrom(args.metaByItemId.get(item.id));
-    if (link) byDay[item.day_index] = link;
+    const evidence = taskEvidenceFrom(args.metaByItemId.get(item.id));
+    if (evidence) byDay[item.day_index] = evidence;
   }
   return byDay;
 }

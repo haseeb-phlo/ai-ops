@@ -13,9 +13,10 @@ import {
   unlockDateFor,
 } from "./working-days";
 import {
-  filedTaskLinksByItem,
-  taskLinksByDay,
+  filedTaskEvidenceByItem,
+  taskEvidenceByDay,
   taskTakesLink,
+  type TaskEvidence,
 } from "./task-link";
 import {
   isG2Impossible,
@@ -65,11 +66,11 @@ export type AdminMember = {
  * days grid with a hole wherever nobody filed one. Rows carry the count so
  * the header can say "9 of 25" without the table recomputing it.
  */
-export type TaskLinkRow = {
+export type TaskEvidenceRow = {
   cohortMemberId: string;
   displayName: string;
-  /** Link by day index. A missing day means nothing was filed. */
-  byDay: Record<number, string>;
+  /** Evidence by day index. A missing day means nothing was filed. */
+  byDay: Record<number, TaskEvidence>;
 };
 
 export type DayLink = {
@@ -112,8 +113,8 @@ export type CohortAdminView = {
    * 7am clock the members are on.
    */
   dayLinks: DayLink[];
-  /** Task links per member, and the days worth showing a column for. */
-  taskLinks: TaskLinkRow[];
+  /** Filed Task evidence per member, and the days worth showing a column for. */
+  taskLinks: TaskEvidenceRow[];
   taskDayIndexes: number[];
   funnel: GateFunnel;
   /**
@@ -466,7 +467,7 @@ export const loadCohortAdminView = cache(
         sessionItemIds: sessionItems.map((i) => i.id),
         satisfiedSessionItemIds: satisfied,
         approvedSignedExamples,
-        filedTaskLinks: filedTaskLinksByItem({
+        filedTaskEvidence: filedTaskEvidenceByItem({
           taskItemIds: taskItemIds,
           metaByItemId: metaByMember.get(member.id) ?? new Map(),
         }).size,
@@ -591,7 +592,7 @@ export const loadCohortAdminView = cache(
     // empty cells for day 12 in week one reads as fifteen people who have not
     // submitted rather than a day nobody could have done yet.
     //
-    // Same reasoning drops the days with no link field (LINKLESS_TASK_DAYS in
+    // Same reasoning drops the days with no field (LINKLESS_TASK_DAYS in
     // task-link.ts). Their column could only ever be empty, so leaving it in
     // reads as a whole cohort ignoring day 5 rather than a day that never
     // asked. Filtered on the day rather than on the data, so it stays empty
@@ -610,10 +611,10 @@ export const loadCohortAdminView = cache(
       .map((i) => i.day_index)
       .sort((a, b) => a - b);
 
-    const taskLinks: TaskLinkRow[] = adminMembers.map((member) => ({
+    const taskLinks: TaskEvidenceRow[] = adminMembers.map((member) => ({
       cohortMemberId: member.cohortMemberId,
       displayName: member.displayName,
-      byDay: taskLinksByDay({
+      byDay: taskEvidenceByDay({
         taskItems,
         metaByItemId: metaByMember.get(member.cohortMemberId) ?? new Map(),
       }),

@@ -6,7 +6,7 @@ import { parseQuizConfig, bestScore } from "./quiz";
 import { satisfiedSessionIds } from "./attendance";
 import { gateableContentItemIds } from "./content-readiness";
 import { resolveCompletedItemIds } from "./completed-items";
-import { filedTaskLinksByItem } from "./task-link";
+import { filedTaskEvidenceByItem } from "./task-link";
 
 /**
  * Stamps completion when all four gates pass, exactly once.
@@ -179,7 +179,7 @@ export async function maybeCompleteProgramme(
     approvedSignedExamples: live.filter(
       (s) => s.kind === "signed_example" && s.signoff_status === "approved",
     ).length,
-    filedTaskLinks: filedTaskLinksByItem({
+    filedTaskEvidence: filedTaskEvidenceByItem({
       taskItemIds: new Set(
         itemList.filter((i) => i.type === "use_example").map((i) => i.id),
       ),

@@ -102,7 +102,7 @@ export default async function TrackPage({
       video: resolved.item.learn_video_id
         ? (state.videosById.get(resolved.item.learn_video_id) ?? null)
         : null,
-      outputUrl: state.taskLinkByItemId.get(resolved.item.id) ?? null,
+      evidence: state.taskEvidenceByItemId.get(resolved.item.id) ?? null,
       // Which days take a link is one list, in task-link.ts, read here so the
       // card never learns a day number - the same reason `opensToday` is
       // computed above rather than in the component.

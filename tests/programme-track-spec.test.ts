@@ -144,7 +144,7 @@ describe("Core Programme track shape", () => {
       // would flatter the ceiling by however many days sit in
       // LINKLESS_TASK_DAYS, which is the one number this test exists to be
       // honest about.
-      filedTaskLinks: tasks.filter((i) => taskTakesLink(i.dayIndex)).length,
+      filedTaskEvidence: tasks.filter((i) => taskTakesLink(i.dayIndex)).length,
       capstoneCredits:
         kinds.filter((k) => k === "capstone").length * CAPSTONE_MAX_CREDITS,
     });
