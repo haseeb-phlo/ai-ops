@@ -17,6 +17,7 @@ import {
   taskFileFrom,
   taskFileMime,
   taskTakesLink,
+  type TaskFile,
 } from "@/lib/programme/task-link";
 import type { ActionState } from "../topics";
 
@@ -405,10 +406,17 @@ const TaskFileSchema = z.object({
  * The path carries NO file extension: the app serves these back through
  * /learn/track/evidence/<path>, and proxy.ts's matcher skips anything ending
  * .png/.jpg/.webp, which would hand that route an unrefreshed session.
+ *
+ * RETURNS THE STORED DESCRIPTOR, unlike its sibling. The path is minted here,
+ * and the card cannot wait for the revalidate to learn it: `revalidatePath`
+ * re-renders the card with a fresh prop, but the field's `saved` state was
+ * seeded from that prop on mount and nothing remounts it. Without the path
+ * coming back, the member gets a filename and no thumbnail until they reload -
+ * which is exactly the "did that work?" moment the field exists to remove.
  */
 export async function saveTaskOutputFile(
   formData: FormData,
-): Promise<ActionState> {
+): Promise<ActionState | { kind: "success"; file: TaskFile }> {
   const gate = await requireWriter();
   if (!gate.ok) return { kind: "error", message: gate.error };
   const user = gate.user;
@@ -455,25 +463,26 @@ export async function saveTaskOutputFile(
     return { kind: "error", message: `Upload failed: ${uploadError.message}` };
   }
 
+  const stored: TaskFile = {
+    path,
+    name: file.name,
+    mime,
+    size: file.size,
+  };
+
   const saved = await fileTaskEvidence({
     resolved,
-    patch: {
-      [TASK_FILE_KEY]: {
-        path,
-        name: file.name,
-        mime,
-        size: file.size,
-      },
-    },
+    patch: { [TASK_FILE_KEY]: stored },
     keep: TASK_FILE_KEY,
   });
 
   if (saved.kind === "error") {
     // Nothing points at it now, so leave nothing behind.
     await resolved.supabase.storage.from(TASK_EVIDENCE_BUCKET).remove([path]);
+    return saved;
   }
 
-  return saved;
+  return { kind: "success", file: stored };
 }
 /* ------------------------------------------------------------------ */
 /* Submissions                                                         */

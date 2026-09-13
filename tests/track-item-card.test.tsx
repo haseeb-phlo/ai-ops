@@ -1,5 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
-import { render } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { fireEvent, render, waitFor } from "@testing-library/react";
+import { saveTaskOutputFile } from "@/app/(protected)/learn/track/actions";
 import {
   TrackItemCard,
   type TrackItemView,
@@ -54,6 +55,10 @@ function task(overrides: Partial<TrackItemView> = {}) {
   };
   return render(<TrackItemCard cohortId="c1" item={item} />).container;
 }
+
+beforeEach(() => {
+  vi.mocked(saveTaskOutputFile).mockReset();
+});
 
 describe("a Task card's copy", () => {
   it("renders day 2's three choices as list items, not one paragraph", () => {
@@ -173,6 +178,78 @@ describe("a Task card's output link", () => {
     // HEIC, or every iPhone screenshot is refused by the picker itself.
     expect(picker!.accept).toContain("image/heic");
     expect(container.textContent).toContain("No link? Upload a screenshot");
+  });
+
+  it("shows the uploaded screenshot without waiting for a reload", async () => {
+    // The card seeds its state from the prop ON MOUNT, and a revalidate
+    // re-renders rather than remounts - so whatever the action hands back is
+    // the only thing that can fill the row in. Get this wrong and the member
+    // uploads and then stares at a filename, which is the "did that work?"
+    // moment this field exists to remove.
+    vi.mocked(saveTaskOutputFile).mockResolvedValue({
+      kind: "success",
+      file: {
+        path: "m1/i1/fresh",
+        name: "run.png",
+        mime: "image/png",
+        size: 64,
+      },
+    });
+    const container = task();
+    const picker = container.querySelector<HTMLInputElement>(
+      'input[type="file"]',
+    )!;
+    fireEvent.change(picker, {
+      target: {
+        files: [new File(["x"], "run.png", { type: "image/png" })],
+      },
+    });
+    await waitFor(() => {
+      expect(
+        container.querySelector('img[src="/learn/track/evidence/m1/i1/fresh"]'),
+      ).not.toBeNull();
+    });
+    expect(container.textContent).toContain("Replace");
+  });
+
+  it("says why an upload was refused rather than looking like it worked", async () => {
+    vi.mocked(saveTaskOutputFile).mockResolvedValue({
+      kind: "error",
+      message: "That image is over 10 MB.",
+    });
+    const container = task();
+    fireEvent.change(
+      container.querySelector<HTMLInputElement>('input[type="file"]')!,
+      {
+        target: {
+          files: [new File(["x"], "run.png", { type: "image/png" })],
+        },
+      },
+    );
+    await waitFor(() => {
+      expect(container.querySelector('[role="alert"]')?.textContent).toBe(
+        "That image is over 10 MB.",
+      );
+    });
+    expect(container.querySelector("img")).toBeNull();
+  });
+
+  it("refuses a file the bucket would not take, without a round trip", async () => {
+    const container = task();
+    fireEvent.change(
+      container.querySelector<HTMLInputElement>('input[type="file"]')!,
+      {
+        target: {
+          files: [new File(["x"], "run.pdf", { type: "application/pdf" })],
+        },
+      },
+    );
+    await waitFor(() => {
+      expect(container.querySelector('[role="alert"]')?.textContent).toContain(
+        "not an image",
+      );
+    });
+    expect(saveTaskOutputFile).not.toHaveBeenCalled();
   });
 
   it("shows a filed screenshot as a thumbnail that opens", () => {

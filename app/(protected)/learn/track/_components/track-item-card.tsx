@@ -714,17 +714,16 @@ function TaskOutput({
       fd.set("file", file);
       const result = await saveTaskOutputFile(fd);
       setUploading(false);
-      if (result.kind === "error") {
-        setError(result.message);
+      if (result.kind !== "success" || !("file" in result)) {
+        setError(
+          result.kind === "error" ? result.message : "Could not save that.",
+        );
         return;
       }
-      // The server owns the stored path, and nothing here needs it: the card
-      // re-renders off the revalidate with the real descriptor. Until then the
-      // row shows what was uploaded rather than flicking back to the form.
-      setSaved({
-        kind: "file",
-        file: { path: "", name: file.name, mime, size: file.size },
-      });
+      // The descriptor the server stored, path and all. Waiting for the
+      // revalidate would not do: it re-renders this card with a fresh prop,
+      // but `saved` was seeded from that prop on mount and nothing remounts.
+      setSaved({ kind: "file", file: result.file });
       setEditing(false);
       onSaved();
     });
@@ -754,11 +753,9 @@ function TaskOutput({
             <>
               {/* A thumbnail, not just a filename: the member needs to see
                   that the right picture went up, and "Screenshot 2026-09-13
-                  at 09.14.22.png" tells them nothing. `path` is empty for the
-                  moment between uploading and the revalidate, and there is
-                  nothing to fetch yet, so the icon stands in. HEIC gets the
-                  icon permanently - no browser will render one. */}
-              {saved.file.path && isPreviewableTaskFile(saved.file) ? (
+                  at 09.14.22.png" tells them nothing. HEIC falls back to the
+                  icon - no browser will render one. */}
+              {isPreviewableTaskFile(saved.file) ? (
                 /* eslint-disable-next-line @next/next/no-img-element -- the
                    route redirects to a short-lived signed URL, which the
                    image optimiser cannot cache or re-fetch. */
@@ -773,21 +770,15 @@ function TaskOutput({
                   aria-hidden
                 />
               )}
-              {saved.file.path ? (
-                <a
-                  href={taskFileHref(saved.file)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex min-w-0 items-center gap-1 text-sm text-foreground underline underline-offset-2 hover:no-underline"
-                >
-                  <span className="truncate">{saved.file.name}</span>
-                  <ExternalLinkIcon className="size-3.5 shrink-0" aria-hidden />
-                </a>
-              ) : (
-                <span className="min-w-0 truncate text-sm text-foreground">
-                  {saved.file.name}
-                </span>
-              )}
+              <a
+                href={taskFileHref(saved.file)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-w-0 items-center gap-1 text-sm text-foreground underline underline-offset-2 hover:no-underline"
+              >
+                <span className="truncate">{saved.file.name}</span>
+                <ExternalLinkIcon className="size-3.5 shrink-0" aria-hidden />
+              </a>
             </>
           )}
           <Button
