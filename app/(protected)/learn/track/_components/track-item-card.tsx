@@ -108,6 +108,16 @@ export type TrackItemView = {
    * true, which keeps every non-Task item and every existing caller unchanged.
    */
   acceptsLink?: boolean;
+  /**
+   * Whether this Task also offers the screenshot upload.
+   *
+   * Computed on the server the same way (SCREENSHOT_TASK_DAYS in task-link.ts)
+   * and, unlike `acceptsLink`, absent means FALSE: the upload belongs to one
+   * day, so a caller that has not thought about it gets the link field alone
+   * rather than silently re-enabling the thing this flag exists to scope. An
+   * already-filed screenshot still renders either way.
+   */
+  acceptsFile?: boolean;
   submission?: {
     kind: string;
     signoffStatus: ProgrammeSignoffStatus | null;
@@ -590,6 +600,7 @@ export function TrackItemCard({
                 cohortId={cohortId}
                 itemId={item.id}
                 initialEvidence={item.evidence ?? null}
+                acceptsFile={item.acceptsFile === true}
                 complete={state === "complete"}
                 onSaved={() => setOptimisticComplete(true)}
               />
@@ -614,14 +625,16 @@ export function TrackItemCard({
  * click; this is one field asked fourteen times, and a box you have to open
  * is a box most people leave shut.
  *
- * TWO WAYS IN, ONE SLOT. A link where there is one, a screenshot where there
- * is not. Day 7 is what forced the second: a Claude scheduled task has runs
- * and no Share link, so the day was uncompletable for anyone who did it
+ * TWO WAYS IN ON ONE DAY, ONE SLOT. A link everywhere; a screenshot only on
+ * day 7, which is what forced the second shape: a Claude scheduled task has
+ * runs and no Share link, so the day was uncompletable for anyone who did it
  * properly. Filing either replaces the other - see task-link.ts.
  *
- * The link keeps top billing rather than the two being offered as equals,
- * because a link opens: whoever reads this later can see the work itself and
- * not a picture of it. The upload is the fallback, worded as one.
+ * The link keeps top billing on that day rather than the two being offered as
+ * equals, because a link opens: whoever reads this later can see the work
+ * itself and not a picture of it. The upload is the fallback, worded as one,
+ * and on every other day it is not offered at all - `acceptsFile` decides.
+ * A screenshot already filed under the old rule still renders here.
  *
  * Optional on every day that has it: filing either completes the task, and so
  * does the Mark complete button next to it. A task whose output is a
@@ -635,12 +648,15 @@ function TaskOutput({
   cohortId,
   itemId,
   initialEvidence,
+  acceptsFile,
   complete,
   onSaved,
 }: {
   cohortId: string;
   itemId: string;
   initialEvidence: TaskEvidence | null;
+  /** Whether to offer the upload. Display of an existing one is unconditional. */
+  acceptsFile: boolean;
   /** Only so the button does not offer to finish something already finished. */
   complete: boolean;
   /** Lets the card tick itself over without waiting for the revalidate. */
@@ -851,37 +867,44 @@ function TaskOutput({
           </p>
           {/* Outside the <form>'s submit path on purpose: choosing a file
               uploads it there and then. A second "now press Save" step after
-              the file picker is the one most people would walk away from. */}
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <input
-              ref={fileInput}
-              type="file"
-              accept="image/png,image/jpeg,image/webp,image/gif,image/heic,image/heif"
-              className="sr-only"
-              // Reached through the button beside it, which carries the
-              // wording. Kept out of the tab order so it is not a second,
-              // unlabelled stop for anyone using the keyboard.
-              tabIndex={-1}
-              aria-label="Upload a screenshot of your output"
-              disabled={pending}
-              onChange={(event) => {
-                handleFile(event.target.files?.[0] ?? null);
-                // Cleared so picking the same file twice still fires change -
-                // which is exactly what someone retrying after an error does.
-                event.target.value = "";
-              }}
-            />
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              disabled={pending}
-              onClick={() => fileInput.current?.click()}
-            >
-              <ImageIcon aria-hidden />
-              {uploading ? "Uploading…" : "No link? Upload a screenshot"}
-            </Button>
-          </div>
+              the file picker is the one most people would walk away from.
+
+              Only on the day whose work has nothing to link - see
+              SCREENSHOT_TASK_DAYS. Offered on all fourteen linkable days it
+              put the weaker evidence in front of thirteen that produce
+              something openable. */}
+          {acceptsFile && (
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <input
+                ref={fileInput}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif,image/heic,image/heif"
+                className="sr-only"
+                // Reached through the button beside it, which carries the
+                // wording. Kept out of the tab order so it is not a second,
+                // unlabelled stop for anyone using the keyboard.
+                tabIndex={-1}
+                aria-label="Upload a screenshot of your output"
+                disabled={pending}
+                onChange={(event) => {
+                  handleFile(event.target.files?.[0] ?? null);
+                  // Cleared so picking the same file twice still fires change -
+                  // which is exactly what someone retrying after an error does.
+                  event.target.value = "";
+                }}
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                disabled={pending}
+                onClick={() => fileInput.current?.click()}
+              >
+                <ImageIcon aria-hidden />
+                {uploading ? "Uploading…" : "No link? Upload a screenshot"}
+              </Button>
+            </div>
+          )}
         </form>
       )}
 

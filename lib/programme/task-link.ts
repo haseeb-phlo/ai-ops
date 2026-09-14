@@ -1,8 +1,8 @@
 /**
  * The evidence a member files against a day's Task.
  *
- * Two shapes, one slot: a link to what they made, or a screenshot of it when
- * there is nothing to link. Both live on the member's own
+ * Two shapes, one slot: a link to what they made, or - on the one day whose
+ * work produces nothing linkable - a screenshot of it. Both live on the member's own
  * `programme_item_progress` row, under `meta_json`, rather than in
  * `programme_submissions`. The two look interchangeable and are not:
  *
@@ -34,6 +34,10 @@
  * either clears the other (and deletes the blob). Two would make the admin
  * table's cell ambiguous and the credit count arguable, for a case - "here is
  * the link AND a picture of it" - nobody has asked for.
+ *
+ * The screenshot is offered on ONE day, not on all of them - see
+ * SCREENSHOT_TASK_DAYS. Both shapes still count for G3 wherever they exist,
+ * because evidence filed under the old rule keeps its credit.
  */
 
 /** Where the link lives inside `programme_item_progress.meta_json`. */
@@ -155,6 +159,38 @@ export const LINKLESS_TASK_DAYS: ReadonlySet<number> = new Set([5]);
  */
 export function taskTakesLink(dayIndex: number): boolean {
   return !LINKLESS_TASK_DAYS.has(dayIndex);
+}
+
+/**
+ * The days that also offer a screenshot upload.
+ *
+ * Day 7 is Scheduled Tasks, and it is the reason the upload exists at all: a
+ * Claude scheduled task has runs and no Share link, so the day was
+ * uncompletable for anyone who did it properly. Every other day's work
+ * produces something linkable, and on those days a picture of the output is
+ * strictly worse evidence than the output - whoever reads it later can open a
+ * link and cannot open a screenshot.
+ *
+ * So this is deliberately a set of one rather than the inverse of
+ * LINKLESS_TASK_DAYS. The upload shipped enabled on all fourteen linkable
+ * days, which was the bug: it offered a worse option everywhere to solve a
+ * problem that exists on one day.
+ *
+ * A day in here must also be a linkable day - the link is still top billing on
+ * day 7, with the upload worded as the fallback. `taskTakesFile` enforces that
+ * rather than trusting the two sets to stay consistent by hand.
+ *
+ * Evidence already filed on a day that is no longer in this set is NOT
+ * revoked: it stays in the member's meta_json, keeps its G3 credit, and keeps
+ * rendering on the card. Only the button to file a NEW one goes. Taking back a
+ * credit somebody earned under the old rule would be worse than an option that
+ * quietly stopped being offered - the same precedent LINKLESS_TASK_DAYS sets.
+ */
+export const SCREENSHOT_TASK_DAYS: ReadonlySet<number> = new Set([7]);
+
+/** Whether a day's Task offers the screenshot upload alongside the link. */
+export function taskTakesFile(dayIndex: number): boolean {
+  return taskTakesLink(dayIndex) && SCREENSHOT_TASK_DAYS.has(dayIndex);
 }
 
 /**

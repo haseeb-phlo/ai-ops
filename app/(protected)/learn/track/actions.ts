@@ -16,6 +16,7 @@ import {
   normaliseTaskLink,
   taskFileFrom,
   taskFileMime,
+  taskTakesFile,
   taskTakesLink,
   type TaskFile,
 } from "@/lib/programme/task-link";
@@ -284,6 +285,7 @@ async function resolveTaskEvidenceWrite(args: {
     supabase,
     membershipId: membership.id,
     itemId: item.id,
+    dayIndex: item.day_index,
     existing: existing ?? null,
   };
 }
@@ -453,6 +455,18 @@ export async function saveTaskOutputFile(
     cohortId: parsed.data.cohort_id,
   });
   if (!resolved.ok) return { kind: "error", message: resolved.message };
+
+  // Only the day that has nothing linkable takes a picture instead. The card
+  // hides the button everywhere else; re-checked here on the same convention
+  // as taskTakesLink above, so a stale tab cannot upload against a day that
+  // stopped offering it - and so nothing lands in the bucket that no surface
+  // would then offer to replace.
+  if (!taskTakesFile(resolved.dayIndex)) {
+    return {
+      kind: "error",
+      message: "This task takes a link. Paste the link to your output instead.",
+    };
+  }
 
   const path = `${resolved.membershipId}/${resolved.itemId}/${crypto.randomUUID()}`;
   const { error: uploadError } = await resolved.supabase.storage

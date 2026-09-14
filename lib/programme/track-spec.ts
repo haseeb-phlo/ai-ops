@@ -746,13 +746,17 @@ export const GENERIC_TASK =
  * what makes a gap visible - which is also why a day with no field is dropped
  * from that table rather than showing a column of blanks.
  *
- * Only day 7 names the screenshot in its copy, though every day that asks
- * will take one. It is the day where the link genuinely does not exist - a
- * scheduled task has runs and no Share link, which is what a member reported
- * after doing the work and finding nothing to paste - so the ask would
- * otherwise be impossible to answer. Elsewhere a link is better evidence
- * because it opens, and offering the fallback in the copy would invite a
- * picture of a page that could have been shared.
+ * Only day 7 names the screenshot in its copy, and only day 7 offers the
+ * upload - see SCREENSHOT_TASK_DAYS in task-link.ts. It is the day where the
+ * link genuinely does not exist - a scheduled task has runs and no Share link,
+ * which is what a member reported after doing the work and finding nothing to
+ * paste - so the ask would otherwise be impossible to answer. Elsewhere a link
+ * is better evidence because it opens, and offering the fallback would invite
+ * a picture of a page that could have been shared.
+ *
+ * The two were briefly out of step: the copy named it on day 7 while the
+ * button appeared on all fourteen linkable days. The copy was the side that
+ * was right.
  *
  * They are also independent of each other, deliberately, all the way through.
  * The day 4 note explains why: a task that opens "the thing you built on day

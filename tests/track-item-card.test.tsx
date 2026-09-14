@@ -41,6 +41,10 @@ const DAY_FIVE_TASK = buildTrackItems().find(
   (i) => i.type === "use_example" && i.dayIndex === 5,
 )!;
 
+const DAY_SEVEN_TASK = buildTrackItems().find(
+  (i) => i.type === "use_example" && i.dayIndex === 7,
+)!;
+
 function task(overrides: Partial<TrackItemView> = {}) {
   const item: TrackItemView = {
     id: "11111111-1111-4111-8111-111111111111",
@@ -54,6 +58,21 @@ function task(overrides: Partial<TrackItemView> = {}) {
     ...overrides,
   };
   return render(<TrackItemCard cohortId="c1" item={item} />).container;
+}
+
+/**
+ * Day 7's Task - the only one that offers the upload.
+ *
+ * Separate from `task()` rather than a flag on it, so the default stays what
+ * thirteen of the fourteen linkable days actually render. See
+ * SCREENSHOT_TASK_DAYS in task-link.ts.
+ */
+function scheduledTask(overrides: Partial<TrackItemView> = {}) {
+  return task({
+    description: DAY_SEVEN_TASK.description ?? null,
+    acceptsFile: true,
+    ...overrides,
+  });
 }
 
 beforeEach(() => {
@@ -169,7 +188,7 @@ describe("a Task card's output link", () => {
   it("offers a screenshot upload beside the link, worded as the fallback", () => {
     // Day 7 is what forced this: a Claude scheduled task has runs and no
     // Share link, so the day could not be completed by anyone who did it.
-    const container = task();
+    const container = scheduledTask();
     const picker = container.querySelector<HTMLInputElement>(
       'input[type="file"]',
     );
@@ -178,6 +197,18 @@ describe("a Task card's output link", () => {
     // HEIC, or every iPhone screenshot is refused by the picker itself.
     expect(picker!.accept).toContain("image/heic");
     expect(container.textContent).toContain("No link? Upload a screenshot");
+  });
+
+  it("offers no upload on a day whose work has a link to share", () => {
+    // The regression this guards: the picker shipped on all fourteen linkable
+    // days when only day 7 has nothing to link. A screenshot is worse evidence
+    // wherever a link exists - nobody can open it - so offering it everywhere
+    // invited a picture of a page that could have been shared.
+    const container = task();
+    expect(container.querySelector('input[type="file"]')).toBeNull();
+    expect(container.textContent).not.toContain("Upload a screenshot");
+    // The link field is untouched: this narrows the fallback, not the ask.
+    expect(container.querySelector('input[name="output_url"]')).not.toBeNull();
   });
 
   it("shows the uploaded screenshot without waiting for a reload", async () => {
@@ -195,7 +226,7 @@ describe("a Task card's output link", () => {
         size: 64,
       },
     });
-    const container = task();
+    const container = scheduledTask();
     const picker = container.querySelector<HTMLInputElement>(
       'input[type="file"]',
     )!;
@@ -217,7 +248,7 @@ describe("a Task card's output link", () => {
       kind: "error",
       message: "That image is over 10 MB.",
     });
-    const container = task();
+    const container = scheduledTask();
     fireEvent.change(
       container.querySelector<HTMLInputElement>('input[type="file"]')!,
       {
@@ -235,7 +266,7 @@ describe("a Task card's output link", () => {
   });
 
   it("refuses a file the bucket would not take, without a round trip", async () => {
-    const container = task();
+    const container = scheduledTask();
     fireEvent.change(
       container.querySelector<HTMLInputElement>('input[type="file"]')!,
       {

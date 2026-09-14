@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   LINKLESS_TASK_DAYS,
+  SCREENSHOT_TASK_DAYS,
   TASK_FILE_KEY,
   TASK_LINK_KEY,
   TASK_LINK_MAX_LENGTH,
@@ -14,9 +15,11 @@ import {
   taskFileHref,
   taskFileMime,
   taskLinkFrom,
+  taskTakesFile,
   taskTakesLink,
 } from "@/lib/programme/task-link";
 import { G3_REQUIRED_CREDITS } from "@/lib/programme/gates";
+import { DAY_TOPICS } from "@/lib/programme/track-spec";
 
 const SCREENSHOT = {
   path: "member-1/item-1/file-1",
@@ -328,5 +331,56 @@ describe("serving a filed screenshot", () => {
       false,
     );
     expect(isPreviewableTaskFile({ ...SCREENSHOT, mime: "" })).toBe(false);
+  });
+});
+
+describe("taskTakesFile", () => {
+  it("offers the upload on day 7 and nowhere else", () => {
+    for (let day = 1; day <= 15; day += 1) {
+      expect(taskTakesFile(day), `day ${day}`).toBe(day === 7);
+    }
+  });
+
+  it("is a strict subset of the days that take a link", () => {
+    // A day cannot offer the fallback without offering the thing it falls
+    // back from: the link keeps top billing on day 7, and a screenshot-only
+    // day would be a shape no surface renders.
+    for (const day of SCREENSHOT_TASK_DAYS) {
+      expect(taskTakesLink(day), `day ${day}`).toBe(true);
+      expect(LINKLESS_TASK_DAYS.has(day), `day ${day}`).toBe(false);
+    }
+  });
+
+  it("is the day whose work has no link to share", () => {
+    // Day 7 is Scheduled Tasks. A scheduled task has runs and no Share link,
+    // which is the entire reason the upload exists. If the topic order moves,
+    // this is the assertion that should fail rather than the button quietly
+    // sitting on the wrong day.
+    expect(DAY_TOPICS[6]).toBe("Scheduled Tasks");
+    expect(SCREENSHOT_TASK_DAYS.has(7)).toBe(true);
+    expect(SCREENSHOT_TASK_DAYS.size).toBe(1);
+  });
+
+  it("still reads a screenshot filed before the day lost the upload", () => {
+    // Same precedent as LINKLESS_TASK_DAYS: nothing is revoked. A member who
+    // uploaded on day 3 while the button was everywhere keeps the evidence
+    // and its G3 credit; only the button to file a new one goes.
+    const byDay = taskEvidenceByDay({
+      taskItems: [{ id: "d3", day_index: 3 }],
+      metaByItemId: new Map<string, unknown>([
+        [
+          "d3",
+          {
+            [TASK_FILE_KEY]: {
+              path: "m/d3/abc",
+              name: "run.png",
+              mime: "image/png",
+              size: 1234,
+            },
+          },
+        ],
+      ]),
+    });
+    expect(byDay[3]?.kind).toBe("file");
   });
 });

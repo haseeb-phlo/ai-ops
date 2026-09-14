@@ -4,7 +4,7 @@ import { getSessionUser } from "@/lib/auth";
 import { loadTrackState } from "@/lib/programme/track-data";
 import { isAwaitingContent } from "@/lib/programme/content-readiness";
 import { parseDayParam } from "@/lib/programme/day-link";
-import { taskTakesLink } from "@/lib/programme/task-link";
+import { taskTakesFile, taskTakesLink } from "@/lib/programme/task-link";
 import {
   hasDayArrived,
   unlockDateFor,
@@ -108,6 +108,7 @@ export default async function TrackPage({
       // card never learns a day number - the same reason `opensToday` is
       // computed above rather than in the component.
       acceptsLink: taskTakesLink(resolved.item.day_index),
+      acceptsFile: taskTakesFile(resolved.item.day_index),
       submission:
         resolved.item.type === "submission_slot"
           ? {
