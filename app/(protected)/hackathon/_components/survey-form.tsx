@@ -105,9 +105,8 @@ export function SurveyForm({
       {/* Once, at the top: it is a rule about the whole form, and a warning
           placed three questions in has already been ignored twice. */}
       <p className="rounded-lg border border-border bg-secondary px-4 py-3 text-xs leading-relaxed text-secondary-foreground">
-        Everyone else who answers can read your answers. Describe the task,
-        not the patient - no names, addresses, dates of birth or medical
-        details.
+        Describe the task, not the patient - no names, addresses, dates of
+        birth or medical details.
       </p>
 
       {/* Sticky: nine required questions is long enough to lose your place. */}
