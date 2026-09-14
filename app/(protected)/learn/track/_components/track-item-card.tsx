@@ -29,6 +29,7 @@ import {
 import { PROGRAMME_OPEN_LABEL } from "@/lib/programme/working-days";
 import { cn } from "@/lib/utils";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { Eyebrow } from "@/components/ui/eyebrow";
 import {
   PROGRAMME_ITEM_STATE,
   PROGRAMME_SIGNOFF,
@@ -465,7 +466,7 @@ export function TrackItemCard({
                 <p className="text-xs font-medium text-foreground">
                   Video coming soon
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="mt-0.5 text-xs leading-normal text-muted-foreground">
                   Being recorded now. It will not hold up your progress - carry
                   on with the rest of the day.
                 </p>
@@ -557,11 +558,11 @@ export function TrackItemCard({
             item.submission?.signoffStatus === "approved" &&
             item.submission.signoffComment && (
               <div className="mt-2 rounded-md border border-border border-l-2 border-l-success bg-background px-3 py-2">
-                <p className="text-3xs font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+                <Eyebrow as="p">
                   {item.submission.reviewedByAi
                     ? "Feedback - automatic review"
                     : "Feedback"}
-                </p>
+                </Eyebrow>
                 <p className="mt-0.5 text-xs text-foreground">
                   {item.submission.signoffComment}
                 </p>
@@ -595,7 +596,7 @@ export function TrackItemCard({
             )}
 
           {error && (
-            <p className="mt-2 text-xs text-destructive" role="alert">
+            <p className="mt-2 text-xs leading-normal text-destructive" role="alert">
               {error}
             </p>
           )}

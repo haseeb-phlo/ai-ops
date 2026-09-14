@@ -187,7 +187,7 @@ export default async function SuggestionDetailPage({
 
       <header className="space-y-3">
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-2">
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+          <h1 className="text-2xl font-semibold text-foreground">
             {suggestion.title}
           </h1>
           <span className="inline-flex items-center gap-1.5 text-sm text-foreground">

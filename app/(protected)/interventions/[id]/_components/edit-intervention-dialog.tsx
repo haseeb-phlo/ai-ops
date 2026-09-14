@@ -383,7 +383,7 @@ function EditInterventionForm({
             <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               People affected
             </h3>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs leading-normal text-muted-foreground">
               Drives per-person reach metrics. Add or remove anyone
               whose access has changed.
             </p>
@@ -402,7 +402,7 @@ function EditInterventionForm({
               Impact per run × times per week
               <RequiredMark />
             </h3>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs leading-normal text-muted-foreground">
               What does one run save, and how often does it run? The
               weekly total is computed below. Enter 0 if a number
               doesn&apos;t apply.
@@ -615,7 +615,7 @@ function EditInterventionForm({
                 <SelectItem value="low">{CONFIDENCE_LABEL.low}</SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs leading-normal text-muted-foreground">
               Editorial signal for reviewers. Doesn&apos;t change the
               dashboard math.
             </p>
@@ -699,7 +699,7 @@ function EditInterventionForm({
             <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Notes
             </h3>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs leading-normal text-muted-foreground">
               Optional. Context, caveats, links. Plain text, line breaks
               preserved. Tracked in the audit log.
             </p>

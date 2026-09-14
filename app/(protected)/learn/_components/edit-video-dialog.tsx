@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Field, fieldDescriptionId } from "@/components/ui/field";
 import {
   Select,
   SelectContent,
@@ -213,8 +214,15 @@ function EditVideoForm({
           </div>
         )}
 
-        <div className="space-y-1.5">
-          <Label htmlFor={`edit-video-${id}`}>Video link</Label>
+        <Field
+          htmlFor={`edit-video-${id}`}
+          label="Video link"
+          required
+          error={
+            urlInvalid &&
+            "That doesn't look like a link. Paste the https:// URL you would share with someone."
+          }
+        >
           <Input
             id={`edit-video-${id}`}
             name="video_url"
@@ -224,14 +232,11 @@ function EditVideoForm({
             onChange={(e) => setVideoUrl(e.target.value)}
             placeholder="https://streamable.com/... or any share link"
             aria-invalid={urlInvalid || undefined}
+            aria-describedby={
+              urlInvalid ? fieldDescriptionId(`edit-video-${id}`) : undefined
+            }
           />
-          {urlInvalid && (
-            <p role="alert" className="text-xs text-destructive">
-              That doesn&apos;t look like a link. Paste the https:// URL
-              you would share with someone.
-            </p>
-          )}
-        </div>
+        </Field>
 
         <div className="space-y-1.5">
           <Label htmlFor={`edit-description-${id}`}>

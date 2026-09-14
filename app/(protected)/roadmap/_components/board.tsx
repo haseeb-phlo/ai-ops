@@ -449,7 +449,7 @@ function LaneColumn({
         </span>
       </div>
       {cards.length === 0 ? (
-        <p className="rounded-md border border-dashed border-border bg-background px-3 py-6 text-center text-xs text-muted-foreground">
+        <p className="rounded-md border border-dashed border-border bg-background px-3 py-6 text-center text-xs leading-normal text-muted-foreground">
           {canMove ? "Drag cards here." : "Nothing here yet."}
         </p>
       ) : isQueue ? (

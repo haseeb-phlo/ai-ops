@@ -232,7 +232,7 @@ function Row({
             className="shrink-0 text-xs text-muted-foreground tabular-nums"
           />
         </div>
-        <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{meta}</p>
+        <p className="mt-0.5 line-clamp-2 text-xs leading-normal text-muted-foreground">{meta}</p>
       </div>
     </div>
   );

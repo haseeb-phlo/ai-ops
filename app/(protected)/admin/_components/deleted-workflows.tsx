@@ -51,7 +51,7 @@ export function DeletedWorkflows({ rows }: { rows: DeletedWorkflowRow[] }) {
         <h2 className="text-sm font-semibold tracking-tight text-foreground">
           Deleted workflows
         </h2>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs leading-normal text-muted-foreground">
           Soft-deleted workflows. Restoring puts one back everywhere it
           appeared.
         </p>

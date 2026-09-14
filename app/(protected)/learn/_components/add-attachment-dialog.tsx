@@ -190,7 +190,7 @@ function AttachmentForms({
                   {fileError}
                 </p>
               ) : (
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs leading-normal text-muted-foreground">
                   Up to {maxMb} MB. Stored privately; signed download links are
                   minted on click.
                 </p>

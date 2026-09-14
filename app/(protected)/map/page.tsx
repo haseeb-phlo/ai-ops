@@ -101,7 +101,7 @@ export default async function MapPage({
         <div className="border-b bg-background px-6 py-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+              <h1 className="text-2xl font-semibold text-foreground">
                 People
               </h1>
               <p className="mt-1 text-sm text-muted-foreground">
@@ -187,7 +187,7 @@ export default async function MapPage({
     console.warn("[map] failed to load map data:", errors[0]?.message);
     return (
       <div className="mx-auto max-w-6xl px-6 py-10 space-y-4">
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+        <h1 className="text-2xl font-semibold text-foreground">
           People
         </h1>
         <Alert variant="destructive">
@@ -374,7 +374,7 @@ export default async function MapPage({
       <div className="border-b bg-background px-6 py-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+            <h1 className="text-2xl font-semibold text-foreground">
               People
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">

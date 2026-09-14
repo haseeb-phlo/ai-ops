@@ -243,7 +243,7 @@ export function ChampionsManager({
         <h2 className="text-sm font-semibold tracking-tight text-foreground">
           Assign a new champion
         </h2>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs leading-normal text-muted-foreground">
           Pick a team and a person from the directory. Existing champions
           appear in the &ldquo;All champions&rdquo; table below, where you
           can also remove.

@@ -294,7 +294,7 @@ function QuestionField({
       <legend className="flex flex-wrap items-baseline gap-2 text-sm text-foreground">
         <span className={compact ? "" : "font-medium"}>{question.text}</span>
         {carriedForward && prefillLabel && (
-          <span className="rounded bg-muted px-1.5 py-0.5 text-3xs font-medium uppercase tracking-wide text-muted-foreground">
+          <span className="rounded bg-muted px-1.5 py-0.5 text-3xs font-medium uppercase tracking-eyebrow text-muted-foreground">
             from {prefillLabel}
           </span>
         )}

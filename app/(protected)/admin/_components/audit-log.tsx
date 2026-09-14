@@ -93,7 +93,7 @@ export function AuditLog({ rows }: { rows: AuditRow[] }) {
           <h2 className="text-sm font-semibold tracking-tight text-foreground">
             Audit log
           </h2>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs leading-normal text-muted-foreground">
             Last 100 edits across workflows, steps, and initiative status
             changes.
           </p>

@@ -121,7 +121,7 @@ export function RosterGrid({
 
   return (
     <div className="space-y-3">
-      <p className="text-xs text-muted-foreground">
+      <p className="text-xs leading-normal text-muted-foreground">
         Tap a cell to cycle: blank → attended → absent → excused. An excused
         member only counts toward their sessions gate if they made it up
         elsewhere - tick “made up” to record that.

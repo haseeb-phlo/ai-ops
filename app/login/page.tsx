@@ -275,7 +275,7 @@ export default function LoginPage() {
               AI Ops
             </span>
           </div>
-          <p className="mt-3 text-xs text-muted-foreground">
+          <p className="mt-3 text-xs leading-normal text-muted-foreground">
             Phlo&apos;s internal register of recurring workflows and AI
             interventions.
           </p>
@@ -283,7 +283,7 @@ export default function LoginPage() {
 
         <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
           <div className="space-y-1">
-            <h1 className="text-lg font-semibold tracking-tight text-foreground">
+            <h1 className="text-lg font-semibold text-foreground">
               {onCodeStep ? "Check your email" : "Sign in"}
             </h1>
             <p className="text-sm text-muted-foreground">

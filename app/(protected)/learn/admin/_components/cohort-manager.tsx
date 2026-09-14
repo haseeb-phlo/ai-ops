@@ -212,7 +212,7 @@ function CreateCohortForm({
         <legend className="text-xs font-medium text-foreground">
           Session dates
         </legend>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs leading-normal text-muted-foreground">
           Worked out from the start date. Tick a session to run it twice, for
           people who cannot all leave the floor at once.
         </p>
@@ -285,7 +285,7 @@ function CreateCohortForm({
             name="slack_channel"
             placeholder="ai-cohort-1"
           />
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs leading-normal text-muted-foreground">
             Where completions get announced. Paste the name or the channel
             link; invite the AI Ops bot to it first.
           </p>
@@ -298,7 +298,7 @@ function CreateCohortForm({
             approvers={approvers}
             defaultValue={meUserId}
           />
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs leading-normal text-muted-foreground">
             One person reviews every submission in this cohort. Leave it on the
             org chart only once team leads have been through the programme
             themselves.
@@ -318,7 +318,7 @@ function CreateCohortForm({
             </option>
             <option value="human">Every submission waits for the approver</option>
           </select>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs leading-normal text-muted-foreground">
             Automatic review scores against the same four criteria and approves
             clear passes with written feedback. Capstones, anything borderline
             and anything it cannot judge fairly still go to a person.
@@ -402,7 +402,7 @@ function CohortRow({
         <span className="text-sm font-medium text-foreground">
           {cohort.name}
           {cohort.isTest && (
-            <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-3xs uppercase tracking-wide text-muted-foreground">
+            <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-3xs font-medium uppercase tracking-eyebrow text-muted-foreground">
               test
             </span>
           )}
@@ -537,7 +537,7 @@ function CohortRow({
         )}
       </form>
 
-      <p className="mt-2 text-3xs text-muted-foreground">
+      <p className="mt-2 text-3xs leading-normal text-muted-foreground">
         {cohort.isTest
           ? "Marked as test: excluded from every report and every notification. Untick to count it as a real cohort."
           : "Counts as a real cohort. Ticking test hides it from every report and notification."}
@@ -589,7 +589,7 @@ function DeleteCohort({ cohort }: { cohort: ExistingCohort }) {
         <form action={action} className="flex flex-wrap items-end gap-2">
           <input type="hidden" name="cohort_id" value={cohort.id} />
           <label className="space-y-1 text-xs">
-            <span className="block max-w-prose text-muted-foreground">
+            <span className="block text-body-foreground">
               Deletes {cohort.memberCount} member
               {cohort.memberCount === 1 ? "" : "s"} and everything they have
               done in it, including their check-in answers unless they are in
@@ -624,7 +624,7 @@ function DeleteCohort({ cohort }: { cohort: ExistingCohort }) {
         </form>
       )}
       {state.kind === "error" && (
-        <p className="mt-2 max-w-prose text-xs text-destructive-ink" role="alert">
+        <p className="mt-2 text-xs leading-normal text-destructive-ink" role="alert">
           {state.message}
         </p>
       )}
@@ -677,7 +677,7 @@ function SlackTest({
         )}
       </div>
       {state.kind === "error" && (
-        <p className="max-w-prose rounded-md border border-border border-l-2 border-l-warning bg-background px-3 py-2 text-xs text-foreground">
+        <p className="rounded-md border border-border border-l-2 border-l-warning bg-background px-3 py-2 text-xs leading-normal text-foreground">
           {state.message}
         </p>
       )}

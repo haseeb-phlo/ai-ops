@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { ExternalLinkIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Eyebrow } from "@/components/ui/eyebrow";
 import { Textarea } from "@/components/ui/textarea";
 import { signOffSubmission, type SignOffState } from "../actions";
 
@@ -98,9 +99,9 @@ export function SignOffCard({ item }: { item: PendingItem }) {
           </p>
           <p className="mt-0.5 text-muted-foreground">{item.aiReview.why}</p>
           <p className="mt-1.5 text-muted-foreground">{item.aiReview.feedback}</p>
-          <p className="mt-1.5 text-3xs uppercase tracking-wide text-muted-foreground">
+          <Eyebrow as="p" className="mt-1.5">
             Scores and comment below are its draft. Change anything.
-          </p>
+          </Eyebrow>
         </div>
       )}
 
@@ -191,7 +192,7 @@ export function SignOffCard({ item }: { item: PendingItem }) {
             }
           />
           {belowThreshold && decision === "approved" && (
-            <p className="text-xs text-warning">
+            <p className="text-xs leading-normal text-warning">
               Approval needs all four at {APPROVE_THRESHOLD} or above. Send it
               back with a comment instead.
             </p>

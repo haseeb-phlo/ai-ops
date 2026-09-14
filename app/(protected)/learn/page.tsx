@@ -52,7 +52,7 @@ export default async function LearnPage() {
       {access === "checkin" ? (
         <>
           <BaselineGateCard />
-          <p className="max-w-prose text-xs text-muted-foreground">
+          <p className="text-xs text-body-foreground">
             {track!.cohort.name} started{" "}
             {formatIsoDate(track!.cohort.startDate, "long")}. Your first day
             opens as soon as the check-in is in.

@@ -42,7 +42,7 @@ export function PreviewPanel({
       <h3 className="text-sm font-semibold tracking-tight text-foreground">
         Try as a member
       </h3>
-      <p className="mt-1 max-w-prose text-xs text-muted-foreground">
+      <p className="mt-1 text-xs leading-normal text-body-foreground">
         Puts you in your own private run of the programme, backdated so nothing
         is locked. It is a real enrolment on real screens, so you see exactly
         what a member sees. It is marked as test data, so it stays out of every
@@ -92,7 +92,7 @@ export function PreviewPanel({
       )}
 
       {active && (
-        <p className="mt-3 border-t border-border pt-3 text-xs text-muted-foreground">
+        <p className="mt-3 border-t border-border pt-3 text-xs leading-normal text-muted-foreground">
           Starting again wipes this run&apos;s progress, submissions and quiz
           attempts, and the check-in if it was taken here. A check-in that
           belongs to a real cohort is left alone - it is your actual baseline,

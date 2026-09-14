@@ -185,14 +185,14 @@ export function ProgrammeStatus({
         <div className="min-w-0">
           <h2
             className={cn(
-              "flex items-center gap-2 text-lg font-semibold tracking-tight",
+              "flex items-center gap-2 text-lg font-semibold",
               ink.strong,
             )}
           >
             {onWash && <CheckIcon className="size-5 shrink-0" aria-hidden />}
             {headline}
           </h2>
-          <p className={cn("mt-0.5 max-w-prose text-xs", ink.quiet)}>{blurb}</p>
+          <p className={cn("mt-0.5 text-xs leading-normal", ink.quiet)}>{blurb}</p>
         </div>
 
         <div className="flex shrink-0 items-center gap-4">
@@ -249,7 +249,7 @@ export function ProgrammeStatus({
                 />
                 <span
                   className={cn(
-                    "text-3xs font-semibold uppercase tracking-[0.06em]",
+                    "text-3xs font-medium uppercase tracking-eyebrow",
                     ink.quiet,
                   )}
                 >
@@ -277,19 +277,24 @@ export function ProgrammeStatus({
         <div className="mt-5 border-t border-border pt-4">
           <p
             className={cn(
-              "text-3xs font-semibold uppercase tracking-[0.06em]",
+              "text-3xs font-medium uppercase tracking-eyebrow",
               ink.quiet,
             )}
           >
             What to do next
           </p>
-          <ul className="mt-2 space-y-2">
+          <ul className="mt-2.5 space-y-3">
             {actions.map((action) => (
               <li key={action.key}>
                 <p className={cn("text-xs font-medium", ink.strong)}>
                   {action.title}
                 </p>
-                <p className={cn("max-w-prose text-xs", ink.quiet)}>
+                <p
+                  className={cn(
+                    "mt-0.5 text-xs leading-normal",
+                    ink.quiet,
+                  )}
+                >
                   {action.why}
                 </p>
               </li>

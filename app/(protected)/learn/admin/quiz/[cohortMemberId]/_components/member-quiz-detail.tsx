@@ -31,7 +31,7 @@ export function MemberQuizDetail({ quizzes }: { quizzes: QuizDetail[] }) {
                 </span>
               )}
             </h3>
-            <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+            <p className="inline-flex items-center gap-1.5 text-xs leading-normal text-muted-foreground">
               {quiz.bestScore === null ? (
                 quiz.column.opened ? (
                   "Not attempted"
@@ -60,14 +60,14 @@ export function MemberQuizDetail({ quizzes }: { quizzes: QuizDetail[] }) {
           </div>
 
           {quiz.config === null && (
-            <p className="mt-3 rounded-md border border-border border-l-2 border-l-warning bg-background px-3 py-2 text-xs text-foreground">
+            <p className="mt-3 rounded-md border border-border border-l-2 border-l-warning bg-background px-3 py-2 text-xs leading-normal text-foreground">
               This quiz has no readable questions in its config, so answers
               cannot be shown. Any scores below are still what was recorded.
             </p>
           )}
 
           {quiz.attempts.length === 0 ? (
-            <p className="mt-3 text-xs text-muted-foreground">
+            <p className="mt-3 text-xs leading-normal text-muted-foreground">
               {quiz.column.opened
                 ? "Nothing recorded yet."
                 : "Nobody can take this one yet."}
@@ -122,7 +122,7 @@ function Attempt({
       </div>
 
       {attempt.alignment !== "aligned" ? (
-        <p className="px-3 py-2 text-xs text-muted-foreground">
+        <p className="px-3 py-2 text-xs leading-normal text-muted-foreground">
           {attempt.alignment === "drifted"
             ? "The questions have been edited since this attempt, so the answers no longer mark to the score that was recorded. The score above stands - it is what was credited - but showing which option was picked would name an option this member never saw."
             : "This attempt does not line up with the quiz as it stands now, so the individual answers cannot be replayed. The score above is what was recorded."}

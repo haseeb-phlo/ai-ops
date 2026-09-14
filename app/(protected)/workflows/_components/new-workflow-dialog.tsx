@@ -350,7 +350,7 @@ function NewWorkflowForm({
                 Confidential &mdash; only visible to the owner team
               </Label>
             </div>
-            <p className="pl-6 text-xs text-muted-foreground">
+            <p className="pl-6 text-xs leading-normal text-muted-foreground">
               Hides this workflow (and its steps, metrics and activity) from
               everyone outside the owner team, except admins.
             </p>
@@ -363,7 +363,7 @@ function NewWorkflowForm({
               People involved
               <RequiredMark />
             </h3>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs leading-normal text-muted-foreground">
               Who actually does this work today? Pick at least one person
               from the company directory. You can adjust later from the
               workflow page.
@@ -385,7 +385,7 @@ function NewWorkflowForm({
             <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Tools used
             </h3>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs leading-normal text-muted-foreground">
               Apps, AI models, or systems people use to run this today.
               Optional. Press Enter or comma to add.
             </p>
@@ -408,7 +408,7 @@ function NewWorkflowForm({
               Today&apos;s baseline
               <RequiredMark />
             </h3>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs leading-normal text-muted-foreground">
               Roughly what this currently consumes per week. AI savings get
               measured against these. Enter 0 if a number doesn&apos;t apply.
             </p>
@@ -473,7 +473,7 @@ function NewWorkflowForm({
               Steps
               <RequiredMark />
             </h3>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs leading-normal text-muted-foreground">
               The actions someone takes to complete this workflow, in
               order. At least one is required.
             </p>
@@ -486,7 +486,7 @@ function NewWorkflowForm({
             <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Notes
             </h3>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs leading-normal text-muted-foreground">
               Optional. Anything reviewers should know &mdash; context,
               caveats, links. Plain text, line breaks preserved.
             </p>

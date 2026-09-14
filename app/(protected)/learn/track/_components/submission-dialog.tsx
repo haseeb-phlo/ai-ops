@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Field, fieldDescriptionId } from "@/components/ui/field";
 import { submitProgrammeSubmission } from "../actions";
 
 /**
@@ -121,11 +122,11 @@ export function SubmissionDialog({
                 <li>Use Share to create a public link.</li>
                 <li>Copy that link. It looks like claude.ai/share/…</li>
               </ol>
-              <p className="mt-2 text-xs text-muted-foreground">
+              <p className="mt-2 text-xs leading-normal text-muted-foreground">
                 The address in your browser bar is not the same thing, and
                 nobody else can open it.
               </p>
-              <p className="mt-1.5 text-xs text-muted-foreground">
+              <p className="mt-1.5 text-xs leading-normal text-muted-foreground">
                 Worth checking: paste it into a private window. If it opens
                 without asking you to sign in, it will open for us.
               </p>
@@ -134,13 +135,20 @@ export function SubmissionDialog({
 
           {!isWorkSample && (
             <>
-              <div className="space-y-1.5">
-                <Label htmlFor="prompt_text">The prompt you used</Label>
-                <Textarea id="prompt_text" name="prompt_text" rows={4} required />
-                <p className="text-xs text-muted-foreground">
-                  This is what makes the gallery useful to everyone else.
-                </p>
-              </div>
+              <Field
+                htmlFor="prompt_text"
+                label="The prompt you used"
+                required
+                help="This is what makes the gallery useful to everyone else."
+              >
+                <Textarea
+                  id="prompt_text"
+                  name="prompt_text"
+                  rows={4}
+                  required
+                  aria-describedby={fieldDescriptionId("prompt_text")}
+                />
+              </Field>
               <div className="space-y-1.5">
                 <Label htmlFor="task_solved">What it solved</Label>
                 <Input id="task_solved" name="task_solved" />

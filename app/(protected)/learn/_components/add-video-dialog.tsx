@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Field, fieldDescriptionId } from "@/components/ui/field";
 import {
   Select,
   SelectContent,
@@ -183,8 +184,16 @@ function AddVideoForm({
           </div>
         )}
 
-        <div className="space-y-1.5">
-          <Label htmlFor="video_url">Video link</Label>
+        <Field
+          htmlFor="video_url"
+          label="Video link"
+          required
+          error={
+            urlInvalid &&
+            "That doesn't look like a link. Paste the https:// URL you would share with someone."
+          }
+          help="Loom and Streamable play inside the card. Anything else is saved as a link out."
+        >
           <Input
             id="video_url"
             name="video_url"
@@ -194,19 +203,9 @@ function AddVideoForm({
             value={videoUrl}
             onChange={(e) => setVideoUrl(e.target.value)}
             aria-invalid={urlInvalid || undefined}
+            aria-describedby={fieldDescriptionId("video_url")}
           />
-          {urlInvalid ? (
-            <p role="alert" className="text-xs text-destructive">
-              That doesn&apos;t look like a link. Paste the https:// URL
-              you would share with someone.
-            </p>
-          ) : (
-            <p className="text-xs text-muted-foreground">
-              Loom and Streamable play inside the card. Anything else is
-              saved as a link out.
-            </p>
-          )}
-        </div>
+        </Field>
 
         <div className="space-y-1.5">
           <Label htmlFor="description">Description (optional)</Label>

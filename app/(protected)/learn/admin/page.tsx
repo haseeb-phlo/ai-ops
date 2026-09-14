@@ -249,7 +249,7 @@ export default async function ProgrammeAdminPage({
           path leaves the submission for a person, which looks exactly like a
           busy queue. This is the only place that difference shows. */}
       {((reviewErrorCount ?? 0) > 0 || (awaitingReviewCount ?? 0) > 0) && (
-        <p className="rounded-md border border-border border-l-2 border-l-warning bg-background px-3 py-2 text-xs text-foreground">
+        <p className="rounded-md border border-border border-l-2 border-l-warning bg-background px-3 py-2 text-xs leading-normal text-foreground">
           {(reviewErrorCount ?? 0) > 0 && (
             <>
               {reviewErrorCount} submission
@@ -418,7 +418,7 @@ export default async function ProgrammeAdminPage({
         }
         importPanel={
           <div className="space-y-3">
-            <p className="text-xs text-muted-foreground tabular-nums">
+            <p className="text-xs leading-normal text-muted-foreground tabular-nums">
               {mayCount ?? 0} May 2026 responses stored
               {(unlinkedCount ?? 0) > 0 &&
                 ` · ${unlinkedCount} awaiting first sign-in`}

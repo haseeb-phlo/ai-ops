@@ -5,6 +5,7 @@ import { getSessionUser } from "@/lib/auth";
 import { PageContainer, PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Eyebrow } from "@/components/ui/eyebrow";
 import { canSeeProblemBank } from "@/lib/hackathon/access";
 import { compareByHours } from "@/lib/hackathon/impact";
 import { answerValue } from "@/lib/hackathon/questions";
@@ -104,7 +105,7 @@ export default async function ProblemBankPage() {
             />
           </dl>
 
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs leading-normal text-muted-foreground">
             Hours are per person, per week. A plus means a floor:
             &ldquo;over an hour&rdquo; has no top end.
           </p>
@@ -151,9 +152,9 @@ function roundHours(value: number): string {
 function Tile({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg border border-border bg-background p-4">
-      <dt className="text-3xs font-medium uppercase tracking-wide text-muted-foreground">
+      <Eyebrow as="dt">
         {label}
-      </dt>
+      </Eyebrow>
       <dd className="mt-1 font-mono text-2xl tabular-nums text-foreground">
         {value}
       </dd>

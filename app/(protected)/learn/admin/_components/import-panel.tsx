@@ -45,7 +45,7 @@ export function ImportPanel({
         <h3 className="text-sm font-semibold tracking-tight text-foreground">
           Import the May 2026 baseline
         </h3>
-        <p className="mt-1 max-w-prose text-sm text-muted-foreground">
+        <p className="mt-1 max-w-prose text-sm text-body-foreground">
           Upload the original export (<code>.xlsx</code> or{" "}
           <code>.csv</code>). Rows are matched on email and stored as the{" "}
           <code>may_2026</code> wave. Re-running changes nothing - the import

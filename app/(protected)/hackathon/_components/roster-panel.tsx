@@ -43,13 +43,13 @@ export function RosterPanel({
         <h2 className="text-sm font-semibold tracking-tight text-foreground">
           Who this is for
         </h2>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs leading-normal text-muted-foreground">
           {participants.length === 0
             ? "Nobody on the list yet"
             : `${answered} of ${participants.length} answered`}
         </p>
       </div>
-      <p className="mt-1 max-w-prose text-xs text-muted-foreground">
+      <p className="mt-1 text-xs leading-normal text-body-foreground">
         Only these people see the Hackathon tab. Paste addresses one per line,
         comma separated, or straight from a To: field. Someone who has never
         signed in can go on the list now.
@@ -87,7 +87,7 @@ export function RosterPanel({
       </form>
 
       {removeState.kind === "error" && (
-        <p className="mt-2 text-xs text-destructive" role="alert">
+        <p className="mt-2 text-xs leading-normal text-destructive" role="alert">
           {removeState.message}
         </p>
       )}

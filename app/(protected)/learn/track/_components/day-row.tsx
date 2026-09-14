@@ -65,14 +65,14 @@ export function DayRow({
 
       <div className="min-w-0 flex-1 space-y-2">
         <div className="flex items-baseline gap-2 pt-1">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             Day {dayIndex}
           </h3>
           <span className="text-xs text-muted-foreground/70">
             {format(new Date(`${unlockDate}T00:00:00`), "EEE d MMM")}
           </span>
           {isToday && (
-            <span className="rounded bg-secondary px-1.5 py-0.5 text-3xs font-medium uppercase tracking-wide text-secondary-foreground">
+            <span className="rounded bg-secondary px-1.5 py-0.5 text-3xs font-medium uppercase tracking-eyebrow text-secondary-foreground">
               Today
             </span>
           )}

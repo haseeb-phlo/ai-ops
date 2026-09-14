@@ -302,7 +302,7 @@ function TaskEvidenceTable({
           {filed} of {possible} filed
         </span>
       </div>
-      <p className="mt-1 max-w-prose text-sm text-muted-foreground">
+      <p className="mt-1 max-w-prose text-sm text-body-foreground">
         What each person produced for each day&apos;s Task, as a link or a
         screenshot. Filed by the member on their own timeline, not reviewed and
         not part of sign-off - this is the record of who is actually doing the
@@ -425,7 +425,7 @@ function WorkSampleTable({ rows }: { rows: WorkSampleRow[] }) {
           {submitted} of {rows.length} have submitted a before sample
         </span>
       </div>
-      <p className="mt-1 max-w-prose text-sm text-muted-foreground">
+      <p className="mt-1 max-w-prose text-sm text-body-foreground">
         Private to admins. These are the before/after pair the programme is
         measured on - the blind-scoring file below is the same links with the
         names taken off.
@@ -523,7 +523,7 @@ function ExportCard({ cohortId }: { cohortId: string }) {
       <h3 className="text-sm font-semibold tracking-tight text-foreground">
         Work samples for blind scoring
       </h3>
-      <p className="mt-1 max-w-prose text-sm text-muted-foreground">
+      <p className="mt-1 max-w-prose text-sm text-body-foreground">
         Before/after pairs, keyed by a stable hash. No name, email or team -
         the scorer shouldn&apos;t be able to tell whose work they&apos;re
         reading, and the file leaves our control once it&apos;s downloaded.

@@ -206,7 +206,7 @@ export function StepEditor({
 
   return (
     <div className="space-y-2">
-      <p className="text-xs text-muted-foreground">
+      <p className="text-xs leading-normal text-muted-foreground">
         Press Enter to jump to the description; press Enter again for the next
         step. Paste a numbered list to fill multiple steps at once. Use the
         arrows (or drag) to reorder.

@@ -27,6 +27,7 @@ import {
   X,
 } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Eyebrow } from "@/components/ui/eyebrow";
 import {
   Select,
   SelectContent,
@@ -117,6 +118,8 @@ type Theme = {
   foreground: string;
   border: string;
   mutedForeground: string;
+  ring: string;
+  destructive: string;
 };
 
 function readTheme(): Theme {
@@ -130,6 +133,11 @@ function readTheme(): Theme {
     foreground: token("--foreground", "#18181b"),
     border: token("--border", "#e4e4e7"),
     mutedForeground: token("--muted-foreground", "#71717a"),
+    // Canvas can't resolve a CSS variable, so the two brand hues the node
+    // painter needs are read here like the rest of the theme rather than
+    // written as literals beside the strokes that use them.
+    ring: token("--ring", "#00a9be"),
+    destructive: token("--destructive", "#d81e5b"),
   };
 }
 
@@ -939,7 +947,7 @@ function Legend({
         type="button"
         aria-expanded
         onClick={() => setOpen(false)}
-        className="flex w-full items-center justify-between border-b border-border px-3 py-2 text-left text-3xs font-medium uppercase tracking-wide text-muted-foreground hover:text-foreground"
+        className="flex w-full items-center justify-between border-b border-border px-3 py-2 text-left text-3xs font-medium uppercase tracking-eyebrow text-muted-foreground hover:text-foreground"
       >
         Legend
         <ChevronUp aria-hidden className="size-3.5" />
@@ -1024,7 +1032,7 @@ function Legend({
         <ul className="space-y-1">
           <LegendRow
             swatch={
-              <Swatch fill="var(--background)" stroke="var(--muted-foreground)" ring="#00a9be" size={9} />
+              <Swatch fill="var(--background)" stroke="var(--muted-foreground)" ring="var(--ring)" size={9} />
             }
             label="Has active AI initiatives"
           />
@@ -1033,7 +1041,7 @@ function Legend({
               <Swatch
                 fill="var(--background)"
                 stroke="var(--muted-foreground)"
-                ring="#d81e5b"
+                ring="var(--destructive)"
                 ringDashed
                 size={9}
               />
@@ -1063,9 +1071,9 @@ function LegendSection({
           : "border-b border-border px-3 py-2.5"
       }
     >
-      <p className="text-3xs font-medium uppercase tracking-wide text-muted-foreground">
+      <Eyebrow as="p">
         {title}
-      </p>
+      </Eyebrow>
       <div className="mt-1.5">{children}</div>
     </div>
   );
@@ -1428,7 +1436,7 @@ function drawWorkflow(ctx: CanvasRenderingContext2D, n: Node, opts: DrawOpts) {
 
   // Halo around workflows with an active intervention.
   if (opts.activeInterventions > 0) {
-    ctx.strokeStyle = "#00a9be"; // brand cyan (matches the legend marker)
+    ctx.strokeStyle = opts.theme.ring; // matches the legend marker
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.arc(x, y, r + 4, 0, Math.PI * 2);
@@ -1455,7 +1463,7 @@ function drawWorkflow(ctx: CanvasRenderingContext2D, n: Node, opts: DrawOpts) {
   }
 
   if (n.meta.regulatory) {
-    ctx.strokeStyle = "#d81e5b";
+    ctx.strokeStyle = opts.theme.destructive;
     ctx.setLineDash([3, 3]);
     ctx.lineWidth = 1.5;
     ctx.beginPath();
@@ -1500,7 +1508,7 @@ function DetailCard({
     >
       <div className="flex items-start justify-between gap-2">
         <div>
-          <p className="text-xs uppercase tracking-wide text-muted-foreground">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             {node.kind}
           </p>
           <p className="mt-0.5 font-semibold">{node.label}</p>

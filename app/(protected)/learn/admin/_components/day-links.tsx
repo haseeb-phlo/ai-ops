@@ -44,7 +44,7 @@ export function DayLinks({ days }: { days: DayLink[] }) {
           {days.filter((d) => d.opened).length} of {days.length} open
         </span>
       </div>
-      <p className="mt-1 max-w-prose text-sm text-muted-foreground">
+      <p className="mt-1 max-w-prose text-sm text-body-foreground">
         One link per day, for the morning Slack post. Each opens that day
         directly on the member&apos;s own track - a day they have not reached
         yet shows its release date rather than its contents, so posting early

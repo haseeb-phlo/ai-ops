@@ -6,6 +6,7 @@ import {
   answerValue,
 } from "@/lib/hackathon/questions";
 import type { HackathonResponse } from "@/lib/hackathon/state";
+import { Eyebrow } from "@/components/ui/eyebrow";
 
 /**
  * One submitted problem, as it reads in the bank and on your own answer.
@@ -85,9 +86,9 @@ export function ProblemCard({
           <h3 className="text-sm font-medium text-foreground">
             {response.displayName}
             {highlight && (
-              <span className="ml-2 text-3xs font-medium uppercase tracking-wide text-muted-foreground">
+              <Eyebrow className="ml-2">
                 You
-              </span>
+              </Eyebrow>
             )}
           </h3>
           {response.team && (
@@ -114,7 +115,7 @@ export function ProblemCard({
           return (
             <div key={row.qid} className="px-4 py-2.5">
               <dt
-                className="text-3xs font-medium uppercase tracking-wide text-muted-foreground"
+                className="text-3xs font-medium uppercase tracking-eyebrow text-muted-foreground"
                 title={QUESTION_BY_ID.get(row.qid)?.text}
               >
                 {row.label}
@@ -137,9 +138,9 @@ export function ProblemCard({
 
         {showWants && wants && (
           <div className="px-4 py-2.5">
-            <dt className="text-3xs font-medium uppercase tracking-wide text-muted-foreground">
+            <Eyebrow as="dt">
               Wants out of Monday
-            </dt>
+            </Eyebrow>
             <dd className="mt-0.5 text-sm text-foreground">{wants}</dd>
           </div>
         )}

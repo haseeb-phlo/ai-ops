@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { UserPlusIcon, XIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Eyebrow } from "@/components/ui/eyebrow";
 import { enrolRoster, cancelPendingEnrolment, type EnrolState } from "../_actions/enrolment";
 
 export type PendingRow = {
@@ -49,7 +50,7 @@ export function EnrolPanel({
       <h3 className="text-sm font-semibold tracking-tight text-foreground">
         Enrol people
       </h3>
-      <p className="mt-1 max-w-prose text-xs text-muted-foreground">
+      <p className="mt-1 text-xs leading-normal text-body-foreground">
         Adds people to <span className="font-medium text-foreground">{cohortName}</span>.
         Paste addresses in any shape - one per line, comma separated, or
         straight out of a To: field. Anyone who has never signed in is held
@@ -93,7 +94,7 @@ export function EnrolPanel({
       )}
 
       {state.kind === "error" && (
-        <p className="mt-3 text-xs text-destructive-ink">{state.message}</p>
+        <p className="mt-3 text-xs leading-normal text-destructive-ink">{state.message}</p>
       )}
 
       {state.kind === "success" && (
@@ -120,9 +121,9 @@ export function EnrolPanel({
 
       {pending.length > 0 && (
         <div className="mt-4 border-t border-border pt-3">
-          <h4 className="text-3xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <Eyebrow as="h4">
             Waiting for a first sign-in ({pending.length})
-          </h4>
+          </Eyebrow>
           <ul className="mt-2 space-y-1">
             {pending.map((p) => (
               <li
@@ -145,7 +146,7 @@ export function EnrolPanel({
             ))}
           </ul>
           {cancelState.kind === "error" && (
-            <p className="mt-2 text-xs text-destructive-ink">
+            <p className="mt-2 text-xs leading-normal text-destructive-ink">
               {cancelState.message}
             </p>
           )}

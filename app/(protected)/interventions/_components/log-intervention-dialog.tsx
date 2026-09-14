@@ -524,7 +524,7 @@ function LogInterventionForm({
               People affected
               <RequiredMark />
             </h3>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs leading-normal text-muted-foreground">
               Who has this AI initiative reached? Pick at least one person.
               Drives per-person adoption tracking and reach metrics.
             </p>
@@ -545,7 +545,7 @@ function LogInterventionForm({
             <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Tools used
             </h3>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs leading-normal text-muted-foreground">
               Apps, AI models, or systems this AI initiative runs on.
               Optional. Press Enter or comma to add.
             </p>
@@ -568,7 +568,7 @@ function LogInterventionForm({
               Impact per run × times per week
               <RequiredMark />
             </h3>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs leading-normal text-muted-foreground">
               Enter what one run saves, and how often the initiative runs.
               The per-week total is shown below each input. Enter 0 if a
               number doesn&apos;t apply.
@@ -620,7 +620,7 @@ function LogInterventionForm({
                 singleSelectedWorkflow.frequency_cadence,
                 singleSelectedWorkflow.frequency_per_week,
               ) && (
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs leading-normal text-muted-foreground">
                   Defaulted from{" "}
                   <span className="font-medium text-foreground">
                     {singleSelectedWorkflow.name}
@@ -635,7 +635,7 @@ function LogInterventionForm({
                 </p>
               )}
             {selected.size > 1 && (
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs leading-normal text-muted-foreground">
                 Multiple workflows linked - pick how often this AI
                 initiative itself runs.
               </p>
@@ -812,7 +812,7 @@ function LogInterventionForm({
                 <SelectItem value="low">{CONFIDENCE_LABEL.low}</SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs leading-normal text-muted-foreground">
               Editorial signal for reviewers - flags uncertain estimates.
               Doesn&apos;t change the dashboard math.
             </p>
@@ -824,7 +824,7 @@ function LogInterventionForm({
             <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Notes
             </h3>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs leading-normal text-muted-foreground">
               Optional. Anything reviewers should know &mdash; context,
               caveats, links. Plain text, line breaks preserved.
             </p>
@@ -845,7 +845,7 @@ function LogInterventionForm({
             <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Adoption & sentiment
             </h3>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs leading-normal text-muted-foreground">
               Optional - skip if you&apos;re logging the day you ship.
               Fill in on the first snapshot once people have used it.
             </p>

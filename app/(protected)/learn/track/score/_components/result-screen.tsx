@@ -46,7 +46,7 @@ export function ResultScreen({
     <div className="space-y-6">
       <div className="rounded-lg border border-border bg-background p-5 sm:p-6">
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+          <h2 className="text-2xl font-semibold text-foreground">
             Your AI Score:{" "}
             <span className="tabular-nums">
               {current.cap_avg?.toFixed(1) ?? "-"}
@@ -57,7 +57,7 @@ export function ResultScreen({
         </div>
 
         {insight && (
-          <p className="mt-2 max-w-prose text-sm text-muted-foreground">
+          <p className="mt-2 max-w-prose text-sm text-body-foreground">
             {insight}
           </p>
         )}
@@ -110,7 +110,7 @@ export function ResultScreen({
               }
             />
           </dl>
-          <p className="mt-4 text-xs text-muted-foreground">
+          <p className="mt-4 text-xs leading-normal text-muted-foreground">
             We&apos;ll check in once more in three months - 60 seconds,
             pre-filled.
           </p>
@@ -158,7 +158,9 @@ function StatRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-wrap items-baseline justify-between gap-2 py-2.5">
       <dt className="text-sm text-muted-foreground">{label}</dt>
-      <dd className="text-sm font-medium text-foreground">{value}</dd>
+      <dd className="text-sm font-medium tabular-nums text-foreground">
+        {value}
+      </dd>
     </div>
   );
 }

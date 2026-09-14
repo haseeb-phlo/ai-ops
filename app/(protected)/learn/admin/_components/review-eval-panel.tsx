@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { FlaskConicalIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Eyebrow } from "@/components/ui/eyebrow";
 import { runEval, type EvalRunState } from "../_actions/review-eval";
 
 /**
@@ -26,16 +27,16 @@ export function ReviewEvalPanel({ configuration }: { configuration: string }) {
       <h3 className="text-sm font-semibold tracking-tight text-foreground">
         Check the automatic reviewer
       </h3>
-      <p className="mt-1 max-w-prose text-xs text-muted-foreground">
+      <p className="mt-1 text-xs leading-normal text-body-foreground">
         Runs eight submissions with known right answers through the real
         reviewer: a clear pass, a one-liner, a capstone, an attempt to instruct
         the reviewer, a claim it cannot verify, clinical work, a vague task and
         a plain but usable prompt. Run it after any change to the prompt or the
         model, and once before a cohort starts.
       </p>
-      <p className="mt-1 text-3xs uppercase tracking-wide text-muted-foreground">
+      <Eyebrow as="p" className="mt-1">
         {configuration}
-      </p>
+      </Eyebrow>
 
       <form action={action} className="mt-3">
         <Button type="submit" variant="outline" size="sm" disabled={pending}>

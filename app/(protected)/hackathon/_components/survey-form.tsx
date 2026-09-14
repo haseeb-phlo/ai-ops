@@ -198,7 +198,7 @@ function QuestionCard({
     >
       <legend className="sr-only">{`Question ${number} of ${total}: ${question.text}`}</legend>
 
-      <div aria-hidden className="text-3xs font-medium uppercase tracking-wide text-muted-foreground">
+      <div aria-hidden className="text-3xs font-medium uppercase tracking-eyebrow text-muted-foreground">
         Question {number} of {total}
         {!question.required && " · optional"}
       </div>
@@ -262,7 +262,7 @@ function QuestionCard({
       </div>
 
       {footnote && (
-        <p className="mt-2.5 text-xs text-muted-foreground">{footnote}</p>
+        <p className="mt-2.5 text-xs leading-normal text-muted-foreground">{footnote}</p>
       )}
     </fieldset>
   );

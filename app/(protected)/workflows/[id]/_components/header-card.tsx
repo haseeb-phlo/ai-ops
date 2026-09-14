@@ -92,7 +92,7 @@ export async function HeaderCard({
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+            <h1 className="text-2xl font-semibold text-foreground">
               {workflow.name}
             </h1>
             {workflow.regulatory && (

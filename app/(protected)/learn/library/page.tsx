@@ -233,7 +233,7 @@ export default async function LibraryPage() {
       />
 
       {videoRows.length > 0 && (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs leading-normal text-muted-foreground">
           Drag to reorder within a topic - use Edit to move a video to another
           topic.
         </p>
@@ -275,7 +275,7 @@ export default async function LibraryPage() {
           return (
             <section key={topic} className="space-y-3">
               <div className="flex items-baseline justify-between gap-3 border-b border-border pb-2">
-                <h2 className="text-lg font-semibold tracking-tight text-foreground">
+                <h2 className="text-lg font-semibold text-foreground">
                   {LEARN_TOPIC_LABEL[topic]}
                 </h2>
                 <span className="text-xs text-muted-foreground tabular-nums">
@@ -331,7 +331,7 @@ export default async function LibraryPage() {
         {uncategorized.length > 0 && (
           <section className="space-y-3">
             <div className="flex items-baseline justify-between gap-3 border-b border-border pb-2">
-              <h2 className="text-lg font-semibold tracking-tight text-foreground">
+              <h2 className="text-lg font-semibold text-foreground">
                 Uncategorized
               </h2>
               <span className="text-xs text-muted-foreground tabular-nums">

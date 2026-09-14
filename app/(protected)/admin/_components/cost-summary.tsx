@@ -36,7 +36,7 @@ export function CostSummary({ cost }: Props) {
 
   return (
     <div className="space-y-3">
-      <p className="text-xs text-muted-foreground">
+      <p className="text-xs leading-normal text-muted-foreground">
         Includes failed and retired initiatives. We&apos;d rather see honest
         spend than flatter the active ones.
       </p>

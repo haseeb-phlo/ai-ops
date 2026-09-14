@@ -167,7 +167,7 @@ export function Sidebar({
               <p className="truncate text-xs font-medium text-foreground">
                 {user.displayName}
               </p>
-              <p className="truncate text-3xs text-muted-foreground">
+              <p className="mt-0.5 truncate text-3xs text-muted-foreground">
                 {user.role === "super_admin"
                   ? "Super admin"
                   : user.team ?? "Member"}

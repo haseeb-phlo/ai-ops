@@ -36,7 +36,7 @@ export default async function JoinPage({
           a cohort you get a locked empty state, so the old copy sent people
           to a dead end and made the programme look broken on the one screen
           they had been invited to. Say what is actually true instead. */}
-      <p className="max-w-prose text-sm text-muted-foreground">
+      <p className="max-w-prose text-sm text-body-foreground">
         Haven&apos;t got a code? The programme runs in cohorts, and the
         training opens when yours starts - there is nothing to browse before
         then. You&apos;ll be added to a cohort Slack channel and invited from

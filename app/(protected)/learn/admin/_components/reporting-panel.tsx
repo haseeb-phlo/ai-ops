@@ -48,7 +48,7 @@ export function ReportingPanel({
     <div className="space-y-6">
       <RehearsalToggle on={includingRehearsal} />
       {view.unmapped.length > 0 && (
-        <p className="flex items-start gap-2 rounded-md border border-border border-l-2 border-l-warning bg-background px-3 py-2 text-xs text-foreground">
+        <p className="flex items-start gap-2 rounded-md border border-border border-l-2 border-l-warning bg-background px-3 py-2 text-xs leading-normal text-foreground">
           <AlertTriangleIcon className="mt-0.5 size-3.5 shrink-0 text-warning" aria-hidden />
           <span>
             {view.unmapped.join(", ")}{" "}
@@ -113,11 +113,11 @@ function DriftCard({ drift }: { drift: DriftComparison }) {
   ) => (
     <div className="rounded-md border border-border bg-background p-4">
       <p className="text-xs font-medium text-foreground">{label}</p>
-      <p className="text-3xs text-muted-foreground">{sub}</p>
+      <p className="mt-0.5 text-3xs text-muted-foreground">{sub}</p>
       <p className="mt-2 font-mono text-2xl tabular-nums text-foreground">
         {d.delta === null ? "-" : `${d.delta > 0 ? "+" : ""}${d.delta.toFixed(2)}`}
       </p>
-      <p className="mt-1 text-3xs text-muted-foreground">
+      <p className="mt-1 text-3xs leading-normal text-muted-foreground">
         {d.matched === 0
           ? "nobody answered both waves"
           : `${d.matched} people · ${d.beforeMean?.toFixed(2)} to ${d.afterMean?.toFixed(2)}`}
@@ -135,7 +135,7 @@ function DriftCard({ drift }: { drift: DriftComparison }) {
       <h3 className="text-sm font-semibold tracking-tight text-foreground">
         Did the programme do it, or would it have happened anyway?
       </h3>
-      <p className="mt-1 max-w-prose text-xs text-muted-foreground">
+      <p className="mt-1 text-xs leading-normal text-body-foreground">
         Both legs use only the people who answered both waves, so the figures
         are not confounded by who happened to respond.
       </p>
@@ -146,7 +146,7 @@ function DriftCard({ drift }: { drift: DriftComparison }) {
           <p className="text-xs font-medium text-secondary-foreground">
             Difference
           </p>
-          <p className="text-3xs text-secondary-foreground/80">
+          <p className="mt-0.5 text-3xs text-secondary-foreground/80">
             Programme minus drift
           </p>
           <p className="mt-2 font-mono text-2xl tabular-nums text-secondary-foreground">
@@ -154,7 +154,7 @@ function DriftCard({ drift }: { drift: DriftComparison }) {
               ? "-"
               : `${drift.difference > 0 ? "+" : ""}${drift.difference.toFixed(2)}`}
           </p>
-          <p className="mt-1 text-3xs text-secondary-foreground/80">
+          <p className="mt-1 text-3xs leading-normal text-secondary-foreground/80">
             {drift.difference === null
               ? "needs both waves to overlap"
               : "points of capability, out of 4"}
@@ -199,7 +199,7 @@ function HoursCard({ hours }: { hours: HoursSaved }) {
               hours a week
             </span>
           </p>
-          <p className="mt-1 max-w-prose text-xs text-muted-foreground">
+          <p className="mt-1 text-xs leading-normal text-body-foreground">
             Across {hours.respondents} {hours.respondents === 1 ? "person" : "people"},
             self-reported in banded answers, so it is a range rather than a
             figure.
@@ -208,7 +208,7 @@ function HoursCard({ hours }: { hours: HoursSaved }) {
           </p>
         </>
       ) : (
-        <p className="mt-2 text-xs text-muted-foreground">
+        <p className="mt-2 text-xs leading-normal text-muted-foreground">
           Nobody has given a usable estimate yet. {hours.cannotEstimate} said
           they could not put a number on it, which is worth watching: that count
           falling is one of the things the programme is for.
@@ -292,7 +292,7 @@ function ConfidenceCard({
       <h3 className="text-sm font-semibold tracking-tight text-foreground">
         Confidence
       </h3>
-      <p className="mt-1 text-xs text-muted-foreground">
+      <p className="mt-1 text-xs leading-normal text-muted-foreground">
         Mean agreement, 0 to 4. Worth reading alongside capability: confidence
         moving faster than capability is the pattern to watch for.
       </p>
@@ -347,7 +347,7 @@ function BandCard({
       <h3 className="text-sm font-semibold tracking-tight text-foreground">
         Hours saved each week
       </h3>
-      <p className="mt-1 text-xs text-muted-foreground">
+      <p className="mt-1 text-xs leading-normal text-muted-foreground">
         The &quot;can&apos;t estimate&quot; row shrinking is itself a result:
         half the May respondents could not put a number on it.
       </p>
@@ -393,7 +393,7 @@ function TelemetryCard({
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         {telemetry.map((t) => (
           <div key={t.flow} className="rounded-md border border-border bg-background p-3">
-            <p className="text-xs font-medium text-foreground">
+            <p className="text-xs leading-normal font-medium text-foreground">
               {t.flow === "returner" ? "Returners" : "First-timers"}
             </p>
             <p className="mt-1 font-mono text-lg tabular-nums text-foreground">
@@ -406,7 +406,7 @@ function TelemetryCard({
         ))}
       </div>
       {tripped && (
-        <p className="mt-3 flex items-start gap-2 rounded-md border border-border border-l-2 border-l-warning bg-background px-3 py-2 text-xs text-foreground">
+        <p className="mt-3 flex items-start gap-2 rounded-md border border-border border-l-2 border-l-warning bg-background px-3 py-2 text-xs leading-normal text-foreground">
           <AlertTriangleIcon className="mt-0.5 size-3.5 shrink-0 text-warning" aria-hidden />
           <span>
             Returners are taking over six minutes. The pre-fill is meant to make
@@ -451,7 +451,7 @@ function ExportCard({
       <h3 className="text-sm font-semibold tracking-tight text-foreground">
         Export
       </h3>
-      <p className="mt-1 max-w-prose text-xs text-muted-foreground">
+      <p className="mt-1 text-xs leading-normal text-body-foreground">
         Per-question figures for whatever is currently filtered, one row per
         question per wave. Aggregates only, no individual answers.
       </p>

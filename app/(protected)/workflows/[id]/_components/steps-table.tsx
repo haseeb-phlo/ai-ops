@@ -149,7 +149,7 @@ export function StepsTable({
             Steps
           </h2>
           {canEdit && (
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs leading-normal text-muted-foreground">
               Click any cell to edit. Use the arrows to reorder, the + button
               below to add a step.
             </p>
@@ -175,7 +175,7 @@ export function StepsTable({
 
       <div className="overflow-hidden rounded-lg border border-border bg-background">
         <table className="w-full text-sm">
-          <thead className="bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
+          <thead className="bg-muted/40 text-xs font-medium uppercase tracking-wide text-muted-foreground">
             <tr>
               <th className="w-12 px-3 py-2 text-left font-medium">#</th>
               <th className="px-3 py-2 text-left font-medium">Title</th>
@@ -304,7 +304,7 @@ export function StepsTable({
         </table>
       </div>
       {canEdit && optimisticSteps.length === 0 && (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs leading-normal text-muted-foreground">
           No steps logged yet. Click <strong>Add step</strong> above to start
           documenting how this workflow runs.
         </p>

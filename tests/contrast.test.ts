@@ -96,6 +96,18 @@ const ALLOWED: [label: string, fg: string, bg: string, min: number][] = [
   // Ink on the two surfaces it is allowed to sit on.
   ["foreground on background", t("--foreground"), BG, 4.5],
   ["foreground on card", t("--foreground"), CARD, 4.5],
+  // The reading rung. It sits between foreground and muted-foreground, so it
+  // is asserted on every surface running prose can land on - including --muted,
+  // which the meta grey above is only just cleared for.
+  ["body-foreground on background", t("--body-foreground"), BG, 4.5],
+  ["body-foreground on card", t("--body-foreground"), CARD, 4.5],
+  ["body-foreground on muted", t("--body-foreground"), t("--muted"), 4.5],
+  [
+    "body-foreground on muted/40 (cream)",
+    t("--body-foreground"),
+    over(t("--muted"), 0.4, BG),
+    4.5,
+  ],
   ["muted-foreground on background", t("--muted-foreground"), BG, 4.5],
   ["muted-foreground on card", t("--muted-foreground"), CARD, 4.5],
   ["muted-foreground on muted", t("--muted-foreground"), t("--muted"), 4.5],

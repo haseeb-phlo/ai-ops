@@ -65,7 +65,7 @@ export function QuizRunner({
               : "border-border bg-background",
           )}
         >
-          <h2 className="text-lg font-semibold tracking-tight">
+          <h2 className="text-lg font-semibold">
             {state.score} out of {state.total}
           </h2>
           <p className="mt-1 text-sm opacity-90">

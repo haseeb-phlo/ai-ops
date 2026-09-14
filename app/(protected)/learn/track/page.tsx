@@ -12,6 +12,7 @@ import {
 } from "@/lib/programme/working-days";
 import { PageContainer, PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Eyebrow } from "@/components/ui/eyebrow";
 import { GraduationCapIcon } from "lucide-react";
 import { BaselineGateCard } from "./_components/baseline-gate-card";
 import { DayRow } from "./_components/day-row";
@@ -179,7 +180,7 @@ export default async function TrackPage({
 
       {(state.cohort.status === "complete" ||
         state.cohort.status === "archived") && (
-        <p className="rounded-md border border-border border-l-2 border-l-muted-foreground bg-background px-3 py-2 text-xs text-foreground">
+        <p className="rounded-md border border-border border-l-2 border-l-muted-foreground bg-background px-3 py-2 text-xs leading-normal text-foreground">
           This cohort has finished. Everything below is your record of it -
           nothing new will unlock.
         </p>
@@ -244,9 +245,9 @@ export default async function TrackPage({
         {weeks.map(({ week, days: weekDays }) => (
           <section key={week} className="space-y-2">
             <div className="flex items-baseline justify-between gap-3 border-b border-border pb-2">
-              <h2 className="text-3xs font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+              <Eyebrow as="h2">
                 Week {week}
-              </h2>
+              </Eyebrow>
               <span className="font-mono text-3xs tabular-nums text-muted-foreground">
                 {weekDays.filter((d) =>
                   (byDay.get(d) ?? []).every(

@@ -62,7 +62,7 @@ export function StatusActions({
           maxLength={500}
           placeholder="e.g. owned by the Clinical platform, out of scope for AI Ops."
         />
-        {error && <p className="text-xs text-destructive">{error}</p>}
+        {error && <p className="text-xs leading-normal text-destructive">{error}</p>}
         <div className="flex items-center gap-2">
           <Button
             type="button"

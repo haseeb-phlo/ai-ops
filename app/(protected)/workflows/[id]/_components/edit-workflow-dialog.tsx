@@ -400,7 +400,7 @@ function EditWorkflowForm({
               inputName="tools_used"
               placeholder="e.g. Notion, Claude, Linear"
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs leading-normal text-muted-foreground">
               Apps, AI models, or systems people use to run this. Press
               Enter or comma to add.
             </p>
@@ -440,7 +440,7 @@ function EditWorkflowForm({
                 Confidential &mdash; only visible to the owner team
               </Label>
             </div>
-            <p className="pl-6 text-xs text-muted-foreground">
+            <p className="pl-6 text-xs leading-normal text-muted-foreground">
               Hides this workflow (and its steps, metrics and activity) from
               everyone outside the owner team, except admins.
             </p>

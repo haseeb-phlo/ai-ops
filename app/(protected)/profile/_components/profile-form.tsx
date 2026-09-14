@@ -201,7 +201,7 @@ export function ProfileForm({
           disabled
           className={cn(inputClass)}
         />
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs leading-normal text-muted-foreground">
           Email is managed by your Google sign-in and can&apos;t be changed
           here.
         </p>
@@ -312,7 +312,7 @@ export function ProfileForm({
             {upload.message}
           </Alert>
         )}
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs leading-normal text-muted-foreground">
           PNG, JPEG, or WEBP. Up to 5 MB. Click <em>Save profile</em> to keep
           the new photo.
         </p>

@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { PencilIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Eyebrow } from "@/components/ui/eyebrow";
 import { Textarea } from "@/components/ui/textarea";
 import { editFeedback, type EditFeedbackState } from "../actions";
 
@@ -32,7 +33,7 @@ export function AutoApprovedList({ items }: { items: ReviewedItem[] }) {
         <h2 className="text-sm font-semibold tracking-tight text-foreground">
           Approved automatically
         </h2>
-        <p className="mt-0.5 text-xs text-muted-foreground">
+        <p className="mt-0.5 text-xs leading-normal text-muted-foreground">
           Cleared without you. Read the wording and change anything that does
           not sound right - the member sees your version.
         </p>
@@ -62,17 +63,17 @@ function ReviewedRow({ item }: { item: ReviewedItem }) {
         <span className="text-sm font-medium text-foreground">
           {item.memberName} - {item.title}
         </span>
-        <span className="text-3xs uppercase tracking-wide text-muted-foreground">
+        <Eyebrow>
           {new Date(item.decidedAt).toLocaleDateString("en-GB", {
             day: "numeric",
             month: "short",
           })}
-        </span>
+        </Eyebrow>
       </div>
 
       {!editing ? (
         <>
-          <p className="mt-1 text-xs text-muted-foreground">{draft}</p>
+          <p className="mt-1 text-xs leading-normal text-muted-foreground">{draft}</p>
           <div className="mt-2 flex items-center gap-2">
             <Button
               type="button"
@@ -84,9 +85,9 @@ function ReviewedRow({ item }: { item: ReviewedItem }) {
               {saved ? "Edit again" : "Edit wording"}
             </Button>
             {saved && (
-              <span className="text-3xs uppercase tracking-wide text-muted-foreground">
+              <Eyebrow>
                 Saved
-              </span>
+              </Eyebrow>
             )}
           </div>
         </>
@@ -124,7 +125,7 @@ function ReviewedRow({ item }: { item: ReviewedItem }) {
       )}
 
       {state.kind === "error" && (
-        <p className="mt-1 text-xs text-destructive" role="alert">
+        <p className="mt-1 text-xs leading-normal text-destructive" role="alert">
           {state.message}
         </p>
       )}

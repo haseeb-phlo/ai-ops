@@ -369,7 +369,7 @@ export default async function InterventionDetailPage({
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+              <h1 className="text-2xl font-semibold text-foreground">
                 {intervention.name}
               </h1>
               {statusStyle && <StatusPill status={statusStyle} />}
@@ -755,7 +755,7 @@ function ImpactBreakdown({
       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
         Impact per run × times per week
       </p>
-      <p className="mt-1 text-xs text-muted-foreground">
+      <p className="mt-1 text-xs leading-normal text-muted-foreground">
         How the weekly total on the dashboard is computed for this initiative.
       </p>
       <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -795,7 +795,7 @@ function BreakdownLine({
   return (
     <div className="space-y-0.5">
       {label && (
-        <p className="text-xs uppercase tracking-wide text-muted-foreground">
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           {label}
         </p>
       )}

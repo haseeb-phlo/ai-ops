@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { dayStatus, type DayStatus } from "@/lib/programme/day-status";
 import { PROGRAMME_OPEN_LABEL } from "@/lib/programme/working-days";
 import { Button } from "@/components/ui/button";
+import { Eyebrow } from "@/components/ui/eyebrow";
 import { TrackItemCard, type TrackItemView } from "./track-item-card";
 
 /**
@@ -148,23 +149,23 @@ export function DayFocus({
       <div className="rounded-lg border border-border bg-background p-4 sm:p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-baseline gap-2">
-            <h2 className="text-3xs font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+            <Eyebrow as="h2">
               Day {day.dayIndex}
-            </h2>
+            </Eyebrow>
             {day.dayIndex === todayDayIndex && (
-              <span className="flex items-center gap-1.5 text-3xs font-semibold uppercase tracking-[0.06em] text-foreground">
+              <Eyebrow className="flex items-center gap-1.5 text-foreground">
                 <span className="size-1.5 rounded-full bg-primary" aria-hidden />
                 Today
-              </span>
+              </Eyebrow>
             )}
             {locked && (
-              <span className="flex items-center gap-1 text-3xs uppercase tracking-[0.06em] text-muted-foreground">
+              <Eyebrow className="flex items-center gap-1">
                 <LockIcon className="size-3" aria-hidden />
                 opens{" "}
                 {day.opensToday
                   ? PROGRAMME_OPEN_LABEL
                   : format(new Date(day.unlockDate), "EEE d MMM")}
-              </span>
+              </Eyebrow>
             )}
           </div>
 
@@ -212,9 +213,9 @@ export function DayFocus({
       >
         {weeks.map(({ week, days: weekDays }) => (
           <div key={week} className="flex items-center gap-2">
-            <span className="font-mono text-3xs uppercase tracking-[0.06em] text-muted-foreground">
+            <Eyebrow mono>
               W{week}
-            </span>
+            </Eyebrow>
             <div className="flex items-center gap-1.5">
               {weekDays.map((d) => {
                 const dayStatus = statusOf(d, d.dayIndex === todayDayIndex);

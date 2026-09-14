@@ -415,7 +415,7 @@ export function CommandPalette({
                   <li key={group.kind} role="presentation">
                     <p
                       id={headerId}
-                      className="sticky top-0 z-10 bg-popover px-3 py-1 text-3xs font-semibold uppercase tracking-wider text-muted-foreground"
+                      className="sticky top-0 z-10 bg-popover px-3 py-1 text-3xs font-medium uppercase tracking-eyebrow text-muted-foreground"
                     >
                       {KIND_LABEL[group.kind]}
                     </p>

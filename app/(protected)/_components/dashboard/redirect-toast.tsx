@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Toast } from "@/components/ui/toast";
 
 const MESSAGES: Record<string, string> = {
   "admin-only": "That page is for admins — you've been sent home.",
@@ -91,24 +91,16 @@ export function RedirectToast() {
       className={cn(
         // Sits below the mobile top bar (h-14) on small screens; clears to
         // the corner on md+ where the bar disappears.
-        "fixed right-4 top-16 z-50 flex items-center gap-2 rounded-md border border-border bg-background py-2 pl-3 pr-1.5 text-sm text-foreground shadow-md transition-all duration-200 md:top-4",
+        "fixed right-4 top-16 z-50 transition-all duration-200 md:top-4",
         phase === "open"
           ? "translate-y-0 opacity-100"
           : "-translate-y-1 opacity-0",
       )}
     >
       {phase !== "init" && (
-        <>
+        <Toast tone="neutral" onDismiss={dismiss}>
           <span>{message}</span>
-          <button
-            type="button"
-            onClick={dismiss}
-            aria-label="Dismiss notification"
-            className="rounded p-0.5 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:inset-ring-2 focus-visible:inset-ring-primary"
-          >
-            <X aria-hidden className="size-3.5" />
-          </button>
-        </>
+        </Toast>
       )}
     </div>
   );

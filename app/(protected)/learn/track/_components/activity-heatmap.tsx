@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { Eyebrow } from "@/components/ui/eyebrow";
 import {
   activityStep,
   cohortMix,
@@ -51,9 +52,9 @@ export function ActivityHeatmap({ days }: { days: DayActivity[] }) {
       <div className="mt-4 flex flex-wrap items-start gap-x-6 gap-y-4">
         {weeks.map(({ week, days: weekDays }) => (
           <div key={week}>
-            <p className="font-mono text-3xs uppercase tracking-[0.06em] text-muted-foreground">
+            <Eyebrow as="p" mono>
               W{week}
-            </p>
+            </Eyebrow>
             <ol className="mt-1.5 flex gap-1">
               {weekDays.map((day) => {
                 const label = describeDay(day);
