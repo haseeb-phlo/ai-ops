@@ -466,22 +466,36 @@ describe("one-off day holds", () => {
     }
   });
 
-  it("holds nothing at all in the normal state", () => {
-    // The guard against a hold somebody forgot, restored now day 10's entry
-    // is out. It asserts on the MAP rather than on `heldDayIndexes(new
-    // Date())`, which is what it checked before day 10's hold displaced it,
-    // for two reasons:
+  it("holds every remaining day of the programme to 9am", () => {
+    // The other half of "a live hold is recorded in the docblock and here,
+    // together, or it is not live". This displaces the `DAY_HOLDS.size === 0`
+    // guard for as long as the run is in; the docblock asks for that
+    // assertion back once the table is emptied after 2026-09-18.
     //
-    //   - a SPENT entry left behind is invisible to the wall-clock form,
-    //     because an expired hold holds nothing. That is the exact thing the
-    //     DAY_HOLDS docblock asks the next person to clean up, so it is the
-    //     thing this should catch;
-    //   - it does not read the clock, so it cannot start failing at a
-    //     particular time of day.
-    //
-    // A deliberate hold makes this fail, which is intended: a live hold is
-    // recorded in the docblock and here, together, or it is not live.
-    expect(DAY_HOLDS.size).toBe(0);
+    // It asserts on the MAP rather than on `heldDayIndexes(new Date())` for
+    // the reason the size guard did: a wall-clock assertion starts passing or
+    // failing depending on the hour the suite runs, and a SPENT entry left
+    // behind is invisible to it.
+    expect([...DAY_HOLDS]).toEqual([
+      [11, "2026-09-14T09:00:00+01:00"],
+      [12, "2026-09-15T09:00:00+01:00"],
+      [13, "2026-09-16T09:00:00+01:00"],
+      [14, "2026-09-17T09:00:00+01:00"],
+      [15, "2026-09-18T09:00:00+01:00"],
+    ]);
+  });
+
+  it("puts each hold on the morning of the day it names", () => {
+    // The failure a list of instants invites: the right day index against the
+    // wrong date. That hold expires before the morning it was meant to shut,
+    // and the day opens at 07:00 as though nothing had been asked for -
+    // silently, because an expired hold holds nothing. All three live cohorts
+    // start on START, so one arithmetic check covers the table.
+    for (const [dayIndex, until] of DAY_HOLDS) {
+      expect(until, `day ${dayIndex}`).toBe(
+        `${unlockDateFor(START, dayIndex)}T09:00:00+01:00`,
+      );
+    }
   });
 });
 

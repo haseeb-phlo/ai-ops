@@ -53,8 +53,8 @@ export const PROGRAMME_OPEN_HOUR = 7;
 export const PROGRAMME_OPEN_LABEL = "7am";
 
 /**
- * One-off holds: a day that must NOT open at `PROGRAMME_OPEN_HOUR`, kept shut
- * until a stated instant and then opening by itself.
+ * Holds: a day that must NOT open at `PROGRAMME_OPEN_HOUR`, kept shut until a
+ * stated instant and then opening by itself.
  *
  * This is the small lever, and the reason it exists rather than a change to
  * `PROGRAMME_OPEN_HOUR` is that the constant is global and permanent. Moving
@@ -86,12 +86,13 @@ export const PROGRAMME_OPEN_LABEL = "7am";
  *     member reading it at 07:30 is told the day opened half an hour ago.
  *     Making it right means a per-day label, which is a change to that
  *     constant's design rather than a use of this one, and not a thing to
- *     attempt on the morning a hold is needed. Day 9 shipped with this and
- *     so did day 10.
+ *     attempt on the morning a hold is needed. Day 9 shipped with this, so
+ *     did day 10, and days 11-15 ship with it five mornings running.
  *
- * THE TABLE IS EMPTY AND THAT IS THE NORMAL STATE. The lever has been used
- * twice, both times because the day's video was not ready when the day opened
- * at 07:00, and the two uses ended differently:
+ * AN EMPTY TABLE IS THE NORMAL STATE AND THE TABLE IS NOT EMPTY. The lever
+ * was first used a day at a time, twice, both times because the day's video
+ * was not ready when the day opened at 07:00, and the two uses ended
+ * differently:
  *
  *   - day 9, held to 09:00 on 2026-09-10. The video was uploaded at 07:39 and
  *     the entry came out about an hour before its instant, so the hold did
@@ -107,17 +108,44 @@ export const PROGRAMME_OPEN_LABEL = "7am";
  * and comes out when the reason goes. Day 10 is the honest record of what the
  * instant is FOR: it is the backstop for the times nobody comes back, and a
  * backstop opening a day that is still not ready is the cost of not needing
- * anybody to come back. A hold set to the time the content is actually
- * expected, rather than to the start of the working day, is the lesson worth
- * carrying to the third use.
+ * anybody to come back.
  *
- * Taking a spent entry out rather than leaving it to expire is deliberate. A
- * spent entry is inert, so leaving it costs nothing mechanically, but an entry
+ * THE THIRD USE IS THE FIVE ENTRIES BELOW: days 11-15, every morning the
+ * programme has left, each held to 09:00 on its own date. Two mornings in a
+ * row had wanted the same hold for the same reason, each decided at 07:00 by
+ * whoever was awake to notice, so the rest of the run goes in up front. That
+ * is the lesson day 10 left - set the instant to when the day is actually
+ * ready to be met, rather than to the start of the working day and then a
+ * scramble - applied to the whole remainder rather than to one more morning.
+ *
+ * It stretches "one-off" past what the paragraphs above were written for, in
+ * two ways worth naming rather than discovering:
+ *
+ *   - the copy is wrong on five consecutive mornings instead of one. See the
+ *     third bullet above: from 07:00 to 09:00 each of these days reads "opens
+ *     7am" while it is shut, and that is now the state of the app every
+ *     morning until the programme ends;
+ *   - day 11's entry landed either side of its own 07:00 open, so for that
+ *     day this was not a day kept shut but a day taken back. The invariant
+ *     above is what makes that survivable: anybody who had started or
+ *     completed something on day 11 kept it, and only somebody reading it
+ *     without recording progress lost it, for two hours.
+ *
+ * The entries expire on their own, so nothing has to be unset. Taking a spent
+ * entry out rather than leaving it to expire is still deliberate. A spent
+ * entry is inert, so leaving it costs nothing mechanically, but an entry
  * sitting here reads as a hold somebody forgot - and the next person to need
  * this would have to work out whether that day is still shut before adding
- * theirs.
+ * theirs. After 2026-09-18 09:00 the whole table is spent: empty it, and put
+ * the suite's `DAY_HOLDS.size` assertion back to 0.
  */
-export const DAY_HOLDS: ReadonlyMap<number, string> = new Map([]);
+export const DAY_HOLDS: ReadonlyMap<number, string> = new Map([
+  [11, "2026-09-14T09:00:00+01:00"],
+  [12, "2026-09-15T09:00:00+01:00"],
+  [13, "2026-09-16T09:00:00+01:00"],
+  [14, "2026-09-17T09:00:00+01:00"],
+  [15, "2026-09-18T09:00:00+01:00"],
+]);
 
 /**
  * The day indexes currently held shut, at instant `now`.
