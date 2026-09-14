@@ -102,13 +102,6 @@ export function SurveyForm({
 
   return (
     <div className="space-y-4">
-      {/* Once, at the top: it is a rule about the whole form, and a warning
-          placed three questions in has already been ignored twice. */}
-      <p className="rounded-lg border border-border bg-secondary px-4 py-3 text-xs leading-relaxed text-secondary-foreground">
-        Describe the task, not the patient - no names, addresses, dates of
-        birth or medical details.
-      </p>
-
       {/* Sticky: nine required questions is long enough to lose your place. */}
       <div className="sticky top-0 z-10 -mx-1 bg-background/95 px-1 py-2 backdrop-blur">
         <div className="flex items-center gap-3">
