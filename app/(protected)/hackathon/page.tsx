@@ -23,9 +23,12 @@ export const metadata = { title: "What should we fix on Monday?" };
  *                      either, and a URL they were not sent should not
  *                      explain what they are missing.
  *   not answered yet - the intro and the form.
- *   answered         - their own answer, the way everyone else will read it,
- *                      plus the way into the bank. `?edit=1` reopens the
- *                      form on it.
+ *   answered         - their own answer, the way everyone else will read it.
+ *                      `?edit=1` reopens the form on it.
+ *
+ * The way into the bank sits on both of the last two, because "has answered"
+ * and "may read the bank" are not the same question for the person running
+ * the day - see `bankAction` below.
  *
  * The intro is the build sheet's own words, so the Slack post and the page
  * say the same thing. Its closing line about the deadline is dropped,
@@ -49,6 +52,21 @@ export default async function HackathonPage({
 
   const bankOpen = canSeeProblemBank(state.access);
   const own = state.own;
+  // The way into the bank, on BOTH branches rather than only the answered
+  // one. A member never sees it before answering - `bankOpen` is false for
+  // them until they have, because reading other people's first is how you
+  // end up writing theirs - but the organiser is the exception the access
+  // rule already makes: `hackathonAccess` returns "open" for a super admin
+  // answered or not, and the table's select policy carries the matching
+  // `is_super_admin()` arm. The form branch renders on `!own`, so without
+  // this they were handed the form with no way past it, and had to answer
+  // their own survey to read the replies.
+  const bankAction = bankOpen ? (
+    <Button nativeButton={false} render={<Link href="/hackathon/problems" />}>
+      <HammerIcon aria-hidden />
+      See everyone&apos;s problems
+    </Button>
+  ) : undefined;
   // The guest list, and the only place it can be edited. Loaded for super
   // admins only - everybody else's RLS returns just their own row, so there
   // would be nothing to show and a panel implying otherwise.
@@ -65,6 +83,7 @@ export default async function HackathonPage({
               ? "Saving replaces your earlier answer."
               : "Five minutes, eleven questions, nine of them required."
           }
+          actions={bankAction}
         />
         {!own && (
           <div className="space-y-3 rounded-lg border border-border bg-background p-4 text-sm leading-relaxed text-foreground">
@@ -92,14 +111,7 @@ export default async function HackathonPage({
       <PageHeader
         title="What should we fix on Monday?"
         description="Your problem is in the bank."
-        actions={
-          bankOpen ? (
-            <Button nativeButton={false} render={<Link href="/hackathon/problems" />}>
-              <HammerIcon aria-hidden />
-              See everyone&apos;s problems
-            </Button>
-          ) : undefined
-        }
+        actions={bankAction}
       />
 
       {done === "1" && (
