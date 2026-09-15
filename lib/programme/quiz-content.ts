@@ -11,10 +11,11 @@
  *                     D4 Projects, D5 Connectors & MCP
  *   Week 2 (day 10) - D6 Skills, D7 Scheduled Tasks, D8 Artifacts,
  *                     D9 Cowork, D10 Claude Design
- *   Week 3 (day 15) - D11 Claude Design 2, D12 PowerPoint and Word extensions,
- *                     D13 Excel extension, D14 Outlook extension,
- *                     D15 choosing the right tool and measuring time saved,
- *                     plus a spiral back over one day from each earlier week
+ *   Week 3 (day 15) - D11 Claude Design 2 (x2), D12 Word & PowerPoint
+ *                     extensions (x2), D13 Excel extension, D14 Outlook
+ *                     extension, D15 choosing the right tool and measuring
+ *                     time saved (x2), plus one spiral back over week one
+ *                     (D5) and one over week two (D7)
  *
  * Every quiz now tests only days that have opened before it does, which was
  * not true before September 2026. Week one's two verification questions were
@@ -110,6 +111,33 @@
  * that tested the difference between a prompting problem and a capability
  * problem is deleted, and nothing else on the track teaches it. If it is
  * wanted back, day 15 is the only room left.
+ *
+ * WEEK THREE WAS REFRESHED AGAINST THE CURRICULUM on 2026-09-15, after day
+ * 12 was recorded. Three changes, and the reason for each is the same: the
+ * quiz should test the days as they now are rather than as they were when
+ * each question was written.
+ *
+ *   - day 12 gains a second question and now has two, like days 11 and 15.
+ *     It is the only day in the run with two apps in it, and a single Word
+ *     question left the PowerPoint half untested. The new one is written from
+ *     the recording: targeted edits to slides you have already selected, and
+ *     the choice between seeing each edit and letting it apply them all,
+ *     which is the setting that decides what you end up with;
+ *   - the day 3 spiral is deleted to make room. It asked which letter of
+ *     CRISPE means constraints, which is recall of a framework rather than
+ *     the judgement the rest of the set tests, and day 3 is already covered
+ *     twice in the week one quiz. Week one still spirals here through day 5;
+ *   - the day 7 mapping question swaps a "Plugin" distractor for "Artifact".
+ *     Plugins left the curriculum with "Dispatch + Plugins", and a distractor
+ *     naming a container nobody was taught is eliminated by unfamiliarity
+ *     rather than by judgement - and worse, now reads as the Office
+ *     extensions under an older name.
+ *
+ * The Word question stayed and its explanation gained what the recording
+ * shows: asking Claude to summarise a document's comments and say where they
+ * conflict. Days 13 and 14 stayed as they are, written from documentation,
+ * because neither has been recorded yet - and when they are, both should be
+ * read against the video the way day 12's pair now has been.
  *
  * The lesson for the next edit: a `day` tag rots loudly, because a test reads
  * it, and a product fact rots silently. Nothing in this file checks that an
@@ -860,7 +888,22 @@ export const WEEK_3_QUESTIONS: QuizQuestion[] = [
     ],
     correct: 0,
     explanation:
-      "Tracked changes is what the extension offers over a chat: the edit lands in the real document, you accept it line by line, and the comment threads your manager left are still there for Claude to answer. Every other option ends with you reconciling two documents by hand. That is the whole argument for working where the file already is - the cost was never capability, it was stopping, switching app and pasting the answer back.",
+      "Tracked changes is what the extension offers over a chat: the edit lands in the real document and you accept it line by line. The comments are the other half - ask Claude to summarise them and say where they conflict, rather than reading twenty of them yourself. Every other option ends with you reconciling two documents by hand. That is the whole argument for working where the file already is - the cost was never capability, it was stopping, switching app and pasting the answer back.",
+  },
+  {
+    day: 12,
+    question:
+      "You ask the PowerPoint extension to tighten three slides you have selected, on a deck that goes out this afternoon. Which choice matters most before you run it?",
+    options: [
+      "Whether extended thinking is turned on for the request",
+      "Whether the deck is saved to OneDrive rather than locally",
+      "Whether it asks before each edit or applies them all",
+      "Whether the other Office extensions are installed as well",
+      "Whether the slides are on the current brand template",
+    ],
+    correct: 2,
+    explanation:
+      "The extension edits the real file, so the choice that changes what you end up with is whether you see each edit before it lands. Extended thinking changes how long it reasons rather than what it may do, and where the file is saved changes nothing at all. Point it at slides you have already selected rather than asking for a deck built from nothing: small targeted changes to work that exists is where it is strongest.",
   },
   {
     day: 13,
@@ -923,21 +966,6 @@ export const WEEK_3_QUESTIONS: QuizQuestion[] = [
       "The number worth having is the one you could defend to somebody outside the programme, and that is the job end to end rather than the drafting step on its own. Checking is not overhead bolted onto the work, it is the part that makes the output usable. A total that quietly drops it is the kind of figure that falls apart the first time anyone asks how it was built.",
   },
   {
-    day: 3,
-    question:
-      "A prompt keeps producing output that is accurate but consistently the wrong length and format for where it has to go. Which part of CRISPE do you reach for?",
-    options: [
-      "Context",
-      "Role",
-      "Instructions",
-      "Parameters",
-      "Example",
-    ],
-    correct: 3,
-    explanation:
-      "Parameters are the constraints: length, format, structure and what to leave out. Context and Role shape what Claude knows and how it thinks, and Instructions say what to do rather than what shape to do it in. An Example would work too, and it costs you a document to paste; when the content is already right, Parameters is the smaller lever.",
-  },
-  {
     day: 5,
     question:
       "Your team has a Project full of reference documents and a Connector to the system those documents describe. When does the Connector earn its keep?",
@@ -958,7 +986,7 @@ export const WEEK_3_QUESTIONS: QuizQuestion[] = [
       "You have a recurring task, a one-off question, a method colleagues should reuse and a system Claude cannot reach. Which mapping is right?",
     options: [
       "Skill, Scheduled Task, Project, Connector",
-      "Project, Skill, Connector, Plugin",
+      "Project, Skill, Connector, Artifact",
       "Scheduled Task, Chat, Skill, Connector",
       "Connector, Artifact, Scheduled Task, Skill",
       "Scheduled Task, Chat, Project, Connector",
