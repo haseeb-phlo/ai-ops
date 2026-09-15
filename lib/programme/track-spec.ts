@@ -295,11 +295,20 @@ export type TrackItemSpec = {
  * warning applies: what is left of each is a thread, not a lesson.
  */
 /**
- * DAYS 12, 13 AND 14 BECAME THE OFFICE PLUGIN RUN later on 2026-09-15, on the
- * programme owner's instruction: PowerPoint and Word, then Excel, then
+ * DAYS 12, 13 AND 14 BECAME THE OFFICE EXTENSION RUN later on 2026-09-15, on
+ * the programme owner's instruction: PowerPoint and Word, then Excel, then
  * Outlook. "Claude PowerPoint" lasted a few hours and never opened for
  * anybody; "Dispatch + Plugins" and "Claude everywhere" leave the curriculum
  * with it.
+ *
+ * THEY SHIPPED AS "PLUGINS" AND WERE RENAMED TO "EXTENSIONS" the same
+ * evening, before any of the three opened. The programme owner's word is
+ * extensions and that is what the three titles and the task copy say. What
+ * did NOT change is the line in each task pointing at the Add-ins menu:
+ * Microsoft calls them add-ins and Anthropic ships them as Claude for Excel,
+ * PowerPoint, Word and Outlook, so a member looking for the word on their own
+ * screen needs the word their own screen uses. A day may be titled in the
+ * house vocabulary; a step that names a menu may not.
  *
  * DAY 15 IS UNCHANGED AND PENDING. The programme owner is deciding what it
  * becomes, so "Choosing the right tool + measuring time saved" and both its
@@ -358,9 +367,9 @@ export const DAY_TOPICS: readonly string[] = [
   "Cowork",
   "Claude Design",
   "Claude Design 2",
-  "PowerPoint and Word plugins",
-  "Excel plugin",
-  "Outlook plugin",
+  "PowerPoint and Word extensions",
+  "Excel extension",
+  "Outlook extension",
   "Choosing the right tool + measuring time saved",
 ] as const;
 
@@ -846,13 +855,15 @@ export const GENERIC_TASK =
  * what makes a gap visible - which is also why a day with no field is dropped
  * from that table rather than showing a column of blanks.
  *
- * Only day 7 names the screenshot in its copy, and only day 7 offers the
- * upload - see SCREENSHOT_TASK_DAYS in task-link.ts. It is the day where the
- * link genuinely does not exist - a scheduled task has runs and no Share link,
- * which is what a member reported after doing the work and finding nothing to
- * paste - so the ask would otherwise be impossible to answer. Elsewhere a link
- * is better evidence because it opens, and offering the fallback would invite
- * a picture of a page that could have been shared.
+ * Days 7 and 14 name the screenshot in their copy, and they are the only two
+ * that offer the upload - see SCREENSHOT_TASK_DAYS in task-link.ts. They are
+ * the days where the link genuinely does not exist. A scheduled task has runs
+ * and no Share link, which is what a member reported after doing the work and
+ * finding nothing to paste; Outlook work has neither a message a colleague
+ * can open nor a shareable chat, because the M365 add-ins keep their history
+ * in the browser rather than in a Claude account. Elsewhere a link is better
+ * evidence because it opens, and offering the fallback would invite a picture
+ * of a page that could have been shared.
  *
  * The two were briefly out of step: the copy named it on day 7 while the
  * button appeared on all fourteen linkable days. The copy was the side that
@@ -862,12 +873,15 @@ export const GENERIC_TASK =
  * The day 4 note explains why: a task that opens "the thing you built on day
  * 3" fails outright for anyone who missed day 3.
  *
- * One is thinner than the rest and known to be. Day 13 is "Dispatch +
- * Plugins" and there is no video script for it, so its task is built on the
- * only grounded material available - the quiz's line that Plugins change what
- * Claude can reach, where prompting only changes how well you ask. The
- * diagnosis is a real lesson and the task teaches it, but nothing in there is
- * specific to Dispatch. Whoever owns that video should add a step.
+ * Three are written from documentation rather than from a video, and are
+ * known to be. Days 12, 13 and 14 are the Office extension run and none of
+ * the three has been recorded, so every step in them was taken from
+ * Anthropic's own pages on 2026-09-15: tracked changes and comment threads in
+ * Word, a cell you did not write in Excel, a triage into what needs you and
+ * what is noise in Outlook. That is a better kind of thin than the day it
+ * replaced - the steps are real and checkable - but none of it came from
+ * watching somebody at Phlo do the job. Whoever shoots those three should
+ * read the tasks first and change whatever does not match.
  *
  * Day 15 is the newest and the only one that asks for a number rather than an
  * artefact. Its failable step is timing one job with the clock rather than
@@ -966,7 +980,7 @@ const DAY_TASKS: Readonly<Record<number, string>> = {
     "Submit the link to the prototype, or to what you exported.",
   ].join("\n"),
   12: [
-    "Install the Claude plugins for PowerPoint and Word from Microsoft AppSource. Office calls them add-ins, so that is the word to look for: Home > Add-ins on Windows, Tools > Add-ins on a Mac.",
+    "Install the Claude extensions for PowerPoint and Word from Microsoft AppSource. Office calls them add-ins, so that is the word to look for: Home > Add-ins on Windows, Tools > Add-ins on a Mac.",
     "Open each add-in's settings and turn on 'Let Claude work across files'. On our Team plan it is off until somebody turns it on, and the switch for the whole organisation is Organization settings > Office agents, so ask Haseeb if it is not yours to change. The next two days build on it.",
     "Then use it on a deck you actually have to produce. It builds slides inside the template you are already in, edits the slides you have selected rather than the whole file, and makes real charts rather than pictures of them.",
     "Do the Word half on a document somebody has reviewed. Ask for the edit as tracked changes so you accept it line by line, and let it answer a comment thread that was left for you.",
@@ -974,7 +988,7 @@ const DAY_TASKS: Readonly<Record<number, string>> = {
     "Submit the link to the deck or the document you worked on.",
   ].join("\n"),
   13: [
-    "Install the Claude plugin for Excel the same way, and open a workbook you actually use rather than a copy made for the exercise.",
+    "Install the Claude extension for Excel the same way, and open a workbook you actually use rather than a copy made for the exercise.",
     "Start with a cell you did not write. Ask what it is doing and what breaks if you change it - the question a spreadsheet nobody documented is hardest to answer, and it is answered here against the live sheet rather than a description of one.",
     "Then move an assumption and let Claude carry it through the model instead of repairing the formulas yourself.",
     "Check what comes back the way you would check a colleague's work. It writes into the open workbook, so a wrong answer today is a wrong number in your file rather than a wrong sentence in a chat.",
@@ -982,7 +996,7 @@ const DAY_TASKS: Readonly<Record<number, string>> = {
     "Submit the link to the workbook.",
   ].join("\n"),
   14: [
-    "Install the Claude plugin for Outlook. It is a public beta rather than a finished thing, and it opens from the ribbon with an email in front of you rather than in a panel of its own.",
+    "Install the Claude extension for Outlook. It is a public beta rather than a finished thing, and it opens from the ribbon with an email in front of you rather than in a panel of its own.",
     "Ask it to triage the inbox you dread on a Monday: what genuinely needs you, what it can draft for you, and what is noise.",
     "Take one of the drafts it offers, recipients and subject already filled in, and read it properly before it goes. It sends under your name, which is the whole reason reading it is not optional.",
     "Then give it the calendar job - who is free, and the invite set up - which is the one that quietly eats a morning.",

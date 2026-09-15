@@ -354,13 +354,13 @@ describe("taskTakesFile", () => {
   it("names the days whose work has no link to share", () => {
     // Day 7 is Scheduled Tasks: a scheduled task has runs and no Share link,
     // which is the entire reason the upload exists. Day 14 is the Outlook
-    // plugin: a message has no address a colleague can open, and the M365
+    // extension: a message has no address a colleague can open, and the M365
     // add-ins keep their chat in the browser rather than in a Claude account.
     // If the topic order moves, these are the assertions that should fail
     // rather than the button quietly sitting on the wrong day - so they pin
     // the topics, not just the numbers.
     expect(DAY_TOPICS[6]).toBe("Scheduled Tasks");
-    expect(DAY_TOPICS[13]).toBe("Outlook plugin");
+    expect(DAY_TOPICS[13]).toBe("Outlook extension");
     expect([...SCREENSHOT_TASK_DAYS].sort((a, b) => a - b)).toEqual([7, 14]);
   });
 

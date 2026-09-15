@@ -172,7 +172,7 @@ export function taskTakesLink(dayIndex: number): boolean {
  * cannot open a screenshot.
  *
  * Day 14 is the second, added on 2026-09-15 when the day became the Outlook
- * plugin, and it is day 7's argument rather than a loosening of it. Outlook
+ * extension, and it is day 7's argument rather than a loosening of it. Outlook
  * work has nothing to link twice over: a message has no address a colleague
  * can open, and the Claude for M365 add-ins keep their chat history in the
  * browser rather than in a Claude account, so there is no shareable chat

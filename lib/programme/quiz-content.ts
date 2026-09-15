@@ -11,8 +11,8 @@
  *                     D4 Projects, D5 Connectors & MCP
  *   Week 2 (day 10) - D6 Skills, D7 Scheduled Tasks, D8 Artifacts,
  *                     D9 Cowork, D10 Claude Design
- *   Week 3 (day 15) - D11 Claude Design 2, D12 PowerPoint and Word plugins,
- *                     D13 Excel plugin, D14 Outlook plugin,
+ *   Week 3 (day 15) - D11 Claude Design 2, D12 PowerPoint and Word extensions,
+ *                     D13 Excel extension, D14 Outlook extension,
  *                     D15 choosing the right tool and measuring time saved,
  *                     plus a spiral back over one day from each earlier week
  *
@@ -82,7 +82,7 @@
  *     week three still covers each of days 11-15 and still runs to ten.
  *
  * THE DAY 12 QUESTION WRITTEN THAT MORNING DID NOT SURVIVE THE AFTERNOON.
- * "Claude PowerPoint" was replaced by the Office plugin run before it opened
+ * "Claude PowerPoint" was replaced by the Office extension run before it opened
  * for anybody, so the question about asking for a deck as a file went with
  * it. It is recorded here because it is the shortest-lived question this file
  * has carried and the lesson is cheap: a question written from a task rather
@@ -94,7 +94,7 @@
  * describing it. The second also carries the three-versions habit in its
  * explanation, which is the part of that video most likely to be skipped.
  *
- * DAYS 12, 13 AND 14 BECAME THE OFFICE PLUGIN RUN later on 2026-09-15:
+ * DAYS 12, 13 AND 14 BECAME THE OFFICE EXTENSION RUN later on 2026-09-15:
  * PowerPoint and Word, Excel, then Outlook. Three questions were replaced,
  * one per day, and each is written from Anthropic's own documentation rather
  * than from a recording, because none of the three days has been shot. What
@@ -850,7 +850,7 @@ export const WEEK_3_QUESTIONS: QuizQuestion[] = [
   {
     day: 12,
     question:
-      "The Word plugin is open on a document your manager has already been through. How should you ask for the rewrite?",
+      "The Word extension is open on a document your manager has already been through. How should you ask for the rewrite?",
     options: [
       "As tracked changes, so each edit is accepted or rejected",
       "As a clean copy, then compare the two documents by eye",
@@ -860,12 +860,12 @@ export const WEEK_3_QUESTIONS: QuizQuestion[] = [
     ],
     correct: 0,
     explanation:
-      "Tracked changes is what the plugin offers over a chat: the edit lands in the real document, you accept it line by line, and the comment threads your manager left are still there for Claude to answer. Every other option ends with you reconciling two documents by hand. That is the whole argument for working where the file already is - the cost was never capability, it was stopping, switching app and pasting the answer back.",
+      "Tracked changes is what the extension offers over a chat: the edit lands in the real document, you accept it line by line, and the comment threads your manager left are still there for Claude to answer. Every other option ends with you reconciling two documents by hand. That is the whole argument for working where the file already is - the cost was never capability, it was stopping, switching app and pasting the answer back.",
   },
   {
     day: 13,
     question:
-      "You inherit a pricing workbook nobody documented and one assumption has to change. What does the Excel plugin give you that a chat does not?",
+      "You inherit a pricing workbook nobody documented and one assumption has to change. What does the Excel extension give you that a chat does not?",
     options: [
       "A guarantee the model is right once it has finished with it",
       "Answers about any cell, and the change made in the live file",
@@ -875,12 +875,12 @@ export const WEEK_3_QUESTIONS: QuizQuestion[] = [
     ],
     correct: 1,
     explanation:
-      "The plugin works on the workbook that is open, so you can ask what a cell is doing, move an assumption and have the formulas carried through in place, rather than pasting fragments into a chat and typing the answers back. It cannot reach files you have not opened. And nothing here makes the model right: it writes into your file, so a wrong answer is a wrong number where it counts, and it needs checking the way a colleague's would.",
+      "The extension works on the workbook that is open, so you can ask what a cell is doing, move an assumption and have the formulas carried through in place, rather than pasting fragments into a chat and typing the answers back. It cannot reach files you have not opened. And nothing here makes the model right: it writes into your file, so a wrong answer is a wrong number where it counts, and it needs checking the way a colleague's would.",
   },
   {
     day: 14,
     question:
-      "The Outlook plugin triages your inbox and hands you a reply with the recipients and subject already filled in. What is still yours?",
+      "The Outlook extension triages your inbox and hands you a reply with the recipients and subject already filled in. What is still yours?",
     options: [
       "Deciding which folder each message should be filed into",
       "Choosing which colleagues are allowed to see the thread",
