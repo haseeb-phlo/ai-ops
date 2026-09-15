@@ -88,7 +88,7 @@ describe("a Task card's copy", () => {
     expect(bullets).toEqual([
       "one you are confident Claude will do well",
       "one you are confident Claude will not do well",
-      "one where you are not sure whether it will produce the correct output",
+      "one where you are not sure",
     ]);
   });
 
@@ -99,7 +99,9 @@ describe("a Task card's copy", () => {
     );
     expect(paragraphs[0]).toBe("Pick three jobs from this week:");
     expect(paragraphs).toContain(
-      "Before you open Claude, predict each outcome and rate it Certain, Fairly confident or Guessing.",
+      "Predict each outcome before you open Claude and rate it Certain, Fairly " +
+        "confident or Guessing, then run all three, including the one you " +
+        "expect to fail.",
     );
   });
 

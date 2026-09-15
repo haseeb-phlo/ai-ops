@@ -816,15 +816,13 @@ export const GENERIC_TASK =
  * row existed. That is the first use of the hold mechanism and the reason it
  * was written.
  *
- * Research on day 11 is unrecorded, so the 9/11 swap note above should be
- * read with that in mind: the argument for that swap was which of the two
- * days had a recording, and the answer has changed.
+ * Research left day 11 entirely on 2026-09-15, so the 9/11 swap note above is
+ * history rather than a live argument: the day is Claude Design 2 now and it
+ * has a recording.
  *
- * The unrecorded days are 11, 13, 14 and 15 as of 2026-09-11. Day 12 was one
- * of them until the 10/12 swap bound it to the Reverse Prompting recording,
- * and day 10 until Claude Design was shot that afternoon. This sentence has
- * been wrong twice by being a list; check it against `learn_video_id` on the
- * track items rather than trusting it.
+ * The unrecorded days are 12, 13, 14 and 15 as of 2026-09-15. This sentence
+ * has now been wrong three times by being a list; check it against
+ * `learn_video_id` on the track items rather than trusting it.
  *
  * They share a shape, and it is worth keeping when one gets rewritten:
  *
@@ -840,6 +838,11 @@ export const GENERIC_TASK =
  *     consent screen on a Connector, the scoped folder for Cowork, made-up
  *     numbers in a published Artifact - and nowhere else. A blanket warning
  *     on all fifteen days is a warning nobody reads by day four.
+ *   - It is as short as the day allows. Day 5 is the template: three plain
+ *     instructions, no commentary explaining why the day matters. A member
+ *     reads this on a shift with ten minutes, and a paragraph arguing for the
+ *     lesson is a paragraph they skip on the way to the step. Whatever the
+ *     video is for, it is not this.
  *   - Every one that has a field ends by asking for something to be filed.
  *     Day 5 is the exception at both ends: it has no field and makes no ask,
  *     because what it asks for is settings on the member's own account and
@@ -892,6 +895,26 @@ export const GENERIC_TASK =
  * member's own log, so it is the one day where a shared document rather than
  * a Claude URL is the expected answer.
  *
+ * EVERY TASK WAS CUT BACK TO DAY 5'S SHAPE on 2026-09-15, on the programme
+ * owner's instruction. Days 1, 3, 5, 7 and 9 were already there and are
+ * untouched - 9 in particular, because that copy is the owner's own and the
+ * note above explains what was deliberately left in it. The rest lost between
+ * one and five lines each.
+ *
+ * WHAT CAME OUT WAS COMMENTARY, NOT FACTS, and that distinction is the thing
+ * to hold if another pass is ever made. Every safety line survived: the
+ * Team-plan sharing rule and made-up numbers on day 8, the research-preview
+ * caveat on day 10, the scoped folder on day 9, patient data on day 14. So
+ * did every step that can fail, every menu path, and every escalation to
+ * Haseeb. What went was the sentence after the step explaining why the step
+ * matters - "that is the point of today", "the barrier was never capability" -
+ * which is the video's job and reads as padding in a card. Day 15 lost the
+ * most, four lines, and still carries its six containers and the timed run.
+ *
+ * Day 13 also lost its "if you turned the cross-app setting on for day 12"
+ * line, which was worth losing twice over: it was commentary, and the note
+ * below about day 4 says tasks do not depend on each other.
+ *
  * FORMATTING: these are plain text, and the card renders them through
  * `parseItemCopy` (lib/programme/item-copy.ts) - one paragraph per line, and a
  * line starting "- " becomes a bullet. No markdown, no blank-line semantics.
@@ -905,12 +928,10 @@ const DAY_TASKS: Readonly<Record<number, string>> = {
     "Pick three jobs from this week:",
     "- one you are confident Claude will do well",
     "- one you are confident Claude will not do well",
-    "- one where you are not sure whether it will produce the correct output",
-    "Before you open Claude, predict each outcome and rate it Certain, Fairly confident or Guessing.",
-    "Run all three separately, including the one you expect to fail, and compare the output to your predictions.",
-    "If something worked that you expected not to, that is something to delegate to Claude immediately. Something that gave an incorrect output is one to be cautious about and double-check.",
-    "If Claude did not produce the output you wanted for a specific task, try again. Add more context, add an example document, or split it into two steps, and see whether that helps.",
-    "Submit the link to one of these, preferably the one with the output that surprised you the most.",
+    "- one where you are not sure",
+    "Predict each outcome before you open Claude and rate it Certain, Fairly confident or Guessing, then run all three, including the one you expect to fail.",
+    "Compare the results with your predictions. What worked when you thought it would not is what to delegate next; what came back wrong is what to keep checking.",
+    "Submit the link to one of these, preferably the one that surprised you most.",
   ].join("\n"),
   3: [
     "Take a Project you've already built (or build a new one) and use the CRISPE framework in the instructions.",
@@ -922,8 +943,7 @@ const DAY_TASKS: Readonly<Record<number, string>> = {
     "- custom instructions",
     "- 2-3 knowledge files",
     "- access with anyone else who could use it",
-    "Then test it and check the output.",
-    "If the output is exactly what you need, it's good to go. If not, the instructions might be missing something - check and add in whatever is required.",
+    "Test it. If the output is not what you need, the instructions are missing something, so add it and run it again.",
     "Submit the link to the Project below.",
   ].join("\n"),
   // The one day with no link field - see LINKLESS_TASK_DAYS in task-link.ts.
@@ -935,14 +955,13 @@ const DAY_TASKS: Readonly<Record<number, string>> = {
     "Disconnect anything you added to have a look at and are not going to use.",
   ].join("\n"),
   6: [
-    "Pick one thing you explain to Claude repeatedly (e.g. how a report should be laid out, how a summary should be structured, the checks a piece of work has to pass before you send it).",
-    "Go to Customize > Skills and build a Skill for it, letting the built-in skill-creator draft it from your description rather than writing it from scratch. Give it:",
+    "Pick one thing you explain to Claude repeatedly: how a report should be laid out, how a summary should be structured, the checks a piece of work has to pass.",
+    "Go to Customize > Skills and build a Skill for it, letting the built-in skill-creator draft it from your description. Give it:",
     "- a description saying when to use it",
     "- one task only",
-    "- the method it should complete the task using",
-    "Then test it by starting a fresh chat and asking to complete the task required without naming the skill.",
-    "Try over a few runs with different wording.",
-    "If the skill fires, then everything is working. If not, the description is likely too vague or ambiguous. Fix this and try again.",
+    "- the method it should use",
+    "Test it in a fresh chat, asking for the task without naming the Skill, over a few different wordings.",
+    "If it does not fire, the description is too vague to match what you asked. Fix it and try again.",
     "Submit the link to the chat where your Skill fired on its own.",
   ].join("\n"),
   7: [
@@ -953,9 +972,8 @@ const DAY_TASKS: Readonly<Record<number, string>> = {
   ].join("\n"),
   8: [
     "Pick something you rebuild most weeks - a status update, a meeting-prep sheet, a checklist - and ask Claude to make it as an Artifact you can reuse.",
-    "Change it once in plain English rather than keeping the first draft. Every version is kept, so you can go back. If Claude answers in the chat instead of opening a panel, check Settings > Capabilities for Code execution and file creation, and ask Haseeb if it is not yours to change.",
-    "Share it. On our Team plan a shared Artifact opens only for people signed in with their Phlo account, so if it has to reach anyone outside, ask Haseeb rather than working round it.",
-    "Made-up numbers only in anything you share, and keep logins and keys out of it.",
+    "Change it once in plain English rather than keeping the first draft. If Claude answers in the chat instead of opening a panel, check Settings > Capabilities for Code execution and file creation, and ask Haseeb if it is not yours to change.",
+    "Share it. On our Team plan it opens for anyone signed in with a Phlo account, so made-up numbers only, no logins or keys, and ask Haseeb if it has to reach anyone outside.",
     "Submit the link to your Artifact.",
   ].join("\n"),
   9: [
@@ -965,57 +983,51 @@ const DAY_TASKS: Readonly<Record<number, string>> = {
     "Submit the link to the final output.",
   ].join("\n"),
   10: [
-    "Describe one screen or document you wish already existed: a landing page, a settings screen, a pitch deck, a one-pager that would make an idea look finished.",
-    "Open Claude Design at claude.ai/design, or from the sidebar in the desktop app. Make it there, then refine it once in plain English rather than taking the first version. A strong first draft that a person then shapes is the whole method.",
+    "Describe one screen or document you wish already existed: a landing page, a settings screen, a pitch deck, a one-pager.",
+    "Open Claude Design at claude.ai/design, or from the sidebar in the desktop app. Make it there, then refine it once in plain English rather than taking the first version.",
     "Export what you end up with - the Export button offers PowerPoint, PDF and a standalone page, among others.",
-    "Two honest caveats. It is a research preview, so it is rougher than the rest of the tools here and what comes out is a draft rather than a finished brand. And keep confidential designs, patient-facing material and private code out of it.",
+    "It is a research preview, so what comes out is a draft. Keep confidential designs, patient-facing material and private code out of it.",
     "Submit the link to the design, or to the file you exported.",
   ].join("\n"),
   11: [
-    "Pick something you have been describing in words and hoping everyone pictures the same way: a screen you want built, a landing page, a one-pager, a map of who does what.",
-    "Ask Claude Design for it as a working prototype rather than a picture of one. A clickable wireframe is the strongest version: you walk somebody through it instead of talking them through it.",
-    "Attach what you already have - a spec, a brief, a page of notes. The real document behind the prompt is the difference between a prototype of your idea and a prototype of something generic.",
-    "Ask for three versions rather than one, then take what works from each. Reacting to three is faster than specifying one, and it is the step people skip.",
-    "Then put it somewhere it can be used: export it as a PNG or a page, share it for comments, or hand it to Claude Code to build.",
+    "Pick something you have been describing in words and hoping everyone pictures the same way: a screen you want built, a landing page, a one-pager.",
+    "Ask Claude Design for it as a working prototype rather than a picture of one, and attach the spec, brief or page of notes you already have.",
+    "Ask for three versions rather than one, then take what works from each.",
+    "Export it as a PNG or a page, share it for comments, or hand it to Claude Code to build.",
     "Submit the link to the prototype, or to what you exported.",
   ].join("\n"),
   12: [
-    "Install the Claude extensions for PowerPoint and Word from Microsoft AppSource. Office calls them add-ins, so that is the word to look for: Home > Add-ins on Windows, Tools > Add-ins on a Mac.",
-    "Open each add-in's settings and turn on 'Let Claude work across files'. On our Team plan it is off until somebody turns it on, and the switch for the whole organisation is Organization settings > Office agents, so ask Haseeb if it is not yours to change. The next two days build on it.",
-    "Then use it on a deck you actually have to produce. It builds slides inside the template you are already in, edits the slides you have selected rather than the whole file, and makes real charts rather than pictures of them.",
-    "Do the Word half on a document somebody has reviewed. Ask for the edit as tracked changes so you accept it line by line, and let it answer a comment thread that was left for you.",
-    "Learn the limit while you are here: it reads and writes the file open in front of you, and it cannot go off and find, open or close a file for you.",
+    "Install the Claude extensions for PowerPoint and Word from Microsoft AppSource. Office calls them add-ins: Home > Add-ins on Windows, Tools > Add-ins on a Mac.",
+    "In each one's settings, turn on 'Let Claude work across files'. On our Team plan it is off until somebody turns it on, so ask Haseeb if it is not yours to change.",
+    "Use it on a deck you actually have to produce. It builds slides in the template you are already in and edits the ones you have selected.",
+    "Then take a document somebody has reviewed and ask for the edit as tracked changes, so you accept it line by line.",
     "Submit the link to the deck or the document you worked on.",
   ].join("\n"),
   13: [
-    "Install the Claude extension for Excel the same way, and open a workbook you actually use rather than a copy made for the exercise.",
-    "Start with a cell you did not write. Ask what it is doing and what breaks if you change it - the question a spreadsheet nobody documented is hardest to answer, and it is answered here against the live sheet rather than a description of one.",
-    "Then move an assumption and let Claude carry it through the model instead of repairing the formulas yourself.",
-    "Check what comes back the way you would check a colleague's work. It writes into the open workbook, so a wrong answer today is a wrong number in your file rather than a wrong sentence in a chat.",
-    "If you turned the cross-app setting on for day 12, finish by asking it to take the result into the deck you built there.",
+    "Install the Claude extension for Excel the same way, and open a workbook you actually use.",
+    "Ask it about a cell you did not write: what it is doing, and what breaks if you change it.",
+    "Then move an assumption and let Claude carry it through the model rather than repairing the formulas yourself.",
+    "Check the numbers as you would a colleague's. It writes into the open workbook, and it cannot reach a file you have not opened.",
     "Submit the link to the workbook.",
   ].join("\n"),
   14: [
-    "Install the Claude extension for Outlook. It is a public beta rather than a finished thing, and it opens from the ribbon with an email in front of you rather than in a panel of its own.",
-    "Ask it to triage the inbox you dread on a Monday: what genuinely needs you, what it can draft for you, and what is noise.",
-    "Take one of the drafts it offers, recipients and subject already filled in, and read it properly before it goes. It sends under your name, which is the whole reason reading it is not optional.",
-    "Then give it the calendar job - who is free, and the invite set up - which is the one that quietly eats a morning.",
-    "Patient identifiable information stays out of it, the same as every other day.",
-    "Nothing here produces a link: an Outlook message has no address a colleague can open, and the add-ins keep their chat in your browser rather than in your Claude account.",
-    "Submit a screenshot of the triage, or a link if something you made has one.",
+    "Install the Claude extension for Outlook. It is a public beta, and it opens from the ribbon with an email in front of you.",
+    "Ask it to triage the inbox you dread on a Monday: what needs you, what it can draft, and what is noise.",
+    "Take one of its drafts and read it properly before it goes. It sends under your name.",
+    "Keep patient identifiable information out of it.",
+    "Submit a screenshot of the triage, since an Outlook message has no link to share, or a link if something you made has one.",
   ].join("\n"),
   15: [
-    "List the jobs you moved to Claude over the three weeks, with what each one used to take and what it takes now. If you have kept a Time-Back Log this is that list already; if you have not, build it now.",
-    "Then time one of them properly rather than estimating it. Pick the job you are claiming the biggest saving on, run it end to end with the clock going, and write the real number down next to your guess.",
-    "That step is the point of today. An estimated saving is the one figure nobody outside this programme has any reason to believe, and the gap between your guess and the clock is usually the most useful thing on the page.",
-    "Then choose the container for that job, because picking the wrong one is what people still get wrong long after the features are familiar:",
+    "List the jobs you moved to Claude over the three weeks, with what each used to take and what it takes now. If you have kept a Time-Back Log, that is the list already.",
+    "Then time one of them properly rather than estimating it. Pick the biggest saving you are claiming, run it end to end with the clock going, and write the real number next to your guess.",
+    "Then choose the container that job belongs in:",
     "- a Chat for a one-off",
     "- a Project when the background is the same every time",
     "- a Skill when it is a method colleagues should reuse",
     "- a Scheduled Task when it runs on a rhythm",
     "- Cowork when it is assembly across your own files",
     "- an Artifact when the output is a thing your team will open again",
-    "If the job you have run in an ordinary Chat all fortnight belongs in one of the other five, move it now.",
+    "If the job you have run in an ordinary Chat all fortnight belongs somewhere else, move it now.",
     "Submit the link to your log.",
   ].join("\n"),
 };
