@@ -11,7 +11,7 @@
  *                     D4 Projects, D5 Connectors & MCP
  *   Week 2 (day 10) - D6 Skills, D7 Scheduled Tasks, D8 Artifacts,
  *                     D9 Cowork, D10 Claude Design
- *   Week 3 (day 15) - D11 Research/Memory/files out, D12 Reverse Prompting,
+ *   Week 3 (day 15) - D11 Claude Design 2, D12 Claude PowerPoint,
  *                     D13 Dispatch + Plugins,
  *                     D14 Claude everywhere, D15 choosing the right tool and
  *                     measuring time saved, plus a spiral back over one day
@@ -66,6 +66,35 @@
  * A formative quiz teaching the inverse of the product is worse than no
  * question, and the day's task said the same wrong thing, so both were
  * corrected together. See the day 7 note in track-spec.ts.
+ *
+ * DAYS 11 AND 12 WERE REPLACED on 2026-09-15: Research/Memory/files out and
+ * Reverse Prompting left the curriculum for "Claude Design 2" and "Claude
+ * PowerPoint" - see the stanza in track-spec.ts. Three week three questions
+ * went with them, and none of the three could be re-tagged:
+ *
+ *   - the two Research and Memory questions are deleted. Neither topic is
+ *     taught anywhere on the track now, so both were questions about a day
+ *     that no longer exists;
+ *   - the Reverse Prompting question is deleted for the same reason. Its
+ *     recording stays in the Learn library, so the topic is still watchable,
+ *     but nobody is walked through it and the summative quiz should not gate
+ *     completion on it;
+ *   - three new questions replace them, two on day 11 and one on day 12, so
+ *     week three still covers each of days 11-15 and still runs to ten.
+ *
+ * THE DAY 12 QUESTION IS PROVISIONAL, and it is the one to re-read first.
+ * Claude PowerPoint has not been recorded, so it is written from that day's
+ * task rather than from a video: ask for the deck back as a real file built
+ * from your own material, rather than as slide text you reassemble. That is
+ * true of Claude whatever the recording says, and it is deliberately not day
+ * 10's ground, where exporting a Design canvas to PowerPoint already lives.
+ * When the video exists, read the task and this question against it together.
+ *
+ * The two day 11 questions are written from the recording that day does have,
+ * so they test what it shows: a prototype you can click through rather than a
+ * picture of one, and attaching the document you already have rather than
+ * describing it. The second also carries the three-versions habit in its
+ * explanation, which is the part of that video most likely to be skipped.
  *
  * The lesson for the next edit: a `day` tag rots loudly, because a test reads
  * it, and a product fact rots silently. Nothing in this file checks that an
@@ -776,47 +805,47 @@ export const WEEK_3_QUESTIONS: QuizQuestion[] = [
   {
     day: 11,
     question:
-      "You need a written comparison of three couriers' terms, ready to send on. Which approach uses what Claude is actually good at?",
+      "You want to show a colleague the screen you keep describing in meetings. What does Claude Design hand you that a written spec does not?",
     options: [
-      "Ask for the comparison, then copy the answer out of the Chat by hand",
-      "Ask three separate questions and stitch the answers together yourself",
-      "Ask for bullet points in a Chat and write the document up yourself",
-      "Ask Research to compare all three and hand back a finished file",
-      "Ask for the comparison, paste it into a document and format it",
+      "A wireframe they can click through, share and comment on",
+      "A promise that what gets built will match what you asked for",
+      "A finished screen, signed off and ready for patients to use",
+      "A specification a developer can build from without changes",
+      "A record of the meetings where the screen was first discussed",
     ],
-    correct: 3,
+    correct: 0,
     explanation:
-      "Research searches, reads and cross-references, then hands back the finished file rather than leaving you to reassemble a document out of Chat text, and it runs in the background while you do something else. Every other option ends with you doing the part the tool would have done.",
+      "What comes back is the thing rather than a description of it: a prototype you walk somebody through, share for comments, export as a PNG or a page, or hand to Claude Code to build. It is a draft made quickly, not a sign-off and not a substitute for the build, which is why the day asks you to take it somewhere rather than to admire it.",
   },
   {
     day: 11,
     question:
-      "You turn Memory on and Claude starts carrying your role, your team's terminology and your usual formats between Chats. What does that change?",
+      "Your first prototype comes back looking generic, as though it could be any company's screen. What is most likely missing from the prompt?",
     options: [
-      "Factual answers get more reliable, because it knows your situation",
-      "You stop re-briefing it at the start of every Chat, nothing more",
-      "It can now reach your company systems without needing a Connector",
-      "Your Chats become visible to colleagues who share the same memory",
-      "It stops inventing detail on topics it now holds context about",
+      "A longer description of the colours and fonts you would prefer",
+      "The name of a competitor whose screen you want it to resemble",
+      "A shorter prompt, since the detail is what made it generic",
+      "The document you already have, attached as what to build from",
+      "A request for something original rather than a template",
     ],
-    correct: 1,
+    correct: 3,
     explanation:
-      "Memory removes the re-briefing. It does not turn a prediction into a lookup, so the checking habit is untouched, and knowing your team's vocabulary does not stop Claude inventing a figure. It grants no system access, which is what a Connector is for, and it shares nothing with anyone.",
+      "A prototype is only as specific as what it was given, so the spec, brief or page of notes you already have is what turns any company's screen into yours. Styling instructions polish something generic, a competitor's screen borrows their thinking rather than stating yours, and cutting detail is the opposite of the fix. Ask for three versions while you are there: choosing between three is faster than specifying one.",
   },
   {
     day: 12,
     question:
-      "You have reworded a prompt three times and the answer keeps coming back the same shape of wrong. What does the programme tell you to do next?",
+      "You need next month's update as a deck the team can edit in PowerPoint. What does the day ask you to do differently?",
     options: [
-      "Reword it once more, being precise about the format you want",
-      "Start a fresh Chat, on the basis that this one is confused",
-      "Accept that the job is outside what the tool can do for you",
-      "Ask Claude to interview you about what it needs, then answer",
-      "Add more context in bulk until the answer eventually shifts",
+      "Ask for the slide text, then build the deck yourself",
+      "Ask for the deck as a PowerPoint file, built from your material",
+      "Ask for a summary first, then paste it onto your usual template",
+      "Ask for one slide at a time, so that each can be checked",
+      "Ask for a document instead, since a deck has to be made by hand",
     ],
-    correct: 3,
+    correct: 1,
     explanation:
-      "The same wrong shape repeating means the gap is in what you have not said rather than in how you said it, and no rewrite reaches that. Letting Claude ask what it needs surfaces the context you were assuming without noticing. One poor answer is normal and a follow-up is just conversation - it is the repetition that is the signal. A fresh Chat and bulk context are the same guess made again.",
+      "The point is starting from a real file rather than from text you still have to lay out. Give Claude the numbers, your notes and last month's version, ask for the deck back as a file, then open it and finish it in PowerPoint. Every other option leaves you doing the assembly the tool would have done. Say what the deck is for and who is in the room while you ask, because that is the context Claude has no way to guess.",
   },
   {
     day: 13,

@@ -246,6 +246,59 @@ export type TrackItemSpec = {
  * assumes it. Both facts, and the research-preview caveat the copy already
  * carried, were checked against Anthropic's own pages on 2026-09-11.
  */
+/**
+ * DAYS 11 AND 12 BECAME "CLAUDE DESIGN 2" AND "CLAUDE POWERPOINT" on
+ * 2026-09-15, on the programme owner's instruction. "Research, Memory & files
+ * out" and "Reverse Prompting" leave the curriculum, so the back half of week
+ * three now runs Design, Design again, then PowerPoint.
+ *
+ * Each topic took its task in DAY_TASKS and its questions in quiz-content.ts
+ * with it, the way every reorder before this one did. What is different is
+ * that this is a REPLACEMENT rather than a swap: nothing catches the two
+ * topics further down the track, and they are gone from the programme.
+ *
+ * DAY 11 HAS A RECORDING, made the same morning and titled "Claude Design 2",
+ * so it binds by title like every other day. It is the wireframes-and
+ * -prototypes half of Claude Design rather than a second pass over decks:
+ * clickable wireframes from a document you already have, three versions to
+ * choose between, and an export - PNG, HTML, or the thing handed to Claude
+ * Code to build. The task is written from that recording rather than around
+ * it.
+ *
+ * DAY 12 HAS NONE, so it reads "coming soon" until one is shot and titled
+ * "Claude PowerPoint" exactly. Its task is deliberately narrow and
+ * PROVISIONAL: Claude building a deck as a real .pptx from your own material,
+ * which is true of Claude whatever the recording turns out to say, and
+ * carefully not day 10's ground - exporting a Design canvas to PowerPoint is
+ * already that day's last line. Re-read it against the video when the video
+ * exists.
+ *
+ * THE SEED CANNOT FINISH THIS ONE EITHER, for the same reason the 10/12 swap
+ * could not: day 12 is BOUND, to the Reverse Prompting recording, and the
+ * re-bind block only fills nulls. Left alone, day 12 plays Reverse Prompting
+ * under a heading reading "Claude PowerPoint" - the failure the two swap
+ * migrations exist for. 20260915053000_day_11_design_2_and_day_12_powerpoint
+ * nulls it, and states the whole fifteen-day mapping the way its predecessors
+ * do.
+ *
+ * TWO LIVE MEMBERS HAD ALREADY DONE DAY 11, and unlike the 10/12 swap this
+ * one cannot say it checked and found none. Day 11 opened for Cohorts 1A and
+ * 1B on 2026-09-14 and one member of each completed its Task - the Research
+ * one - that afternoon. A rename edits the item in place, so both now hold a
+ * completion for a day that asks for something else, with a filed link
+ * pointing at a Research chat. Nothing re-locks and neither was asked to do
+ * it again; that is the programme owner's call rather than this file's. Day
+ * 12 had no live completions - every day 12 progress row belongs to the
+ * Rehearsal cohort, which finished in June.
+ *
+ * WHAT THE DROPPED TOPICS LEAVE. Research and Memory are now taught nowhere
+ * on the track: the day 11 task was the only place either was set as work,
+ * and its two quiz questions went with it. Reverse Prompting keeps its
+ * recording in the Learn library, so it stays watchable at /learn, but it is
+ * no longer a day anybody is walked through. This is the second cut in a
+ * fortnight - "catching confident wrong answers" was the first - and the same
+ * warning applies: what is left of each is a thread, not a lesson.
+ */
 export const DAY_TOPICS: readonly string[] = [
   "What is AI and how does it work?",
   "When to use AI and when not to",
@@ -257,8 +310,8 @@ export const DAY_TOPICS: readonly string[] = [
   "Artifacts",
   "Cowork",
   "Claude Design",
-  "Research, Memory & files out",
-  "Reverse Prompting",
+  "Claude Design 2",
+  "Claude PowerPoint",
   "Dispatch + Plugins",
   "Claude everywhere",
   "Choosing the right tool + measuring time saved",
@@ -858,19 +911,19 @@ const DAY_TASKS: Readonly<Record<number, string>> = {
     "Submit the link to the design, or to the file you exported.",
   ].join("\n"),
   11: [
-    "Pick something you would normally lose an afternoon to: a comparison, a supplier or market scan, a written summary that means reading several sources first.",
-    "Run it with Research rather than a normal chat. It searches, reads and cross-references many sources and then writes the whole thing up, and it runs in the background - so start it and go and do something else.",
-    "Then ask for the result as a file rather than as chat text: a document, a spreadsheet or a deck. Reassembling a finished thing out of a chat by hand is the work you are meant to be stopping.",
-    "While you are in Settings, turn Memory on and read what it already holds about you. It saves you the re-briefing every time; it does not make anything more accurate, so nothing about the checking habit changes.",
-    "Submit the link to the Research chat, or to the file if it lives somewhere shareable.",
+    "Pick something you have been describing in words and hoping everyone pictures the same way: a screen you want built, a landing page, a one-pager, a map of who does what.",
+    "Ask Claude Design for it as a working prototype rather than a picture of one. A clickable wireframe is the strongest version: you walk somebody through it instead of talking them through it.",
+    "Attach what you already have - a spec, a brief, a page of notes. The real document behind the prompt is the difference between a prototype of your idea and a prototype of something generic.",
+    "Ask for three versions rather than one, then take what works from each. Reacting to three is faster than specifying one, and it is the step people skip.",
+    "Then put it somewhere it can be used: export it as a PNG or a page, share it for comments, or hand it to Claude Code to build.",
+    "Submit the link to the prototype, or to what you exported.",
   ].join("\n"),
   12: [
-    "Find a prompt that is not working - one you have reworded twice and it still comes back the wrong shape.",
-    "Stop rewording it. Turn the questioning round instead: ask Claude what it needs from you in order to do this properly, and then answer its questions.",
-    "The questions are the point. What it asks about is almost always context you did not realise you were assuming, and that is the real problem rather than your phrasing.",
-    "Run the job again with what came out of the interview, and compare it against the version you were stuck on.",
-    "Learn the signal while you are here. One poor answer is normal and a follow-up is just conversation. The same wrong shape three times means the misunderstanding is upstream of the wording, and no rewrite will reach it.",
-    "Submit the link to the chat where you let it interview you.",
+    "Take the deck you would otherwise build a slide at a time: the monthly update, a supplier review, the training pack somebody has asked you for.",
+    "Give Claude the material it should be built from - the numbers, your notes, last month's version - and ask for the deck back as a PowerPoint file rather than as slide text in the chat.",
+    "Say what it is for and who is in the room while you are asking. A board update and a team briefing are different documents, and that is the context Claude has no way to guess.",
+    "Open what comes back in PowerPoint and finish it there. Starting from a file you can edit is the point of the day; rebuilding slides by hand out of chat text is the work it is meant to stop.",
+    "Submit the link to the file, or to the chat that produced it.",
   ].join("\n"),
   13: [
     "Find the thing Claude keeps failing at because it cannot reach or cannot do something, rather than because you asked badly.",
