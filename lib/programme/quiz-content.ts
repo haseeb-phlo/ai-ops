@@ -11,11 +11,10 @@
  *                     D4 Projects, D5 Connectors & MCP
  *   Week 2 (day 10) - D6 Skills, D7 Scheduled Tasks, D8 Artifacts,
  *                     D9 Cowork, D10 Claude Design
- *   Week 3 (day 15) - D11 Claude Design 2, D12 Claude PowerPoint,
- *                     D13 Dispatch + Plugins,
- *                     D14 Claude everywhere, D15 choosing the right tool and
- *                     measuring time saved, plus a spiral back over one day
- *                     from each earlier week
+ *   Week 3 (day 15) - D11 Claude Design 2, D12 PowerPoint and Word plugins,
+ *                     D13 Excel plugin, D14 Outlook plugin,
+ *                     D15 choosing the right tool and measuring time saved,
+ *                     plus a spiral back over one day from each earlier week
  *
  * Every quiz now tests only days that have opened before it does, which was
  * not true before September 2026. Week one's two verification questions were
@@ -82,19 +81,35 @@
  *   - three new questions replace them, two on day 11 and one on day 12, so
  *     week three still covers each of days 11-15 and still runs to ten.
  *
- * THE DAY 12 QUESTION IS PROVISIONAL, and it is the one to re-read first.
- * Claude PowerPoint has not been recorded, so it is written from that day's
- * task rather than from a video: ask for the deck back as a real file built
- * from your own material, rather than as slide text you reassemble. That is
- * true of Claude whatever the recording says, and it is deliberately not day
- * 10's ground, where exporting a Design canvas to PowerPoint already lives.
- * When the video exists, read the task and this question against it together.
+ * THE DAY 12 QUESTION WRITTEN THAT MORNING DID NOT SURVIVE THE AFTERNOON.
+ * "Claude PowerPoint" was replaced by the Office plugin run before it opened
+ * for anybody, so the question about asking for a deck as a file went with
+ * it. It is recorded here because it is the shortest-lived question this file
+ * has carried and the lesson is cheap: a question written from a task rather
+ * than from a recording is the first thing a change of plan invalidates.
  *
  * The two day 11 questions are written from the recording that day does have,
  * so they test what it shows: a prototype you can click through rather than a
  * picture of one, and attaching the document you already have rather than
  * describing it. The second also carries the three-versions habit in its
  * explanation, which is the part of that video most likely to be skipped.
+ *
+ * DAYS 12, 13 AND 14 BECAME THE OFFICE PLUGIN RUN later on 2026-09-15:
+ * PowerPoint and Word, Excel, then Outlook. Three questions were replaced,
+ * one per day, and each is written from Anthropic's own documentation rather
+ * than from a recording, because none of the three days has been shot. What
+ * they test is what the add-ins actually do and where the judgement sits:
+ * tracked changes on a document somebody has reviewed, a live workbook you
+ * can ask about a cell in, and a draft reply that goes out under your name.
+ *
+ * TWO LESSONS LEFT WITH THE OLD DAYS and the difference between them matters.
+ * "Claude everywhere" is absorbed: its friction argument - that the cost was
+ * never capability, it was stopping, switching app and pasting back - is now
+ * carried in the day 12 explanation, where it belongs to a day that actually
+ * removes the switch. "Dispatch + Plugins" is a straight loss. The question
+ * that tested the difference between a prompting problem and a capability
+ * problem is deleted, and nothing else on the track teaches it. If it is
+ * wanted back, day 15 is the only room left.
  *
  * The lesson for the next edit: a `day` tag rots loudly, because a test reads
  * it, and a product fact rots silently. Nothing in this file checks that an
@@ -835,47 +850,47 @@ export const WEEK_3_QUESTIONS: QuizQuestion[] = [
   {
     day: 12,
     question:
-      "You need next month's update as a deck the team can edit in PowerPoint. What does the day ask you to do differently?",
+      "The Word plugin is open on a document your manager has already been through. How should you ask for the rewrite?",
     options: [
-      "Ask for the slide text, then build the deck yourself",
-      "Ask for the deck as a PowerPoint file, built from your material",
-      "Ask for a summary first, then paste it onto your usual template",
-      "Ask for one slide at a time, so that each can be checked",
-      "Ask for a document instead, since a deck has to be made by hand",
+      "As tracked changes, so each edit is accepted or rejected",
+      "As a clean copy, then compare the two documents by eye",
+      "In a chat, by pasting the document in and working there",
+      "As a list of edits for you to apply to the file yourself",
+      "As a rewritten file, keeping the original as a backup copy",
     ],
-    correct: 1,
+    correct: 0,
     explanation:
-      "The point is starting from a real file rather than from text you still have to lay out. Give Claude the numbers, your notes and last month's version, ask for the deck back as a file, then open it and finish it in PowerPoint. Every other option leaves you doing the assembly the tool would have done. Say what the deck is for and who is in the room while you ask, because that is the context Claude has no way to guess.",
+      "Tracked changes is what the plugin offers over a chat: the edit lands in the real document, you accept it line by line, and the comment threads your manager left are still there for Claude to answer. Every other option ends with you reconciling two documents by hand. That is the whole argument for working where the file already is - the cost was never capability, it was stopping, switching app and pasting the answer back.",
   },
   {
     day: 13,
     question:
-      "Claude keeps failing at a job you have given it. How do you tell a prompting problem from a capability problem?",
+      "You inherit a pricing workbook nobody documented and one assumption has to change. What does the Excel plugin give you that a chat does not?",
     options: [
-      "It misunderstood you is prompting; it cannot reach that is capability",
-      "A slow job means it is straining against a limit, so capability",
-      "A confident wrong answer means a capability gap rather than wording",
-      "Capability problems always show an error, so anything else is wording",
-      "It rarely matters, because better prompting helps in both cases",
+      "A guarantee the model is right once it has finished with it",
+      "Answers about any cell, and the change made in the live file",
+      "A rebuild of the workbook from scratch, without the original",
+      "A search across the other workbooks saved on your drive",
+      "A record of every change made, kept for whoever audits it",
     ],
-    correct: 0,
+    correct: 1,
     explanation:
-      "Prompting changes how well you use what is already there. Plugins change what is there. The diagnosis is where the time goes, because rewriting a prompt against a capability gap can absorb an afternoon and never work. Capability gaps rarely announce themselves, and a confident wrong answer is a verification problem rather than a capability one.",
+      "The plugin works on the workbook that is open, so you can ask what a cell is doing, move an assumption and have the formulas carried through in place, rather than pasting fragments into a chat and typing the answers back. It cannot reach files you have not opened. And nothing here makes the model right: it writes into your file, so a wrong answer is a wrong number where it counts, and it needs checking the way a colleague's would.",
   },
   {
     day: 14,
     question:
-      "You spend most of your day in Excel and Slack, and Claude is available inside both. What follows from that?",
+      "The Outlook plugin triages your inbox and hands you a reply with the recipients and subject already filled in. What is still yours?",
     options: [
-      "You should still work in the Claude app and paste results across",
-      "The in-tool versions are weaker, so avoid them for real work",
-      "It only matters for people who work mostly in documents",
-      "It matters most for long tasks, which are worth setting up for",
-      "Small jobs stop being worth skipping, because the switch is gone",
+      "Deciding which folder each message should be filed into",
+      "Choosing which colleagues are allowed to see the thread",
+      "Reading the draft before it goes out under your name",
+      "Telling it which mail arrived while you were away",
+      "Setting the hours in which it may sort your inbox for you",
     ],
-    correct: 4,
+    correct: 2,
     explanation:
-      "The barrier was rarely capability, it was friction. Stopping, switching app, re-explaining the context and pasting the answer back is enough to make anyone skip a two-minute job, and small jobs are where most of the saving quietly adds up. Long tasks were always worth the switch, so they are not where this changes anything.",
+      "Triage sorts the inbox into what needs you, what it can draft and what is noise, and the drafts arrive ready to send - which is exactly why reading one is not optional. It is a public beta, it works on the message in front of it, and an email sent in your name is yours whoever wrote the first version of it.",
   },
   {
     day: 15,

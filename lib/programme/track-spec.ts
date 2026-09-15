@@ -265,21 +265,16 @@ export type TrackItemSpec = {
  * Code to build. The task is written from that recording rather than around
  * it.
  *
- * DAY 12 HAS NONE, so it reads "coming soon" until one is shot and titled
- * "Claude PowerPoint" exactly. Its task is deliberately narrow and
- * PROVISIONAL: Claude building a deck as a real .pptx from your own material,
- * which is true of Claude whatever the recording turns out to say, and
- * carefully not day 10's ground - exporting a Design canvas to PowerPoint is
- * already that day's last line. Re-read it against the video when the video
- * exists.
- *
- * THE SEED CANNOT FINISH THIS ONE EITHER, for the same reason the 10/12 swap
- * could not: day 12 is BOUND, to the Reverse Prompting recording, and the
- * re-bind block only fills nulls. Left alone, day 12 plays Reverse Prompting
- * under a heading reading "Claude PowerPoint" - the failure the two swap
- * migrations exist for. 20260915053000_day_11_design_2_and_day_12_powerpoint
- * nulls it, and states the whole fifteen-day mapping the way its predecessors
- * do.
+ * DAY 12 BRIEFLY BECAME "CLAUDE POWERPOINT" and was replaced again the same
+ * morning - see the stanza below. The half of this that stuck is that day 12
+ * lost its binding: it pointed at the Reverse Prompting recording, and the
+ * seed's re-bind block only fills nulls, so left alone it would have played
+ * Reverse Prompting under whatever heading day 12 carried. That is the
+ * failure the two September swap migrations exist for, and
+ * 20260915053000_day_11_design_2_and_day_12_powerpoint nulls it while stating
+ * the whole fifteen-day mapping the way its predecessors do. The null is
+ * still the right end state, so the migration is not superseded by the change
+ * that followed it - only its title is now out of date.
  *
  * TWO LIVE MEMBERS HAD ALREADY DONE DAY 11, and unlike the 10/12 swap this
  * one cannot say it checked and found none. Day 11 opened for Cohorts 1A and
@@ -299,6 +294,58 @@ export type TrackItemSpec = {
  * fortnight - "catching confident wrong answers" was the first - and the same
  * warning applies: what is left of each is a thread, not a lesson.
  */
+/**
+ * DAYS 12, 13 AND 14 BECAME THE OFFICE PLUGIN RUN later on 2026-09-15, on the
+ * programme owner's instruction: PowerPoint and Word, then Excel, then
+ * Outlook. "Claude PowerPoint" lasted a few hours and never opened for
+ * anybody; "Dispatch + Plugins" and "Claude everywhere" leave the curriculum
+ * with it.
+ *
+ * DAY 15 IS UNCHANGED AND PENDING. The programme owner is deciding what it
+ * becomes, so "Choosing the right tool + measuring time saved" and both its
+ * quiz questions stand until they say. A day left alone is not a day nobody
+ * has thought about - this sentence is the difference.
+ *
+ * WHY A RUN RATHER THAN THREE DAYS. The three build on one setting: the
+ * add-ins coordinate, so Claude can read an Excel model and write the deck
+ * from it, or pull figures out of an Outlook thread into a sheet. That is off
+ * by default on our Team plan and an org owner turns it on under
+ * Organization settings, Office agents, which is why day 12's task sets it up
+ * and the two after it draw on it. Done in the other order the run reads as
+ * three unrelated installs.
+ *
+ * "CLAUDE EVERYWHERE" IS ABSORBED RATHER THAN CUT, which is the honest
+ * reading: day 14 used to make the general case that Claude sits inside the
+ * tools you already use, and the three days now make it in four of them, with
+ * the friction argument intact in day 12's quiz explanation. "Dispatch +
+ * Plugins" is a straight loss and should be recorded as one. The distinction
+ * it taught - "it misunderstood me" is a prompting problem, "it cannot reach
+ * that" is a capability problem, and no rewrite touches the second - is
+ * taught nowhere else, and its quiz question went with it. The cheapest home
+ * if it is wanted back is a line in day 15's task, wherever day 15 lands.
+ *
+ * THE COPY WAS CHECKED against Anthropic's own documentation on 2026-09-15,
+ * because a task that names a menu is worthless if the menu moved: the
+ * add-ins install from Microsoft AppSource and open under Home, Add-ins on
+ * Windows or Tools, Add-ins on a Mac; Excel, PowerPoint and Word are
+ * generally available and Outlook is a public beta; cross-app work is "Let
+ * Claude work across files" per add-in, off by default on Team and
+ * Enterprise; and Claude reads and writes only the file that is OPEN, which
+ * is the limit every one of the three tasks names.
+ *
+ * NO MIGRATION THIS TIME. Days 12, 13 and 14 are all unbound today, and none
+ * of the three new titles matches a learn_videos row, so the seed's re-bind
+ * finds nothing and leaves them null. Three days reading "coming soon" is the
+ * state to fix with recordings, not with SQL. A recording must be titled
+ * exactly as the topic reads here to bind by itself.
+ *
+ * DAY 14 NOW OFFERS THE SCREENSHOT UPLOAD, the second day ever to - see
+ * SCREENSHOT_TASK_DAYS in task-link.ts. Outlook work has nothing to link: a
+ * message has no URL a colleague can open, and the M365 add-ins keep their
+ * chat history in the browser rather than in a Claude account, so there is no
+ * shareable chat either. That is day 7's argument exactly, which is why the
+ * set is now two rather than fourteen.
+ */
 export const DAY_TOPICS: readonly string[] = [
   "What is AI and how does it work?",
   "When to use AI and when not to",
@@ -311,9 +358,9 @@ export const DAY_TOPICS: readonly string[] = [
   "Cowork",
   "Claude Design",
   "Claude Design 2",
-  "Claude PowerPoint",
-  "Dispatch + Plugins",
-  "Claude everywhere",
+  "PowerPoint and Word plugins",
+  "Excel plugin",
+  "Outlook plugin",
   "Choosing the right tool + measuring time saved",
 ] as const;
 
@@ -919,24 +966,29 @@ const DAY_TASKS: Readonly<Record<number, string>> = {
     "Submit the link to the prototype, or to what you exported.",
   ].join("\n"),
   12: [
-    "Take the deck you would otherwise build a slide at a time: the monthly update, a supplier review, the training pack somebody has asked you for.",
-    "Give Claude the material it should be built from - the numbers, your notes, last month's version - and ask for the deck back as a PowerPoint file rather than as slide text in the chat.",
-    "Say what it is for and who is in the room while you are asking. A board update and a team briefing are different documents, and that is the context Claude has no way to guess.",
-    "Open what comes back in PowerPoint and finish it there. Starting from a file you can edit is the point of the day; rebuilding slides by hand out of chat text is the work it is meant to stop.",
-    "Submit the link to the file, or to the chat that produced it.",
+    "Install the Claude plugins for PowerPoint and Word from Microsoft AppSource. Office calls them add-ins, so that is the word to look for: Home > Add-ins on Windows, Tools > Add-ins on a Mac.",
+    "Open each add-in's settings and turn on 'Let Claude work across files'. On our Team plan it is off until somebody turns it on, and the switch for the whole organisation is Organization settings > Office agents, so ask Haseeb if it is not yours to change. The next two days build on it.",
+    "Then use it on a deck you actually have to produce. It builds slides inside the template you are already in, edits the slides you have selected rather than the whole file, and makes real charts rather than pictures of them.",
+    "Do the Word half on a document somebody has reviewed. Ask for the edit as tracked changes so you accept it line by line, and let it answer a comment thread that was left for you.",
+    "Learn the limit while you are here: it reads and writes the file open in front of you, and it cannot go off and find, open or close a file for you.",
+    "Submit the link to the deck or the document you worked on.",
   ].join("\n"),
   13: [
-    "Find the thing Claude keeps failing at because it cannot reach or cannot do something, rather than because you asked badly.",
-    "Learn to tell those two apart, because the diagnosis is where the time goes. 'It misunderstood me' is a prompt problem and better wording fixes it. 'It cannot get to that' is a capability problem and no rewrite will ever reach it.",
-    "Then close the gap rather than rewriting the prompt: add the Plugin that gives Claude the thing it was missing, and run the same job again.",
-    "Prompting changes how well you use what is already there. Plugins change what is there.",
-    "Submit the link to the job you got working.",
+    "Install the Claude plugin for Excel the same way, and open a workbook you actually use rather than a copy made for the exercise.",
+    "Start with a cell you did not write. Ask what it is doing and what breaks if you change it - the question a spreadsheet nobody documented is hardest to answer, and it is answered here against the live sheet rather than a description of one.",
+    "Then move an assumption and let Claude carry it through the model instead of repairing the formulas yourself.",
+    "Check what comes back the way you would check a colleague's work. It writes into the open workbook, so a wrong answer today is a wrong number in your file rather than a wrong sentence in a chat.",
+    "If you turned the cross-app setting on for day 12, finish by asking it to take the result into the deck you built there.",
+    "Submit the link to the workbook.",
   ].join("\n"),
   14: [
-    "Think about where you actually spend the day: a spreadsheet, your inbox, Slack, a browser tab, a document. Claude is available inside most of it.",
-    "Install it in the one you live in most. Then do the small job you would never normally open Claude for - the two-minute rewrite, the quick summary, the formula you would have looked up.",
-    "That is the point of today. The barrier was never capability, it was friction: stopping, switching app, re-explaining the context and pasting the answer back is enough to make anyone skip a small job. Small jobs are where most of the saving quietly adds up.",
-    "Submit the link to the thing you did without leaving the tool you were already in.",
+    "Install the Claude plugin for Outlook. It is a public beta rather than a finished thing, and it opens from the ribbon with an email in front of you rather than in a panel of its own.",
+    "Ask it to triage the inbox you dread on a Monday: what genuinely needs you, what it can draft for you, and what is noise.",
+    "Take one of the drafts it offers, recipients and subject already filled in, and read it properly before it goes. It sends under your name, which is the whole reason reading it is not optional.",
+    "Then give it the calendar job - who is free, and the invite set up - which is the one that quietly eats a morning.",
+    "Patient identifiable information stays out of it, the same as every other day.",
+    "Nothing here produces a link: an Outlook message has no address a colleague can open, and the add-ins keep their chat in your browser rather than in your Claude account.",
+    "Submit a screenshot of the triage, or a link if something you made has one.",
   ].join("\n"),
   15: [
     "List the jobs you moved to Claude over the three weeks, with what each one used to take and what it takes now. If you have kept a Time-Back Log this is that list already; if you have not, build it now.",

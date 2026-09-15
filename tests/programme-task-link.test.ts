@@ -335,9 +335,9 @@ describe("serving a filed screenshot", () => {
 });
 
 describe("taskTakesFile", () => {
-  it("offers the upload on day 7 and nowhere else", () => {
+  it("offers the upload on days 7 and 14 and nowhere else", () => {
     for (let day = 1; day <= 15; day += 1) {
-      expect(taskTakesFile(day), `day ${day}`).toBe(day === 7);
+      expect(taskTakesFile(day), `day ${day}`).toBe(day === 7 || day === 14);
     }
   });
 
@@ -351,14 +351,17 @@ describe("taskTakesFile", () => {
     }
   });
 
-  it("is the day whose work has no link to share", () => {
-    // Day 7 is Scheduled Tasks. A scheduled task has runs and no Share link,
-    // which is the entire reason the upload exists. If the topic order moves,
-    // this is the assertion that should fail rather than the button quietly
-    // sitting on the wrong day.
+  it("names the days whose work has no link to share", () => {
+    // Day 7 is Scheduled Tasks: a scheduled task has runs and no Share link,
+    // which is the entire reason the upload exists. Day 14 is the Outlook
+    // plugin: a message has no address a colleague can open, and the M365
+    // add-ins keep their chat in the browser rather than in a Claude account.
+    // If the topic order moves, these are the assertions that should fail
+    // rather than the button quietly sitting on the wrong day - so they pin
+    // the topics, not just the numbers.
     expect(DAY_TOPICS[6]).toBe("Scheduled Tasks");
-    expect(SCREENSHOT_TASK_DAYS.has(7)).toBe(true);
-    expect(SCREENSHOT_TASK_DAYS.size).toBe(1);
+    expect(DAY_TOPICS[13]).toBe("Outlook plugin");
+    expect([...SCREENSHOT_TASK_DAYS].sort((a, b) => a - b)).toEqual([7, 14]);
   });
 
   it("still reads a screenshot filed before the day lost the upload", () => {

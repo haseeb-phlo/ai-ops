@@ -166,19 +166,31 @@ export function taskTakesLink(dayIndex: number): boolean {
  *
  * Day 7 is Scheduled Tasks, and it is the reason the upload exists at all: a
  * Claude scheduled task has runs and no Share link, so the day was
- * uncompletable for anyone who did it properly. Every other day's work
- * produces something linkable, and on those days a picture of the output is
- * strictly worse evidence than the output - whoever reads it later can open a
- * link and cannot open a screenshot.
+ * uncompletable for anyone who did it properly. Most days produce something
+ * linkable, and on those days a picture of the output is strictly worse
+ * evidence than the output - whoever reads it later can open a link and
+ * cannot open a screenshot.
  *
- * So this is deliberately a set of one rather than the inverse of
+ * Day 14 is the second, added on 2026-09-15 when the day became the Outlook
+ * plugin, and it is day 7's argument rather than a loosening of it. Outlook
+ * work has nothing to link twice over: a message has no address a colleague
+ * can open, and the Claude for M365 add-ins keep their chat history in the
+ * browser rather than in a Claude account, so there is no shareable chat
+ * either. Checked against Anthropic's documentation the day it was added.
+ *
+ * So this is deliberately a short list rather than the inverse of
  * LINKLESS_TASK_DAYS. The upload shipped enabled on all fourteen linkable
  * days, which was the bug: it offered a worse option everywhere to solve a
- * problem that exists on one day.
+ * problem that exists on two of them. A third entry should have to argue for
+ * itself the way these two do, naming what it is about the day's output that
+ * cannot be linked.
  *
  * A day in here must also be a linkable day - the link is still top billing on
  * day 7, with the upload worded as the fallback. `taskTakesFile` enforces that
- * rather than trusting the two sets to stay consistent by hand.
+ * rather than trusting the two sets to stay consistent by hand. Day 14 is the
+ * one day where the copy leads with the screenshot instead, because there the
+ * link is the exception rather than the norm; the field stays for the member
+ * whose triage did produce something shareable.
  *
  * Evidence already filed on a day that is no longer in this set is NOT
  * revoked: it stays in the member's meta_json, keeps its G3 credit, and keeps
@@ -186,7 +198,7 @@ export function taskTakesLink(dayIndex: number): boolean {
  * credit somebody earned under the old rule would be worse than an option that
  * quietly stopped being offered - the same precedent LINKLESS_TASK_DAYS sets.
  */
-export const SCREENSHOT_TASK_DAYS: ReadonlySet<number> = new Set([7]);
+export const SCREENSHOT_TASK_DAYS: ReadonlySet<number> = new Set([7, 14]);
 
 /** Whether a day's Task offers the screenshot upload alongside the link. */
 export function taskTakesFile(dayIndex: number): boolean {
