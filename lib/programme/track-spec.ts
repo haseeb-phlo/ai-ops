@@ -342,11 +342,27 @@ export type TrackItemSpec = {
  * Enterprise; and Claude reads and writes only the file that is OPEN, which
  * is the limit every one of the three tasks names.
  *
- * NO MIGRATION THIS TIME. Days 12, 13 and 14 are all unbound today, and none
- * of the three new titles matches a learn_videos row, so the seed's re-bind
- * finds nothing and leaves them null. Three days reading "coming soon" is the
- * state to fix with recordings, not with SQL. A recording must be titled
- * exactly as the topic reads here to bind by itself.
+ * NO MIGRATION FOR THE RUN. Days 12, 13 and 14 were all unbound when it
+ * shipped and no title matched a learn_videos row, so the seed's re-bind
+ * found nothing and left them null. Days reading "coming soon" are a state to
+ * fix with recordings, not with SQL.
+ *
+ * DAY 12 WAS RECORDED THAT EVENING and the day is named after the recording
+ * rather than the other way round: the video is titled "Word & PowerPoint
+ * Extensions", so the topic reads "Word & PowerPoint extensions" and the
+ * ampersand and the word order are the video's, not a style choice. Only the
+ * capital E is ours, for the run to read consistently beside "Excel
+ * extension" and "Outlook extension" - which is safe because the seed's
+ * re-bind compares `lower(v.title) = lower(i.title)`. Case is the ONLY thing
+ * that may differ. An ampersand against an "and", or two words in the other
+ * order, is a day that stays null and a video sitting in the library nobody
+ * reaches from the track.
+ *
+ * The day 12 task was rewritten against that recording rather than left as
+ * the documentation-only version: the video is about targeted edits to slides
+ * you have selected rather than decks built from nothing, and in Word about
+ * reconciling a document's comments with track changes on. Days 13 and 14 are
+ * still written from documentation and still waiting for their own.
  *
  * DAY 14 NOW OFFERS THE SCREENSHOT UPLOAD, the second day ever to - see
  * SCREENSHOT_TASK_DAYS in task-link.ts. Outlook work has nothing to link: a
@@ -367,7 +383,7 @@ export const DAY_TOPICS: readonly string[] = [
   "Cowork",
   "Claude Design",
   "Claude Design 2",
-  "PowerPoint and Word extensions",
+  "Word & PowerPoint extensions",
   "Excel extension",
   "Outlook extension",
   "Choosing the right tool + measuring time saved",
@@ -997,10 +1013,10 @@ const DAY_TASKS: Readonly<Record<number, string>> = {
     "Submit the link to the prototype, or to what you exported.",
   ].join("\n"),
   12: [
-    "Install the Claude extensions for PowerPoint and Word from Microsoft AppSource. Office calls them add-ins: Home > Add-ins on Windows, Tools > Add-ins on a Mac.",
-    "In each one's settings, turn on 'Let Claude work across files'. On our Team plan it is off until somebody turns it on, so ask Haseeb if it is not yours to change.",
-    "Use it on a deck you actually have to produce. It builds slides in the template you are already in and edits the ones you have selected.",
-    "Then take a document somebody has reviewed and ask for the edit as tracked changes, so you accept it line by line.",
+    "Install the Claude extensions for Word and PowerPoint from Microsoft AppSource. Office calls them add-ins: Home > Add-ins on Windows, Tools > Add-ins on a Mac.",
+    "In each one's settings, turn on 'Let Claude work across files' and choose whether it asks before each edit or applies them all. On our Team plan the first is off until somebody turns it on, so ask Haseeb if it is not yours to change.",
+    "In PowerPoint, take slides you already have and ask for a targeted change to the ones you have selected, rather than a deck built from nothing.",
+    "In Word, open a document with comments on it and ask Claude to summarise them and say where they conflict. Turn track changes on first, so you can see every edit it makes.",
     "Submit the link to the deck or the document you worked on.",
   ].join("\n"),
   13: [

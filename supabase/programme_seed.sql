@@ -90,11 +90,11 @@ Ask Claude Design for it as a working prototype rather than a picture of one, an
 Ask for three versions rather than one, then take what works from each.
 Export it as a PNG or a page, share it for comments, or hand it to Claude Code to build.
 Submit the link to the prototype, or to what you exported.', 11, 1, null, '{}'::jsonb),
-    ('video', 'PowerPoint and Word extensions', null, 12, 0, 'PowerPoint and Word extensions', '{}'::jsonb),
-    ('use_example', 'Task', 'Install the Claude extensions for PowerPoint and Word from Microsoft AppSource. Office calls them add-ins: Home > Add-ins on Windows, Tools > Add-ins on a Mac.
-In each one''s settings, turn on ''Let Claude work across files''. On our Team plan it is off until somebody turns it on, so ask Haseeb if it is not yours to change.
-Use it on a deck you actually have to produce. It builds slides in the template you are already in and edits the ones you have selected.
-Then take a document somebody has reviewed and ask for the edit as tracked changes, so you accept it line by line.
+    ('video', 'Word & PowerPoint extensions', null, 12, 0, 'Word & PowerPoint extensions', '{}'::jsonb),
+    ('use_example', 'Task', 'Install the Claude extensions for Word and PowerPoint from Microsoft AppSource. Office calls them add-ins: Home > Add-ins on Windows, Tools > Add-ins on a Mac.
+In each one''s settings, turn on ''Let Claude work across files'' and choose whether it asks before each edit or applies them all. On our Team plan the first is off until somebody turns it on, so ask Haseeb if it is not yours to change.
+In PowerPoint, take slides you already have and ask for a targeted change to the ones you have selected, rather than a deck built from nothing.
+In Word, open a document with comments on it and ask Claude to summarise them and say where they conflict. Turn track changes on first, so you can see every edit it makes.
 Submit the link to the deck or the document you worked on.', 12, 1, null, '{}'::jsonb),
     ('video', 'Excel extension', null, 13, 0, 'Excel extension', '{}'::jsonb),
     ('use_example', 'Task', 'Install the Claude extension for Excel the same way, and open a workbook you actually use.
@@ -211,11 +211,11 @@ Ask Claude Design for it as a working prototype rather than a picture of one, an
 Ask for three versions rather than one, then take what works from each.
 Export it as a PNG or a page, share it for comments, or hand it to Claude Code to build.
 Submit the link to the prototype, or to what you exported.'),
-    (12, 0, 'PowerPoint and Word extensions', null),
-    (12, 1, 'Task', 'Install the Claude extensions for PowerPoint and Word from Microsoft AppSource. Office calls them add-ins: Home > Add-ins on Windows, Tools > Add-ins on a Mac.
-In each one''s settings, turn on ''Let Claude work across files''. On our Team plan it is off until somebody turns it on, so ask Haseeb if it is not yours to change.
-Use it on a deck you actually have to produce. It builds slides in the template you are already in and edits the ones you have selected.
-Then take a document somebody has reviewed and ask for the edit as tracked changes, so you accept it line by line.
+    (12, 0, 'Word & PowerPoint extensions', null),
+    (12, 1, 'Task', 'Install the Claude extensions for Word and PowerPoint from Microsoft AppSource. Office calls them add-ins: Home > Add-ins on Windows, Tools > Add-ins on a Mac.
+In each one''s settings, turn on ''Let Claude work across files'' and choose whether it asks before each edit or applies them all. On our Team plan the first is off until somebody turns it on, so ask Haseeb if it is not yours to change.
+In PowerPoint, take slides you already have and ask for a targeted change to the ones you have selected, rather than a deck built from nothing.
+In Word, open a document with comments on it and ask Claude to summarise them and say where they conflict. Turn track changes on first, so you can see every edit it makes.
 Submit the link to the deck or the document you worked on.'),
     (13, 0, 'Excel extension', null),
     (13, 1, 'Task', 'Install the Claude extension for Excel the same way, and open a workbook you actually use.
