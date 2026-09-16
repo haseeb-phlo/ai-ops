@@ -99,9 +99,9 @@ describe("a Task card's copy", () => {
     );
     expect(paragraphs[0]).toBe("Pick three jobs from this week:");
     expect(paragraphs).toContain(
-      "Predict each outcome before you open Claude and rate it Certain, Fairly " +
-        "confident or Guessing, then run all three, including the one you " +
-        "expect to fail.",
+      "Before you open Claude, write down how you think each will go and rate " +
+        "yourself Certain, Fairly confident or Guessing. Then run all three, " +
+        "including the one you expect to fail.",
     );
   });
 

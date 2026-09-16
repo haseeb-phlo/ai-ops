@@ -384,7 +384,7 @@ export const DAY_TOPICS: readonly string[] = [
   "Claude Design",
   "Claude Design 2",
   "Word & PowerPoint extensions",
-  "Excel extension",
+  "Claude in Excel",
   "Outlook extension",
   "Choosing the right tool + measuring time saved",
 ] as const;
@@ -911,6 +911,40 @@ export const GENERIC_TASK =
  * member's own log, so it is the one day where a shared document rather than
  * a Claude URL is the expected answer.
  *
+ * AND THEN REWRITTEN IN PLAIN SPEECH on 2026-09-16, same instruction,
+ * second half of it: no AI slop, written the way somebody would say it out
+ * loud at work. What that meant in practice, since "slop" is easier to
+ * recognise than to define:
+ *
+ *   - the stacked "X rather than Y" contrast, which had reached eight of the
+ *     fifteen days. One is a useful correction; four in a row is a voice
+ *     nobody has;
+ *   - the semicolon holding two balanced clauses together, which is writing
+ *     rather than speech;
+ *   - the sentence after the instruction telling you how to feel about it.
+ *     The concision pass below took out the worst of those and this one took
+ *     out the rest;
+ *   - abstract framing where a verb would do: "the judgement sits with you"
+ *     became "read it properly before you send it".
+ *
+ * Contractions are allowed and were already there in the owner's own days,
+ * so "it is not yours to change" stayed but "do not settle for the first
+ * draft" reads as speech and stays too. Days 3, 5, 7 and 9 were not touched
+ * in either pass: they are the owner's copy and they already sound like a
+ * person.
+ *
+ * DAY 13 BECAME "CLAUDE IN EXCEL" the same morning, and its task says
+ * "Install Claude for Excel from Microsoft AppSource" because that is what
+ * the thing is called in the store. The day names the experience, the step
+ * names the product. Nothing binds yet: no recording exists, and one titled
+ * exactly "Claude in Excel" will bind by itself.
+ *
+ * The day is the odd one out in the run, which is worth a look next time
+ * somebody touches these: day 12 is "Word & PowerPoint extensions" and day
+ * 14 is "Outlook extension", both named after the thing, while day 13 is
+ * named after what you do with it. Left alone because each name came from
+ * the owner, one at a time, and consistency is not worth overruling that.
+ *
  * EVERY TASK WAS CUT BACK TO DAY 5'S SHAPE on 2026-09-15, on the programme
  * owner's instruction. Days 1, 3, 5, 7 and 9 were already there and are
  * untouched - 9 in particular, because that copy is the owner's own and the
@@ -945,9 +979,9 @@ const DAY_TASKS: Readonly<Record<number, string>> = {
     "- one you are confident Claude will do well",
     "- one you are confident Claude will not do well",
     "- one where you are not sure",
-    "Predict each outcome before you open Claude and rate it Certain, Fairly confident or Guessing, then run all three, including the one you expect to fail.",
-    "Compare the results with your predictions. What worked when you thought it would not is what to delegate next; what came back wrong is what to keep checking.",
-    "Submit the link to one of these, preferably the one that surprised you most.",
+    "Before you open Claude, write down how you think each will go and rate yourself Certain, Fairly confident or Guessing. Then run all three, including the one you expect to fail.",
+    "Compare what you got with what you expected. Anything that worked when you thought it would not is a job to hand over from now on. Anything that came back wrong is one to keep checking.",
+    "Submit the link to one of these, ideally the one that surprised you most.",
   ].join("\n"),
   3: [
     "Take a Project you've already built (or build a new one) and use the CRISPE framework in the instructions.",
@@ -959,7 +993,7 @@ const DAY_TASKS: Readonly<Record<number, string>> = {
     "- custom instructions",
     "- 2-3 knowledge files",
     "- access with anyone else who could use it",
-    "Test it. If the output is not what you need, the instructions are missing something, so add it and run it again.",
+    "Test it and check the output. If it is not what you need, the instructions are missing something, so add it and run it again.",
     "Submit the link to the Project below.",
   ].join("\n"),
   // The one day with no link field - see LINKLESS_TASK_DAYS in task-link.ts.
@@ -971,13 +1005,13 @@ const DAY_TASKS: Readonly<Record<number, string>> = {
     "Disconnect anything you added to have a look at and are not going to use.",
   ].join("\n"),
   6: [
-    "Pick one thing you explain to Claude repeatedly: how a report should be laid out, how a summary should be structured, the checks a piece of work has to pass.",
-    "Go to Customize > Skills and build a Skill for it, letting the built-in skill-creator draft it from your description. Give it:",
+    "Pick something you explain to Claude again and again: how a report should be laid out, how a summary should be structured, the checks a piece of work has to pass before you send it.",
+    "Go to Customize > Skills and build a Skill for it. Let the built-in skill-creator draft it from your description. Give it:",
     "- a description saying when to use it",
     "- one task only",
-    "- the method it should use",
-    "Test it in a fresh chat, asking for the task without naming the Skill, over a few different wordings.",
-    "If it does not fire, the description is too vague to match what you asked. Fix it and try again.",
+    "- the method it should follow",
+    "Test it in a fresh chat: ask for the task without naming the Skill, and try a few different wordings.",
+    "If it does not fire, the description is too vague. Make it say plainly when the Skill should be used, then try again.",
     "Submit the link to the chat where your Skill fired on its own.",
   ].join("\n"),
   7: [
@@ -988,8 +1022,8 @@ const DAY_TASKS: Readonly<Record<number, string>> = {
   ].join("\n"),
   8: [
     "Pick something you rebuild most weeks - a status update, a meeting-prep sheet, a checklist - and ask Claude to make it as an Artifact you can reuse.",
-    "Change it once in plain English rather than keeping the first draft. If Claude answers in the chat instead of opening a panel, check Settings > Capabilities for Code execution and file creation, and ask Haseeb if it is not yours to change.",
-    "Share it. On our Team plan it opens for anyone signed in with a Phlo account, so made-up numbers only, no logins or keys, and ask Haseeb if it has to reach anyone outside.",
+    "Do not settle for the first draft. Ask for one change in plain English and watch it update. If Claude answers in the chat instead of opening a panel, check Settings > Capabilities for Code execution and file creation, and ask Haseeb if that setting is not yours to change.",
+    "Share it. On our Team plan anyone signed in with a Phlo account can open it, so use made-up numbers, keep logins and keys out of it, and ask Haseeb first if it needs to go outside Phlo.",
     "Submit the link to your Artifact.",
   ].join("\n"),
   9: [
@@ -1000,50 +1034,50 @@ const DAY_TASKS: Readonly<Record<number, string>> = {
   ].join("\n"),
   10: [
     "Describe one screen or document you wish already existed: a landing page, a settings screen, a pitch deck, a one-pager.",
-    "Open Claude Design at claude.ai/design, or from the sidebar in the desktop app. Make it there, then refine it once in plain English rather than taking the first version.",
-    "Export what you end up with - the Export button offers PowerPoint, PDF and a standalone page, among others.",
-    "It is a research preview, so what comes out is a draft. Keep confidential designs, patient-facing material and private code out of it.",
+    "Open Claude Design at claude.ai/design, or from the sidebar in the desktop app. Build it there, then ask for one change in plain English instead of keeping the first version.",
+    "Export what you end up with. The Export button gives you PowerPoint, PDF or a standalone page.",
+    "It is a research preview, so treat what comes out as a draft. Keep confidential designs, patient-facing material and private code out of it.",
     "Submit the link to the design, or to the file you exported.",
   ].join("\n"),
   11: [
-    "Pick something you have been describing in words and hoping everyone pictures the same way: a screen you want built, a landing page, a one-pager.",
-    "Ask Claude Design for it as a working prototype rather than a picture of one, and attach the spec, brief or page of notes you already have.",
-    "Ask for three versions rather than one, then take what works from each.",
+    "Pick something you keep describing in words and hoping everyone pictures the same way: a screen you want built, a landing page, a one-pager.",
+    "Ask Claude Design to build it as something you can click through, not a picture of it. Attach the spec, brief or notes you already have, or you will get a screen that could belong to any company.",
+    "Ask for three versions, then take the best parts of each.",
     "Export it as a PNG or a page, share it for comments, or hand it to Claude Code to build.",
     "Submit the link to the prototype, or to what you exported.",
   ].join("\n"),
   12: [
-    "Install the Claude extensions for Word and PowerPoint from Microsoft AppSource. Office calls them add-ins: Home > Add-ins on Windows, Tools > Add-ins on a Mac.",
-    "In each one's settings, turn on 'Let Claude work across files' and choose whether it asks before each edit or applies them all. On our Team plan the first is off until somebody turns it on, so ask Haseeb if it is not yours to change.",
-    "In PowerPoint, take slides you already have and ask for a targeted change to the ones you have selected, rather than a deck built from nothing.",
-    "In Word, open a document with comments on it and ask Claude to summarise them and say where they conflict. Turn track changes on first, so you can see every edit it makes.",
+    "Install the Claude extensions for Word and PowerPoint from Microsoft AppSource. Office calls them add-ins, so look under Home > Add-ins on Windows or Tools > Add-ins on a Mac.",
+    "In each one's settings, turn on 'Let Claude work across files', and decide whether it should ask before each edit or just make them. On our Team plan that first setting is off until someone turns it on, so ask Haseeb if it is not yours to change.",
+    "In PowerPoint, open a deck you already have, select a few slides and ask for a specific change to those. It is better at tidying up what is there than at building a deck from nothing.",
+    "In Word, open a document with comments on it and ask Claude to summarise them and point out where they disagree. Turn track changes on first, so you can see every edit it makes.",
     "Submit the link to the deck or the document you worked on.",
   ].join("\n"),
   13: [
-    "Install the Claude extension for Excel the same way, and open a workbook you actually use.",
-    "Ask it about a cell you did not write: what it is doing, and what breaks if you change it.",
-    "Then move an assumption and let Claude carry it through the model rather than repairing the formulas yourself.",
-    "Check the numbers as you would a colleague's. It writes into the open workbook, and it cannot reach a file you have not opened.",
+    "Install Claude for Excel from Microsoft AppSource, the same way as yesterday, and open a workbook you actually use.",
+    "Find a cell you did not write and ask what it does, and what would break if you changed it.",
+    "Then change one of your assumptions and let Claude update the formulas instead of fixing them yourself.",
+    "Check the numbers the way you would check a colleague's. Claude writes straight into the open workbook, and it cannot see a file you have not opened.",
     "Submit the link to the workbook.",
   ].join("\n"),
   14: [
-    "Install the Claude extension for Outlook. It is a public beta, and it opens from the ribbon with an email in front of you.",
-    "Ask it to triage the inbox you dread on a Monday: what needs you, what it can draft, and what is noise.",
-    "Take one of its drafts and read it properly before it goes. It sends under your name.",
+    "Install the Claude extension for Outlook. It is a public beta, and it opens from the ribbon when you have an email open.",
+    "Ask it to go through the inbox you dread on a Monday and sort it: what needs you, what it can draft for you, and what is noise.",
+    "Take one of its drafts, read it properly, then send it. It goes out under your name.",
     "Keep patient identifiable information out of it.",
-    "Submit a screenshot of the triage, since an Outlook message has no link to share, or a link if something you made has one.",
+    "Submit a screenshot of what it sorted, since an Outlook email has no link you can share, or a link if something you made has one.",
   ].join("\n"),
   15: [
-    "List the jobs you moved to Claude over the three weeks, with what each used to take and what it takes now. If you have kept a Time-Back Log, that is the list already.",
-    "Then time one of them properly rather than estimating it. Pick the biggest saving you are claiming, run it end to end with the clock going, and write the real number next to your guess.",
-    "Then choose the container that job belongs in:",
+    "List the jobs you moved to Claude over the three weeks, with what each one used to take and what it takes now. If you have kept a Time-Back Log, you have the list already.",
+    "Then pick the biggest saving you are claiming and time it properly. Run the job end to end with the clock going, and write the real number next to your estimate.",
+    "Then work out where that job belongs:",
     "- a Chat for a one-off",
     "- a Project when the background is the same every time",
     "- a Skill when it is a method colleagues should reuse",
     "- a Scheduled Task when it runs on a rhythm",
     "- Cowork when it is assembly across your own files",
     "- an Artifact when the output is a thing your team will open again",
-    "If the job you have run in an ordinary Chat all fortnight belongs somewhere else, move it now.",
+    "If you have been running it in an ordinary Chat all fortnight and it belongs somewhere else, move it now.",
     "Submit the link to your log.",
   ].join("\n"),
 };

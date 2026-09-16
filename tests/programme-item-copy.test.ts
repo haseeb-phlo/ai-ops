@@ -92,7 +92,7 @@ describe("the track's own copy", () => {
     // takes it.
     expect(blocks.at(-1)).toEqual({
       kind: "paragraph",
-      text: "Submit the link to one of these, preferably the one that surprised you most.",
+      text: "Submit the link to one of these, ideally the one that surprised you most.",
     });
   });
   it("puts day 3's framework in a Project's instructions, not in a prompt", () => {

@@ -12,7 +12,7 @@
  *   Week 2 (day 10) - D6 Skills, D7 Scheduled Tasks, D8 Artifacts,
  *                     D9 Cowork, D10 Claude Design
  *   Week 3 (day 15) - D11 Claude Design 2 (x2), D12 Word & PowerPoint
- *                     extensions (x2), D13 Excel extension, D14 Outlook
+ *                     extensions (x2), D13 Claude in Excel, D14 Outlook
  *                     extension, D15 choosing the right tool and measuring
  *                     time saved (x2), plus one spiral back over week one
  *                     (D5) and one over week two (D7)
@@ -908,7 +908,7 @@ export const WEEK_3_QUESTIONS: QuizQuestion[] = [
   {
     day: 13,
     question:
-      "You inherit a pricing workbook nobody documented and one assumption has to change. What does the Excel extension give you that a chat does not?",
+      "You inherit a pricing workbook nobody documented and one assumption has to change. What does Claude in Excel give you that a chat does not?",
     options: [
       "A guarantee the model is right once it has finished with it",
       "Answers about any cell, and the change made in the live file",
@@ -918,7 +918,7 @@ export const WEEK_3_QUESTIONS: QuizQuestion[] = [
     ],
     correct: 1,
     explanation:
-      "The extension works on the workbook that is open, so you can ask what a cell is doing, move an assumption and have the formulas carried through in place, rather than pasting fragments into a chat and typing the answers back. It cannot reach files you have not opened. And nothing here makes the model right: it writes into your file, so a wrong answer is a wrong number where it counts, and it needs checking the way a colleague's would.",
+      "Claude works on the workbook that is open, so you can ask what a cell is doing, move an assumption and have the formulas carried through in place, rather than pasting fragments into a chat and typing the answers back. It cannot reach files you have not opened. And nothing here makes the model right: it writes into your file, so a wrong answer is a wrong number where it counts, and it needs checking the way a colleague's would.",
   },
   {
     day: 14,
