@@ -131,18 +131,32 @@ export const PROGRAMME_OPEN_LABEL = "7am";
  *     completed something on day 11 kept it, and only somebody reading it
  *     without recording progress lost it, for two hours.
  *
+ * Both costs turned out smaller than the third use's gain, which was not the
+ * two-hour delay but the room it bought: days 11, 12 and 13 all had their
+ * recordings by the time they opened, and day 13's hold came out early
+ * because of it.
+ *
+ * THREE OF THE FIVE ARE ALREADY OUT. Days 11 and 12 expired on their own
+ * mornings and were taken out here on 2026-09-16, which is the cleanup the
+ * paragraph below asks for. Day 13 was RELEASED EARLY the same morning, at
+ * about 07:00, because its recording had landed and the day had nothing left
+ * to wait for - the day 9 shape, and the first time this run managed it.
+ * Releasing early means editing this table and deploying, since the check
+ * runs in the app rather than against the database.
+ *
+ * Days 14 and 15 stay, and the reason they stay is the reason they went in:
+ * neither has a recording yet. If one arrives before its morning, take that
+ * entry out the way day 13's went.
+ *
  * The entries expire on their own, so nothing has to be unset. Taking a spent
  * entry out rather than leaving it to expire is still deliberate. A spent
  * entry is inert, so leaving it costs nothing mechanically, but an entry
  * sitting here reads as a hold somebody forgot - and the next person to need
  * this would have to work out whether that day is still shut before adding
- * theirs. After 2026-09-18 09:00 the whole table is spent: empty it, and put
- * the suite's `DAY_HOLDS.size` assertion back to 0.
+ * theirs. After 2026-09-18 09:00 the table is spent: empty it, and put the
+ * suite's `DAY_HOLDS.size` assertion back to 0.
  */
 export const DAY_HOLDS: ReadonlyMap<number, string> = new Map([
-  [11, "2026-09-14T09:00:00+01:00"],
-  [12, "2026-09-15T09:00:00+01:00"],
-  [13, "2026-09-16T09:00:00+01:00"],
   [14, "2026-09-17T09:00:00+01:00"],
   [15, "2026-09-18T09:00:00+01:00"],
 ]);

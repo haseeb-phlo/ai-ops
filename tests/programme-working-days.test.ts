@@ -466,7 +466,7 @@ describe("one-off day holds", () => {
     }
   });
 
-  it("holds every remaining day of the programme to 9am", () => {
+  it("holds only the days still waiting for a recording", () => {
     // The other half of "a live hold is recorded in the docblock and here,
     // together, or it is not live". This displaces the `DAY_HOLDS.size === 0`
     // guard for as long as the run is in; the docblock asks for that
@@ -475,11 +475,9 @@ describe("one-off day holds", () => {
     // It asserts on the MAP rather than on `heldDayIndexes(new Date())` for
     // the reason the size guard did: a wall-clock assertion starts passing or
     // failing depending on the hour the suite runs, and a SPENT entry left
-    // behind is invisible to it.
+    // behind is invisible to it. Days 11 and 12 were spent and have been
+    // taken out; day 13 was released early when its recording landed.
     expect([...DAY_HOLDS]).toEqual([
-      [11, "2026-09-14T09:00:00+01:00"],
-      [12, "2026-09-15T09:00:00+01:00"],
-      [13, "2026-09-16T09:00:00+01:00"],
       [14, "2026-09-17T09:00:00+01:00"],
       [15, "2026-09-18T09:00:00+01:00"],
     ]);
