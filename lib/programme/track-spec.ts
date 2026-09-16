@@ -384,7 +384,7 @@ export const DAY_TOPICS: readonly string[] = [
   "Claude Design",
   "Claude Design 2",
   "Word & PowerPoint extensions",
-  "Claude in Excel",
+  "Excel extension",
   "Outlook extension",
   "Choosing the right tool + measuring time saved",
 ] as const;
@@ -933,17 +933,25 @@ export const GENERIC_TASK =
  * in either pass: they are the owner's copy and they already sound like a
  * person.
  *
- * DAY 13 BECAME "CLAUDE IN EXCEL" the same morning, and its task says
- * "Install Claude for Excel from Microsoft AppSource" because that is what
- * the thing is called in the store. The day names the experience, the step
- * names the product. Nothing binds yet: no recording exists, and one titled
- * exactly "Claude in Excel" will bind by itself.
+ * DAY 13 WAS "CLAUDE IN EXCEL" FOR ABOUT AN HOUR on 2026-09-16 and is
+ * "Excel extension" again, which is the name the run already used and the
+ * one that matches day 14. It never opened under either name, so nobody saw
+ * the change.
  *
- * The day is the odd one out in the run, which is worth a look next time
- * somebody touches these: day 12 is "Word & PowerPoint extensions" and day
- * 14 is "Outlook extension", both named after the thing, while day 13 is
- * named after what you do with it. Left alone because each name came from
- * the owner, one at a time, and consistency is not worth overruling that.
+ * Its recording arrived with the rename and binds by title: the library row
+ * is "Excel Extension", the day is "Excel extension", and the seed compares
+ * them with lower() on both sides. Case is still the only difference allowed
+ * - see the day 12 note above, which is the third time in two days this has
+ * mattered.
+ *
+ * The task is written from that recording rather than from documentation.
+ * The video is about finance work, and its lesson is that you describe the
+ * sheet before you ask for anything: which cells are inputs, which are
+ * derived, what the currency is, whether a number may go negative. It also
+ * says plainly that Claude can be wrong and sound certain in a spreadsheet,
+ * and shows it flagging specific cells to check, so the task ends by asking
+ * people to reconcile the sections that matter before using the numbers.
+ * Day 14 is the last one still written from documentation alone.
  *
  * EVERY TASK WAS CUT BACK TO DAY 5'S SHAPE on 2026-09-15, on the programme
  * owner's instruction. Days 1, 3, 5, 7 and 9 were already there and are
@@ -1054,10 +1062,10 @@ const DAY_TASKS: Readonly<Record<number, string>> = {
     "Submit the link to the deck or the document you worked on.",
   ].join("\n"),
   13: [
-    "Install Claude for Excel from Microsoft AppSource, the same way as yesterday, and open a workbook you actually use.",
-    "Find a cell you did not write and ask what it does, and what would break if you changed it.",
-    "Then change one of your assumptions and let Claude update the formulas instead of fixing them yourself.",
-    "Check the numbers the way you would check a colleague's. Claude writes straight into the open workbook, and it cannot see a file you have not opened.",
+    "Install the Claude extension for Excel from Microsoft AppSource, the same way as yesterday, and open a workbook you actually use.",
+    "Tell it how the sheet is built before you ask for anything: which cells are inputs, which are worked out by formulas, what the currency is, and whether a number can go negative. Left to guess, it guesses.",
+    "Then give it a real job. Clean up a messy import, fix a formula that broke, or reconcile two sheets that disagree and explain the gap.",
+    "Check what it did before you use the numbers. It can be wrong and sound certain, so reconcile the sections that matter and read the assumptions it made.",
     "Submit the link to the workbook.",
   ].join("\n"),
   14: [

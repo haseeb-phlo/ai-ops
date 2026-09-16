@@ -12,7 +12,7 @@
  *   Week 2 (day 10) - D6 Skills, D7 Scheduled Tasks, D8 Artifacts,
  *                     D9 Cowork, D10 Claude Design
  *   Week 3 (day 15) - D11 Claude Design 2 (x2), D12 Word & PowerPoint
- *                     extensions (x2), D13 Claude in Excel, D14 Outlook
+ *                     extensions (x2), D13 Excel extension, D14 Outlook
  *                     extension, D15 choosing the right tool and measuring
  *                     time saved (x2), plus one spiral back over week one
  *                     (D5) and one over week two (D7)
@@ -138,6 +138,24 @@
  * conflict. Days 13 and 14 stayed as they are, written from documentation,
  * because neither has been recorded yet - and when they are, both should be
  * read against the video the way day 12's pair now has been.
+ *
+ * ALL THIRTY EXPLANATIONS WERE REWRITTEN IN PLAIN SPEECH on 2026-09-16, the
+ * same pass the tasks had the day before and for the same reason. The
+ * questions and the options were left alone: they are short, the tests
+ * constrain their lengths against each other, and the slop had collected in
+ * the explanations, where there is room for it.
+ *
+ * The tells, all now at zero across the file: "X rather than Y" stacked more
+ * than once in a paragraph, the semicolon joining two balanced clauses, "which
+ * is exactly why", and the closing aphorism that restates the lesson in a
+ * shape nobody speaks in. An explanation is read once, by somebody who has
+ * just got a question wrong, so it should sound like a colleague explaining
+ * rather than a textbook summarising.
+ *
+ * Nothing about any answer changed. Every fact, every reason a distractor is
+ * wrong and every safety point survived the rewrite, which is the thing to
+ * check if this is ever done again: the register is what is being edited, and
+ * an explanation that loses a reason has been rewritten too far.
  *
  * The lesson for the next edit: a `day` tag rots loudly, because a test reads
  * it, and a product fact rots silently. Nothing in this file checks that an
@@ -541,7 +559,7 @@ export const WEEK_1_QUESTIONS: QuizQuestion[] = [
     ],
     correct: 2,
     explanation:
-      "Nothing was looked up. Claude predicts what comes next, so a figure arrives in whatever shape the surrounding sentence calls for, and two decimal places is a writing habit rather than evidence. When the number is right, that is training data agreeing with reality. Anything that moves needs a Connector or a source you open yourself.",
+      "Nothing was looked up. Claude predicts the next words, so a figure turns up in whatever shape the sentence needs, and the two decimal places are a writing habit, not evidence. When the number is right, that is the training data happening to agree with reality. Anything that changes over time needs a Connector, or a source you open yourself.",
   },
   {
     day: 1,
@@ -556,7 +574,7 @@ export const WEEK_1_QUESTIONS: QuizQuestion[] = [
     ],
     correct: 1,
     explanation:
-      "Everything Claude can see has to fit in one window, and a long Chat pushes the beginning of it out of range. Restating the rule, or carrying the essentials into a fresh Chat, fixes it. Saying it more firmly does not, because the instruction is not being defied, it is not being seen.",
+      "Everything Claude can see has to fit in one window, and a long chat pushes the start of it out of range. Say the rule again, or carry the essentials into a fresh chat. Saying it more firmly will not help. The instruction is not being ignored, it is no longer visible.",
   },
   {
     day: 2,
@@ -571,7 +589,7 @@ export const WEEK_1_QUESTIONS: QuizQuestion[] = [
     ],
     correct: 2,
     explanation:
-      "Drafting, summarising and reformatting are where Claude earns its keep, and an awkward subject does not change that while the draft is reviewed before it goes. Signing off is the one that cannot move, because accountability is not a task. Use Claude to prepare what informs the decision rather than to make it.",
+      "Drafting, summarising and reformatting are where Claude saves you time, and an awkward subject does not change that as long as you read the draft before it goes. Signing off is the one thing that cannot move, because you cannot hand over being accountable. Use Claude to prepare what the decision rests on, then make the decision yourself.",
   },
   {
     day: 2,
@@ -586,7 +604,7 @@ export const WEEK_1_QUESTIONS: QuizQuestion[] = [
     ],
     correct: 1,
     explanation:
-      "Complexity is not the dividing line and neither is fluency with the tool. What transfers is the blank page and the repetitive middle. What does not is deciding and owning the result, so a process handed over whole always disappoints at the point where somebody has to be answerable. Prompting and Projects both help, and neither moves that line.",
+      "Complexity is not the dividing line, and neither is being good with the tool. What moves across is the blank page and the repetitive middle. What does not is deciding and owning the result, so handing over a whole process always disappoints at the point where somebody has to answer for it. Prompting and Projects both help, and neither changes that.",
   },
   {
     day: 3,
@@ -601,7 +619,7 @@ export const WEEK_1_QUESTIONS: QuizQuestion[] = [
     ],
     correct: 4,
     explanation:
-      "Style is tone, register and voice. The content being right tells you Context and Instructions did their job. Role changes the expertise Claude writes from rather than the voice it writes in, and Parameters constrain length, format and what to leave out. When output is correct but reads wrong, Style is the gap.",
+      "Style is tone, register and voice. The content being right tells you Context and Instructions did their job. Role changes the expertise Claude writes from, not the voice it writes in, and Parameters set length, format and what to leave out. Correct but reads wrong means Style.",
   },
   {
     day: 3,
@@ -616,7 +634,7 @@ export const WEEK_1_QUESTIONS: QuizQuestion[] = [
     ],
     correct: 1,
     explanation:
-      "One example carries more specification than a page of rules, and it removes the ambiguity a description always leaves behind. Parameters and Instructions can approximate the shape and never the phrasing. Role and Context change how Claude thinks rather than what it hands you.",
+      "One example says more than a page of rules, and it clears up the ambiguity a description always leaves behind. Parameters and Instructions can get the shape close and will never get the phrasing. Role and Context change how Claude thinks about the job, not what it hands you.",
   },
   {
     day: 4,
@@ -631,7 +649,7 @@ export const WEEK_1_QUESTIONS: QuizQuestion[] = [
     ],
     correct: 3,
     explanation:
-      "A Project holds standing context, so every Chat inside it starts briefed and nobody maintains a preamble by hand. A pasted note drifts the moment the format changes and a longer prompt moves the repetition rather than removing it. A Connector fetches live state, which is a different problem from standing background.",
+      "A Project holds the background, so every chat inside it starts briefed and nobody keeps a preamble up to date by hand. A pasted note goes out of date the moment the format changes, and a longer prompt just moves the repetition somewhere else. A Connector fetches live data, which is a different problem.",
   },
   {
     day: 4,
@@ -646,7 +664,7 @@ export const WEEK_1_QUESTIONS: QuizQuestion[] = [
     ],
     correct: 2,
     explanation:
-      "A Project that only answers its founding question is a saved prompt with extra steps. Standing context is the method, the vocabulary and the constraints, and those carry across requests. Splitting it per question multiplies what you maintain and teaches the same lesson again a month later.",
+      "A Project that only answers the question you built it around is a saved prompt with extra steps. The background is the method, the vocabulary and the constraints, and all of that carries across requests. Building one per question gives you more to maintain and the same problem again in a month.",
   },
   {
     day: 5,
@@ -661,7 +679,7 @@ export const WEEK_1_QUESTIONS: QuizQuestion[] = [
     ],
     correct: 0,
     explanation:
-      "Repetitive copy and paste is the clearest signal that a Connector pays for itself. A Project holds context that changes slowly, and an export dropped into one is stale the moment it is saved. A schedule automates the ferrying rather than removing it, which leaves you the same stale figures on a timer.",
+      "Copying the same figures by hand several times a day is the clearest sign a Connector will pay for itself. A Project holds background that changes slowly, and an export dropped into one is out of date the moment you save it. A schedule automates the ferrying, so you get the same stale figures on a timer.",
   },
   {
     day: 5,
@@ -676,7 +694,7 @@ export const WEEK_1_QUESTIONS: QuizQuestion[] = [
     ],
     correct: 4,
     explanation:
-      "A Connector is a route rather than a promotion, so their existing access is the ceiling. Checking the permissions a Connector allows by default is good practice and the day's task asks for it, and it is still not what makes the answer safe. Worth being clear on in a regulated business, because the fear is common and it stops people using something useful.",
+      "A Connector is a route, not a promotion. Your colleague sees what their own login already lets them see. Checking the permissions a Connector allows by default is still worth doing, and the day's task asks for it, but that is not what keeps the answer safe. Worth being clear about in a regulated business, because the worry is common and it puts people off something useful.",
   },
 ];
 
@@ -699,7 +717,7 @@ export const WEEK_2_QUESTIONS: QuizQuestion[] = [
     ],
     correct: 0,
     explanation:
-      "A Skill packages how you do something so other people's Chats can reach it: a colleague switches it on once, and from then on its description is what makes it fire without being named. Documents are a Project, a timetable is a Scheduled Task and system access is a Connector. Choosing the wrong container is what makes simple work feel like overhead.",
+      "A Skill packages how you do something so other people's chats can reach it. A colleague switches it on once, and after that the description is what makes it fire without anyone naming it. Documents belong in a Project, a timetable is a Scheduled Task, and system access is a Connector. Picking the wrong one is what makes simple work feel like hard work.",
   },
   {
     day: 6,
@@ -714,7 +732,7 @@ export const WEEK_2_QUESTIONS: QuizQuestion[] = [
     ],
     correct: 3,
     explanation:
-      "The description is the trigger. Use this when formatting a monthly performance report fires when it should, and helps with reports never fires at all. Sharing changes who can reach a Skill rather than whether it triggers, and a narrow task is exactly what a Skill wants.",
+      "The description is the trigger. Use this when formatting a monthly performance report fires when it should. Helps with reports never fires at all. Sharing changes who can reach a Skill, not whether it triggers, and a narrow task is exactly what a Skill wants.",
   },
   {
     day: 7,
@@ -729,7 +747,7 @@ export const WEEK_2_QUESTIONS: QuizQuestion[] = [
     ],
     correct: 1,
     explanation:
-      "Scheduled runs happen on Anthropic's servers, so they keep their cadence with your computer asleep and the desktop app shut, and your connected tools go with them. Nothing is deferred, skipped or failed. The one thing that does still need your machine is a task reaching files or apps on it, which is why a schedule is built on your Connectors and the files saved to your Claude account rather than on a folder.",
+      "Scheduled runs happen on Anthropic's servers, so they keep to their timetable with your computer asleep and the desktop app shut, and your connected tools go with them. Nothing is deferred, skipped or failed. The one thing that still needs your machine is a task reaching files or apps on it. That is why you build a schedule on your Connectors and on files saved to your Claude account, and not on a folder.",
   },
   {
     day: 7,
@@ -744,7 +762,7 @@ export const WEEK_2_QUESTIONS: QuizQuestion[] = [
     ],
     correct: 4,
     explanation:
-      "Heavy editing means the task and the real work have drifted apart, and what you keep rewriting is the specification. Running it more often just produces more to correct. Logging the old full cost is how a time saving becomes a number nobody believes, because the saving is what the job costs now against what it cost before.",
+      "Heavy editing means the task and the real work have drifted apart, and what you keep rewriting is the specification. Running it more often just gives you more to correct. Logging the old full cost is how a time saving turns into a number nobody believes. The saving is what the job costs now against what it cost before.",
   },
   {
     day: 8,
@@ -759,7 +777,7 @@ export const WEEK_2_QUESTIONS: QuizQuestion[] = [
     ],
     correct: 2,
     explanation:
-      "An Artifact is the output as an object rather than as Chat scrollback: refined in place, every version kept, and shareable to people who need the checklist rather than the conversation behind it. Speed and accuracy are unchanged. Sharing lets other people open and use it, which is not the same as handing them edit rights on yours.",
+      "An Artifact is the output as an object instead of chat scrollback. You refine it in place, every version is kept, and you can share the checklist with people who do not need the conversation behind it. Speed and accuracy are the same either way. Sharing lets other people open and use it, which is not the same as giving them edit rights on yours.",
   },
   {
     day: 8,
@@ -774,7 +792,7 @@ export const WEEK_2_QUESTIONS: QuizQuestion[] = [
     ],
     correct: 2,
     explanation:
-      "Sharing is the step that changes who can see something: on our plan a shared Artifact opens for anyone at Phlo with the link, not just the people you had in mind, and it carries the files attached to the conversation that built it along with it. Plenty of them have no business seeing supplier pricing, which is what makes live figures the wrong thing to leave in. A confidentiality note changes nothing about who can open the page, asking colleagues not to forward a link is not a control, and a share cannot be narrowed to two named people: the choice is everyone in the organisation or nobody.",
+      "Sharing is the step that changes who can see something. On our plan a shared Artifact opens for anyone at Phlo with the link, not just the people you had in mind, and it carries the files attached to the conversation that built it. Plenty of those people have no business seeing supplier pricing, so live figures are the wrong thing to leave in. A confidentiality note changes nothing about who can open the page, asking colleagues not to forward a link is not a control, and you cannot narrow a share to two names. It is everyone at Phlo or nobody.",
   },
   {
     day: 9,
@@ -789,7 +807,7 @@ export const WEEK_2_QUESTIONS: QuizQuestion[] = [
     ],
     correct: 4,
     explanation:
-      "Cowork earns its keep on assembly across many files on your own machine: work that is tedious rather than difficult, and that ends in files rather than in an answer. A short question and a draft are ordinary Chat, deciding is yours to own, and a Cowork session cannot be worked on by two people at once, so anything live and shared belongs elsewhere.",
+      "Cowork earns its keep on assembly across a lot of files on your own machine. The work is tedious instead of difficult, and it ends in files instead of an answer. A short question and a draft are ordinary chat, deciding is yours, and two people cannot work in one Cowork session, so anything live and shared belongs elsewhere.",
   },
   {
     day: 9,
@@ -804,7 +822,7 @@ export const WEEK_2_QUESTIONS: QuizQuestion[] = [
     ],
     correct: 0,
     explanation:
-      "Skipping the prompts is what makes the folder the control. There is no per-step approval left, so the only thing between Cowork and a file is whether you put that file in scope before the run started. Claude cannot know which of your documents are commercially sensitive. A brief describes the goal rather than granting access, and the desktop app is the route to your disk rather than a limit on it: on our plan the run itself happens on Anthropic's servers and reaches your files through that app, for the folders you connected and no others. Reading afterwards is worth doing but it is not a boundary, because by then it has opened whatever was there.",
+      "Skipping the prompts is what makes the folder the control. There is no per-step approval left, so the only thing between Cowork and a file is whether you put that file in scope before the run started. Claude has no way of knowing which of your documents are commercially sensitive. A brief describes the goal, it does not grant access. The desktop app is the route to your disk, not a limit on it: on our plan the run happens on Anthropic's servers and reaches your files through that app, for the folders you connected and no others. Reading afterwards is worth doing, but by then it has already opened whatever was there.",
   },
   {
     day: 10,
@@ -819,7 +837,7 @@ export const WEEK_2_QUESTIONS: QuizQuestion[] = [
     ],
     correct: 3,
     explanation:
-      "The gain is a canvas plus a real export. You adjust spacing, colour and layout directly, or ask for changes in plain English, and the Export button gives you PowerPoint, PDF or a standalone page. A Chat can draft the words but hands them back as text for you to reassemble. Keeping source documents for next time is what a Project is for. Nothing here removes the human review, and a Chat reads a PowerPoint file perfectly well.",
+      "You get a canvas and a real export. You adjust spacing, colour and layout yourself, or ask for changes in plain English, and the Export button gives you PowerPoint, PDF or a standalone page. A Chat can draft the words, but hands them back as text for you to reassemble. Keeping the source documents for next time is what a Project is for. Nothing here removes the human review, and a Chat reads a PowerPoint file perfectly well.",
   },
   {
     day: 10,
@@ -834,7 +852,7 @@ export const WEEK_2_QUESTIONS: QuizQuestion[] = [
     ],
     correct: 2,
     explanation:
-      "Two things make it the wrong fit. It is a research preview, so what comes out is a draft rather than a finished brand, and patient-facing material has to meet a standard a draft is not aiming at. Confidential designs and private code stay out for the same reason. Internal drafts, rough screens and something to react to are exactly the work it is for.",
+      "Two things make it the wrong fit. It is a research preview, so what comes out is a draft, and patient-facing material has to meet a standard a draft is not aiming at. Confidential designs and private code stay out for the same reason. Internal drafts, rough screens and something to react to are exactly what it is for.",
   },
 ];
 
@@ -858,7 +876,7 @@ export const WEEK_3_QUESTIONS: QuizQuestion[] = [
     ],
     correct: 0,
     explanation:
-      "What comes back is the thing rather than a description of it: a prototype you walk somebody through, share for comments, export as a PNG or a page, or hand to Claude Code to build. It is a draft made quickly, not a sign-off and not a substitute for the build, which is why the day asks you to take it somewhere rather than to admire it.",
+      "What comes back is the thing itself, not a description of it: a prototype you can walk somebody through, share for comments, export as a PNG or a page, or hand to Claude Code to build. It is a quick draft. It is not a sign-off and it does not replace the build, so take it somewhere and use it.",
   },
   {
     day: 11,
@@ -873,7 +891,7 @@ export const WEEK_3_QUESTIONS: QuizQuestion[] = [
     ],
     correct: 3,
     explanation:
-      "A prototype is only as specific as what it was given, so the spec, brief or page of notes you already have is what turns any company's screen into yours. Styling instructions polish something generic, a competitor's screen borrows their thinking rather than stating yours, and cutting detail is the opposite of the fix. Ask for three versions while you are there: choosing between three is faster than specifying one.",
+      "A prototype is only as specific as what you gave it. The spec, brief or page of notes you already have is what turns any company's screen into yours. Styling instructions only polish something generic, copying a competitor borrows their thinking, and cutting detail is the opposite of the fix. Ask for three versions while you are there. Choosing between three is quicker than describing one.",
   },
   {
     day: 12,
@@ -888,7 +906,7 @@ export const WEEK_3_QUESTIONS: QuizQuestion[] = [
     ],
     correct: 0,
     explanation:
-      "Tracked changes is what the extension offers over a chat: the edit lands in the real document and you accept it line by line. The comments are the other half - ask Claude to summarise them and say where they conflict, rather than reading twenty of them yourself. Every other option ends with you reconciling two documents by hand. That is the whole argument for working where the file already is - the cost was never capability, it was stopping, switching app and pasting the answer back.",
+      "Tracked changes puts the edit in the real document and lets you accept it line by line. The comments are the other half of the job: ask Claude to summarise them and point out where they disagree, instead of reading twenty of them yourself. Every other option leaves you reconciling two documents by hand, which is the work the extension is there to remove.",
   },
   {
     day: 12,
@@ -903,12 +921,12 @@ export const WEEK_3_QUESTIONS: QuizQuestion[] = [
     ],
     correct: 2,
     explanation:
-      "The extension edits the real file, so the choice that changes what you end up with is whether you see each edit before it lands. Extended thinking changes how long it reasons rather than what it may do, and where the file is saved changes nothing at all. Point it at slides you have already selected rather than asking for a deck built from nothing: small targeted changes to work that exists is where it is strongest.",
+      "The extension edits the real file, so the setting that changes what you end up with is whether you see each edit before it lands. Extended thinking changes how long Claude reasons, not what it is allowed to do, and where the file is saved changes nothing. Select the slides you want changed first. It is better at tidying up what is there than at building a deck from nothing.",
   },
   {
     day: 13,
     question:
-      "You inherit a pricing workbook nobody documented and one assumption has to change. What does Claude in Excel give you that a chat does not?",
+      "You inherit a pricing workbook nobody documented and one assumption has to change. What does the Excel extension give you that a chat does not?",
     options: [
       "A guarantee the model is right once it has finished with it",
       "Answers about any cell, and the change made in the live file",
@@ -918,7 +936,7 @@ export const WEEK_3_QUESTIONS: QuizQuestion[] = [
     ],
     correct: 1,
     explanation:
-      "Claude works on the workbook that is open, so you can ask what a cell is doing, move an assumption and have the formulas carried through in place, rather than pasting fragments into a chat and typing the answers back. It cannot reach files you have not opened. And nothing here makes the model right: it writes into your file, so a wrong answer is a wrong number where it counts, and it needs checking the way a colleague's would.",
+      "It works on the workbook that is open, so you can ask what a cell is doing, change an assumption and have the formulas updated in place, instead of pasting fragments into a chat and typing the answers back. It cannot reach a file you have not opened. It does not make the model right either. It writes into your file, so a wrong answer is a wrong number where it counts. Tell it how the sheet is built, then check what it changed.",
   },
   {
     day: 14,
@@ -933,7 +951,7 @@ export const WEEK_3_QUESTIONS: QuizQuestion[] = [
     ],
     correct: 2,
     explanation:
-      "Triage sorts the inbox into what needs you, what it can draft and what is noise, and the drafts arrive ready to send - which is exactly why reading one is not optional. It is a public beta, it works on the message in front of it, and an email sent in your name is yours whoever wrote the first version of it.",
+      "Triage sorts the inbox into what needs you, what it can draft and what is noise, and the drafts arrive ready to send. That is exactly why you read one before it goes. It is a public beta, it works on the message in front of it, and an email sent in your name is yours, whoever wrote the first version.",
   },
   {
     day: 15,
@@ -948,7 +966,7 @@ export const WEEK_3_QUESTIONS: QuizQuestion[] = [
     ],
     correct: 2,
     explanation:
-      "Remembered numbers drift in the direction you want them to go, and the before figure drifts furthest because the old way is the one you resented. One timed run is worth more than fifteen estimates. It is also the only version of the figure that survives somebody outside the programme asking how you arrived at it, which is the question this whole exercise is preparing you for.",
+      "Remembered numbers drift in the direction you want them to go, and the before figure drifts furthest, because the old way is the one you resented. One timed run is worth more than fifteen estimates. It is also the only version of the figure that survives somebody outside the programme asking how you got it.",
   },
   {
     day: 15,
@@ -963,7 +981,7 @@ export const WEEK_3_QUESTIONS: QuizQuestion[] = [
     ],
     correct: 1,
     explanation:
-      "The number worth having is the one you could defend to somebody outside the programme, and that is the job end to end rather than the drafting step on its own. Checking is not overhead bolted onto the work, it is the part that makes the output usable. A total that quietly drops it is the kind of figure that falls apart the first time anyone asks how it was built.",
+      "The number worth having is the one you could defend to somebody outside the programme, and that means the job end to end, not the drafting step on its own. Checking is not overhead bolted onto the work, it is the part that makes the output usable. A total that quietly leaves it out falls apart the first time anyone asks how it was built.",
   },
   {
     day: 5,
@@ -978,7 +996,7 @@ export const WEEK_3_QUESTIONS: QuizQuestion[] = [
     ],
     correct: 0,
     explanation:
-      "A Project holds standing context that changes slowly and a Connector fetches live state. Reference material belongs in the Project and anything that moves belongs behind the Connector, whatever its age: a document goes stale when the system changes rather than after a set period. Treating a stored document as current is a quiet source of wrong answers.",
+      "A Project holds background that changes slowly. A Connector fetches live state. Reference material belongs in the Project, and anything that moves belongs behind the Connector, whatever its age. A document goes stale when the system changes, not after a set number of weeks, and treating a stored document as current is a quiet source of wrong answers.",
   },
   {
     day: 7,
@@ -993,7 +1011,7 @@ export const WEEK_3_QUESTIONS: QuizQuestion[] = [
     ],
     correct: 2,
     explanation:
-      "Recurring and predictable is a Scheduled Task, a one-off just needs a Chat, a repeatable method other people can run is a Skill and reaching a system is a Connector. The near miss puts a Project in the third slot: a Project holds standing context for your own Chats rather than packaging a method somebody else's Chat can trigger. Choosing the wrong container is what makes simple work feel like overhead.",
+      "Recurring and predictable is a Scheduled Task, a one-off just needs a Chat, a method other people can run is a Skill, and reaching a system is a Connector. The near miss puts a Project in the third slot. A Project holds background for your own chats, it does not package a method somebody else's chat can trigger. Picking the wrong container is what makes simple work feel like hard work.",
   },
 ];
 
