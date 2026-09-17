@@ -953,6 +953,27 @@ export const GENERIC_TASK =
  * people to reconcile the sections that matter before using the numbers.
  * Day 14 is the last one still written from documentation alone.
  *
+ * DAY 14 LOST TWO LINES on 2026-09-17, on the programme owner's instruction:
+ * "It goes out under your name." off the end of the send step, and the whole
+ * of "Keep patient identifiable information out of it."
+ *
+ * The first is a straight commentary cut of the kind the 2026-09-15 pass was
+ * making - the step already says to read the draft properly before sending
+ * it, and the sentence after it was telling you how to feel about that. The
+ * point also survives elsewhere: the Week 3 quiz asks what is still yours
+ * about a draft Outlook hands you, and the answer is reading it before it
+ * goes out under your name.
+ *
+ * THE SECOND IS A SAFETY LINE AND IS FLAGGED, the same way day 9's was. This
+ * is the second time patient-identifiable data has come out of a task as a
+ * named category on the owner's instruction - see the day 9 note above - and
+ * the reasoning there applies here too: Phlo is a pharmacy, and this is the
+ * day that points a tool at a real inbox. Day 10 still names patient-facing
+ * material, so the category has not left the programme, but day 14 no longer
+ * names it on the one day a member is handling real mail. Left as instructed
+ * because the copy is the owner's; recorded because a safety line that goes
+ * quiet is exactly the kind of change nobody can find afterwards.
+ *
  * EVERY TASK WAS CUT BACK TO DAY 5'S SHAPE on 2026-09-15, on the programme
  * owner's instruction. Days 1, 3, 5, 7 and 9 were already there and are
  * untouched - 9 in particular, because that copy is the owner's own and the
@@ -962,7 +983,9 @@ export const GENERIC_TASK =
  * WHAT CAME OUT WAS COMMENTARY, NOT FACTS, and that distinction is the thing
  * to hold if another pass is ever made. Every safety line survived: the
  * Team-plan sharing rule and made-up numbers on day 8, the research-preview
- * caveat on day 10, the scoped folder on day 9, patient data on day 14. So
+ * caveat on day 10, the scoped folder on day 9, patient data on day 14 - the
+ * last of which has since gone, on the owner's instruction; see the note
+ * below. So
  * did every step that can fail, every menu path, and every escalation to
  * Haseeb. What went was the sentence after the step explaining why the step
  * matters - "that is the point of today", "the barrier was never capability" -
@@ -1071,8 +1094,7 @@ const DAY_TASKS: Readonly<Record<number, string>> = {
   14: [
     "Install the Claude extension for Outlook. It is a public beta, and it opens from the ribbon when you have an email open.",
     "Ask it to go through the inbox you dread on a Monday and sort it: what needs you, what it can draft for you, and what is noise.",
-    "Take one of its drafts, read it properly, then send it. It goes out under your name.",
-    "Keep patient identifiable information out of it.",
+    "Take one of its drafts, read it properly, then send it.",
     "Submit a screenshot of what it sorted, since an Outlook email has no link you can share, or a link if something you made has one.",
   ].join("\n"),
   15: [

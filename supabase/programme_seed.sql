@@ -107,8 +107,7 @@ Submit the link to the workbook.', 13, 1, null, '{}'::jsonb),
     ('video', 'Outlook extension', null, 14, 0, 'Outlook extension', '{}'::jsonb),
     ('use_example', 'Task', 'Install the Claude extension for Outlook. It is a public beta, and it opens from the ribbon when you have an email open.
 Ask it to go through the inbox you dread on a Monday and sort it: what needs you, what it can draft for you, and what is noise.
-Take one of its drafts, read it properly, then send it. It goes out under your name.
-Keep patient identifiable information out of it.
+Take one of its drafts, read it properly, then send it.
 Submit a screenshot of what it sorted, since an Outlook email has no link you can share, or a link if something you made has one.', 14, 1, null, '{}'::jsonb),
     ('video', 'Choosing the right tool + measuring time saved', null, 15, 0, 'Choosing the right tool + measuring time saved', '{}'::jsonb),
     ('use_example', 'Task', 'List the jobs you moved to Claude over the three weeks, with what each one used to take and what it takes now. If you have kept a Time-Back Log, you have the list already.
@@ -228,8 +227,7 @@ Submit the link to the workbook.'),
     (14, 0, 'Outlook extension', null),
     (14, 1, 'Task', 'Install the Claude extension for Outlook. It is a public beta, and it opens from the ribbon when you have an email open.
 Ask it to go through the inbox you dread on a Monday and sort it: what needs you, what it can draft for you, and what is noise.
-Take one of its drafts, read it properly, then send it. It goes out under your name.
-Keep patient identifiable information out of it.
+Take one of its drafts, read it properly, then send it.
 Submit a screenshot of what it sorted, since an Outlook email has no link you can share, or a link if something you made has one.'),
     (15, 0, 'Choosing the right tool + measuring time saved', null),
     (15, 1, 'Task', 'List the jobs you moved to Claude over the three weeks, with what each one used to take and what it takes now. If you have kept a Time-Back Log, you have the list already.
