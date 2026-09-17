@@ -136,17 +136,34 @@ export const PROGRAMME_OPEN_LABEL = "7am";
  * recordings by the time they opened, and day 13's hold came out early
  * because of it.
  *
- * THREE OF THE FIVE ARE ALREADY OUT. Days 11 and 12 expired on their own
- * mornings and were taken out here on 2026-09-16, which is the cleanup the
- * paragraph below asks for. Day 13 was RELEASED EARLY the same morning, at
- * about 07:00, because its recording had landed and the day had nothing left
- * to wait for - the day 9 shape, and the first time this run managed it.
- * Releasing early means editing this table and deploying, since the check
- * runs in the app rather than against the database.
+ * FOUR OF THE FIVE ARE OUT. Days 11 and 12 expired on their own mornings and
+ * were taken out here on 2026-09-16, which is the cleanup the paragraph below
+ * asks for. Day 13 was RELEASED EARLY the same morning, at about 07:00,
+ * because its recording had landed and the day had nothing left to wait for -
+ * the day 9 shape, and the first time this run managed it. Releasing early
+ * means editing this table and deploying, since the check runs in the app
+ * rather than against the database.
  *
- * Days 14 and 15 stay, and the reason they stay is the reason they went in:
- * neither has a recording yet. If one arrives before its morning, take that
- * entry out the way day 13's went.
+ * DAY 14 WAS SPENT, NOT RELEASED. Its hold expired by itself at 09:00 on
+ * 2026-09-17 with no recording against the day, which is the day 10 shape and
+ * not day 13's. The Outlook recording reached the library at 09:14, fourteen
+ * minutes after the day opened, and the day went on showing "coming soon"
+ * until about 10:12, when the seed's re-bind was run by hand against the
+ * remote. So day 14 was open with nothing to watch for about seventy minutes,
+ * and only the first fourteen of those were spent waiting on a recording.
+ *
+ * THAT SECOND HOUR IS THE PART WORTH KEEPING. Day 10's gap was a late
+ * recording, which is what this table is for. Day 14's was a late BIND, which
+ * it can do nothing about: a video sitting in the library is not a video on
+ * the track until `learn_video_id` points at it, and a hold buys time for a
+ * recording to arrive rather than for somebody to attach it. Adding the video
+ * is two steps and the second one is invisible - nothing warns you that a day
+ * is still null, it just reads as a day whose video has not come.
+ *
+ * Day 15 stays, and the reason it stays is the reason it went in: it has no
+ * recording yet. If one arrives before its morning, take the entry out the way
+ * day 13's went, and bind it in the same breath - that is the half day 14
+ * missed.
  *
  * The entries expire on their own, so nothing has to be unset. Taking a spent
  * entry out rather than leaving it to expire is still deliberate. A spent
@@ -157,7 +174,6 @@ export const PROGRAMME_OPEN_LABEL = "7am";
  * suite's `DAY_HOLDS.size` assertion back to 0.
  */
 export const DAY_HOLDS: ReadonlyMap<number, string> = new Map([
-  [14, "2026-09-17T09:00:00+01:00"],
   [15, "2026-09-18T09:00:00+01:00"],
 ]);
 

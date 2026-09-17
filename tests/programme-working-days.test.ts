@@ -475,12 +475,10 @@ describe("one-off day holds", () => {
     // It asserts on the MAP rather than on `heldDayIndexes(new Date())` for
     // the reason the size guard did: a wall-clock assertion starts passing or
     // failing depending on the hour the suite runs, and a SPENT entry left
-    // behind is invisible to it. Days 11 and 12 were spent and have been
-    // taken out; day 13 was released early when its recording landed.
-    expect([...DAY_HOLDS]).toEqual([
-      [14, "2026-09-17T09:00:00+01:00"],
-      [15, "2026-09-18T09:00:00+01:00"],
-    ]);
+    // behind is invisible to it. Days 11, 12 and 14 were spent and have been
+    // taken out; day 13 was released early when its recording landed. Day 15
+    // is the last one, and the table is emptied once it has passed.
+    expect([...DAY_HOLDS]).toEqual([[15, "2026-09-18T09:00:00+01:00"]]);
   });
 
   it("puts each hold on the morning of the day it names", () => {
