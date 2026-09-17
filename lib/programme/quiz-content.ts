@@ -482,6 +482,58 @@
  * that carried "the prompt framework from day 3" had already been corrected
  * once for exactly that.
  *
+ * DAY 15 BECAME "THE REST OF CLAUDE" on 2026-09-18 and took both its
+ * questions with it. The measurement day left the curriculum at the programme
+ * owner's call, so the pair on remembered before-and-after figures and on
+ * whether checking time counts had nothing left to examine. Neither could be
+ * re-tagged: they were questions about arithmetic the track no longer asks
+ * anybody to do.
+ *
+ * The replacements are written from Anthropic's help centre rather than from
+ * a recording, the way days 12 to 14 were, because the video does not exist
+ * yet. Both turn on a fact that is checkable rather than on a judgement call,
+ * which is the safer shape when the recording might not say it in the same
+ * words:
+ *
+ *   - effort. Low and medium suit routine work and stretch the usage limit
+ *     further, high is the default, and a day of short rewrites on the top
+ *     setting spends the limit on work that never needed it. The distractors
+ *     are the three things people assume instead: that message length is what
+ *     is counted, that effort is fixed once a chat starts, and that effort is
+ *     thinking under another name. Model, effort and thinking can all be
+ *     changed mid-conversation and thinking is a separate setting (8664678);
+ *   - sharing. On Team and Enterprise plans a shared chat is visible only to
+ *     signed-in members of the same organisation, there is no public link,
+ *     what travels is a snapshot rather than the live chat, and attached
+ *     files do not go with it (10593882, 16762437). The answer then lands on
+ *     Phlo's own line: a patient's details belong in an incognito chat, which
+ *     is not saved, not trained on, cannot be converted to a normal chat and
+ *     is unavailable inside a Project (12260368).
+ *
+ * WHY NOT A QUESTION ON CHROME OR THE PHONE APP, which the same video covers.
+ * Both are install-and-try rather than get-it-wrong-expensively, and the
+ * summative quiz has two slots for this day. Effort is what members will feel
+ * every week once they know it exists, and sharing is the one on this day
+ * that can go wrong in a way a regulated pharmacy would mind.
+ *
+ * THE DAY 12 DISTRACTOR WAS RE-READ AND KEPT. "Whether extended thinking is
+ * turned on for the request" was written as a red herring at a time when
+ * nothing on the track taught thinking; day 15 now does, and the quiz is
+ * taken after it. It still fails, for the reason its own explanation gives -
+ * thinking changes how long Claude reasons, not what it is allowed to do -
+ * and a distractor a member can now rule out by knowing something is better
+ * than one they rule out by unfamiliarity. Inherited deliberately rather than
+ * by not looking.
+ *
+ * TWO WEEK THREE EXPLANATIONS WERE BROUGHT BACK INTO WEEK ONE'S REGISTER in
+ * the same pass, both on day 11. One closed with "so take it somewhere and
+ * use it" and the other with "Ask for three versions while you are there",
+ * which are instructions for the task rather than reasons the answer is
+ * right. Week one's explanations never tell a member what to do next; they
+ * say what is true and why the other four options are not. The facts in both
+ * are unchanged. The other six week three explanations were read in the same
+ * pass and left alone.
+ *
  * HOUSE STYLE, enforced by tests/programme-quiz-content.test.ts:
  *   - no em dashes anywhere in a question, option or explanation; use a hyphen
  *   - no Oxford comma before "and" in a list
@@ -876,7 +928,7 @@ export const WEEK_3_QUESTIONS: QuizQuestion[] = [
     ],
     correct: 0,
     explanation:
-      "What comes back is the thing itself, not a description of it: a prototype you can walk somebody through, share for comments, export as a PNG or a page, or hand to Claude Code to build. It is a quick draft. It is not a sign-off and it does not replace the build, so take it somewhere and use it.",
+      "What comes back is the thing itself rather than a description of it: a prototype you can walk somebody through, share for comments, export as a PNG or a page, or hand to Claude Code to build. A written spec leaves everybody picturing something slightly different, which is the problem it removes. It is still a quick draft, not a sign-off, and it does not replace the build.",
   },
   {
     day: 11,
@@ -891,7 +943,7 @@ export const WEEK_3_QUESTIONS: QuizQuestion[] = [
     ],
     correct: 3,
     explanation:
-      "A prototype is only as specific as what you gave it. The spec, brief or page of notes you already have is what turns any company's screen into yours. Styling instructions only polish something generic, copying a competitor borrows their thinking, and cutting detail is the opposite of the fix. Ask for three versions while you are there. Choosing between three is quicker than describing one.",
+      "A prototype is only as specific as what you gave it. The spec, brief or page of notes you already have is what turns any company's screen into yours. Styling instructions only polish something generic, copying a competitor borrows their thinking, and cutting detail is the opposite of the fix.",
   },
   {
     day: 12,
@@ -956,32 +1008,32 @@ export const WEEK_3_QUESTIONS: QuizQuestion[] = [
   {
     day: 15,
     question:
-      "You are totalling up what the three weeks saved you. For the job you claim the biggest saving on, the before figure and the after figure are both ones you remembered. What is the problem?",
+      "You run everything on the top effort setting, short rewrites included, and you keep running out of usage by the middle of the afternoon. What is the fix?",
     options: [
-      "Nothing is wrong, you ran the job both ways so both figures are yours",
-      "The before figure will be inflated, because slow work feels longer",
-      "Neither figure was measured, so the saving is a guess with a decimal",
-      "The saving belongs to the team rather than to you, so it double counts",
-      "Three weeks is too short a window to draw any saving from at all",
+      "Ask shorter questions, since it is the length of your message that counts",
+      "Drop the routine work to a lower effort and keep the top setting for hard jobs",
+      "Switch to a smaller model, since effort cannot be changed once a chat starts",
+      "Nothing can be done about it, the limit is the limit whatever you set",
+      "Turn thinking off, since thinking is what the effort setting controls",
     ],
-    correct: 2,
+    correct: 1,
     explanation:
-      "Remembered numbers drift in the direction you want them to go, and the before figure drifts furthest, because the old way is the one you resented. One timed run is worth more than fifteen estimates. It is also the only version of the figure that survives somebody outside the programme asking how you got it.",
+      "Effort is how thorough Claude is, and a higher setting spends more getting there, so a day of short rewrites on the top setting empties your limit on work that never needed it. Low and medium are enough for routine jobs and leave the headroom for the ones that are not. You can change the model, the effort and thinking at any point in a chat rather than only at the start, and thinking is its own setting rather than another name for effort.",
   },
   {
     day: 15,
     question:
-      "You have halved the time your weekly report takes by drafting it in a Chat. You now spend ten minutes checking figures you used to take straight from the system. How should that land in your total?",
+      "You want to send a colleague a chat you worked something out in. On our Team plan, what does sharing it actually do?",
     options: [
-      "Leave it out, checking is overhead rather than part of the job",
-      "Subtract it, because the job is not finished until it is checked",
-      "Count it separately, as a cost of Claude rather than a cost of the job",
-      "Ignore it, the checking tails off once the drafting has earned trust",
-      "Halve it, since you would have checked some of those figures anyway",
+      "Creates a public link that anyone outside Phlo could open if it is forwarded",
+      "Shares a snapshot with signed-in Phlo colleagues, frozen when you shared",
+      "Shares the live chat, so they see whatever you add to it afterwards",
+      "Sends them a copy they can edit and then send back to you with changes",
+      "Shares the conversation along with any files you had attached to it",
     ],
     correct: 1,
     explanation:
-      "The number worth having is the one you could defend to somebody outside the programme, and that means the job end to end, not the drafting step on its own. Checking is not overhead bolted onto the work, it is the part that makes the output usable. A total that quietly leaves it out falls apart the first time anyone asks how it was built.",
+      "On Team and Enterprise plans a shared chat is only visible to signed-in members of the same organisation, so there is no public link to forward. What your colleague opens is a snapshot taken when you shared, not the live chat, so anything you write afterwards stays private until you share it again. Attached files are not included either. None of that makes it the right home for a patient's details, which belong in an incognito chat that is never saved and cannot be shared at all.",
   },
   {
     day: 5,

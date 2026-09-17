@@ -67,6 +67,10 @@ export type TrackItemSpec = {
  * is deliberate: it is the one topic that needs the other fourteen to have
  * happened first, because what it asks you to total up is the fortnight.
  *
+ * THAT DAY IS GONE AGAIN, on 2026-09-18, and the three paragraphs above are
+ * history rather than the current state. Day 15 is "The rest of Claude"; the
+ * stanza further down records what replaced it and why.
+ *
  * The question mark on day 1 is load-bearing. Videos bind by exact
  * (lowercased) title match against `learn_videos`, and the library row is
  * titled "What is AI and how does it work?" - drop the mark and the seed binds
@@ -310,10 +314,37 @@ export type TrackItemSpec = {
  * screen needs the word their own screen uses. A day may be titled in the
  * house vocabulary; a step that names a menu may not.
  *
- * DAY 15 IS UNCHANGED AND PENDING. The programme owner is deciding what it
- * becomes, so "Choosing the right tool + measuring time saved" and both its
- * quiz questions stand until they say. A day left alone is not a day nobody
- * has thought about - this sentence is the difference.
+ * DAY 15 IS "THE REST OF CLAUDE" as of 2026-09-18, decided the night before
+ * it opened. "Choosing the right tool + measuring time saved" is gone at the
+ * programme owner's call. What replaced it was chosen by reading Anthropic's
+ * help centre against the fourteen days already recorded and taking the
+ * largest gaps that need nothing installed to teach: the model picker,
+ * effort and thinking; usage limits and what actually spends them; incognito
+ * chats and what sharing does on a Team plan; and the surfaces the programme
+ * never opened, which are Chrome, the phone app, voice and quick entry.
+ *
+ * IT IS A GRAB-BAG AND THE TITLE ADMITS IT. Every other day is named after
+ * the one feature it teaches, and a three-noun title pretending this day is
+ * the same kind of thing would have been the dishonest option. The cost is
+ * that the title carries no information on its own, which is why day 15 is
+ * the second day on the track to get a video description. See
+ * VIDEO_DESCRIPTIONS below.
+ *
+ * WHAT WENT WITH THE MEASUREMENT DAY, and what did not. The retrospective did
+ * not: day 15 still carries the Work sample (after) and the post check-in,
+ * which are the two items that actually measure the fortnight, and neither
+ * moved. What did go is the Time-Back Log being collected anywhere. Day 1's
+ * video still sets one up and nothing now asks to see it, so the programme
+ * starts a habit it no longer closes. If that matters more than the gaps
+ * above, the cheap fix is a line in the Work sample slot, not taking the day
+ * back.
+ *
+ * NO MIGRATION, and this is the reason the change was affordable on the night
+ * before the day opened. Day 15 was the one topic day whose `learn_video_id`
+ * was still null, so there is no stale binding to clear the way every other
+ * reorder in this file needed: the seed's re-bind fills it the moment a video
+ * titled "The rest of Claude" reaches the library. Both day 15 quiz questions
+ * were rewritten with the topic - see quiz-content.ts.
  *
  * WHY A RUN RATHER THAN THREE DAYS. The three build on one setting: the
  * add-ins coordinate, so Claude can read an Excel model and write the deck
@@ -330,8 +361,11 @@ export type TrackItemSpec = {
  * Plugins" is a straight loss and should be recorded as one. The distinction
  * it taught - "it misunderstood me" is a prompting problem, "it cannot reach
  * that" is a capability problem, and no rewrite touches the second - is
- * taught nowhere else, and its quiz question went with it. The cheapest home
- * if it is wanted back is a line in day 15's task, wherever day 15 lands.
+ * taught nowhere else, and its quiz question went with it. It is back, in
+ * one line of day 15's task, which is the home this paragraph proposed for
+ * it: Claude misunderstanding you is a prompting problem, Claude not being
+ * able to reach something is not. Taught and not examined, so it is half
+ * back rather than all the way.
  *
  * THE COPY WAS CHECKED against Anthropic's own documentation on 2026-09-15,
  * because a task that names a menu is worthless if the menu moved: the
@@ -386,18 +420,27 @@ export const DAY_TOPICS: readonly string[] = [
   "Word & PowerPoint extensions",
   "Excel extension",
   "Outlook extension",
-  "Choosing the right tool + measuring time saved",
+  "The rest of Claude",
 ] as const;
 
 /**
- * What day 1's video covers, shown under its title.
+ * What a day's video covers, shown under its title. Most days have none.
  *
  * Prose rather than a list because the card renders a description as a single
  * paragraph - newlines collapse, so a bulleted string would run together into
  * something that reads like a mistake.
+ *
+ * Two days earn one, for opposite reasons. Day 1's title is a question so
+ * broad it could be five minutes or a week, and day 15's is not a feature
+ * name at all, so "The rest of Claude" tells a member nothing until the
+ * description lists what is in it. The other thirteen are named after the one
+ * thing they teach, and a sentence restating the title is noise on a card
+ * that already has a video on it.
  */
-const DAY_ONE_VIDEO_DESCRIPTION =
-  "Prediction rather than lookup, the context window, training cutoff vs live data, the three failure sources and Time-Back Log setup.";
+const VIDEO_DESCRIPTIONS: Readonly<Record<number, string>> = {
+  1: "Prediction rather than lookup, the context window, training cutoff vs live data, the three failure sources and Time-Back Log setup.",
+  15: "The model picker, effort and thinking, what actually spends your usage limit, incognito chats and what sharing does on a Team plan, and the places Claude runs that the programme never opened: Chrome, the phone app, voice and quick entry.",
+};
 
 /** Live sessions land mid-week in each of the three weeks. */
 export const SESSION_DAYS = [3, 8, 13] as const;
@@ -1098,17 +1141,12 @@ const DAY_TASKS: Readonly<Record<number, string>> = {
     "Submit a screenshot of what it sorted, since an Outlook email has no link you can share, or a link if something you made has one.",
   ].join("\n"),
   15: [
-    "List the jobs you moved to Claude over the three weeks, with what each one used to take and what it takes now. If you have kept a Time-Back Log, you have the list already.",
-    "Then pick the biggest saving you are claiming and time it properly. Run the job end to end with the clock going, and write the real number next to your estimate.",
-    "Then work out where that job belongs:",
-    "- a Chat for a one-off",
-    "- a Project when the background is the same every time",
-    "- a Skill when it is a method colleagues should reuse",
-    "- a Scheduled Task when it runs on a rhythm",
-    "- Cowork when it is assembly across your own files",
-    "- an Artifact when the output is a thing your team will open again",
-    "If you have been running it in an ordinary Chat all fortnight and it belongs somewhere else, move it now.",
-    "Submit the link to your log.",
+    "Pick two things from today's video you have not used yet.",
+    "One from the settings. Take a job you already did this fortnight and run it again on Low or Medium effort. Most routine work does not need the default, and what you do not spend stays in your limit for the work that does.",
+    "One from the places Claude runs that we never opened: the Chrome extension, the phone app, dictation, or quick entry on the desktop app.",
+    "If either one still will not do the job, work out which problem you have. Claude misunderstanding you is a prompting problem and a rewrite fixes it. Claude not being able to reach something is not, and no rewrite ever will.",
+    "Anything with a patient in it, or anything you would not put in a group email, goes in an incognito chat. Those are not saved and cannot be shared, so file something else as your evidence.",
+    "Submit the link to a chat where you used one of them.",
   ].join("\n"),
 };
 
@@ -1207,7 +1245,7 @@ export function buildTrackItems(): TrackItemSpec[] {
     items.push({
       type: "video",
       title: topic,
-      description: dayIndex === 1 ? DAY_ONE_VIDEO_DESCRIPTION : undefined,
+      description: VIDEO_DESCRIPTIONS[dayIndex],
       dayIndex,
       sortOrder: SORT.video,
       learnVideoTitle: topic,
