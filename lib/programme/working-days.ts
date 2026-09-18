@@ -160,10 +160,25 @@ export const PROGRAMME_OPEN_LABEL = "7am";
  * is two steps and the second one is invisible - nothing warns you that a day
  * is still null, it just reads as a day whose video has not come.
  *
- * Day 15 stays, and the reason it stays is the reason it went in: it has no
- * recording yet. If one arrives before its morning, take the entry out the way
- * day 13's went, and bind it in the same breath - that is the half day 14
- * missed.
+ * DAY 15 HAS ITS RECORDING AND THE HOLD STAYS ANYWAY. That inverts the advice
+ * this paragraph used to give, which was to release early the way day 13's
+ * went as soon as a recording landed, so the change of mind is worth its own
+ * sentence. The recording arrived at about 04:00 on 2026-09-18 and was bound
+ * the same hour, so the day has nothing left to wait for and would survive a
+ * 07:00 open. The programme owner asked for 09:00 regardless.
+ *
+ * WHICH MEANS THE ENTRY NOW MEANS SOMETHING DIFFERENT from the four above it.
+ * Those were "this day is not ready". This one is "this day opens when we say
+ * it opens", on the last morning of the programme, which carries the
+ * summative quiz, the Work sample (after) and the post check-in. Do not read
+ * this entry as a day still waiting for content and take it out on that
+ * basis: the release condition the other four had is already met and the hold
+ * is deliberate.
+ *
+ * The bind was the half day 14 missed, and it was done in the same hour this
+ * time rather than seventy minutes after the day opened. All fifteen topic
+ * days are bound as of this entry, so no future morning on this track needs a
+ * hold for the reason days 11 to 14 had one.
  *
  * The entries expire on their own, so nothing has to be unset. Taking a spent
  * entry out rather than leaving it to expire is still deliberate. A spent
