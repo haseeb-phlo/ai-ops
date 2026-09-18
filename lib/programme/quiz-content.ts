@@ -482,39 +482,38 @@
  * that carried "the prompt framework from day 3" had already been corrected
  * once for exactly that.
  *
- * DAY 15 BECAME "THE REST OF CLAUDE" on 2026-09-18 and took both its
- * questions with it. The measurement day left the curriculum at the programme
- * owner's call, so the pair on remembered before-and-after figures and on
- * whether checking time counts had nothing left to examine. Neither could be
- * re-tagged: they were questions about arithmetic the track no longer asks
- * anybody to do.
+ * DAY 15 LOST BOTH ITS QUESTIONS AND GOT ONE BACK on 2026-09-18. The
+ * measurement day left the curriculum at the programme owner's call, so the
+ * pair on remembered before-and-after figures and on whether checking time
+ * counts had nothing left to examine. Neither could be re-tagged: they were
+ * questions about arithmetic the track no longer asks anybody to do.
  *
- * The replacements are written from Anthropic's help centre rather than from
- * a recording, the way days 12 to 14 were, because the video does not exist
- * yet. Both turn on a fact that is checkable rather than on a judgement call,
- * which is the safer shape when the recording might not say it in the same
- * words:
+ * A grab-bag replaced the topic first and two questions were written for it,
+ * on effort against the usage limit and on what sharing a chat does on a Team
+ * plan. Neither ever opened. The video became a summary a few hours later,
+ * and a summative quiz cannot examine a day that teaches no technique, so
+ * both were cut with the topic. They are recorded in the track-spec stanza
+ * rather than here, with the docs they were drawn from, because the gap list
+ * behind them is still true and is the brief for whoever fills it.
  *
- *   - effort. Low and medium suit routine work and stretch the usage limit
- *     further, high is the default, and a day of short rewrites on the top
- *     setting spends the limit on work that never needed it. The distractors
- *     are the three things people assume instead: that message length is what
- *     is counted, that effort is fixed once a chat starts, and that effort is
- *     thinking under another name. Model, effort and thinking can all be
- *     changed mid-conversation and thinking is a separate setting (8664678);
- *   - sharing. On Team and Enterprise plans a shared chat is visible only to
- *     signed-in members of the same organisation, there is no public link,
- *     what travels is a snapshot rather than the live chat, and attached
- *     files do not go with it (10593882, 16762437). The answer then lands on
- *     Phlo's own line: a patient's details belong in an incognito chat, which
- *     is not saved, not trained on, cannot be converted to a normal chat and
- *     is unavailable inside a Project (12260368).
+ * DAY 15 NOW CARRIES ONE QUESTION, not two, and it is about the judgement its
+ * Task asks for rather than about the video. The day's Task is to map a
+ * workflow and put it up for change, and choosing WHICH workflow is the whole
+ * skill: repetition is what AI can take, so a job that runs on a rhythm with
+ * the same steps beats the most complicated one, the loudest complaint and
+ * the biggest single cost. That question examines the programme's own thesis,
+ * which is the right thing for the item that gates completion.
  *
- * WHY NOT A QUESTION ON CHROME OR THE PHONE APP, which the same video covers.
- * Both are install-and-try rather than get-it-wrong-expensively, and the
- * summative quiz has two slots for this day. Effort is what members will feel
- * every week once they know it exists, and sharing is the one on this day
- * that can go wrong in a way a regulated pharmacy would mind.
+ * THE FREED SLOT WENT TO DAY 13, not back to the day 1 spiral. Restoring the
+ * spiral was the obvious move and the note above arguing for it is out of
+ * date: it was written when day 15 carried two questions on measurement that
+ * duplicated the Time-Back Log question, and that premise is gone. Day 13 and
+ * day 14 were the two days in the Office run carrying one question each, and
+ * day 13 is the one where getting it wrong costs the most, because the
+ * extension writes into a live workbook. Its second question tests the day's
+ * own safety line, which its first does not: describe how the sheet is built
+ * before asking, or it guesses. Week three does not spiral back over day 1,
+ * and no test asks it to - only that the set spans all three weeks.
  *
  * THE DAY 12 DISTRACTOR WAS RE-READ AND KEPT. "Whether extended thinking is
  * turned on for the request" was written as a red herring at a time when
@@ -991,6 +990,21 @@ export const WEEK_3_QUESTIONS: QuizQuestion[] = [
       "It works on the workbook that is open, so you can ask what a cell is doing, change an assumption and have the formulas updated in place, instead of pasting fragments into a chat and typing the answers back. It cannot reach a file you have not opened. It does not make the model right either. It writes into your file, so a wrong answer is a wrong number where it counts. Tell it how the sheet is built, then check what it changed.",
   },
   {
+    day: 13,
+    question:
+      "You open the Excel extension on a workbook it has never seen and ask it to fix a formula that broke. What should you do before you ask?",
+    options: [
+      "Tell it which cells are inputs and which are worked out by formulas",
+      "Turn the formulas off so it reads the values rather than the logic",
+      "Select only the single cell whose formula is broken, and nothing else",
+      "Rename the sheet after what it holds, so the context is in the title",
+      "Clear the cells it should not touch, and paste them back afterwards",
+    ],
+    correct: 0,
+    explanation:
+      "Left to guess how a sheet is built, it guesses: which cells you type into, which are worked out, what the currency is and whether a number is allowed to go negative. Say that first and the answer is about your model rather than a generic one. Turning the formulas off removes the logic it needs to read, and the other three are housekeeping that says nothing about how the workbook works. It writes into the live file, so check what it changed before you use the numbers.",
+  },
+  {
     day: 14,
     question:
       "The Outlook extension triages your inbox and hands you a reply with the recipients and subject already filled in. What is still yours?",
@@ -1008,32 +1022,17 @@ export const WEEK_3_QUESTIONS: QuizQuestion[] = [
   {
     day: 15,
     question:
-      "You run everything on the top effort setting, short rewrites included, and you keep running out of usage by the middle of the afternoon. What is the fix?",
+      "You are choosing which of your workflows to map and put up for change. What makes one a strong candidate?",
     options: [
-      "Ask shorter questions, since it is the length of your message that counts",
-      "Drop the routine work to a lower effort and keep the top setting for hard jobs",
-      "Switch to a smaller model, since effort cannot be changed once a chat starts",
-      "Nothing can be done about it, the limit is the limit whatever you set",
-      "Turn thinking off, since thinking is what the effort setting controls",
+      "It is the one your team complains about most in meetings",
+      "It runs on a rhythm and the same steps happen every time",
+      "It is the most complicated, so there is the most to gain from it",
+      "It is the one only you know how to do, so nobody will object",
+      "It is the one with the biggest single cost attached to it",
     ],
     correct: 1,
     explanation:
-      "Effort is how thorough Claude is, and a higher setting spends more getting there, so a day of short rewrites on the top setting empties your limit on work that never needed it. Low and medium are enough for routine jobs and leave the headroom for the ones that are not. You can change the model, the effort and thinking at any point in a chat rather than only at the start, and thinking is its own setting rather than another name for effort.",
-  },
-  {
-    day: 15,
-    question:
-      "You want to send a colleague a chat you worked something out in. On our Team plan, what does sharing it actually do?",
-    options: [
-      "Creates a public link that anyone outside Phlo could open if it is forwarded",
-      "Shares a snapshot with signed-in Phlo colleagues, frozen when you shared",
-      "Shares the live chat, so they see whatever you add to it afterwards",
-      "Sends them a copy they can edit and then send back to you with changes",
-      "Shares the conversation along with any files you had attached to it",
-    ],
-    correct: 1,
-    explanation:
-      "On Team and Enterprise plans a shared chat is only visible to signed-in members of the same organisation, so there is no public link to forward. What your colleague opens is a snapshot taken when you shared, not the live chat, so anything you write afterwards stays private until you share it again. Attached files are not included either. None of that makes it the right home for a patient's details, which belong in an incognito chat that is never saved and cannot be shared at all.",
+      "What AI takes off a workflow is repetition, so a job that runs on a rhythm with the same steps each time is the one with something to take. Complexity is not repetition, and the most complicated workflow is usually the one with the most judgement in it. A big one-off cost has nothing to automate, the loudest complaint tells you how the work feels rather than how tractable it is, and mapping the job only you understand makes the map harder for anybody to check.",
   },
   {
     day: 5,

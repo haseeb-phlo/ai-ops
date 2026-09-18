@@ -314,37 +314,56 @@ export type TrackItemSpec = {
  * screen needs the word their own screen uses. A day may be titled in the
  * house vocabulary; a step that names a menu may not.
  *
- * DAY 15 IS "THE REST OF CLAUDE" as of 2026-09-18, decided the night before
- * it opened. "Choosing the right tool + measuring time saved" is gone at the
- * programme owner's call. What replaced it was chosen by reading Anthropic's
- * help centre against the fourteen days already recorded and taking the
- * largest gaps that need nothing installed to teach: the model picker,
- * effort and thinking; usage limits and what actually spends them; incognito
- * chats and what sharing does on a Team plan; and the surfaces the programme
- * never opened, which are Chrome, the phone app, voice and quick entry.
+ * DAY 15 IS "WRAP-UP AND NEXT STEPS" as of 2026-09-18. It changed twice that
+ * night and the middle version never opened for anybody, which is worth
+ * recording because the second decision is the one that shaped the day.
  *
- * IT IS A GRAB-BAG AND THE TITLE ADMITS IT. Every other day is named after
- * the one feature it teaches, and a three-noun title pretending this day is
- * the same kind of thing would have been the dishonest option. The cost is
- * that the title carries no information on its own, which is why day 15 is
- * the second day on the track to get a video description. See
- * VIDEO_DESCRIPTIONS below.
+ * First, "Choosing the right tool + measuring time saved" went at the
+ * programme owner's call. It was replaced by "The rest of Claude", a grab-bag
+ * built by reading Anthropic's help centre against the fourteen days already
+ * recorded and taking the largest gaps that needed nothing installed to
+ * teach: the model picker, effort and thinking; usage limits and what
+ * actually spends them; incognito chats and what sharing does on a Team plan;
+ * and the surfaces the programme never opened, which are Chrome, the phone
+ * app, voice and quick entry.
+ *
+ * THAT GAP LIST IS STILL TRUE AND IS NOT TAUGHT ANYWHERE. None of it reached
+ * a member, because the video became a summary instead a few hours later, so
+ * it is not a loss from the curriculum so much as a list nobody has used yet.
+ * It is written down here rather than in a commit message because it is the
+ * cheapest brief anybody will ever have for a sixteenth day or a Learn
+ * library addition, and re-deriving it costs an evening of reading docs.
+ *
+ * Second, and this is the day as it opened: the video is a summary. Well done
+ * for finishing, here is what the fifteen days covered, and the next step is
+ * to think about how our workflows should change. That is a different job
+ * from teaching a fifteenth feature, and it is the right one for the last
+ * morning - the day already carries the summative quiz, the Work sample
+ * (after) and the post check-in, so a new technique arriving at the same time
+ * would be the fourth thing asking for attention on a day people want to
+ * finish.
+ *
+ * WHICH IS WHY THE TASK CARRIES THE DAY. A summary video cannot be examined
+ * and does not need practising, so the item that does the work is the Task,
+ * and it is the only one on the track whose output outlives the programme: a
+ * workflow mapped in `/workflows` and a linked suggestion in `/suggestions`
+ * are rows the roadmap ranks long after the cohort closes. Every other day
+ * asks a member to try a feature; this one asks them to put something into
+ * the system the programme exists to fill. See DAY_TASKS[15].
  *
  * WHAT WENT WITH THE MEASUREMENT DAY, and what did not. The retrospective did
- * not: day 15 still carries the Work sample (after) and the post check-in,
- * which are the two items that actually measure the fortnight, and neither
- * moved. What did go is the Time-Back Log being collected anywhere. Day 1's
- * video still sets one up and nothing now asks to see it, so the programme
- * starts a habit it no longer closes. If that matters more than the gaps
- * above, the cheap fix is a line in the Work sample slot, not taking the day
- * back.
+ * not: the Work sample (after) and the post check-in are the two items that
+ * actually measure the fortnight, and neither moved. What did go is the
+ * Time-Back Log being collected anywhere. Day 1's video still sets one up and
+ * nothing now asks to see it, so the programme starts a habit it no longer
+ * closes. The cheap fix is a line in the Work sample slot, not taking the
+ * measurement day back.
  *
- * NO MIGRATION, and this is the reason the change was affordable on the night
- * before the day opened. Day 15 was the one topic day whose `learn_video_id`
- * was still null, so there is no stale binding to clear the way every other
+ * NO MIGRATION, either time, and that is what made two changes in one night
+ * affordable. Day 15 was the one topic day whose `learn_video_id` was still
+ * null, so there was never a stale binding to clear the way every other
  * reorder in this file needed: the seed's re-bind fills it the moment a video
- * titled "The rest of Claude" reaches the library. Both day 15 quiz questions
- * were rewritten with the topic - see quiz-content.ts.
+ * titled "Wrap-up and next steps" reaches the library.
  *
  * WHY A RUN RATHER THAN THREE DAYS. The three build on one setting: the
  * add-ins coordinate, so Claude can read an Excel model and write the deck
@@ -420,7 +439,7 @@ export const DAY_TOPICS: readonly string[] = [
   "Word & PowerPoint extensions",
   "Excel extension",
   "Outlook extension",
-  "The rest of Claude",
+  "Wrap-up and next steps",
 ] as const;
 
 /**
@@ -431,15 +450,15 @@ export const DAY_TOPICS: readonly string[] = [
  * something that reads like a mistake.
  *
  * Two days earn one, for opposite reasons. Day 1's title is a question so
- * broad it could be five minutes or a week, and day 15's is not a feature
- * name at all, so "The rest of Claude" tells a member nothing until the
- * description lists what is in it. The other thirteen are named after the one
+ * broad it could be five minutes or a week, and day 15's names a shape rather
+ * than a subject - "Wrap-up and next steps" could be three minutes of thanks
+ * or the handover it actually is. The other thirteen are named after the one
  * thing they teach, and a sentence restating the title is noise on a card
  * that already has a video on it.
  */
 const VIDEO_DESCRIPTIONS: Readonly<Record<number, string>> = {
   1: "Prediction rather than lookup, the context window, training cutoff vs live data, the three failure sources and Time-Back Log setup.",
-  15: "The model picker, effort and thinking, what actually spends your usage limit, incognito chats and what sharing does on a Team plan, and the places Claude runs that the programme never opened: Chrome, the phone app, voice and quick entry.",
+  15: "A look back over the fifteen days, and the one thing that happens next: pick a workflow you own, map it, and put it up to be changed.",
 };
 
 /** Live sessions land mid-week in each of the three weeks. */
@@ -1141,12 +1160,11 @@ const DAY_TASKS: Readonly<Record<number, string>> = {
     "Submit a screenshot of what it sorted, since an Outlook email has no link you can share, or a link if something you made has one.",
   ].join("\n"),
   15: [
-    "Pick two things from today's video you have not used yet.",
-    "One from the settings. Take a job you already did this fortnight and run it again on Low or Medium effort. Most routine work does not need the default, and what you do not spend stays in your limit for the work that does.",
-    "One from the places Claude runs that we never opened: the Chrome extension, the phone app, dictation, or quick entry on the desktop app.",
-    "If either one still will not do the job, work out which problem you have. Claude misunderstanding you is a prompting problem and a rewrite fixes it. Claude not being able to reach something is not, and no rewrite ever will.",
-    "Anything with a patient in it, or anything you would not put in a group email, goes in an incognito chat. Those are not saved and cannot be shared, so file something else as your evidence.",
-    "Submit the link to a chat where you used one of them.",
+    "The last task, and the only one whose output outlives the programme.",
+    "Pick a workflow you actually own. Not the most impressive one: the one that runs every week and quietly eats your time. Map it under Workflows with Add new workflow, and give it the real numbers - how often it runs, the hours a week it takes, what it costs, and every step from start to finish.",
+    "Then say what should change about it. Go to Suggestions, use Suggest something, link it to the workflow you just mapped, and be specific about which steps AI should take off you and which have to stay with a person.",
+    "Then read three suggestions that are not yours and vote for the one you would want built first. Yours is not the only workflow that needs changing, and the queue is ranked by what people vote for.",
+    "Submit the link to the workflow you mapped.",
   ].join("\n"),
 };
 
