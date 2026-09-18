@@ -502,12 +502,35 @@ export function TrackItemCard({
                 // width: one block indented differently from every other on
                 // the same card. It starts and stops on the same lines as the
                 // rest now, off the column's own `sm:pr-10`.
+                //
+                // THE TWO SLOTS SAY DIFFERENT THINGS, and they have to. The
+                // "before" sample is anything at all, because on day one the
+                // point is just to get a starting point on the record. The
+                // "after" sample is compared against it, so "anything at all"
+                // is the wrong brief the second time: a Cowork session
+                // measured against a Project measures the change of tool
+                // rather than the change in the member. Both slots ran the
+                // paragraph below until 2026-09-18, and the day 15 one was
+                // asking for a sample nothing could be read off.
                 <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                  Submit a piece of work you&apos;ve done using Claude - a
-                  Project, a Cowork session, an Artefact, a Scheduled Task or
-                  anything at all. Send it exactly as it is; it is not meant to
-                  be tidied up. This is private and it measures the programme
-                  rather than you.
+                  {submissionKind === "work_sample_post" ? (
+                    <>
+                      Send the same kind of work you sent at the start. If it
+                      was a Cowork session then, send a Cowork session now. If
+                      it was a Project, send a Project. That is what lets the
+                      two be compared. Send it exactly as it is; it is not
+                      meant to be tidied up. This is private and it measures
+                      the programme rather than you.
+                    </>
+                  ) : (
+                    <>
+                      Submit a piece of work you&apos;ve done using Claude - a
+                      Project, a Cowork session, an Artefact, a Scheduled Task
+                      or anything at all. Send it exactly as it is; it is not
+                      meant to be tidied up. This is private and it measures
+                      the programme rather than you.
+                    </>
+                  )}
                 </p>
               )}
               <div className="mt-3 flex flex-wrap items-center gap-3">

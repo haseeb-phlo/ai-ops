@@ -927,7 +927,7 @@ export const WEEK_3_QUESTIONS: QuizQuestion[] = [
     ],
     correct: 0,
     explanation:
-      "What comes back is the thing itself rather than a description of it: a prototype you can walk somebody through, share for comments, export as a PNG or a page, or hand to Claude Code to build. A written spec leaves everybody picturing something slightly different, which is the problem it removes. It is still a quick draft, not a sign-off, and it does not replace the build.",
+      "What comes back is the thing itself rather than a description of it: a prototype you can walk somebody through, share for comments, export or hand to Claude Code to build. A written spec leaves everybody picturing something slightly different, which is the problem it removes. It is still a quick draft, not a sign-off, and it does not replace the build.",
   },
   {
     day: 11,
@@ -942,7 +942,7 @@ export const WEEK_3_QUESTIONS: QuizQuestion[] = [
     ],
     correct: 3,
     explanation:
-      "A prototype is only as specific as what you gave it. The spec, brief or page of notes you already have is what turns any company's screen into yours. Styling instructions only polish something generic, copying a competitor borrows their thinking, and cutting detail is the opposite of the fix.",
+      "A prototype is only as specific as what you gave it. The spec, brief or page of notes you already have is what turns any company's screen into yours. Styling instructions only polish something generic, copying a competitor borrows their thinking and cutting detail is the opposite of the fix.",
   },
   {
     day: 12,
@@ -1017,7 +1017,7 @@ export const WEEK_3_QUESTIONS: QuizQuestion[] = [
     ],
     correct: 2,
     explanation:
-      "Triage sorts the inbox into what needs you, what it can draft and what is noise, and the drafts arrive ready to send. That is exactly why you read one before it goes. It is a public beta, it works on the message in front of it, and an email sent in your name is yours, whoever wrote the first version.",
+      "Triage sorts the inbox into what needs you, what it can draft and what is noise, and the drafts arrive ready to send. That is exactly why you read one before it goes. It is a public beta and it works on the message in front of it. An email sent in your name is yours, whoever wrote the first version.",
   },
   {
     day: 15,
@@ -1032,7 +1032,7 @@ export const WEEK_3_QUESTIONS: QuizQuestion[] = [
     ],
     correct: 1,
     explanation:
-      "What AI takes off a workflow is repetition, so a job that runs on a rhythm with the same steps each time is the one with something to take. Complexity is not repetition, and the most complicated workflow is usually the one with the most judgement in it. A big one-off cost has nothing to automate, the loudest complaint tells you how the work feels rather than how tractable it is, and mapping the job only you understand makes the map harder for anybody to check.",
+      "What AI takes off a workflow is repetition, so a job that runs on a rhythm with the same steps each time is the one with something to take. Complexity is not repetition, and the most complicated workflow is usually the one with the most judgement in it. A big one-off cost has nothing to automate. The loudest complaint tells you how the work feels rather than how tractable it is, and mapping the job only you understand makes the map harder for anybody to check.",
   },
   {
     day: 5,
@@ -1062,7 +1062,7 @@ export const WEEK_3_QUESTIONS: QuizQuestion[] = [
     ],
     correct: 2,
     explanation:
-      "Recurring and predictable is a Scheduled Task, a one-off just needs a Chat, a method other people can run is a Skill, and reaching a system is a Connector. The near miss puts a Project in the third slot. A Project holds background for your own chats, it does not package a method somebody else's chat can trigger. Picking the wrong container is what makes simple work feel like hard work.",
+      "Recurring and predictable is a Scheduled Task, a one-off just needs a Chat, a method other people can run is a Skill and reaching a system is a Connector. The near miss puts a Project in the third slot. A Project holds background for your own chats, it does not package a method somebody else's chat can trigger. Picking the wrong container is what makes simple work feel like hard work.",
   },
 ];
 

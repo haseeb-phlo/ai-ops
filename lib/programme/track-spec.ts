@@ -458,7 +458,7 @@ export const DAY_TOPICS: readonly string[] = [
  */
 const VIDEO_DESCRIPTIONS: Readonly<Record<number, string>> = {
   1: "Prediction rather than lookup, the context window, training cutoff vs live data, the three failure sources and Time-Back Log setup.",
-  15: "A look back over the fifteen days, and the one thing that happens next: pick a workflow you own, map it, and put it up to be changed.",
+  15: "A look back over the fifteen days and the one thing that happens next: pick a workflow you own, map it and put it up to be changed.",
 };
 
 /** Live sessions land mid-week in each of the three weeks. */
@@ -1160,10 +1160,9 @@ const DAY_TASKS: Readonly<Record<number, string>> = {
     "Submit a screenshot of what it sorted, since an Outlook email has no link you can share, or a link if something you made has one.",
   ].join("\n"),
   15: [
-    "The last task, and the only one whose output outlives the programme.",
-    "Pick a workflow you actually own. Not the most impressive one: the one that runs every week and quietly eats your time. Map it under Workflows with Add new workflow, and give it the real numbers - how often it runs, the hours a week it takes, what it costs, and every step from start to finish.",
-    "Then say what should change about it. Go to Suggestions, use Suggest something, link it to the workflow you just mapped, and be specific about which steps AI should take off you and which have to stay with a person.",
-    "Then read three suggestions that are not yours and vote for the one you would want built first. Yours is not the only workflow that needs changing, and the queue is ranked by what people vote for.",
+    "Go to Workflows and use Add new workflow to map a job you own that runs every week and quietly eats your time. Give it the real numbers: how often it runs, the hours a week it takes, what it costs and every step from start to finish.",
+    "Go to Suggestions, use Suggest something and link it to the workflow you just mapped. Say which steps AI should take off you and which have to stay with a person.",
+    "Read three suggestions that are not yours and vote for the one you would want built first. The queue is ranked by what people vote for.",
     "Submit the link to the workflow you mapped.",
   ].join("\n"),
 };
@@ -1220,6 +1219,19 @@ export const QUIZ_SPECS = [
  * straight into red - and stopped being so when RAG moved to counting what is
  * LATE (see overdue.ts). Recorded because it is the reason the slots were
  * spread rather than batched, not a reason to bring them back.
+ */
+/*
+ * THE TWO WORK SAMPLES ARE A PAIR AND THEIR BRIEFS DIFFER, since 2026-09-18.
+ * The "before" slot takes anything at all, because on day 1 the only job is
+ * to get a starting point on the record. The "after" slot is compared against
+ * it, so it asks for the SAME KIND of work: a Cowork session measured against
+ * a Project measures a change of tool rather than a change in the member.
+ *
+ * Both slots ran the "anything at all" paragraph until then, which meant the
+ * day 15 sample was one nothing could be read off. The copy lives on the card
+ * rather than in `description` here - see the isWorkSample block in
+ * track-item-card.tsx, which branches on config_json.kind. It is the one piece
+ * of day copy that is not seeded, so changing it needs a deploy.
  */
 export const SUBMISSION_SLOT_SPECS = [
   { kind: "work_sample_pre", dayIndex: 1, title: "Work sample (before)", visibility: "private" },
