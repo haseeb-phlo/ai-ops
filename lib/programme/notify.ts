@@ -21,6 +21,19 @@ import { lookupSlackUserId, postToChannel, sendSlackDm, slackEnabled } from "@/l
  * not get DM'd twice.
  */
 
+/**
+ * The off switch for every Slack notification the programme sends: the
+ * Friday cohort-channel summary, the completion roundup and all DMs.
+ *
+ * Off, channel posts stop and DMs go by email instead, so nobody loses a
+ * reminder. Before this existed the only way to silence Slack was to unset
+ * SLACK_BOT_TOKEN, and turning "off" anywhere else changed nothing - the
+ * Friday posts kept going out. Flip to true and deploy to turn Slack back on.
+ *
+ * The admin "Send test" button still posts: somebody pressing it wants it to.
+ */
+export const SLACK_NOTIFICATIONS_ON = false;
+
 export type NotificationKind =
   | "member_reminder"
   | "lead_digest"
@@ -91,6 +104,7 @@ async function resolveSlackId(
   supabase: Client,
   recipient: Recipient,
 ): Promise<string | null> {
+  if (!SLACK_NOTIFICATIONS_ON) return null;
   if (recipient.slackUserId) return recipient.slackUserId;
   if (!slackEnabled) return null;
 
@@ -147,13 +161,19 @@ export async function notifyPerson(args: {
     : { via: "email", ok: true };
 }
 
-/** Posts to a cohort's channel. No-ops when there is no channel or no Slack. */
+/**
+ * Posts to a cohort's channel. No-ops when there is no channel, no Slack, or
+ * Slack notifications are switched off.
+ */
 export async function notifyChannel(args: {
   channel: string | null;
   text: string;
 }): Promise<DeliveryOutcome> {
   if (!args.channel) {
     return { via: "none", ok: false, reason: "no_channel_configured" };
+  }
+  if (!SLACK_NOTIFICATIONS_ON) {
+    return { via: "none", ok: false, reason: "slack_notifications_off" };
   }
   if (!slackEnabled) {
     return { via: "none", ok: false, reason: "slack_not_configured" };

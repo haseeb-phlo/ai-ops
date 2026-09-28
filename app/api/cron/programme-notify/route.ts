@@ -25,6 +25,7 @@ import {
   notifyChannel,
   notifyPerson,
   recordOutcome,
+  SLACK_NOTIFICATIONS_ON,
   type NotificationKind,
 } from "@/lib/programme/notify";
 import type { RagStatus } from "@/lib/programme/rag";
@@ -434,7 +435,9 @@ export async function GET(request: NextRequest) {
 
     // One summary per cohort channel.
     for (const cohort of liveCohorts) {
-      if (!cohort.slack_channel) continue;
+      // Checked before the claim, so a week spent switched off does not
+      // leave a failed claim behind that blocks the post once it is back on.
+      if (!cohort.slack_channel || !SLACK_NOTIFICATIONS_ON) continue;
       const cohortMembers = members.filter((m) => m.cohort_id === cohort.id);
       if (cohortMembers.length === 0) continue;
 
@@ -546,7 +549,7 @@ export async function GET(request: NextRequest) {
     }
 
     for (const cohort of liveCohorts) {
-      if (!cohort.slack_channel) continue;
+      if (!cohort.slack_channel || !SLACK_NOTIFICATIONS_ON) continue;
       // Only on this cohort's own last day - day 15, the Friday of week 3.
       if (finalDayDate(cohort.start_date) !== today) continue;
 
@@ -625,6 +628,7 @@ export async function GET(request: NextRequest) {
       today,
       week,
       slackConfigured: slackEnabled,
+      slackNotificationsOn: SLACK_NOTIFICATIONS_ON,
       sent: results.length,
       results: results.slice(0, 60),
     },
