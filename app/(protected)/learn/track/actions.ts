@@ -399,9 +399,16 @@ const TaskFileSchema = z.object({
  *
  * The day that forced this is day 7: a Claude scheduled task has runs but no
  * Share link, so a member who had done the work had nothing to paste and no
- * way to complete the day. It is offered on every Task rather than that one,
- * because the same gap turns up wherever the output is a file, a desktop app
- * or somebody else's system.
+ * way to complete the day. Day 14 is the only other one - Outlook work has no
+ * address a colleague can open and no shareable chat either.
+ *
+ * IT IS NOT OFFERED ON EVERY TASK, which is what this said until 2026-09-28
+ * and how it shipped. The gap it was reasoning from - output that is a file, a
+ * desktop app or somebody else's system - turns up on two of the fourteen
+ * linkable days, and a picture is worse evidence than the thing itself
+ * everywhere else: whoever reads it later can open a link and cannot open a
+ * screenshot. SCREENSHOT_TASK_DAYS in task-link.ts holds the two, and the
+ * argument a third would have to make.
  *
  * The blob goes to a private bucket keyed by cohort member and item, which is
  * what its storage policies read - see the task_evidence_uploads migration.
@@ -456,7 +463,7 @@ export async function saveTaskOutputFile(
   });
   if (!resolved.ok) return { kind: "error", message: resolved.message };
 
-  // Only the day that has nothing linkable takes a picture instead. The card
+  // Only the days that have nothing linkable take a picture instead. The card
   // hides the button everywhere else; re-checked here on the same convention
   // as taskTakesLink above, so a stale tab cannot upload against a day that
   // stopped offering it - and so nothing lands in the bucket that no surface
