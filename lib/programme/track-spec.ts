@@ -1361,7 +1361,7 @@ export function buildTrackItems(): TrackItemSpec[] {
 
   items.push({
     type: "questionnaire_post",
-    title: "Your AI Score - see what three weeks did",
+    title: "Your AI Score",
     dayIndex: 15,
     sortOrder: SORT.questionnaire_post,
   });
