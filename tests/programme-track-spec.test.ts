@@ -24,10 +24,10 @@ const countOf = (type: string) => items.filter((i) => i.type === type).length;
 const tasks = items.filter((i) => i.type === "use_example");
 
 describe("Core Programme track shape", () => {
-  it("produces 41 items in total", () => {
+  it("produces 40 items in total", () => {
     // 1 baseline + 30 video/use_example + 3 sessions + 3 quizzes
-    // + 3 submission slots + 1 post check-in.
-    expect(items).toHaveLength(41);
+    // + 2 submission slots + 1 post check-in.
+    expect(items).toHaveLength(40);
   });
 
   it("has one baseline gate on day 0 and nothing else there", () => {
@@ -108,12 +108,16 @@ describe("Core Programme track shape", () => {
     }
   });
 
-  it("provides a capstone and two work samples, and no example slots", () => {
-    const kinds = SUBMISSION_SLOT_SPECS.map((s) => s.kind);
-    expect(kinds.filter((k) => k === "capstone")).toHaveLength(1);
+  it("provides two work samples and nothing else", () => {
+    // The capstone went with the Example slots, and for a related reason: day
+    // 13 already asks for the workbook, and the slot asked again without ever
+    // saying what for. The kind stays in the schema and in every reader,
+    // because live cohorts have approved capstones carrying two G3 credits.
+    const kinds: readonly string[] = SUBMISSION_SLOT_SPECS.map((s) => s.kind);
+    expect(kinds).not.toContain("capstone");
     expect(kinds.filter((k) => k === "work_sample_pre")).toHaveLength(1);
     expect(kinds.filter((k) => k === "work_sample_post")).toHaveLength(1);
-    expect(countOf("submission_slot")).toBe(3);
+    expect(countOf("submission_slot")).toBe(2);
   });
 
   it("asks for no signed examples, because the daily Task collects the work", () => {

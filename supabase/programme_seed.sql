@@ -103,7 +103,6 @@ Then give it a real job. Clean up a messy import, fix a formula that broke, or r
 Check what it did before you use the numbers. It can be wrong and sound certain, so reconcile the sections that matter and read the assumptions it made.
 Submit the link to the workbook.', 13, 1, null, '{}'::jsonb),
     ('session', 'Live session 3', null, 13, 2, null, '{"slots":2}'::jsonb),
-    ('submission_slot', 'Capstone', null, 13, 4, null, '{"kind":"capstone","visibility":"cohort"}'::jsonb),
     ('video', 'Outlook extension', null, 14, 0, 'Outlook extension', '{}'::jsonb),
     ('use_example', 'Task', 'Install the Claude extension for Outlook. It is a public beta, and it opens from the ribbon when you have an email open.
 Ask it to go through the inbox you dread on a Monday and sort it: what needs you, what it can draft for you, and what is noise.
@@ -216,7 +215,6 @@ Then give it a real job. Clean up a messy import, fix a formula that broke, or r
 Check what it did before you use the numbers. It can be wrong and sound certain, so reconcile the sections that matter and read the assumptions it made.
 Submit the link to the workbook.'),
     (13, 2, 'Live session 3', null),
-    (13, 4, 'Capstone', null),
     (14, 0, 'Outlook extension', null),
     (14, 1, 'Task', 'Install the Claude extension for Outlook. It is a public beta, and it opens from the ribbon when you have an email open.
 Ask it to go through the inbox you dread on a Monday and sort it: what needs you, what it can draft for you, and what is noise.

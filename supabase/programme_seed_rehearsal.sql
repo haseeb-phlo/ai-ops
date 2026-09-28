@@ -225,10 +225,17 @@ on conflict (cohort_id, track_item_id, user_id) do nothing;
 
 -- 7. Capstones, including one sent back and one still pending ------------
 --
--- The capstone is the only reviewed submission left on the track: the five
--- signed-example slots were removed, and the two work samples are private
--- and never signed off. So this is what the sign-off queue, the rejection DM
--- and the gallery all have to be demonstrated on.
+-- INSERTS NOTHING ON A TRACK SEEDED AFTER 2026-09-28, when the capstone slot
+-- was removed from day 13: the join below finds no submission_slot of that
+-- kind and the whole statement matches zero rows. Left in place rather than
+-- deleted because a track seeded before then still has the slot, and this is
+-- the only thing that fills it.
+--
+-- What goes with it is the demonstration. The capstone was the only reviewed
+-- submission on the track - the two work samples are private and never signed
+-- off - so on a freshly seeded rehearsal the sign-off queue, the rejection DM
+-- and the gallery have nothing in them. Whatever replaces it has to seed the
+-- same three surfaces.
 insert into public.programme_submissions
   (cohort_member_id, track_item_id, kind, prompt_text, task_solved,
    time_saved_estimate, visibility, signoff_status, signoff_rubric_json,

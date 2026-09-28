@@ -1193,8 +1193,28 @@ export const QUIZ_SPECS = [
 ] as const;
 
 /**
- * Submission slots: the two work samples and the capstone. Three, on days 1,
- * 13 and 15.
+ * Submission slots: the two work samples. Two, on days 1 and 15.
+ *
+ * THE CAPSTONE IS GONE. It sat on day 13 as a cohort-visible submission box
+ * with no brief - no seeded description, and none on the card either, which
+ * left "Capstone" and a Submit button to say what was wanted. Day 13 already
+ * asks for the Excel workbook the member worked on, so the slot was a second
+ * ask on a day that had one, and the thing it asked for was never written
+ * down. G3 does not need it: the test below proves the fourteen linkable
+ * Tasks clear five credits on their own.
+ *
+ * `capstone` stays in the programme_submissions CHECK constraint and in every
+ * reader that filters on it - gates.ts, ai-review.ts, the sign-off card - for
+ * the reason `signed_example` does: live cohorts have approved capstones
+ * carrying two G3 credits each, and nobody is made to re-earn a credit
+ * because the programme changed underneath them. Nothing here deletes the
+ * item either, so a cohort mid-flight keeps the slot it started with and only
+ * a fresh seed produces a track without it.
+ *
+ * It was also the only submission on the track that anyone signed off - both
+ * work samples are private and never reviewed - so a track seeded without it
+ * leaves the sign-off queue, the rejection path and the gallery with nothing
+ * to show. That is the cost, recorded rather than fixed here.
  *
  * THE FIVE "Example N" SLOTS ARE GONE. They sat on days 3, 6, 9, 12 and 14
  * and asked for a signed example of good work - which by then was a second,
@@ -1235,7 +1255,6 @@ export const QUIZ_SPECS = [
  */
 export const SUBMISSION_SLOT_SPECS = [
   { kind: "work_sample_pre", dayIndex: 1, title: "Work sample (before)", visibility: "private" },
-  { kind: "capstone", dayIndex: 13, title: "Capstone", visibility: "cohort" },
   { kind: "work_sample_post", dayIndex: 15, title: "Work sample (after)", visibility: "private" },
 ] as const;
 

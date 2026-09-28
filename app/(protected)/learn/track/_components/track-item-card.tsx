@@ -487,13 +487,15 @@ export function TrackItemCard({
           {revealed && item.type === "submission_slot" && (
             <>
               {/* What a work sample IS, said on the card rather than inside
-                  the dialog. "Capstone" on day 13 names itself, and so did
-                  the Example slots before they were removed - but "Work
-                  sample (before)" on day one is a title and a Submit button
-                  with no brief attached, and the brief only appeared once you
-                  had already decided to click. The two things people need to
-                  know before deciding are that anything counts and that it is
-                  not a test of them, so both belong out here. */}
+                  the dialog. "Work sample (before)" on day one is otherwise a
+                  title and a Submit button with no brief attached, and the
+                  brief only appeared once you had already decided to click.
+                  The two things people need to know before deciding are that
+                  anything counts and that it is not a test of them, so both
+                  belong out here. The work samples are now the only slots
+                  there are - the Example slots and then the day 13 capstone
+                  were each left to name themselves, and the capstone went
+                  partly because a one-word title is not a brief. */}
               {isWorkSample && (
                 // No measure here either - same rule as the NO MEASURE note
                 // above. This was the one paragraph the `max-w-prose` cap
