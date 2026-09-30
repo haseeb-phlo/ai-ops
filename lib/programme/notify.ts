@@ -57,8 +57,13 @@ export type Recipient = {
 };
 
 export type DeliveryOutcome =
-  | { via: "slack"; ok: true }
-  | { via: "email"; ok: true }
+  /**
+   * `note` is for a send that landed with something worth recording against
+   * it - a thread comment that failed under a post that went up, say. It is
+   * appended to the send log's detail; it does not make the outcome a failure.
+   */
+  | { via: "slack"; ok: true; note?: string }
+  | { via: "email"; ok: true; note?: string }
   | { via: "none"; ok: false; reason: string };
 
 type Client = ReturnType<typeof createAdminClient>;
@@ -199,7 +204,9 @@ export async function recordOutcome(
     .update({
       succeeded: args.outcome.ok,
       detail: args.outcome.ok
-        ? args.outcome.via
+        ? args.outcome.note
+          ? `${args.outcome.via}: ${args.outcome.note}`
+          : args.outcome.via
         : `failed: ${args.outcome.reason}`,
     })
     .eq("kind", args.kind)

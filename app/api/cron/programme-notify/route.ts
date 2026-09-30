@@ -5,7 +5,7 @@ import { isCronAuthorized } from "@/lib/cron-auth";
 import { appUrl } from "@/lib/app-url";
 import { isAllowedEmail } from "@/lib/auth-domain";
 import { resolveDisplayName } from "@/lib/profile";
-import { slackEnabled } from "@/lib/slack";
+import { lookupSlackUserId, postToChannel, slackEnabled } from "@/lib/slack";
 import {
   finalDayDate,
   hourInLondon,
@@ -26,23 +26,32 @@ import {
   notifyPerson,
   recordOutcome,
   SLACK_NOTIFICATIONS_ON,
+  type DeliveryOutcome,
   type NotificationKind,
 } from "@/lib/programme/notify";
+import {
+  dueShoutouts,
+  SHOUTOUT_HOUR,
+  shoutoutPeriodKey,
+} from "@/lib/programme/shoutouts";
 import type { RagStatus } from "@/lib/programme/rag";
 
 /**
  * Programme notifications.
  *
- * One handler, four jobs, selected by `?job=`:
+ * One handler, five jobs, selected by `?job=`:
  *   member_reminder   - Mondays 9am: DM anyone with outstanding items
  *   lead_digest       - Fridays: DM each lead their team plus sign-off queue
  *   day_90            - daily sweep: nudge cohorts that finished 90 days ago
  *   cohort_completion - 4pm on a cohort's final Friday: one channel post
  *                       naming everyone who finished
+ *   shoutout          - daily 9am sweep: post any hand-written shout-out
+ *                       dated today to its cohort's channel, with its
+ *                       thread comment. The table is lib/programme/shoutouts.
  *
- * One route rather than four because they share all the plumbing - auth, the
- * admin client, recipient resolution, claim-before-send - and four copies of
- * that is four places for it to drift.
+ * One route rather than five because they share all the plumbing - auth, the
+ * admin client, recipient resolution, claim-before-send - and five copies of
+ * that is five places for it to drift.
  *
  * EVERY send claims first. A retried cron, a double fire, or someone hitting
  * the URL twice is a no-op rather than a second DM to a hundred people.
@@ -58,6 +67,7 @@ const JOBS = [
   "lead_digest",
   "day_90",
   "cohort_completion",
+  "shoutout",
 ] as const;
 
 /** London hour the end-of-programme roundup goes out. */
@@ -110,6 +120,174 @@ export async function GET(request: NextRequest) {
   const today = todayInLondon(now);
   const week = isoWeekKey(now);
   const url = appUrl();
+
+  /* ---------------- Dated shout-outs: one post, one thread comment --- */
+  // Ahead of the live-cohort load on purpose. The first shout-out is dated
+  // 5 October for a cohort whose programme ended on 18 September, so by then
+  // it may well be marked complete - and the `status = 'live'` filter below,
+  // plus the early return when nothing is live, would skip the post without
+  // a word. The cohort is fetched by id instead, whatever its status.
+  if (job === "shoutout") {
+    // Same dual-hour trick as the other stated-London-hour jobs: scheduled
+    // on both candidate UTC hours, the early firing returns here in summer,
+    // and in winter the claim makes the second firing a no-op.
+    if (hourInLondon(now) < SHOUTOUT_HOUR) {
+      return NextResponse.json(
+        { ok: true, job, skipped: "before-9am-london", today },
+        { headers: NO_STORE },
+      );
+    }
+
+    // A dry run may ask about another date, so the exact text - mention
+    // included - can be read from production before the morning it goes out.
+    // Ignored on a real run: a live post only ever goes on its own day.
+    const requestedDate = dryRun ? searchParams.get("date") : null;
+    if (requestedDate && !/^\d{4}-\d{2}-\d{2}$/.test(requestedDate)) {
+      return NextResponse.json(
+        { error: "date must be YYYY-MM-DD" },
+        { status: 400, headers: NO_STORE },
+      );
+    }
+    const date = requestedDate ?? today;
+    const due = dueShoutouts(date);
+    const results: {
+      to: string;
+      via: string;
+      tagged?: boolean;
+      preview?: string;
+    }[] = [];
+
+    for (const shoutout of due) {
+      const { data: cohort } = await supabase
+        .from("programme_cohorts")
+        .select("id, name, slack_channel")
+        .eq("id", shoutout.cohortId)
+        .maybeSingle<{ id: string; name: string; slack_channel: string | null }>();
+      if (!cohort?.slack_channel) {
+        results.push({
+          to: shoutout.cohortId,
+          via: "failed:no_channel_configured",
+        });
+        continue;
+      }
+
+      // The tag. The cached id on the person's profile first - the same
+      // column the DM path reads and writes - then Slack's own lookup by
+      // email, then the plain name, so the post still goes out and still
+      // credits the right person if neither finds them.
+      const { data: memberRows } = await supabase
+        .from("programme_cohort_members")
+        .select("user_id")
+        .eq("cohort_id", cohort.id)
+        .returns<{ user_id: string }[]>();
+      const memberIds = (memberRows ?? []).map((m) => m.user_id);
+      const { data: emailRows } =
+        memberIds.length > 0
+          ? await supabase.rpc("user_emails", { p_user_ids: memberIds })
+          : { data: [] };
+      const wanted = shoutout.person.email.toLowerCase();
+      const member = (
+        (emailRows ?? []) as { user_id: string; email: string | null }[]
+      ).find((e) => e.email?.toLowerCase() === wanted);
+
+      let slackId: string | null = null;
+      if (member) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("slack_user_id")
+          .eq("user_id", member.user_id)
+          .maybeSingle<{ slack_user_id: string | null }>();
+        slackId = profile?.slack_user_id ?? null;
+      }
+      if (!slackId && slackEnabled) {
+        slackId = await lookupSlackUserId(shoutout.person.email);
+      }
+      const text = shoutout.text(
+        slackId ? `<@${slackId}>` : shoutout.person.name,
+      );
+      const to = `#${cohort.slack_channel}`;
+
+      if (dryRun) {
+        results.push({ to, via: "dry-run", tagged: slackId !== null, preview: text });
+        continue;
+      }
+
+      // Kind reused rather than added: `kind` is pinned by a CHECK constraint
+      // and the period key is what tells this row apart, as `completion:`
+      // does. One claim covers the post and its thread comment.
+      const periodKey = shoutoutPeriodKey(shoutout);
+      if (!(await claimSend(supabase, {
+        kind: "cohort_summary",
+        userId: null,
+        periodKey,
+        channel: cohort.slack_channel,
+      }))) {
+        continue;
+      }
+
+      // Straight to postToChannel, not notifyChannel. SLACK_NOTIFICATIONS_ON
+      // silences the programme's generated messages, and this is not one of
+      // those: it is a message somebody wrote, for a day they chose, which is
+      // the admin test button's category and bypasses the switch for the
+      // same reason.
+      const posted = await postToChannel(cohort.slack_channel, text);
+      let outcome: DeliveryOutcome;
+      if (!posted.ok) {
+        outcome = {
+          via: "none",
+          ok: false,
+          reason: "error" in posted ? posted.error : "skipped",
+        };
+      } else if (shoutout.threadReply) {
+        const reply = await postToChannel(
+          cohort.slack_channel,
+          shoutout.threadReply,
+          { threadTs: posted.ts },
+        );
+        // The post is up either way. A comment that failed to land under it
+        // is a line in the send log, not grounds for a second post.
+        outcome = reply.ok
+          ? { via: "slack", ok: true }
+          : {
+              via: "slack",
+              ok: true,
+              note: `thread comment failed: ${"error" in reply ? reply.error : "skipped"}`,
+            };
+      } else {
+        outcome = { via: "slack", ok: true };
+      }
+      await recordOutcome(supabase, {
+        kind: "cohort_summary",
+        userId: null,
+        periodKey,
+        outcome,
+      });
+      results.push({
+        to,
+        via: outcome.ok
+          ? outcome.note
+            ? `${outcome.via} (${outcome.note})`
+            : outcome.via
+          : `failed:${outcome.reason}`,
+        tagged: slackId !== null,
+      });
+    }
+
+    return NextResponse.json(
+      {
+        ok: true,
+        job,
+        dryRun,
+        today,
+        date,
+        due: due.length,
+        slackConfigured: slackEnabled,
+        sent: results.length,
+        results,
+      },
+      { headers: NO_STORE },
+    );
+  }
 
   const { data: cohorts } = await supabase
     .from("programme_cohorts")

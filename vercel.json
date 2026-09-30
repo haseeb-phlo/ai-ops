@@ -32,6 +32,14 @@
     {
       "path": "/api/cron/programme-notify?job=cohort_completion",
       "schedule": "0 16 * * 5"
+    },
+    {
+      "path": "/api/cron/programme-notify?job=shoutout",
+      "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/programme-notify?job=shoutout",
+      "schedule": "0 9 * * *"
     }
   ]
 }

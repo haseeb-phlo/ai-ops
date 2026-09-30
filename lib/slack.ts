@@ -24,7 +24,15 @@ export const slackToken = process.env.SLACK_BOT_TOKEN?.trim() || null;
 export const slackEnabled = slackToken !== null;
 
 export type SlackResult =
-  | { ok: true; channel: string }
+  | {
+      ok: true;
+      channel: string;
+      /**
+       * Slack's message timestamp, which doubles as the message id. Pass it
+       * back as `threadTs` to reply under that message.
+       */
+      ts: string;
+    }
   | { ok: false; skipped: true }
   | { ok: false; skipped?: false; error: string };
 
@@ -71,22 +79,31 @@ export async function lookupSlackUserId(
   return result.data.user?.id ?? null;
 }
 
-/** Posts to a channel. `channel` may be a name or an id; Slack accepts both. */
+/**
+ * Posts to a channel. `channel` may be a name or an id; Slack accepts both.
+ *
+ * `threadTs` posts the message as a reply under an earlier one - the `ts`
+ * that message's own result carried. Without it the post starts a new
+ * top-level message, which is what every caller wanted until the cohort
+ * shout-out needed a comment in its own thread.
+ */
 export async function postToChannel(
   channel: string,
   text: string,
+  options: { threadTs?: string } = {},
 ): Promise<SlackResult> {
   if (!slackEnabled) return { ok: false, skipped: true };
-  const result = await call<unknown>("chat.postMessage", {
+  const result = await call<{ ts?: string }>("chat.postMessage", {
     channel: channel.replace(/^#/, ""),
     text,
+    ...(options.threadTs ? { thread_ts: options.threadTs } : {}),
     // Suppress link previews: a digest full of deep links would otherwise
     // unfurl into an unreadable wall.
     unfurl_links: false,
     unfurl_media: false,
   });
   return result.ok
-    ? { ok: true, channel }
+    ? { ok: true, channel, ts: result.data.ts ?? "" }
     : { ok: false, error: result.error };
 }
 
@@ -99,13 +116,13 @@ export async function sendSlackDm(
   text: string,
 ): Promise<SlackResult> {
   if (!slackEnabled) return { ok: false, skipped: true };
-  const result = await call<unknown>("chat.postMessage", {
+  const result = await call<{ ts?: string }>("chat.postMessage", {
     channel: slackUserId,
     text,
     unfurl_links: false,
     unfurl_media: false,
   });
   return result.ok
-    ? { ok: true, channel: slackUserId }
+    ? { ok: true, channel: slackUserId, ts: result.data.ts ?? "" }
     : { ok: false, error: result.error };
 }
